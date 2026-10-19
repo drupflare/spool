@@ -31,7 +31,7 @@ The worker keeps these stores. Sealed means AES-GCM ciphertext at rest, describe
 | Beacon queue        | IndexedDB `spool`, store `beacons`                                | held analytics requests, view events, loads reports, flush clocks                                      | no     | a flush, or the age cap. A logout sends or drops the same-origin ones  |
 | Cache storage       | `spool-static-<version>`, `spool-assets-<version>`, `spool-third` | static files and the manifest, immutable same-origin assets, allowed third-party files                 | no     | caches of older versions on activation. Not by a logout                |
 
-The device holds only what the server already sent that principal. The worker has three sources of artifact content: `/.spool/artifact`, the `artifacts` list in a beacon answer, and a response it fetched itself for a `static` route. A beacon answer is built without an identity, so it holds public artifacts only, and `accept` (`src/sw/runtime.ts`) discards any artifact whose scope is not `public`. A principal artifact is stored only when the response's `Spool-Partition` equals the partition the worker holds (`provision`, `src/sw/runtime.ts`). `tests/node/partitions.spec.ts` covers an artifact answered for another partition.
+The device holds only what the server already sent that principal. The worker has four sources of artifact content: `/.spool/artifact`, the `artifacts` list in a beacon answer, the `catalogue` list in a beacon answer, and a response it fetched itself for a `static` route. The `artifacts` list is built without an identity, so it holds public artifacts only, and `accept` (`src/sw/runtime.ts`) discards any artifact whose scope is not `public`. The `catalogue` list is built with the identity of the beacon request, and `acceptCatalogue` keeps a principal entry only when the answer's `Spool-Partition` equals the partition the worker holds. A principal artifact from `/.spool/artifact` is stored only when the response's `Spool-Partition` equals the partition the worker holds (`provision`, `src/sw/runtime.ts`). `tests/node/partitions.spec.ts` covers an artifact answered for another partition, and `tests/node/catalogue.spec.ts` covers a catalogue answered for another one.
 
 A route with `persist: false` keeps its artifact in worker memory and writes nothing to IndexedDB.
 
@@ -45,12 +45,12 @@ The worker authorises nothing. It decides whether to show a stored page from the
 
 Four paths answer anyone.
 
-| Path                        | What a caller learns or can do                                                                                                                                                                                                         |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/spool-sw.js`              | the full worker config: every route's pattern, scope, freshness and retention, the compiled templates, beacon and logout paths, collector entries, the third-party allowlist, provisioning priors and the client tag                   |
-| `/.spool/sync`              | with `from=0`, every tag that has changed since the vector began, each with its version. Tag names and the write rate are public. With an `identity` option the answer also carries the caller's own partition id in `Spool-Partition` |
-| `/.spool/artifact?path=...` | the artifact of any public route. Each call runs `depends` and `load`, and the answer is `no-store`                                                                                                                                    |
-| `/.spool/beacon`            | accepts a batch from anyone. `parseBeaconBatch` checks structure, never truth, so a sink receives forged events. A batch's `want` makes the server build up to 8 public artifacts per request                                          |
+| Path                        | What a caller learns or can do                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/spool-sw.js`              | the full worker config: every route's pattern, scope, freshness and retention, the compiled templates, beacon and logout paths, collector entries, the third-party allowlist, provisioning priors and the client tag                                                                                                            |
+| `/.spool/sync`              | with `from=0`, every tag that has changed since the vector began, each with its version. Tag names and the write rate are public. With an `identity` option the answer also carries the caller's own partition id in `Spool-Partition`                                                                                          |
+| `/.spool/artifact?path=...` | the artifact of any public route. Each call runs `depends` and `load`, and the answer is `no-store`                                                                                                                                                                                                                             |
+| `/.spool/beacon`            | accepts a batch from anyone. `parseBeaconBatch` checks structure, never truth, so a sink receives forged events. A batch's `want` makes the server build up to 8 public artifacts per request, and its `catalogue` makes the server run the named route's `catalogue` function and build up to 32 pages (`MAX_CATALOGUE_BUILD`) |
 
 A template is code that ships to every visitor, so it must hold nothing private. Page data is what carries private values, and it travels only in an authorised artifact.
 
@@ -157,6 +157,20 @@ The consequences, each read from `decide` in `src/sw/runtime.ts`:
 - A `soft` principal route shows the stored page first and syncs after, so it shows one stale view past the bound.
 - A sync that fails counts as offline.
 
+## Catalogue Entries
+
+A catalogue puts the data of pages the visitor has not opened on the device ([protocol.md](protocol.md#catalogue)). The entry is data the server would send on a visit, built by the route's `load` with the identity of the beacon request, so it holds nothing the visitor may not see. Five things follow from the visitor never having asked for it.
+
+- **It sits on the device unopened.** A public entry is in the public replica, which is not sealed, so anyone who reads the profile reads it. A principal entry is in the sealed partition store. Script on the origin can list the ids of both through `spool:graph` and `spool:partition`, and can `fetch` a principal `data` entry once the route serves it.
+- **A revoked entry nobody opens is dropped by the sweep.** Revocation reaches a stored page through a required sync that names its tags ([Revocation](#revocation)), and no page names an entry the visitor never opens. So every sync of a principal page also names the dependency tags and drop tag of the unopened catalogue entries in that partition (`Replica.sweep`), and the first one after a tag moves drops the entry. When those ids and the page's own are more than `MAX_NEED`, the worker makes a full sync by cursor. `tests/node/catalogue.spec.ts` covers the drop, the full sync, and the control where nothing was revoked.
+- **The exposure is the one a stored page has.** Opening an entry goes through the route's `maxStale` check like any page, so a permission revoked within the bound still shows it. A device that makes no required principal sync keeps the entry until the visitor returns or the partition is wiped, as [Revocation](#revocation) says of any page.
+- **A server only sends principal entries to a worker that sweeps.** The batch says `sweep: true`, and `createSpool` skips principal routes when it does not. A second worker implementation that does not sweep must not send it. A request that resolves to nobody gets none, and the worker keeps a principal entry only for the partition it holds.
+- **Save-Data sends nothing.** The server reads `Save-Data: on` from the beacon request. A proxy that strips the header, or a server that never sees it, sends a catalogue to a visitor who asked the browser to save data.
+
+The catalogue request names the path of the page the visitor is on. A page the worker showed locally made no request and `spool.view` never carries a path, so this request is the one place the server learns the path of a page it did not serve. The worker sends it only for routes that declare `catalogue`, once per path while it runs, with a flush that leaves anyway. A site that does not want the server to learn local views leaves `catalogue` off.
+
+A catalogue request costs the server a call to the route's `catalogue` and up to `MAX_CATALOGUE_BUILD` page builds, with no credentials and no rate limit. The route's `catalogue` receives a context whose request is a `GET` carrying the headers of the beacon request, cookies included. Sweep tags go in the `need` query like any other tag name, so use opaque ids for anything sensitive ([Sync Tag Names](#sync-tag-names)).
+
 ## The Open Window
 
 The worker learns who is signed in only from `Spool-Partition` on a response that reaches it. A local view makes no request, so it learns nothing. Between a sign-in and the first response that names the new partition, a local view of a principal route reads the store of the previous partition.
@@ -229,6 +243,24 @@ Spool writes no `Content-Security-Policy` and configures none. `decorate` adds n
 
 `decorate(request, response, { hardReset: true })` adds `Clear-Site-Data: "storage"`. It asks the browser to reset everything the origin holds, the service worker included. Safari's support is unverified, so rely on the worker's own wipe. The worker wipes before the logout request leaves. The header acts only after a response arrives, so it needs the network. After the header lands, the next views are plain network views until the page registers the worker again.
 
+## Trimmed Stylesheets
+
+A trimmed stylesheet is a correctness risk and not a confidentiality one. The proxy only removes rules from a file that every visitor already receives, and the manifest holds public stylesheets and the words of public pages and scripts. Nothing a visitor sends goes into it. A wrong trim shows a page with a rule missing. It leaks nothing and it changes no access decision.
+
+Two checks stand between a stale or incomplete manifest and a visitor (`src/proxy/proxy.ts`, `src/trim/manifest.ts`).
+
+- **The hash.** A stylesheet is served trimmed only when the sha256 of the origin's decoded bytes equals the manifest's `source`. A deploy that changes the file makes the manifest wrong for it, so the proxy serves the origin's bytes and counts a mismatch until the manifest is rebuilt.
+- **The guard.** Every HTML response is read before it leaves. A page that has a token the trim removed a rule for, or loads a same-origin script the manifest was not built with, links the full file through `spool-trim=0`. This covers pages the crawl never saw, including pages the proxy does not keep, such as a query string or a signed-in page.
+
+`tests/node/proxy.spec.ts` and `tests/browser/trim.pw.ts` cover both. What the guard cannot see:
+
+- A class that a script from another origin adds after load. `buildTrimManifest` reads the words of the foreign scripts the crawl loaded, so it covers what they did on the day of the crawl. The guard never reads those URLs, so a vendor that ships a new class later is not caught until the manifest is rebuilt.
+- Markup injected after load from an endpoint the crawl did not request, and a class built at runtime from parts, such as `'btn-' + kind`, where no whole class name appears in the HTML or a script.
+- A page served in a charset other than UTF-8. The guard reads the body as UTF-8, and a page it rewrites is sent as UTF-8.
+- A stylesheet reached through `@import` inside another stylesheet. It is not linked from the page, so the guard cannot send it a `spool-trim=0`, and a manifest built from linked files holds no entry for it.
+
+A site that cannot accept these limits should not pass `trim`. The same saving is available from a build step that purges with a safelist, which puts the same decision in the site's hands.
+
 ## Purge Endpoint
 
 `POST /.spool/purge` exists in proxy mode only (`respondPurge`, `src/proxy/purge.ts`).
@@ -246,6 +278,7 @@ A request listed in `beacons` or matched by a `collectors` entry is held in Inde
 - A same-origin replay carries cookies (`credentials: 'same-origin'`). A cross-origin replay sends none (`credentials: 'omit'`), so identity has to be in the payload (`replay`, `src/sw/runtime.ts`).
 - The held body is whatever the page posted. It is not sealed and a logout does not remove it.
 - Spool holds an event whether or not the visitor consented. Gate the analytics tag itself and ask counsel whether holding an event in IndexedDB needs consent where you operate.
+- A `spool.view` event names the route the visitor came from (`from`): the route pattern of a same-origin referrer, such as `/node/:id`, or `external` for another origin. It reveals which kind of page preceded this one and nothing else. It never holds the referrer's URL, path, query string or the external site's name, and a same-origin path that matches no declared route is left out. Set `views: false` to stop the event.
 - `thirdParty.allow` lets the worker keep a `GET` response from a listed origin, for a readable (CORS) answer at a URL that looks versioned or that the origin marks immutable (`versionClass`, `src/sw/thirdparty.ts`). `allowOpaque` is off. The worker checks no hash of the file. A file kept as `immutable` is never checked again, so one bad answer at a hashed-looking URL stays until the entry is evicted (`maxEntries`, oldest first). A `revalidate` file is checked at a network moment once it is a day old.
 
 ## What Spool Never Does
@@ -274,7 +307,10 @@ Each limitation is stated in the section it belongs to. This table lists them in
 | A change of partition or a `Spool-Clear` that is not a logout path does not send or drop held same-origin beacons, which replay under the new session                                                 | [Logout and the Wipe Order](#logout-and-the-wipe-order)                                |
 | A `logout` pattern matches any method, so a `GET` wipes the local principal store                                                                                                                     | [Logout and the Wipe Order](#logout-and-the-wipe-order)                                |
 | Proxy mode cannot tell a rolling session cookie from a login, and a cookie set outside the proxy produces no clear                                                                                    | [Cookies in Proxy Mode](#cookies-in-proxy-mode)                                        |
-| `/.spool/beacon`, `/.spool/sync` and `/.spool/artifact` need no credentials and have no rate limit, and a flush can ask the server to build 8 artifacts                                               | [Endpoints That Need No Credentials](#endpoints-that-need-no-credentials)              |
+| `/.spool/beacon`, `/.spool/sync` and `/.spool/artifact` need no credentials and have no rate limit, and a flush can ask the server to build 8 artifacts and a catalogue of up to 32 pages             |
+| A catalogue request names the path of the page the visitor is on, including a page the worker showed locally, which no other request or view event carries                                            | [Catalogue Entries](#catalogue-entries)                                                |
+| An unopened principal catalogue entry stays on the device until a required principal sync names its tags, the visitor returns, or the partition is wiped                                              | [Catalogue Entries](#catalogue-entries)                                                | [Endpoints That Need No Credentials](#endpoints-that-need-no-credentials) |
+| A trimmed stylesheet can lose a rule for a class that a later vendor script, late-injected markup or a runtime-built class name needs, which the guard cannot see                                     | [Trimmed Stylesheets](#trimmed-stylesheets)                                            |
 | The purge endpoint has no rate limit or lockout, and any holder of the secret can bump any tag                                                                                                        | [Purge Endpoint](#purge-endpoint)                                                      |
 | The `importScripts` form of the worker has no integrity check                                                                                                                                         | [Script Delivery](#script-delivery)                                                    |
 | `Clear-Site-Data` support in Safari is unverified                                                                                                                                                     | [Clear-Site-Data](#clear-site-data)                                                    |

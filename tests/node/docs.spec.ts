@@ -4,8 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as protocol from '../../src/protocol/index';
 import { MAX_BEACON_BODY } from '../../src/server/beacon';
-import { MAX_PIGGYBACK } from '../../src/server/spool';
-import { FLUSH_CHUNK, MAX_HOLD_MS, VIEW_BATCH, VIEW_HOLD_MS } from '../../src/sw/analytics';
+import { MAX_CATALOGUE_BUILD, MAX_PIGGYBACK } from '../../src/server/spool';
+import {
+	CATALOGUE_REASK_MS,
+	FLUSH_CHUNK,
+	MAX_CATALOGUE_ASKED,
+	MAX_HOLD_MS,
+	VIEW_BATCH,
+	VIEW_HOLD_MS
+} from '../../src/sw/analytics';
 import { MAX_STATIC_BYTES } from '../../src/sw/static';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
@@ -78,7 +85,10 @@ describe('docs/protocol.md', () => {
 			CLEAR_ALL: protocol.CLEAR_ALL,
 			CLIENT_TAG_ATTR: protocol.CLIENT_TAG_ATTR,
 			GA4_RECOMMENDED_MS: protocol.GA4_RECOMMENDED_MS,
-			GA4_HARD_MS: protocol.GA4_HARD_MS
+			GA4_HARD_MS: protocol.GA4_HARD_MS,
+			JOULES_PER_BYTE: protocol.JOULES_PER_BYTE,
+			ORIGIN_JOULES: protocol.ORIGIN_JOULES,
+			DEFAULT_CATALOGUE_BYTES: protocol.DEFAULT_CATALOGUE_BYTES
 		};
 		const table = section(wire, 'Limits');
 		for (const [name, expected] of Object.entries(constants)) {
@@ -89,16 +99,27 @@ describe('docs/protocol.md', () => {
 	it('lists the server and worker limits with their current values', () => {
 		const limits = {
 			MAX_PIGGYBACK,
+			MAX_CATALOGUE_BUILD,
 			MAX_BEACON_BODY,
 			MAX_STATIC_BYTES,
 			MAX_HOLD_MS,
 			VIEW_BATCH,
 			VIEW_HOLD_MS,
-			FLUSH_CHUNK
+			FLUSH_CHUNK,
+			CATALOGUE_REASK_MS,
+			MAX_CATALOGUE_ASKED
 		};
 		const table = section(wire, 'Limits');
 		for (const [name, limit] of Object.entries(limits)) {
 			expect(value(table, name), name).toBe(String(limit));
+		}
+	});
+
+	it('lists every view reason with its tier', () => {
+		const beacon = section(wire, 'Beacon');
+		const events = beacon.slice(beacon.indexOf('### View Events'));
+		for (const [reason, tier] of Object.entries(protocol.REASON_TIER)) {
+			expect(value(events, reason), reason).toBe(tier);
 		}
 	});
 

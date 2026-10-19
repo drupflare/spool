@@ -25,7 +25,8 @@ by expected benefit. `src/server/embedded.ts` is generated: run `bun run build:s
 under `src/protocol`, `src/sw` or `src/client` (a node test fails on drift). P5 added sealed
 per-partition stores and the logout wipe, P6 the `projection` and `data` strategies, collectors and
 the third-party cache, P7 `src/proxy` (`spoolProxy` in front of an origin that cannot load the
-library). Not built yet: the capacity and institution reports (P8) and the drupflare adapter (P9),
+library), and `src/trim` (`@drupflare/spool/trim`, used as `spoolProxy({ trim })`) trims a site's CSS
+against every page and script, behind a hash check and a per-page guard, and never touches JS. Not built yet: the capacity and institution reports (P8) and the drupflare adapter (P9),
 both pinned to drupflare v1.0.4.
 
 ## Load-bearing facts, each measured

@@ -14,6 +14,7 @@ import { closeServers, exercise, listen, overFetch, overHttp } from './exercise'
 import { spool as analytics } from './readme/analytics';
 import { about } from './readme/assembly';
 import bunApp from './readme/bun';
+import { spool as catalogue, course as catalogueCourse, home } from './readme/catalogue';
 import { spool as cdn } from './readme/cdn';
 import denoApp from './readme/deno';
 import { app as express } from './readme/express';
@@ -28,6 +29,7 @@ import nuxtRoute from './readme/nuxt-route';
 import { canary, shadowed } from './readme/shadow';
 import { about as staticAbout } from './readme/static';
 import { news } from './readme/template';
+import { manifest as trimManifest, proxy as trimProxy } from './readme/trim';
 import vercel from './readme/vercel';
 
 const root = join(import.meta.dirname, '../..');
@@ -190,6 +192,23 @@ describe('the README strategy and configuration examples run', () => {
 		expect(notice.sync).toBe('deferred');
 	});
 
+	it('catalogue: the home route suggests two courses and the server sends both', async () => {
+		expect(home.catalogue).toBeTypeOf('function');
+		expect(catalogueCourse.documentBytes).toBe(17_000);
+		expect(catalogue.config.routes.find((r) => r.pattern === '/')?.catalogue).toBe(true);
+		const response = await catalogue.respond(
+			new Request('https://site.test/.spool/beacon', {
+				method: 'POST',
+				body: JSON.stringify({ protocol: 1, events: [], catalogue: { path: '/' } })
+			})
+		);
+		const ids = response?.status === 200 ? await response.json() : { catalogue: [] };
+		expect((ids as { catalogue: Array<{ id: string }> }).catalogue.map((a) => a.id)).toEqual([
+			'/courses/101',
+			'/courses/102'
+		]);
+	});
+
 	it('analytics: a flushed beacon reaches the JSON lines sink', async () => {
 		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 		const event = {
@@ -219,6 +238,26 @@ describe('the README strategy and configuration examples run', () => {
 		expect(canary.config.mode).toBe('serve');
 	});
 
+	it('trim: the manifest drops the one rule no page or script can match, and the proxy serves it', async () => {
+		const full = '.hero{a:b}.button{c:d}.open{e:f}.print-only{g:h}';
+		expect(trimManifest.styles['/css/site.css']).toMatchObject({
+			css: '.hero{a:b}.button{c:d}.open{e:f}',
+			missing: ['print-only'],
+			scripts: ['/js/site.js']
+		});
+		vi.stubGlobal(
+			'fetch',
+			async () => new Response(full, { headers: { 'content-type': 'text/css' } })
+		);
+		try {
+			const response = await trimProxy(new Request('https://site.test/css/site.css'));
+			expect(await response.text()).toBe('.hero{a:b}.button{c:d}.open{e:f}');
+			expect({ ...trimProxy.trim }).toEqual({ served: 1, mismatched: 0, guarded: 0 });
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('page runtime: the tag points at this version on the CDN with the hash', () => {
 		expect(cdn.config.clientTag).toContain(`src="${cdnClientUrl(VERSION)}"`);
 		expect(cdn.config.clientTag).toContain('crossorigin="anonymous"');
@@ -235,7 +274,8 @@ describe('the README matches the fixtures', () => {
 		'@drupflare/spool/server': '../../../src/server/index',
 		'@drupflare/spool/stores': '../../../src/stores/index',
 		'@drupflare/spool/stores/durable-object': '../../../src/stores/durable-object',
-		'@drupflare/spool/node': '../../../src/node/listener'
+		'@drupflare/spool/node': '../../../src/node/listener',
+		'@drupflare/spool/trim': '../../../src/trim/index'
 	};
 
 	const sections = new Map<string, string[]>();
@@ -260,6 +300,7 @@ describe('the README matches the fixtures', () => {
 		['Static Files', ['static.ts']],
 		['Projection and Data Routes', ['projection.ts', 'sw.ts']],
 		['Authenticated Data', ['authenticated.ts']],
+		['Catalogue', ['catalogue.ts']],
 		['Collectors', ['collectors.ts']],
 		['Third-Party Files', ['third-party.ts']],
 		['Subresource Handling', ['assets.ts']],
@@ -269,6 +310,7 @@ describe('the README matches the fixtures', () => {
 		['Analytics Batching', ['analytics.ts']],
 		['Shadow Mode', ['shadow.ts']],
 		['Proxy Mode', ['proxy-node.ts', '../../fixtures/readme/proxy-workers.ts']],
+		['Trimmed Stylesheets', ['trim.ts']],
 		['Cloudflare Workers', ['../../fixtures/readme/workers.ts']],
 		['Cloudflare Pages Functions', ['cloudflare-pages.ts']],
 		['Hono', ['hono.ts']],

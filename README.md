@@ -29,11 +29,13 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Strategies](#-strategies)
 - [Freshness Contracts](#-freshness-contracts)
 - [Authenticated Data](#-authenticated-data)
+- [Catalogue](#-catalogue)
 - [Analytics Batching](#-analytics-batching)
 - [Third-Party Files](#-third-party-files)
 - [Subresource Handling](#-subresource-handling)
 - [Shadow Mode](#-shadow-mode)
 - [Proxy Mode](#-proxy-mode)
+- [Trimmed Stylesheets](#-trimmed-stylesheets)
 - [Out of Scope](#-out-of-scope)
 - [Browser Support](#-browser-support)
 - [Subpath Exports](#-subpath-exports)
@@ -1052,6 +1054,84 @@ that page reads.
 
 ---
 
+## 📚 Catalogue
+
+A catalogue sends the data of pages a visitor may open next, so that opening one makes no
+request. An entry costs its bytes whether or not the page is opened, and an opened one saves a
+document request, so an entry pays only when enough visitors open it. The break-even share is
+`k * E / (k * D + o)`, where `E` is the entry's compressed bytes, `D` the bytes of the document
+it replaces, `k` the joules to move a byte and `o` the origin request a view avoids. An entry the
+size of the document needs 96% of visitors to open it, which no page gets. An entry that is only
+the data for a template the device already holds is a few hundred bytes to a few kilobytes and
+pays at a few percent. On the `payload` reading, the rendered fields of a node were a median 473
+bytes compressed on 19 pages from two sites (L1, `measurements/payload`), against a document of
+about 17,000 bytes. References such as media and terms are left out of that figure, so a real entry
+is larger. An entry is data for a `template`, `projection` or `data` route and never HTML.
+
+The site supplies the candidates. A route's `catalogue` returns the pages a visitor on it may open
+next, each with the share expected to. Take the share from your own `nextShare` over the sink
+(each `spool.view` names the route the visitor came from), from link position, or from a fixed
+prior. `documentBytes` on the entry's route says what a hit saves, and the provisioning prior is
+used when it is absent.
+
+```ts
+import { createSpool, defineRoute } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export const home = defineRoute('/', {
+  strategy: 'template',
+  template: { source: '<h1>Courses</h1>' },
+  load: () => ({}),
+  catalogue: () => [
+    { path: '/courses/101', p: 0.3 },
+    { path: '/courses/102', p: 0.1 }
+  ]
+});
+
+export const course = defineRoute('/courses/:id', {
+  strategy: 'template',
+  template: { source: '<h1>{{title}}</h1>' },
+  depends: (ctx) => [`course:${ctx.params['id']}`],
+  load: (ctx) => ({ title: `Course ${ctx.params['id']}` }),
+  documentBytes: 17_000
+});
+
+export const spool = createSpool({
+  routes: [home, course],
+  store: memoryStore(),
+  catalogueBytes: 16_384
+});
+```
+
+The server sends an entry only when its share reaches its own break-even, best expected net first,
+until `catalogueBytes` is spent. The cap counts compressed bytes and defaults to 32 KiB. It builds
+at most 32 pages for one request, measures each entry with Brotli where the runtime has it and
+gzip where it does not, and skips a `static` or `assembly` route. A request with `Save-Data: on`
+gets no entries.
+
+The ask rides the beacon batch the worker already sends. A due ask also makes the next network
+moment send that batch, when a view is held to carry it, so a visit of two or three pages gets its
+entries without waiting for 20 views or an hour. That costs one `POST /.spool/beacon` for each
+catalogue page, device and day, sent at a request that happens anyway. A local view never sends
+it, and a moment with nothing held sends nothing. The worker stores the entries like provisioned
+pages, and the first view of an unopened one is reported with the reason `catalogue`. `catalogueFigures` reads the views and the worker's ledger for the entries sent
+and used, the hit share, and the bytes sent against the bytes saved. Until shadow views measure
+the shares, the saving is a scenario.
+
+A hit saves the document request and nothing else. On the Drupal pages measured (75 first views of
+internal pages on 10 sites, L1, `measurements/trim`), a view of a page still fetched that page's
+new images and stylesheet and script aggregates: only 3% of those first views moved nothing but
+the document. A catalogue view takes the document off the wire, and the rest of the page is
+the site's own HTTP cache and [asset trimming](#-trimmed-stylesheets).
+
+A `principal` route can be an entry. The worker then names every catalogue entry no page has
+opened at each sync of a principal page, so a revoked one is dropped at the first required sync.
+The request that asks for a catalogue names the path of the page the visitor is on, including one
+the worker showed locally, so a route that should not tell the server leaves `catalogue` off.
+[docs/security.md](docs/security.md#catalogue-entries) covers both.
+
+---
+
 ## 📡 Analytics Batching
 
 A page that keeps analytics scripts posting to an endpoint makes a request on every view, which
@@ -1080,7 +1160,8 @@ export const spool = createSpool({
 `jsonLinesSink` writes one JSON line per event. `analyticsEngineSink` writes to a Workers
 Analytics Engine dataset, splitting a long body across data points so nothing is cut off, and
 `memorySink` keeps events for tests. The worker also queues one
-`spool.view` event per page view with the tier, the reason and the staleness. `viewsOf` reads
+`spool.view` event per page view with the tier, the reason, the staleness and the route the
+visitor came from (a pattern or `external`, never a URL). `viewsOf` reads
 those events back. Set `views: false` to turn that off. `workSeries` records how long each route's
 handler took, for peak-work reports.
 
@@ -1293,6 +1374,8 @@ The proxy keeps a response only when all of these hold:
 - the request is a GET or HEAD, has no query string and no `Authorization` header, and carries
   no cookie outside `publicCookies`, which is empty by default
 - the response is a 200 `text/html`, or the answer of a `data` route
+- the page is UTF-8, or declares no charset in its `Content-Type` or in a `<meta>` within its
+  first 1024 bytes
 - the response sets no cookie outside `publicCookies`, has no `private` or `no-store` in
   `Cache-Control`, a `Vary` that names only `Accept-Encoding` and `Cookie`, no more than
   `maxTags` tags and no more than `maxBytes` bytes
@@ -1336,7 +1419,59 @@ in the instance: a restart forgets them, and each instance of a scaled-out proxy
 A whole page is a large artifact, and the provisioning rule declines one that costs more than the
 priors say it saves, so set `provision` on the spool for large pages. A `Content-Security-Policy`
 that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
-always goes to the origin.
+always goes to the origin. [Trimmed Stylesheets](#-trimmed-stylesheets) covers the `trim` option.
+
+---
+
+## 🧹 Trimmed Stylesheets
+
+A new page of a Drupal site usually loads a stylesheet aggregate the visitor has not seen, and
+most of its rules match nothing on the page. `@drupflare/spool/trim` builds a manifest that removes
+the rules no page of the site can match, and `spoolProxy` serves the trimmed text in place of the
+origin's file. Each file is trimmed against every page and script of the site, never against one
+page, so it keeps its URL and its one cached copy. Rules are only removed, so the cascade of what
+stays is unchanged.
+
+```ts
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+import { buildTrimManifest } from '@drupflare/spool/trim';
+
+export const manifest = await buildTrimManifest({
+  pages: ['<body class="hero"><a class="button">Apply</a></body>'],
+  scripts: [{ url: '/js/site.js', text: 'menu.classList.add("open")' }],
+  styles: [{ url: '/css/site.css', text: '.hero{a:b}.button{c:d}.open{e:f}.print-only{g:h}' }]
+});
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  trim: manifest
+});
+```
+
+`pages` is HTML, `scripts` and `styles` are the same-origin files the pages load, and `url` is the
+address the page links. Crawl with a browser and pass the page's DOM after load and after a
+scroll as well as the origin's HTML: a class that a script builds from parts, such as
+`'fs-carousel' + '-enabled'`, is only in the rendered page. Pass the scripts of other origins that
+the pages load as `foreignScripts`, since a widget that builds markup adds classes too.
+
+Two checks protect a visitor. The proxy serves a trimmed file only when the origin's bytes still
+hash to the manifest's `source`, and otherwise sends the origin's file and counts a mismatch. It
+also reads every HTML page before it leaves: a page with a token the trim removed a rule for, or a
+same-origin script the manifest was not built with, links the full file through `spool-trim=0`.
+`proxy.trim` counts the files served, the mismatches and the guard firings, and the sink gets
+each mismatch and firing as an event. [docs/security.md](docs/security.md#trimmed-stylesheets) names
+what the guard cannot see: a class a vendor script adds after the crawl, markup injected after load
+from a page the crawl never requested, and a class name built at runtime that no crawl rendered.
+
+The proxy trims CSS and leaves JavaScript alone. Coverage at load cannot see what a click or a
+scroll will need: the used share of same-origin JavaScript rose from 36% at load to 40% after one
+scroll on the pages measured (L1), so no load-time figure says which of the rest is dead. The same
+saving from a build step that runs PurgeCSS with a safelist needs no proxy. The proxy gets it
+without a change to the origin. The saving applies to a network view of a page the visitor has not
+seen, never to a repeat or local view, and it is not part of the per-view headline;
+[docs/impact.md](docs/impact.md#asset-trimming) has the bytes, joules and prices.
 
 ---
 
@@ -1384,6 +1519,7 @@ loads per view and reports the view as such.
 | `@drupflare/spool/sw`                    | `serve`, for a site that bundles its own worker                      |
 | `@drupflare/spool/client`                | `register` and the page handle                                       |
 | `@drupflare/spool/report`                | the energy model                                                     |
+| `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                       |
 
 ---
 

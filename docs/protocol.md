@@ -215,7 +215,7 @@ The headers are `Spool-Protocol: 1` and `Spool-Vector: <cursor>`. When `createSp
 
 ### Sync by Need
 
-`?need=<held>` asks only about the ids the next page reads. `<held>` is `id@version` pairs joined by commas, with each id percent-encoded (`encodeHeld`, `parseHeld`, `src/protocol/sync.ts`). The worker sends every tag an artifact depends on, and the artifact's own `spool:artifact:<id>` tag, each at the artifact's `vector`. Parsing splits on `,`, ignores empty parts, takes the version after the last `@` and requires it to be an integer. More than `MAX_NEED` entries, or a malformed one, answers `400`. A worker whose artifact depends on more than `MAX_NEED` tags falls back to a full sync.
+`?need=<held>` asks only about the ids the next page reads. `<held>` is `id@version` pairs joined by commas, with each id percent-encoded (`encodeHeld`, `parseHeld`, `src/protocol/sync.ts`). The worker sends every tag an artifact depends on, and the artifact's own `spool:artifact:<id>` tag, each at the artifact's `vector`. Parsing splits on `,`, ignores empty parts, takes the version after the last `@` and requires it to be an integer. More than `MAX_NEED` entries, or a malformed one, answers `400`. A worker whose artifact depends on more than `MAX_NEED` tags falls back to a full sync. The `need` of a principal page also names the tags of the catalogue entries held and unopened (see [Principal Entries](#principal-entries)), and the same fallback applies to the union.
 
 The answer has `partial: true`. `changed` holds only the asked-about tags whose version is above the version asked with. `dropped` holds the artifact ids whose drop tag passed it. The `cursor` in a partial answer is not the holder's to take, because the answer covers only part of the diff, and `applySync` leaves the cursor and the sync clock alone. `reset` is `true` when the highest version asked about is above the server's cursor, and `changed` is then empty. An empty `need=` answers the cursor alone, with `partial: true`.
 
@@ -309,10 +309,11 @@ The artifact answer for `/node/7` in `tests/unit/server.spec.ts` is the same sha
 
 `BeaconBatch` (`src/protocol/beacon.ts`) is `{ protocol, events, want? }`. `parseBeaconBatch` validates it.
 
-| Field    | Rule                                                                                          |
-| -------- | --------------------------------------------------------------------------------------------- |
-| `events` | a list of at most `MAX_BEACON_EVENTS` events                                                  |
-| `want`   | optional list of at most `MAX_WANT` strings, each starting with `/`; artifact paths to answer |
+| Field       | Rule                                                                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events`    | a list of at most `MAX_BEACON_EVENTS` events                                                                                                                      |
+| `want`      | optional list of at most `MAX_WANT` strings, each starting with `/`; artifact paths to answer                                                                     |
+| `catalogue` | optional `{ path, sweep? }`: `path` starts with `/` and has at most `MAX_CATALOGUE_PATH` characters, and `sweep` is `true` or absent; see [Catalogue](#catalogue) |
 
 `BeaconEvent` fields:
 
@@ -355,13 +356,13 @@ A loads report is valid when `view` is a non-empty string of at most 64 characte
 
 ### The Answer
 
-The server refuses a request body longer than `MAX_BEACON_BODY` characters with `413`, a body that is not JSON or a batch that does not validate with `400`, and any method but `POST` with `405` and `Allow: POST`. It writes the batch's events to the `sink`. A batch with `want` answers `200` with `{"protocol":1,"artifacts":[<Artifact>,...]}`: the public artifacts the server can build for those paths, in the order asked. A path that is principal, static, unrouted, declined by the provisioning rule or fails to build is left out. A batch without `want` answers `204`.
+The server refuses a request body longer than `MAX_BEACON_BODY` characters with `413`, a body that is not JSON or a batch that does not validate with `400`, and any method but `POST` with `405` and `Allow: POST`. It writes the batch's events to the `sink`. A batch with `want` answers `200` with `{"protocol":1,"artifacts":[<Artifact>,...]}`: the public artifacts the server can build for those paths, in the order asked. A path that is principal, static, unrouted, declined by the provisioning rule or fails to build is left out. A batch with `catalogue` adds a `catalogue` list of artifacts to the answer when the server chose any; see [Catalogue](#catalogue). A batch with neither, or one whose catalogue came out empty and that asked for nothing else, answers `204`.
 
 `MAX_BEACON_BYTES` bounds one event's body on the worker. A request body over it, or one whose content type is `octet-stream`, `multipart` or an `image/` type, goes to the network at once and is not held. `MAX_BEACON_BODY` bounds the whole request on the server. The first counts UTF-8 bytes and the second counts characters.
 
 ### When a Flush Happens
 
-The worker flushes on a request that happens anyway (a "network moment") when a site's own beacon is held, artifacts are wanted, the oldest held event is an hour old, or 20 views are held. Held events alone leave on their own at most once every 24 hours, when the oldest is a day old. One request carries at most `FLUSH_CHUNK` events, and `want` rides the first chunk only. The constants are under [Limits](#limits). The server must accept a flush at any time and tolerate a batch of zero events.
+The worker flushes on a request that happens anyway (a "network moment") when a site's own beacon is held, artifacts are wanted, a catalogue ask is due, the oldest held event is an hour old, or 20 views are held. Held events alone leave on their own at most once every 24 hours, when the oldest is a day old. One request carries at most `FLUSH_CHUNK` events, and `want` and `catalogue` ride the first chunk only. A due ask counts only at a network moment with something held to carry it: a local view never flushes, and a moment with nothing held makes no request. The ask is due again `CATALOGUE_REASK_MS` after it was answered, so one page's catalogue costs one `POST /.spool/beacon` a day on a device. The constants are under [Limits](#limits). The server must accept a flush at any time and tolerate a batch of zero events.
 
 ### View Events
 
@@ -380,15 +381,19 @@ A view event is the JSON body of a `/.spool/view` event (`ViewEvent`, `src/proto
 | `mismatch`         | boolean, or `null` when no local render was made                |
 | `swAgeMs`          | finite number: milliseconds since this worker instance started  |
 | `gapMs`            | number, or `null` for the worker's first view                   |
+| `from`             | optional: the referring route pattern, or `external`            |
 | `crossOriginLoads` | non-negative integer, or `null` until the page reports          |
 
-A view carries the route pattern and never the path, so a pattern such as `/node/:id` leaves the parameter out. `REASON_TIER` maps each reason to the tier a serving worker gives it. A shadow view keeps the reason and takes the tier `shadow`.
+A view carries the route pattern and never the path, so a pattern such as `/node/:id` leaves the parameter out.
+
+`from` follows the same rule. The worker sets it from the navigation request's referrer: the pattern of the declared route that a same-origin referrer matches, or `external` (`FROM_EXTERNAL`) for another origin. It is omitted when there is no referrer, the referrer is not an http(s) URL, or a same-origin referrer matches no route. A raw URL, a query string or an unmatched path is never written. `viewFromBeacon` drops a `from` that is not a string of 1 to `MAX_ROUTE_CHARS` characters and still accepts the view. Shadow views carry it too. `transitions` and `nextShare` (`src/report/traffic.ts`) count route-to-route moves from the views, so a server can estimate the chance of a visitor viewing a route next with no extra request. `REASON_TIER` maps each reason to the tier a serving worker gives it. A shadow view keeps the reason and takes the tier `shadow`.
 
 | Reason             | Tier               | Meaning                                                               |
 | ------------------ | ------------------ | --------------------------------------------------------------------- |
 | `cold`             | `network`          | nothing stored                                                        |
 | `principal`        | `network`          | a principal route the worker cannot serve (it has no partition store) |
 | `fresh`            | `local`            | within the bound                                                      |
+| `catalogue`        | `local`            | first open of a catalogue entry, shown with no request                |
 | `soft-deferred`    | `local`            | past a soft bound, with the sync left for a network moment            |
 | `soft-sync`        | `local-revalidate` | past a soft bound, with the sync sent now                             |
 | `hard-sync`        | `local-revalidate` | past a hard bound, synced first                                       |
@@ -434,6 +439,44 @@ Each term is in bytes, with a request counted as `requestBytes`. An artifact is 
 | `changesPerDay` | `1`     | how often one dependency tag changes, per day, before any is seen |
 
 A flush that carries `want` also provisions: the worker asks for visited shadow-mode routes and for the `hot` list, best benefit first, at most `MAX_WANT` paths.
+
+## Catalogue
+
+A catalogue sends the data of pages a visitor may open next, so that opening one makes no request. An entry is the artifact `/.spool/artifact` would build for a `template`, `projection` or `data` route, never HTML: the device already holds the template or the renderer. A whole page costs about as much to send as it saves, and a diff of markup needs most of a page's bytes as well, so neither is an entry.
+
+An entry repays its transfer when the share of devices that open it, `p`, reaches `entryBreakEven` (`src/protocol/provision.ts`):
+
+```text
+p >= k * E / (k * D + o)
+```
+
+`E` is the entry's compressed bytes and `D` the bytes of the document it replaces, `k` is `JOULES_PER_BYTE` and `o` is `ORIGIN_JOULES`. Both come from the energy model ([impact.md](impact.md)): `k` is SWD v4's 0.194 kWh/GB over decimal gigabytes (L2), and `o` is the modelled origin request (L1). `chooseEntries` keeps the candidates at or above their own break-even, best expected net joules first (`p * (k * D + o) - k * E`), while their entry bytes fit under the cap. A candidate that does not fit is skipped and a smaller one may still go.
+
+| Part                     | Where it is set                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| candidates and their `p` | the route's `catalogue(ctx)`, for the page the visitor is on: `{ path, p }` pairs from the site's own `nextShare`, link position or a fixed prior |
+| `D`                      | the entry route's `documentBytes`; the `avoidedBytes` prior when it has none; a `data` route's own entry size when it has none                    |
+| `E`                      | the entry as JSON, measured by `catalogueSize` (Brotli through `CompressionStream`, gzip where the runtime has no Brotli stream)                  |
+| the cap                  | `catalogueBytes`, the most compressed bytes of entries in one bundle; `DEFAULT_CATALOGUE_BYTES` when absent                                       |
+| the most pages built     | `MAX_CATALOGUE_BUILD` candidates, best `p` first, whatever the route returns                                                                      |
+
+A candidate is skipped when its path has a query string or a fragment, sits under `/.spool/`, is the page asked about, matches no route, matches a `static` or `assembly` route, or has a `p` outside 0 to 1. A route whose `catalogue` throws, or whose entries fail to build, sends nothing and the flush still answers as it would without it.
+
+### Asking and Delivery
+
+The worker asks through the beacon batch it already sends. `BeaconBatch.catalogue` is `{ path, sweep: true }` for the last page whose route declares a catalogue (`SerializedRoute.catalogue`), at most once every `CATALOGUE_REASK_MS` for each path. The worker stores when it last asked for each of its `MAX_CATALOGUE_ASKED` latest paths beside its flush clocks, so a worker restart does not ask again. It rides the first chunk of a flush, and a due ask makes the next network moment flush when a spool event is held (see [When a Flush Happens](#when-a-flush-happens)). A flush that holds only a site's own beacons and wants no artifact sends no batch, so the ask waits for a view. The server answers with the entries in `catalogue`, an array of artifacts, in the order chosen. The worker stores each one like a provisioned artifact, with its records and projections stored once in the graph, and marks it unopened. An entry for a route whose strategy or scope differs from the entry's is dropped, and so is one the device already holds.
+
+A request with `Save-Data: on` is sent no catalogue, but is still answered for `want`. The check reads the header of the beacon request, which the browser sets.
+
+### Principal Entries
+
+A principal route may be an entry only when the batch says `sweep: true`. The server builds it with the identity of the beacon request and sets `Spool-Partition` on the answer, with `Cache-Control: private, no-store`. The worker keeps a principal entry only when that header equals the partition it holds. A request that resolves to nobody gets no principal entry, and a principal page's catalogue is not built for it.
+
+The sweep is the worker's half of revocation. Every sync of a principal page, not only the first, also names the dependency tags and the drop tag of every entry held in that partition that no page has opened (`Replica.sweep`), each at the vector its entry was built at, so a tag that moved drops the entry at the first required sync. When the union of those ids and the page's own is over `MAX_NEED`, the worker makes a full sync by cursor instead.
+
+### Reason and Ledger
+
+The first open of an entry that the worker shows with no request is a view with the reason `catalogue` and the tier `local`. Opening the entry clears its mark, so later views of the page are ordinary. An entry older than its route's bound, which the worker syncs before or after it shows, keeps the reason of that sync and is still opened. The worker's ledger charges each entry's JSON bytes to `catalogueBytes` and counts the first open in `catalogueViews`. `catalogueFigures` (`src/report/traffic.ts`) reads the views and the ledger: entries sent, entries used, hit share, and bytes sent against bytes saved. The saving it prints is a scenario figure until shadow views measure `p`.
 
 ## Protocol Version Skew
 
@@ -515,23 +558,23 @@ A digest version is checked against the bytes fetched, and a mismatch keeps noth
 
 The page runtime and the worker talk over `postMessage` with a `MessageChannel` for replies (`createRuntime`, `src/sw/runtime.ts`; `register`, `src/client/register.ts`).
 
-| Message           | Fields                      | Reply                                                                                      |
-| ----------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
-| `spool:hello`     | `protocol`                  | `{ type, protocol, version, compatible }`                                                  |
-| `spool:status`    |                             | `{ type, cursor, syncedAt, artifacts, beacons }`                                           |
-| `spool:view`      | `path`                      | `{ type, id }`: the id of the latest view of that path, or `null`                          |
-| `spool:loads`     | `view`, `count`, `origins?` | none; the worker queues a `/.spool/loads` event                                            |
-| `spool:graph`     |                             | `{ type, records, projections }`: ids held                                                 |
-| `spool:ledger`    |                             | `{ type, entries, totals }`: bytes and requests spent provisioning, against views served   |
-| `spool:partition` |                             | `{ type, partition, artifacts, records, projections }`: ids held for the current partition |
-| `spool:assets`    |                             | `{ type, mode, routed }`                                                                   |
-| `spool:held`      |                             | `{ type, dropped, third }`: drops by vendor, and third-party URLs held                     |
+| Message           | Fields                      | Reply                                                                                                                                        |
+| ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spool:hello`     | `protocol`                  | `{ type, protocol, version, compatible }`                                                                                                    |
+| `spool:status`    |                             | `{ type, cursor, syncedAt, artifacts, beacons }`                                                                                             |
+| `spool:view`      | `path`                      | `{ type, id }`: the id of the latest view of that path, or `null`                                                                            |
+| `spool:loads`     | `view`, `count`, `origins?` | none; the worker queues a `/.spool/loads` event                                                                                              |
+| `spool:graph`     |                             | `{ type, records, projections }`: ids held                                                                                                   |
+| `spool:ledger`    |                             | `{ type, entries, totals }`: bytes and requests spent provisioning, against views served, with the catalogue's bytes and views counted apart |
+| `spool:partition` |                             | `{ type, partition, artifacts, records, projections }`: ids held for the current partition                                                   |
+| `spool:assets`    |                             | `{ type, mode, routed }`                                                                                                                     |
+| `spool:held`      |                             | `{ type, dropped, third }`: drops by vendor, and third-party URLs held                                                                       |
 
 The worker also posts `spool:cleared` to every page, as above. The replies list ids and counts, never stored content.
 
 ## Proxy Additions
 
-`spoolProxy` (`src/proxy/proxy.ts`) answers the paths above and forwards everything else to an origin. It adds three things to the wire.
+`spoolProxy` (`src/proxy/proxy.ts`) answers the paths above and forwards everything else to an origin. It adds four things to the wire.
 
 **Tag headers.** The origin names a page's dependencies in `Cache-Tag` (commas), `Surrogate-Key` and `X-Drupal-Cache-Tags` (spaces) or `xkey` (spaces or commas). `readTags` merges the four in first-seen order without repeats. The proxy removes them from the response unless `exposeTags` is set. A page with no tags depends on `proxy:path:<path>`.
 
@@ -550,49 +593,64 @@ The worker also posts `spool:cleared` to every page, as above. The replies list 
 
 The proxy also forgets the remembered body of every page that carries a purged tag, so the next fetch records the page afresh and one edit bumps the vector once.
 
+**Trimmed stylesheets.** With `trim: <manifest>` the proxy answers some stylesheets with fewer rules. The manifest is JSON from `buildTrimManifest` (`@drupflare/spool/trim`): `{ schema: 1, styles }`, where `styles` maps a site-relative key (`pathname` plus the query string, as the page links it) to `{ source, css, missing, scripts }`. Three rules apply.
+
+- **Serving.** A `GET` for a key in the manifest that the origin answers `200` with a `text/css` body is hashed over the decoded bytes. When `sha256-<base64>` equals `source`, the answer is `css` with the origin's headers, no `Content-Length` and a weak `ETag` (`W/` added, the way `decorate` does). When it differs, the origin's bytes go out unchanged and the proxy counts a mismatch. A response with no entry, any other method or status, and a body that is not `text/css` are never touched.
+- **`spool-trim=0`.** A request whose query carries `spool-trim=0` gets the full file. The proxy removes that parameter and no other before it forwards the request, so the origin sees the URL the page named, and it does not look the file up in the manifest.
+- **Guard.** Every HTML response to a `GET` is checked, kept or not, whatever its status. The guard fires when the page's tokens (`pageTokens`) include a token in the `missing` list of a trimmed stylesheet it links, or when the page loads a same-origin script whose key is not in that entry's `scripts`. Then the proxy rewrites the `href` of each trimmed stylesheet link to carry `spool-trim=0` (`&amp;spool-trim=0` after an existing query), before the body is decorated or becomes an artifact shell, and a rewritten page's `ETag` becomes weak. Other links are left alone.
+
+The proxy counts `served`, `mismatched` and `guarded` in `proxy.trim`, and writes each mismatch and each guard firing to the `sink` as an event at `TRIM_PATH` (`/.spool/trim`) whose body is JSON: `{"kind":"mismatch","file":<key>}` or `{"kind":"guard","page":<path>,"reason":"token"|"script","files":[<keys>]}`. A URL that carries `spool-trim=0` is a different URL for the browser's cache, which is why a guarded page pays the full file once.
+
 ## Limits
 
 Every constant exported from `src/protocol/index.ts` whose name begins `MAX_` is in the first table. `tests/node/docs.spec.ts` compares the value column with the source.
 
-| Constant            | Value  | Defined in                 | What it bounds                             |
-| ------------------- | ------ | -------------------------- | ------------------------------------------ |
-| `MAX_NEED`          | 64     | `src/protocol/sync.ts`     | ids in one `need` request                  |
-| `MAX_HAVE`          | 256    | `src/protocol/sync.ts`     | ids in one `have` list                     |
-| `MAX_BEACON_BYTES`  | 65,536 | `src/protocol/beacon.ts`   | UTF-8 bytes in one held event body         |
-| `MAX_BEACON_EVENTS` | 500    | `src/protocol/beacon.ts`   | events in one batch                        |
-| `MAX_WANT`          | 8      | `src/protocol/beacon.ts`   | artifact paths one flush may ask for       |
-| `MAX_VERSION_CHARS` | 256    | `src/protocol/manifest.ts` | characters in a manifest route's `version` |
-| `MAX_ROUTE_CHARS`   | 256    | `src/protocol/view.ts`     | characters in the route pattern of a view  |
-| `MAX_LOAD_ORIGINS`  | 32     | `src/protocol/view.ts`     | origins one loads report names             |
+| Constant             | Value  | Defined in                 | What it bounds                                     |
+| -------------------- | ------ | -------------------------- | -------------------------------------------------- |
+| `MAX_NEED`           | 64     | `src/protocol/sync.ts`     | ids in one `need` request                          |
+| `MAX_HAVE`           | 256    | `src/protocol/sync.ts`     | ids in one `have` list                             |
+| `MAX_BEACON_BYTES`   | 65,536 | `src/protocol/beacon.ts`   | UTF-8 bytes in one held event body                 |
+| `MAX_BEACON_EVENTS`  | 500    | `src/protocol/beacon.ts`   | events in one batch                                |
+| `MAX_WANT`           | 8      | `src/protocol/beacon.ts`   | artifact paths one flush may ask for               |
+| `MAX_CATALOGUE_PATH` | 2048   | `src/protocol/beacon.ts`   | characters in the page path of a catalogue request |
+| `MAX_VERSION_CHARS`  | 256    | `src/protocol/manifest.ts` | characters in a manifest route's `version`         |
+| `MAX_ROUTE_CHARS`    | 256    | `src/protocol/view.ts`     | characters in the route pattern of a view          |
+| `MAX_LOAD_ORIGINS`   | 32     | `src/protocol/view.ts`     | origins one loads report names                     |
 
 The other protocol constants:
 
-| Constant              | Value               | Defined in                  | Meaning                                                           |
-| --------------------- | ------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `PROTOCOL_VERSION`    | 1                   | `src/protocol/artifact.ts`  | the protocol version both halves speak                            |
-| `MANIFEST_SCHEMA`     | 1                   | `src/protocol/manifest.ts`  | the schema number of a `spool.json`                               |
-| `SPOOL_PREFIX`        | `/.spool/`          | `src/protocol/config.ts`    | every path under it is spool's                                    |
-| `OWN_PREFIX`          | `/.spool/`          | `src/protocol/beacon.ts`    | event paths under it always travel in a batch                     |
-| `VIEW_PATH`           | `/.spool/view`      | `src/protocol/view.ts`      | the path of a view event                                          |
-| `LOADS_PATH`          | `/.spool/loads`     | `src/protocol/view.ts`      | the path of a loads report                                        |
-| `DROPPED_PATH`        | `/.spool/dropped`   | `src/protocol/beacon.ts`    | the path of a drop count                                          |
-| `ARTIFACT_TAG_PREFIX` | `spool:artifact:`   | `src/protocol/sync.ts`      | prefix of the tag that drops an artifact by id                    |
-| `CLEAR_ALL`           | `*`                 | `src/protocol/envelope.ts`  | the `Spool-Clear` token that wipes everything                     |
-| `CLIENT_TAG_ATTR`     | `data-spool-client` | `src/protocol/tag.ts`       | the attribute that marks the page runtime tag                     |
-| `GA4_RECOMMENDED_MS`  | 172,800,000         | `src/protocol/collector.ts` | the 48-hour attribution window of the GA4 Measurement Protocol    |
-| `GA4_HARD_MS`         | 259,200,000         | `src/protocol/collector.ts` | the 72-hour backdating limit; a `ga4` collector may not exceed it |
+| Constant                  | Value               | Defined in                  | Meaning                                                           |
+| ------------------------- | ------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `PROTOCOL_VERSION`        | 1                   | `src/protocol/artifact.ts`  | the protocol version both halves speak                            |
+| `MANIFEST_SCHEMA`         | 1                   | `src/protocol/manifest.ts`  | the schema number of a `spool.json`                               |
+| `SPOOL_PREFIX`            | `/.spool/`          | `src/protocol/config.ts`    | every path under it is spool's                                    |
+| `OWN_PREFIX`              | `/.spool/`          | `src/protocol/beacon.ts`    | event paths under it always travel in a batch                     |
+| `VIEW_PATH`               | `/.spool/view`      | `src/protocol/view.ts`      | the path of a view event                                          |
+| `LOADS_PATH`              | `/.spool/loads`     | `src/protocol/view.ts`      | the path of a loads report                                        |
+| `DROPPED_PATH`            | `/.spool/dropped`   | `src/protocol/beacon.ts`    | the path of a drop count                                          |
+| `ARTIFACT_TAG_PREFIX`     | `spool:artifact:`   | `src/protocol/sync.ts`      | prefix of the tag that drops an artifact by id                    |
+| `CLEAR_ALL`               | `*`                 | `src/protocol/envelope.ts`  | the `Spool-Clear` token that wipes everything                     |
+| `CLIENT_TAG_ATTR`         | `data-spool-client` | `src/protocol/tag.ts`       | the attribute that marks the page runtime tag                     |
+| `GA4_RECOMMENDED_MS`      | 172,800,000         | `src/protocol/collector.ts` | the 48-hour attribution window of the GA4 Measurement Protocol    |
+| `GA4_HARD_MS`             | 259,200,000         | `src/protocol/collector.ts` | the 72-hour backdating limit; a `ga4` collector may not exceed it |
+| `JOULES_PER_BYTE`         | 0.0006984           | `src/protocol/provision.ts` | joules to move one byte, `k` in the catalogue break-even (L2)     |
+| `ORIGIN_JOULES`           | 0.455               | `src/protocol/provision.ts` | joules of the origin request a local view avoids, `o` (L1)        |
+| `DEFAULT_CATALOGUE_BYTES` | 32,768              | `src/protocol/provision.ts` | the cap on one catalogue bundle when `catalogueBytes` is absent   |
 
 Limits that live in the server and the worker and are not exported from the protocol module:
 
-| Constant           | Value      | Defined in             | What it bounds                                                                                        |
-| ------------------ | ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
-| `MAX_PIGGYBACK`    | 32         | `src/server/spool.ts`  | changed tags a response carries in `Spool-Invalidate` before the worker is left to ask `/.spool/sync` |
-| `MAX_BEACON_BODY`  | 262,144    | `src/server/beacon.ts` | characters in one flush request the server reads                                                      |
-| `MAX_STATIC_BYTES` | 4,194,304  | `src/sw/static.ts`     | bytes of one static file the worker keeps (4 MiB)                                                     |
-| `MAX_HOLD_MS`      | 86,400,000 | `src/sw/analytics.ts`  | age at which held events leave on their own flush, at most once per such window                       |
-| `VIEW_BATCH`       | 20         | `src/sw/analytics.ts`  | held views that make a network moment worth a flush                                                   |
-| `VIEW_HOLD_MS`     | 3,600,000  | `src/sw/analytics.ts`  | age of the oldest held event that makes a network moment worth a flush                                |
-| `FLUSH_CHUNK`      | 100        | `src/sw/analytics.ts`  | events in one flush request                                                                           |
+| Constant              | Value      | Defined in             | What it bounds                                                                                        |
+| --------------------- | ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MAX_PIGGYBACK`       | 32         | `src/server/spool.ts`  | changed tags a response carries in `Spool-Invalidate` before the worker is left to ask `/.spool/sync` |
+| `MAX_CATALOGUE_BUILD` | 32         | `src/server/spool.ts`  | pages one catalogue request makes the server build, best `p` first                                    |
+| `MAX_BEACON_BODY`     | 262,144    | `src/server/beacon.ts` | characters in one flush request the server reads                                                      |
+| `MAX_STATIC_BYTES`    | 4,194,304  | `src/sw/static.ts`     | bytes of one static file the worker keeps (4 MiB)                                                     |
+| `MAX_HOLD_MS`         | 86,400,000 | `src/sw/analytics.ts`  | age at which held events leave on their own flush, at most once per such window                       |
+| `VIEW_BATCH`          | 20         | `src/sw/analytics.ts`  | held views that make a network moment worth a flush                                                   |
+| `VIEW_HOLD_MS`        | 3,600,000  | `src/sw/analytics.ts`  | age of the oldest held event that makes a network moment worth a flush                                |
+| `FLUSH_CHUNK`         | 100        | `src/sw/analytics.ts`  | events in one flush request                                                                           |
+| `CATALOGUE_REASK_MS`  | 86,400,000 | `src/sw/analytics.ts`  | time before the worker asks for the same page's catalogue again                                       |
+| `MAX_CATALOGUE_ASKED` | 256        | `src/sw/analytics.ts`  | page paths whose last catalogue ask the worker keeps                                                  |
 
 Proxy defaults (`src/proxy/proxy.ts`, `src/proxy/purge.ts`):
 
