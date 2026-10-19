@@ -1,0 +1,141 @@
+{
+	"name": "@drupflare/spool",
+	"description": "Client-Side Page Rendering and Execution Framework",
+	"version": "0.1.0",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./protocol": {
+			"types": "./dist/protocol/index.d.ts",
+			"default": "./dist/protocol/index.js"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"default": "./dist/server/index.js"
+		},
+		"./node": {
+			"types": "./dist/node/listener.d.ts",
+			"default": "./dist/node/listener.js"
+		},
+		"./proxy": {
+			"types": "./dist/proxy/index.d.ts",
+			"default": "./dist/proxy/index.js"
+		},
+		"./stores": {
+			"types": "./dist/stores/index.d.ts",
+			"default": "./dist/stores/index.js"
+		},
+		"./stores/durable-object": {
+			"types": "./dist/stores/durable-object.d.ts",
+			"default": "./dist/stores/durable-object.js"
+		},
+		"./sw": {
+			"types": "./dist/sw/index.d.ts",
+			"default": "./dist/sw/index.js"
+		},
+		"./client": {
+			"types": "./dist/client/index.d.ts",
+			"default": "./dist/client/index.js"
+		},
+		"./report": {
+			"types": "./dist/report/index.d.ts",
+			"default": "./dist/report/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md"
+	],
+	"scripts": {
+		"typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.dom.json --noEmit && tsc -p tests/node/tsconfig.json --noEmit && tsc -p tests/browser/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json --noEmit",
+		"build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.dom.json",
+		"prepublishOnly": "bun run build && bun run build:cdn",
+		"build:sw": "bun scripts/build-sw.ts",
+		"build:cdn": "bun scripts/build-cdn.ts",
+		"publish:cdn": "bun scripts/publish-cdn.ts",
+		"test": "vitest run --project=unit --project=node",
+		"test:watch": "vitest --project=unit --project=node",
+		"test:coverage": "vitest run --project=unit --project=node --coverage",
+		"test:browser": "playwright test",
+		"prettier": "prettier --write .",
+		"prettier:check": "prettier --check .",
+		"prepare": "husky",
+		"docs:build": "typedoc",
+		"docs:serve": "typedoc --watch",
+		"impact": "bun scripts/impact.ts",
+		"impact:check": "bun scripts/impact.ts --check",
+		"measure:repeat-nav": "bun scripts/measure/repeat-nav.ts",
+		"measure:zero-network": "bun scripts/measure/zero-network.ts",
+		"measure:device-cpu": "bun scripts/measure/device-cpu.ts",
+		"measure:on-wire": "bun scripts/measure/on-wire.ts",
+		"measure:rapl": "node scripts/measure/rapl.ts",
+		"measure:iphone": "bun scripts/measure/iphone.ts",
+		"measure:traces": "bun scripts/measure/traces.ts"
+	},
+	"devDependencies": {
+		"@azure/functions": "^4.16.5",
+		"@cloudflare/vitest-pool-workers": "^0.22.0",
+		"@cloudflare/workers-types": "^5.20260811.1",
+		"@google-cloud/functions-framework": "^5.0.5",
+		"@hapi/hapi": "^21.4.10",
+		"@nestjs/common": "^12.1.3",
+		"@nestjs/core": "^12.1.3",
+		"@nestjs/platform-express": "^12.1.3",
+		"@netlify/edge-functions": "^4.0.2",
+		"@netlify/functions": "^6.0.2",
+		"@playwright/test": "^1.62.1",
+		"@types/bun": "^1.4.3",
+		"@types/express": "^5.0.6",
+		"@types/koa": "^3.0.3",
+		"@types/node": "^24",
+		"@vitest/coverage-istanbul": "^4.1.0",
+		"elysia": "^1.4.30",
+		"express": "^5.3.0",
+		"fake-indexeddb": "^6.2.6",
+		"fastify": "^5.12.7",
+		"h3": "^1",
+		"hono": "^4.13.13",
+		"husky": "^9.1.7",
+		"itty-router": "^5.0.24",
+		"koa": "^3.2.1",
+		"lint-staged": "^17.3.0",
+		"prettier": "^3.9.10",
+		"prettier-plugin-organize-imports": "^4.3.0",
+		"prettier-plugin-sh": "^0.20.2",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.2",
+		"typedoc": "^0.28.20",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.0",
+		"wrangler": "^4.20.0"
+	},
+	"license": "MIT",
+	"author": "Gregory Mitchell <me@gmitch215.xyz>",
+	"homepage": "https://github.com/drupflare/spool",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/drupflare/spool.git"
+	},
+	"bugs": {
+		"url": "https://github.com/drupflare/spool/issues"
+	},
+	"keywords": [
+		"cloudflare",
+		"workers",
+		"service-worker",
+		"indexeddb",
+		"offline",
+		"local-first",
+		"energy"
+	],
+	"lint-staged": {
+		"*.{ts,js,mjs,css,md,json,jsonc}": "prettier --write"
+	}
+}
