@@ -18,7 +18,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">ProvisionPrior</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#artifactbytes">artifactBytes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#avoidedbytes">avoidedBytes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#changesperday">changesPerDay</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#futureviews">futureViews</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#requestbytes">requestBytes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#reuse">reuse</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L11">src/protocol/provision.ts:11</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L11">src/protocol/provision.ts:11</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -42,42 +42,42 @@
 <div class="tsd-comment tsd-typography"><p>size of one artifact before the worker has fetched any</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L19">src/protocol/provision.ts:19</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L19">src/protocol/provision.ts:19</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="avoidedbytes"><span>avoided<wbr/>Bytes</span><a href="#avoidedbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">avoidedBytes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>bytes one local view keeps off the wire</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L21">src/protocol/provision.ts:21</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L21">src/protocol/provision.ts:21</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="changesperday"><span>changes<wbr/>Per<wbr/>Day</span><a href="#changesperday" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">changesPerDay</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>how often one dependency tag changes, per day, before the worker has seen any</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L23">src/protocol/provision.ts:23</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L23">src/protocol/provision.ts:23</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="futureviews"><span>future<wbr/>Views</span><a href="#futureviews" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">futureViews</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>N_future: later views one provisioned artifact serves</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L15">src/protocol/provision.ts:15</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L15">src/protocol/provision.ts:15</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="requestbytes"><span>request<wbr/>Bytes</span><a href="#requestbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">requestBytes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>what one request weighs in bytes, so requests and bytes share a scale</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L17">src/protocol/provision.ts:17</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L17">src/protocol/provision.ts:17</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="reuse"><span>reuse</span><a href="#reuse" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">reuse</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>P_reuse: the chance a provisioned artifact serves a later view</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/protocol/provision.ts#L13">src/protocol/provision.ts:13</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/protocol/provision.ts#L13">src/protocol/provision.ts:13</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

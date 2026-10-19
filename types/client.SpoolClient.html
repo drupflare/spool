@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">SpoolClient</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#hello">hello</a><span class="tsd-signature-symbol">:</span> <a href="client.Hello.html" class="tsd-signature-type tsd-kind-type-alias">Hello</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#registration">registration</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ServiceWorkerRegistration</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#reportloads-1">reportLoads</a><span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">id</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">count</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">origins</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#status-1">status</a><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="client.Status.html" class="tsd-signature-type tsd-kind-type-alias">Status</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#track-1">track</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">db</span><span class="tsd-signature-symbol">:</span> <a href="client.Closable.html" class="tsd-signature-type tsd-kind-type-alias">Closable</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#view-1">view</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">path</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L20">src/client/register.ts:20</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L20">src/client/register.ts:20</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -43,12 +43,12 @@
 <div class="tsd-comment tsd-typography"><p>the version handshake; <code>compatible</code> is false when the worker speaks another protocol</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L23">src/client/register.ts:23</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L23">src/client/register.ts:23</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="registration"><span>registration</span><a href="#registration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">registration</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ServiceWorkerRegistration</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L21">src/client/register.ts:21</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L21">src/client/register.ts:21</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -68,7 +68,7 @@
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">origins</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L29">src/client/register.ts:29</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L29">src/client/register.ts:29</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="status"><span>status</span><a href="#status" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -79,7 +79,7 @@
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="client.Status.html" class="tsd-signature-type tsd-kind-type-alias">Status</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L25">src/client/register.ts:25</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L25">src/client/register.ts:25</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="track"><span>track</span><a href="#track" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -94,7 +94,7 @@
 <li><span><span class="tsd-kind-parameter">db</span>: <a href="client.Closable.html" class="tsd-signature-type tsd-kind-type-alias">Closable</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L31">src/client/register.ts:31</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L31">src/client/register.ts:31</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="view"><span>view</span><a href="#view" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -109,7 +109,7 @@
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">path</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/38fb73637de46554fb6596061def1d07e01e3534/src/client/register.ts#L27">src/client/register.ts:27</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/13f02151a03fb1cbbe3a83aadee2be8ffcd79734/src/client/register.ts#L27">src/client/register.ts:27</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
