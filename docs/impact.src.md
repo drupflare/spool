@@ -62,6 +62,42 @@ The money above does not include:
 
 Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.
 
+## Asset Trimming
+
+The proxy can serve a site's stylesheets with the rules that no page of the site can match removed. This is a separate channel from the {{value:headlineJ}} J headline. The headline is what a local view saves, and a local view fetches no stylesheet. Trimming applies to a network view of a page the visitor has not seen. A repeat view saves nothing from it, since an optimized HTTP cache already keeps the file. The two do not add, and nothing in this section is part of the headline.
+
+The saving has to happen where the file is served. A service worker cannot save bytes by trimming a file it already fetched. The proxy trims each file against every page and script of the site and never against one page, so the file keeps its URL and one cached copy, and only rules that match nothing in the crawl go. A build step that runs PurgeCSS with a safelist reaches the same saving. The proxy reaches it without a change to the origin.
+
+JavaScript stays as it is. Coverage at load cannot see what a click or a scroll will need. Over {{value:trimCoveragePages}} pages the used share of same-origin JavaScript rose from {{value:trimJsLoad}} at load to {{value:trimJsScroll}} after one scroll (L1), and no load-time measure can say which of the rest a visitor will run. CSS coverage stayed at {{value:trimCssLoad}} after the same scroll.
+
+{{table:trim-coverage}}
+
+### What the Trim Removes and Whether It Is Safe
+
+The run crawled {{value:trimPages}} pages on {{value:trimSites}} Drupal sites, built one manifest per site from all its pages and the scripts they load, and fetched {{value:trimFiles}} stylesheets, of which the trim removed rules from {{value:trimFilesTrimmed}} (L1). Four checks decide whether the trimmed files are safe to serve.
+
+{{table:trim-checks}}
+
+Oracle A reads CDP rule usage on the original CSS, at load and after one scroll, and counts the used rules the trimmed text lost. Oracle B screenshots each page at full height with the original CSS and again with the trimmed CSS, and counts the pixels that differ. The control is the original page screenshotted twice, so the pixels it differs by come from the page and not from the CSS. One screenshot of each arm is a small sample, and a page that differs in the trimmed arm and not in the control is not proof of a CSS difference. Leave-one-out rebuilds the manifest without the page, which is how a page the crawl missed would meet it.
+
+### Bytes and Joules Saved
+
+Each figure is the brotli-5 size of a stylesheet before and after the trim, summed over the files that were new to the visit, with the home page first. A first view of an internal page therefore counts only the files that a visit starting at the home page had not fetched. The home page row is the cold case. The proxy sends a decoded body and a host's edge compresses it, so the bytes are an estimate of transfer (L2). Joules apply the attributional {{value:swdTotal}} kWh/GB to those bytes (L2). A trimmed file is the same request, so there is no origin term.
+
+{{table:trim-savings}}
+
+The typical first view of an internal page saves {{value:trimFirstBytes}} and {{value:trimFirstJoules}} J, and the mean is {{value:trimFirstMeanBytes}} and {{value:trimFirstMeanJoules}} J. The mean is the figure to multiply by a view count, since a few pages with large unused files carry the total.
+
+### Per Million Views
+
+The share of views that are network views of a page the visitor has not seen is an L3 input. It runs from {{value:trimShareLow}} to {{value:trimShareHigh}}, and `src/report/inputs.ts` gives the source of each value and the one in between. A view counted here is a network view of an unseen page.
+
+{{table:trim-million}}
+
+Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at each host's first paid tier, which is the high end for a site large enough to reach a later tier. A free allowance is used up by everything the site serves, so a site under its allowance saves no dollars. Cloudflare Workers bills no egress and its row is $0.
+
+{{table:trim-prices}}
+
 ## How the Figures Are Made
 
 Every number on this page comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
@@ -352,6 +388,7 @@ Spool does not claim:
 - that one avoided request is one avoided radio wake;
 - a capacity saving without evidence that equipment was removed, since a cloud-hosted origin shows a bill and the provider's electricity is not established;
 - savings from a projection without its relocated device work and its provisioning bytes;
+- that trimming adds to the headline. It saves bytes on a network view of an unseen page and nothing on a local or repeat view;
 - that one institution's traffic moves a network operator's power state;
 - a paced or cellular phone figure, which neither run has resolved;
 - a dollar saving beyond the list-price arithmetic in Bandwidth and Request Costs, which leaves out free allowances, contract prices, staff time and plan tiers that do not scale with traffic.

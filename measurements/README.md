@@ -13,6 +13,7 @@ L1, measured on hardware described in the file.
 | `rapl`         | package joules on a desktop CPU, by experiment                                  | RAPL energy counters, a sampled GPU    | `scripts/measure/rapl.ts`         |
 | `iphone`       | phone joules per view, back to back and paced; service-worker lifetime          | the battery gauge's accumulated energy | `scripts/measure/iphone.ts`       |
 | `payload`      | compressed bytes of a page, its shared shell, its unique part and its node data | plain GETs, gzip, brotli, zstd         | `scripts/measure/payload.ts`      |
+| `trim`         | CSS and JS used per page, new aggregate bytes, markup classes, bytes by class   | Chromium coverage and DevTools, zstd   | `scripts/measure/trim.ts`         |
 
 The `rapl` experiments are `views` (optimized caching, spool and shipping headers), `compute-server`
 (recompute against a cache, per request), `compute-browser` (the same in Chromium), `projection`

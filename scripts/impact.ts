@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 import {
 	DOCUMENT_BYTES,
+	FIRST_VIEW_SHARE,
 	FREE_TIER_VIEWS,
 	HOSTS,
 	MOBILE_SHARE,
@@ -20,6 +21,7 @@ import {
 	bandwidthUsd,
 	capacityMWh,
 	classifyOrigin,
+	coverageFigures,
 	dataCentreJoules,
 	deviceCpuFigures,
 	egressUsd,
@@ -32,6 +34,7 @@ import {
 	onWireFigures,
 	parseMeasurementText,
 	peakCut,
+	perMillionViewsUsd,
 	phoneRun,
 	powerSweep,
 	raplRun,
@@ -44,6 +47,7 @@ import {
 	serverYearMWh,
 	serversAfter,
 	spread,
+	trimFigures,
 	viewsChannelMWh,
 	zeroNetworkFigures,
 	type ByteSplit,
@@ -51,6 +55,7 @@ import {
 	type Measurement,
 	type OpFigures,
 	type OriginClass,
+	type Quartiles,
 	type Spread
 } from '../src/report/index';
 import { isMain } from './measure/lib';
@@ -61,6 +66,7 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const SCALE_VIEWS = 100e6;
 
 const J_PER_MWH = 3.6e9;
+const J_PER_KWH = 3.6e6;
 
 /** the readings by path under `measurements/`, each validated */
 export type Readings = Map<string, Measurement>;
@@ -92,11 +98,18 @@ export function byReading(a: string, b: string): number {
 	return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
 }
 
-/** the latest reading of a rig, narrowed to files ending in `-<experiment>` when given */
-export function latest(readings: Readings, rig: string, experiment?: string): Measurement {
+/**
+ * The latest reading of a rig, narrowed to files ending in `-<experiment>` when given, or to the
+ * plain `<date>.json` readings when `experiment` is `null`.
+ */
+export function latest(readings: Readings, rig: string, experiment?: string | null): Measurement {
 	const names = [...readings.keys()]
 		.filter((n) => n.startsWith(`${rig}/`))
-		.filter((n) => !experiment || n.endsWith(`-${experiment}.json`))
+		.filter((n) =>
+			experiment === null
+				? /\/\d{4}-\d{2}-\d{2}\.json$/.test(n)
+				: !experiment || n.endsWith(`-${experiment}.json`)
+		)
 		.sort(byReading);
 	const name = names[names.length - 1];
 	if (!name)
@@ -1049,6 +1062,178 @@ export function buildFigures(readings: Readings): Figures {
 		]),
 		[1, 2, 3]
 	);
+	// #endregion
+
+	// #region asset trimming
+	{
+		const trimRun = trimFigures(latest(readings, 'trim', 'trimmed').rows);
+		const coverage = coverageFigures(latest(readings, 'trim', null).rows);
+		const iqr = (q: Quartiles | null, f: (n: number) => string = sig) =>
+			q ? `${f(q.median)} (${f(q.p25)} to ${f(q.p75)})` : 'none';
+		const kb = (n: number) => `${fixed(n / 1000, 1)} KB`;
+		const host = (site: string) => new URL(site).host;
+		const share = (z: number) => `${fixed(z * 100)}%`;
+		const firstBytes = trimRun.first.bytes;
+		const firstJoules = trimRun.first.joules;
+		const kwhPerMillion = (joules: number) => (joules * 1e6) / J_PER_KWH;
+		const shares = [
+			['low', FIRST_VIEW_SHARE.low.value],
+			['central', FIRST_VIEW_SHARE.central.value],
+			['high', FIRST_VIEW_SHARE.high.value]
+		] as const;
+		v.trimSites = fixed(trimRun.sites.length);
+		v.trimPages = fixed(trimRun.rules.pages);
+		v.trimFiles = fixed(trimRun.files.count);
+		v.trimFilesTrimmed = fixed(trimRun.files.trimmed);
+		v.trimFirstBytes = kb(firstBytes.median);
+		v.trimFirstJoules = sig(firstJoules.median);
+		v.trimFirstMeanBytes = kb(firstBytes.mean);
+		v.trimFirstMeanJoules = sig(firstJoules.mean);
+		v.trimShareLow = share(FIRST_VIEW_SHARE.low.value);
+		v.trimShareHigh = share(FIRST_VIEW_SHARE.high.value);
+		const checks = {
+			rulesUsed: fixed(trimRun.rules.used),
+			falseRemovals: fixed(trimRun.rules.falseRemovals),
+			renderPages: fixed(trimRun.render.pages),
+			renderErrors: fixed(trimRun.render.errors),
+			identical: fixed(trimRun.render.identical),
+			controlIdentical: fixed(trimRun.render.controlIdentical),
+			trimmedOnly: fixed(trimRun.render.trimmedOnly),
+			maxPixels: fixed(trimRun.render.maxTrimmed),
+			maxControl: fixed(trimRun.render.maxControl),
+			looPages: fixed(trimRun.leaveOneOut.pages),
+			looFired: fixed(trimRun.leaveOneOut.guardFired),
+			looUnguarded: fixed(trimRun.leaveOneOut.unguarded),
+			looRules: fixed(trimRun.leaveOneOut.unguardedRules),
+			looFalse: fixed(trimRun.leaveOneOut.falseRemovals),
+			looFalsePages: fixed(trimRun.leaveOneOut.pagesWithFalseRemovals)
+		};
+		v.trimCoveragePages = fixed(coverage.pages);
+		v.trimJsLoad = share(coverage.jsLoad?.median ?? 0);
+		v.trimJsScroll = share(coverage.jsScroll?.median ?? 0);
+		v.trimCssLoad = share(coverage.cssLoad?.median ?? 0);
+		t['trim-savings'] = table(
+			[
+				'site',
+				'home page, cold: bytes saved',
+				'home page, cold: joules',
+				'internal pages',
+				'first view: bytes saved, median (quartiles)',
+				'first view: joules, median (quartiles)',
+				'stylesheet bytes removed'
+			],
+			[
+				...trimRun.sites.map((s) => [
+					host(s.site),
+					s.cold ? kb(s.cold.bytes.median) : 'none',
+					s.cold ? sig(s.cold.joules.median) : 'none',
+					s.first ? fixed(s.first.bytes.n) : '0',
+					s.first ? iqr(s.first.bytes, kb) : 'none',
+					s.first ? iqr(s.first.joules) : 'none',
+					share(s.fileShare)
+				]),
+				[
+					'**Pooled**',
+					iqr(trimRun.cold.bytes, kb),
+					iqr(trimRun.cold.joules),
+					fixed(firstBytes.n),
+					iqr(firstBytes, kb),
+					iqr(firstJoules),
+					share(1 - trimRun.files.trimmedBr5 / trimRun.files.br5)
+				]
+			],
+			[1, 2, 3, 4, 5, 6]
+		);
+		t['trim-million'] = table(
+			[
+				'views counted',
+				'bytes saved per view (mean)',
+				'joules per view (mean)',
+				'joules per million views',
+				'kWh per million views',
+				'label'
+			],
+			[
+				[
+					'cold view of a home page, over the network',
+					kb(trimRun.cold.bytes.mean),
+					sig(trimRun.cold.joules.mean),
+					`${sig(trimRun.cold.joules.mean)} million`,
+					sig(kwhPerMillion(trimRun.cold.joules.mean)),
+					'L2'
+				],
+				[
+					'first view of an unseen internal page, over the network',
+					kb(firstBytes.mean),
+					sig(firstJoules.mean),
+					`${sig(firstJoules.mean)} million`,
+					sig(kwhPerMillion(firstJoules.mean)),
+					'L2'
+				],
+				...shares.map(([name, z]) => [
+					`all views, ${share(z)} of them first views of an unseen internal page (${name})`,
+					kb(firstBytes.mean * z),
+					sig(firstJoules.mean * z),
+					`${sig(firstJoules.mean * z)} million`,
+					sig(kwhPerMillion(firstJoules.mean * z)),
+					'L3'
+				])
+			],
+			[1, 2, 3, 4]
+		);
+		t['trim-prices'] = table(
+			[
+				'host',
+				'egress price',
+				'per million first views',
+				...shares.map(([name, z]) => `per million views, ${share(z)} first views (${name})`)
+			],
+			HOSTS.map((h) => [
+				h.name,
+				`${price(h.egress.value)} per ${unitOf(h.egress.unit)}`,
+				usd(perMillionViewsUsd(firstBytes.mean, 1, h)),
+				...shares.map(([, z]) => usd(perMillionViewsUsd(firstBytes.mean, z, h)))
+			]),
+			[1, 2, 3, 4, 5]
+		);
+		t['trim-checks'] = table(
+			['check', 'what it counts', 'result'],
+			[
+				[
+					'Oracle A, false removals',
+					`rules CDP marked used at load or after a scroll, over ${v.trimPages} pages, that the trimmed text lost`,
+					`${checks.falseRemovals} of ${checks.rulesUsed} rule uses`
+				],
+				[
+					'Oracle B, render',
+					`full-page screenshots of ${checks.renderPages} pages (${checks.renderErrors} failed): the trimmed CSS against the original, and the original against itself as a control`,
+					`identical to the pixel on ${checks.identical} pages, and ${checks.controlIdentical} for the control; most differing pixels ${checks.maxPixels} trimmed and ${checks.maxControl} control; trimmed differs and control does not on ${checks.trimmedOnly}`
+				],
+				[
+					'Leave-one-out, guard',
+					`internal pages, each against a manifest built without it, where the guard fired`,
+					`${checks.looFired} of ${checks.looPages}`
+				],
+				[
+					'Leave-one-out, Oracle A',
+					`rules used on the ${checks.looUnguarded} pages the guard let through, that the trimmed text lost`,
+					`${checks.looFalse} of ${checks.looRules}, on ${checks.looFalsePages} pages`
+				]
+			]
+		);
+		t['trim-coverage'] = table(
+			[
+				'same-origin files',
+				'used at load, median (quartiles)',
+				'used after one scroll, median (quartiles)'
+			],
+			[
+				['CSS', iqr(coverage.cssLoad, share), iqr(coverage.cssScroll, share)],
+				['JavaScript', iqr(coverage.jsLoad, share), iqr(coverage.jsScroll, share)]
+			],
+			[1, 2]
+		);
+	}
 	// #endregion
 
 	void spread;

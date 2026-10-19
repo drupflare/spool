@@ -85,6 +85,73 @@ The money above does not include:
 
 Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.
 
+## Asset Trimming
+
+The proxy can serve a site's stylesheets with the rules that no page of the site can match removed. This is a separate channel from the 12.4 J headline. The headline is what a local view saves, and a local view fetches no stylesheet. Trimming applies to a network view of a page the visitor has not seen. A repeat view saves nothing from it, since an optimized HTTP cache already keeps the file. The two do not add, and nothing in this section is part of the headline.
+
+The saving has to happen where the file is served. A service worker cannot save bytes by trimming a file it already fetched. The proxy trims each file against every page and script of the site and never against one page, so the file keeps its URL and one cached copy, and only rules that match nothing in the crawl go. A build step that runs PurgeCSS with a safelist reaches the same saving. The proxy reaches it without a change to the origin.
+
+JavaScript stays as it is. Coverage at load cannot see what a click or a scroll will need. Over 85 pages the used share of same-origin JavaScript rose from 36% at load to 40% after one scroll (L1), and no load-time measure can say which of the rest a visitor will run. CSS coverage stayed at 9% after the same scroll.
+
+| same-origin files | used at load, median (quartiles) | used after one scroll, median (quartiles) |
+| ----------------- | -------------------------------: | ----------------------------------------: |
+| CSS               |                   9% (5% to 17%) |                            9% (5% to 17%) |
+| JavaScript        |                 36% (26% to 47%) |                          40% (31% to 54%) |
+
+### What the Trim Removes and Whether It Is Safe
+
+The run crawled 85 pages on 10 Drupal sites, built one manifest per site from all its pages and the scripts they load, and fetched 303 stylesheets, of which the trim removed rules from 233 (L1). Four checks decide whether the trimmed files are safe to serve.
+
+| check                    | what it counts                                                                                                                   | result                                                                                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Oracle A, false removals | rules CDP marked used at load or after a scroll, over 85 pages, that the trimmed text lost                                       | 0 of 26,571 rule uses                                                                                                                                            |
+| Oracle B, render         | full-page screenshots of 85 pages (0 failed): the trimmed CSS against the original, and the original against itself as a control | identical to the pixel on 62 pages, and 65 for the control; most differing pixels 934,285 trimmed and 838,405 control; trimmed differs and control does not on 4 |
+| Leave-one-out, guard     | internal pages, each against a manifest built without it, where the guard fired                                                  | 33 of 75                                                                                                                                                         |
+| Leave-one-out, Oracle A  | rules used on the 13 pages the guard let through, that the trimmed text lost                                                     | 0 of 3,643, on 0 pages                                                                                                                                           |
+
+Oracle A reads CDP rule usage on the original CSS, at load and after one scroll, and counts the used rules the trimmed text lost. Oracle B screenshots each page at full height with the original CSS and again with the trimmed CSS, and counts the pixels that differ. The control is the original page screenshotted twice, so the pixels it differs by come from the page and not from the CSS. One screenshot of each arm is a small sample, and a page that differs in the trimmed arm and not in the control is not proof of a CSS difference. Leave-one-out rebuilds the manifest without the page, which is how a page the crawl missed would meet it.
+
+### Bytes and Joules Saved
+
+Each figure is the brotli-5 size of a stylesheet before and after the trim, summed over the files that were new to the visit, with the home page first. A first view of an internal page therefore counts only the files that a visit starting at the home page had not fetched. The home page row is the cold case. The proxy sends a decoded body and a host's edge compresses it, so the bytes are an estimate of transfer (L2). Joules apply the attributional 0.194 kWh/GB to those bytes (L2). A trimmed file is the same request, so there is no origin term.
+
+| site               | home page, cold: bytes saved | home page, cold: joules | internal pages | first view: bytes saved, median (quartiles) | first view: joules, median (quartiles) | stylesheet bytes removed |
+| ------------------ | ---------------------------: | ----------------------: | -------------: | ------------------------------------------: | -------------------------------------: | -----------------------: |
+| demo.drupflare.com |                       6.8 KB |                    4.73 |              3 |                   0.0 KB (0.0 KB to 1.7 KB) |                          0 (0 to 1.16) |                      21% |
+| www.asu.edu        |                      27.6 KB |                    19.3 |              8 |                27.6 KB (20.7 KB to 27.6 KB) |                    19.3 (14.4 to 19.3) |                      40% |
+| www.yale.edu       |                      41.3 KB |                    28.8 |              8 |                36.2 KB (27.2 KB to 36.4 KB) |                    25.3 (19.0 to 25.4) |                      48% |
+| www.colorado.edu   |                      39.1 KB |                    27.3 |              8 |                 19.1 KB (0.0 KB to 38.3 KB) |                       13.4 (0 to 26.8) |                      63% |
+| www.uiowa.edu      |                      32.9 KB |                    23.0 |              8 |                32.9 KB (32.5 KB to 33.5 KB) |                    23.0 (22.7 to 23.4) |                      50% |
+| www.tufts.edu      |                      13.5 KB |                    9.42 |              8 |                 10.3 KB (7.7 KB to 11.4 KB) |                    7.22 (5.39 to 7.94) |                      28% |
+| www.unl.edu        |                       3.2 KB |                    2.22 |              8 |                   3.2 KB (3.1 KB to 3.5 KB) |                    2.20 (2.19 to 2.43) |                      49% |
+| www.ucdavis.edu    |                      53.5 KB |                    37.4 |              8 |                 53.5 KB (0.0 KB to 53.5 KB) |                       37.4 (0 to 37.4) |                      61% |
+| www.rutgers.edu    |                     106.9 KB |                    74.7 |              8 |                   0.0 KB (0.0 KB to 0.0 KB) |                             0 (0 to 0) |                      40% |
+| www.mit.edu        |                      49.9 KB |                    34.9 |              8 |                   0.0 KB (0.0 KB to 0.0 KB) |                             0 (0 to 0) |                      67% |
+| **Pooled**         | 36.0 KB (17.0 KB to 47.8 KB) |     25.2 (11.9 to 33.4) |             75 |                  3.2 KB (0.0 KB to 32.9 KB) |                       2.21 (0 to 23.0) |                      48% |
+
+The typical first view of an internal page saves 3.2 KB and 2.21 J, and the mean is 15.2 KB and 10.6 J. The mean is the figure to multiply by a view count, since a few pages with large unused files carry the total.
+
+### Per Million Views
+
+The share of views that are network views of a page the visitor has not seen is an L3 input. It runs from 45% to 75%, and `src/report/inputs.ts` gives the source of each value and the one in between. A view counted here is a network view of an unseen page.
+
+| views counted                                                           | bytes saved per view (mean) | joules per view (mean) | joules per million views | kWh per million views | label |
+| ----------------------------------------------------------------------- | --------------------------: | ---------------------: | -----------------------: | --------------------: | ----- |
+| cold view of a home page, over the network                              |                     37.5 KB |                   26.2 |             26.2 million |                  7.27 | L2    |
+| first view of an unseen internal page, over the network                 |                     15.2 KB |                   10.6 |             10.6 million |                  2.95 | L2    |
+| all views, 45% of them first views of an unseen internal page (low)     |                      6.8 KB |                   4.78 |             4.78 million |                  1.33 | L3    |
+| all views, 60% of them first views of an unseen internal page (central) |                      9.1 KB |                   6.36 |             6.36 million |                  1.77 | L3    |
+| all views, 75% of them first views of an unseen internal page (high)    |                     11.4 KB |                   7.95 |             7.95 million |                  2.21 | L3    |
+
+Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at each host's first paid tier, which is the high end for a site large enough to reach a later tier. A free allowance is used up by everything the site serves, so a site under its allowance saves no dollars. Cloudflare Workers bills no egress and its row is $0.
+
+| host                               |  egress price | per million first views | per million views, 45% first views (low) | per million views, 60% first views (central) | per million views, 75% first views (high) |
+| ---------------------------------- | ------------: | ----------------------: | ---------------------------------------: | -------------------------------------------: | ----------------------------------------: |
+| Cloudflare Workers (Standard plan) |     $0 per GB |                      $0 |                                       $0 |                                           $0 |                                        $0 |
+| AWS CloudFront (pay as you go)     | $0.085 per GB |                   $1.29 |                                    $0.58 |                                        $0.77 |                                     $0.97 |
+| Microsoft Azure                    | $0.087 per GB |                   $1.32 |                                    $0.60 |                                        $0.79 |                                     $0.99 |
+| Google Cloud (Premium Tier)        | $0.12 per GiB |                   $1.70 |                                    $0.77 |                                        $1.02 |                                     $1.27 |
+
 ## How the Figures Are Made
 
 Every number on this page comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
@@ -545,6 +612,7 @@ Spool does not claim:
 - that one avoided request is one avoided radio wake;
 - a capacity saving without evidence that equipment was removed, since a cloud-hosted origin shows a bill and the provider's electricity is not established;
 - savings from a projection without its relocated device work and its provisioning bytes;
+- that trimming adds to the headline. It saves bytes on a network view of an unseen page and nothing on a local or repeat view;
 - that one institution's traffic moves a network operator's power state;
 - a paced or cellular phone figure, which neither run has resolved;
 - a dollar saving beyond the list-price arithmetic in Bandwidth and Request Costs, which leaves out free allowances, contract prices, staff time and plan tiers that do not scale with traffic.

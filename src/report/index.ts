@@ -5,3 +5,4 @@ export * from './measurement.js';
 export * from './model.js';
 export * from './thirdparty.js';
 export * from './traffic.js';
+export * from './trim.js';

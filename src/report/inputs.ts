@@ -112,6 +112,32 @@ export const FREE_TIER_VIEWS: Input = {
 	source: '100,000 Worker requests/day (Cloudflare, L0) x 30.4 days'
 };
 
+/**
+ * Share of all views that are a device's first view of a page it has not seen, so they go to the
+ * network and move that page's new bytes. A scenario range: the low end is a new-visitor session
+ * share times the share of views that are not a session's entry; the high end is a phone study.
+ */
+export const FIRST_VIEW_SHARE = {
+	low: {
+		value: 0.451,
+		unit: 'fraction',
+		layer: 'L3',
+		source: 'spool-survey-breakeven.md Part D: 79.8% new-visitor sessions (Study in the States, one .gov site, October 2021; labelled FT-C in the survey, not re-read here) x (1 - 1/2.3 pages per session, OHO 2023 benchmarks, web page), computed'
+	},
+	central: {
+		value: 0.6,
+		unit: 'fraction',
+		layer: 'L3',
+		source: 'spool-survey-breakeven.md Part D: the midpoint of the low and high values, a choice'
+	},
+	high: {
+		value: 0.75,
+		unit: 'fraction',
+		layer: 'L3',
+		source: 'LiveLab, Wang et al. TR1215-2011 (full text): on average 75% of the webpages 24 iPhone users visited were new visits'
+	}
+} as const satisfies Record<string, Input>;
+
 /** share of origin load that is reads spool can answer, before a trace replaces it */
 export const READ_SHARE: Input = { value: 0.9, unit: 'fraction', layer: 'L3', source: 'scenario' };
 

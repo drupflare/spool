@@ -23,6 +23,14 @@ export function bandwidthUsd(
 	return egressUsd(localViews, host, bytes) + requestUsd(localViews, host);
 }
 
+/**
+ * egress dollars per million views when `share` of them are views that move `bytes` fewer bytes,
+ * at the host's tier price. A trimmed file is the same request, so there is no request term.
+ */
+export function perMillionViewsUsd(bytes: number, share: number, host: HostPrice): number {
+	return egressUsd(1e6 * share, host, bytes);
+}
+
 /** decimal GB a month that `annualLocalViews` no longer move */
 export function monthlyGb(annualLocalViews: number, bytes: number = DOCUMENT_BYTES.value): number {
 	return (annualLocalViews * bytes) / 12 / 1e9;

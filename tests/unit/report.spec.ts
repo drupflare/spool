@@ -6,6 +6,7 @@ import {
 	attributionalJoules,
 	bandwidthUsd,
 	capacityMWh,
+	coverageFigures,
 	dataCentreJoules,
 	egressUsd,
 	fleetFor,
@@ -17,9 +18,11 @@ import {
 	monthlyGb,
 	onWireFigures,
 	peakCut,
+	perMillionViewsUsd,
 	phoneRun,
 	powerSweep,
 	quantile,
+	quartiles,
 	raplRun,
 	repeatBytesBySite,
 	repeatNavFigures,
@@ -32,6 +35,7 @@ import {
 	splitRequestBytes,
 	spread,
 	swdTotal,
+	trimFigures,
 	viewsChannelMWh,
 	zeroNetworkFigures,
 	type Row
@@ -537,5 +541,156 @@ describe('browser and proxy counts', () => {
 			thirdPartyShare: 10 / 40,
 			thirdPartyRequests: 4
 		});
+	});
+});
+
+describe('trim figures', () => {
+	const px = (differing: number) => ({ differing, compared: 1000 });
+	const page = (kind: string, saved: number, rest: Record<string, unknown> = {}) => ({
+		kind,
+		saved: { br5Saved: saved },
+		guard: { fired: false },
+		oracleA: { used: 10, falseRemovals: 0, lost: [] },
+		oracleB: null,
+		leaveOneOut: null,
+		...rest
+	});
+	const file = { trimmed: true, raw: 1000, br5: 400, trimmedRaw: 300, trimmedBr5: 100 };
+	const rows: Row[] = [
+		{
+			site: 'https://a.test/',
+			files: [file],
+			pages: [
+				page('home', 1000, { oracleB: { control: px(0), trimmed: px(0), fulfilled: 2 } }),
+				page('internal', 400, {
+					oracleB: { control: px(0), trimmed: px(9), fulfilled: 2 },
+					leaveOneOut: { trimmedFiles: 1, guardFired: true, oracleA: null }
+				}),
+				page('internal', 0, {
+					leaveOneOut: {
+						trimmedFiles: 1,
+						guardFired: false,
+						oracleA: { used: 4, falseRemovals: 1 }
+					}
+				})
+			]
+		},
+		{
+			site: 'https://b.test/',
+			files: [file, file],
+			pages: [
+				page('home', 3000, { oracleB: { error: 'timeout' } }),
+				page('internal', 2000, {
+					oracleA: {
+						used: 7,
+						falseRemovals: 1,
+						lost: [{ file: '/a.css', selector: '.x' }]
+					},
+					leaveOneOut: { trimmedFiles: 0, guardFired: false, oracleA: null }
+				})
+			]
+		}
+	];
+
+	it('takes quartiles with linear interpolation and the mean, and null for nothing', () => {
+		expect(quartiles([0, 400, 2000])).toEqual({
+			n: 3,
+			p25: 200,
+			median: 400,
+			p75: 1200,
+			mean: 800
+		});
+		expect(quartiles([])).toBeNull();
+	});
+
+	it('saves bytes per cold and first view, with the joules of those bytes at the SWD rate', () => {
+		const figures = trimFigures(rows);
+		expect(figures.cold.bytes).toEqual({
+			n: 2,
+			p25: 1500,
+			median: 2000,
+			p75: 2500,
+			mean: 2000
+		});
+		expect(figures.first.bytes).toEqual({ n: 3, p25: 200, median: 400, p75: 1200, mean: 800 });
+		expect(figures.first.joules.median).toBeCloseTo(attributionalJoules(400), 12);
+		expect(figures.first.joules.mean).toBeCloseTo(attributionalJoules(800), 12);
+		expect(figures.sites.map((s) => [s.site, s.cold?.bytes.median, s.first?.bytes.n])).toEqual([
+			['https://a.test/', 1000, 2],
+			['https://b.test/', 3000, 1]
+		]);
+		expect(figures.sites.map((s) => s.fileShare)).toEqual([0.75, 0.75]);
+		expect(figures.files).toEqual({ count: 3, trimmed: 3, br5: 1200, trimmedBr5: 300 });
+	});
+
+	it('counts the false removals of Oracle A and names the offenders', () => {
+		expect(trimFigures(rows).rules).toEqual({
+			pages: 5,
+			used: 47,
+			falseRemovals: 1,
+			offenders: ['/a.css .x']
+		});
+	});
+
+	it('compares the trimmed arm with the control and counts the failed screenshots', () => {
+		expect(trimFigures(rows).render).toEqual({
+			pages: 2,
+			errors: 1,
+			identical: 1,
+			controlIdentical: 2,
+			beyondControl: 1,
+			trimmedOnly: 1,
+			maxTrimmed: 9,
+			maxControl: 0
+		});
+	});
+
+	it('counts the guard and Oracle A of leave-one-out over the pages that have one', () => {
+		expect(trimFigures(rows).leaveOneOut).toEqual({
+			pages: 3,
+			guardFired: 1,
+			unguarded: 1,
+			unguardedRules: 4,
+			falseRemovals: 1,
+			pagesWithFalseRemovals: 1
+		});
+	});
+
+	it('refuses a reading with no home page or no internal page', () => {
+		expect(() => trimFigures([])).toThrow(RangeError);
+	});
+
+	it('reads coverage shares of same-origin files over the pages that loaded', () => {
+		const files = (css: number, js: number) => [
+			{ kind: 'css', origin: 'same', raw: 100, usedLoad: css, usedScroll: css },
+			{ kind: 'js', origin: 'same', raw: 100, usedLoad: js, usedScroll: js + 10 },
+			{ kind: 'js', origin: 'third', raw: 100, usedLoad: 100, usedScroll: 100 }
+		];
+		const figures = coverageFigures([
+			{
+				pages: [
+					{ ok: true, files: files(10, 20) },
+					{ ok: 'timeout', files: files(99, 99) }
+				]
+			},
+			{
+				pages: [
+					{ ok: true, files: files(30, 40) },
+					{ ok: true, files: [] }
+				]
+			}
+		]);
+		expect(figures.pages).toBe(3);
+		expect(figures.cssLoad?.median).toBeCloseTo(0.2, 12);
+		expect(figures.jsLoad?.median).toBeCloseTo(0.3, 12);
+		expect(figures.jsScroll?.median).toBeCloseTo(0.4, 12);
+		expect(figures.cssLoad?.n).toBe(2);
+	});
+
+	it('prices a share of views at the host egress rate, with no request term', () => {
+		const aws = HOSTS.find((h) => h.name.startsWith('AWS')) as (typeof HOSTS)[number];
+		expect(perMillionViewsUsd(10_000, 1, aws)).toBeCloseTo(0.85, 10);
+		expect(perMillionViewsUsd(10_000, 0.5, aws)).toBeCloseTo(0.425, 10);
+		expect(perMillionViewsUsd(10_000, 1, HOSTS[0] as (typeof HOSTS)[number])).toBe(0);
 	});
 });

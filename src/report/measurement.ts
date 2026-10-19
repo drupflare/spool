@@ -8,7 +8,8 @@ export const RIGS = [
 	'device-cpu',
 	'rapl',
 	'iphone',
-	'payload'
+	'payload',
+	'trim'
 ] as const;
 
 /** one of {@link RIGS} */

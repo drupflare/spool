@@ -359,7 +359,7 @@ async function get(url: string): Promise<Fetched> {
 	};
 }
 
-async function nodeResources(origin: string, excluded: string[]) {
+export async function nodeResources(origin: string, excluded: string[]) {
 	const resources: Array<{ alias: string | null; resource: JsonApiResource }> = [];
 	const index = await getJson(`${origin}/jsonapi`);
 	if (!index) return null;
