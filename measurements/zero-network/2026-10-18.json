@@ -1,0 +1,544 @@
+{
+	"schema": 1,
+	"rig": "zero-network",
+	"date": "2026-10-18",
+	"layer": "L1",
+	"question": "server hits per service-worker-served navigation, by registration setting and engine",
+	"instrument": "request log of the in-process origin (the browser is not trusted to report fromServiceWorker)",
+	"machine": {
+		"name": "MacBook Pro",
+		"cpu": "Apple M2 Pro",
+		"os": "macOS 26.5.2"
+	},
+	"software": {
+		"browsers": "Chromium, Firefox, WebKit, Playwright 1.62.1 bundled browsers"
+	},
+	"method": {
+		"views per engine": 13,
+		"modes": "clicks, typed navigations, a new tab",
+		"pages": "12 synthetic 30 KB pages",
+		"origin": "localhost"
+	},
+	"exclusions": [],
+	"rows": [
+		{
+			"arm": "default registration",
+			"env": {},
+			"engine": "chromium",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 379,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 340,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 344,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 341,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 341,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 350,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 309,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 311,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 311,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 310,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 309,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 309,
+					"serverHits": []
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": []
+				}
+			]
+		},
+		{
+			"arm": "default registration",
+			"env": {},
+			"engine": "firefox",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 369,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 359,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 370,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 378,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 552,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 376,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 329,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 322,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 350,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 318,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 320,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 315,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": []
+				}
+			]
+		},
+		{
+			"arm": "default registration",
+			"env": {},
+			"engine": "webkit",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 356,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 342,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 350,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 345,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 382,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 347,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 318,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 327,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 313,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 315,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 314,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 327,
+					"serverHits": []
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": []
+				}
+			]
+		},
+		{
+			"arm": "updateViaCache all, script max-age 86400",
+			"env": {
+				"SW_CC": "max-age=86400",
+				"SW_UVC": "all"
+			},
+			"engine": "chromium",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 379,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 359,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 362,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 354,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 357,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 340,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 309,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 309,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 308,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 313,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 318,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 312,
+					"serverHits": []
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": []
+				}
+			]
+		},
+		{
+			"arm": "updateViaCache all, script max-age 86400",
+			"env": {
+				"SW_CC": "max-age=86400",
+				"SW_UVC": "all"
+			},
+			"engine": "firefox",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 592,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 833,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 748,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 511,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 603,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 524,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 367,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 391,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 394,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 552,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 555,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 390,
+					"serverHits": []
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": []
+				}
+			]
+		},
+		{
+			"arm": "updateViaCache all, script max-age 86400",
+			"env": {
+				"SW_CC": "max-age=86400",
+				"SW_UVC": "all"
+			},
+			"engine": "webkit",
+			"controlled": true,
+			"rows": [
+				{
+					"mode": "click",
+					"p": "/node/2",
+					"ms": 408,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/3",
+					"ms": 385,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/4",
+					"ms": 392,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/5",
+					"ms": 359,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "click",
+					"p": "/node/6",
+					"ms": 354,
+					"serverHits": []
+				},
+				{
+					"mode": "click",
+					"p": "/node/7",
+					"ms": 387,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/2",
+					"ms": 316,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "goto",
+					"p": "/node/3",
+					"ms": 337,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/4",
+					"ms": 331,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/5",
+					"ms": 360,
+					"serverHits": ["/sw.js"]
+				},
+				{
+					"mode": "goto",
+					"p": "/node/6",
+					"ms": 323,
+					"serverHits": []
+				},
+				{
+					"mode": "goto",
+					"p": "/node/7",
+					"ms": 325,
+					"serverHits": []
+				},
+				{
+					"mode": "new-tab",
+					"p": "/node/9",
+					"serverHits": ["/sw.js"]
+				}
+			]
+		}
+	]
+}

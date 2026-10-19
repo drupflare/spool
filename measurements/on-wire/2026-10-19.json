@@ -1,0 +1,5242 @@
+{
+	"schema": 1,
+	"rig": "on-wire",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "requests and bytes that reach the origin, counted by a proxy, beside the requests and bytes the browser reports, on the repeat-navigation site list",
+	"instrument": "a counting HTTP proxy between Chromium and the origin (scripts/measure/wire-proxy.ts, a throwaway CA decrypts CONNECT tunnels); the browser side is Chrome DevTools Protocol Network events",
+	"machine": {
+		"name": "MacBook Pro",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"browser": "Chromium 156.0.8078.4, Playwright bundled build",
+		"proxy": "Bun 1.4.3"
+	},
+	"method": {
+		"views per site": "cold home, up to 6 internal links, home repeat",
+		"sites": 16,
+		"network": "the local network through the proxy, no emulation",
+		"wire counts": "requests the proxy sent to origins, over the same navigations the browser counted; sizes are HTTP/1.1 text sizes (request line, headers, body)",
+		"origin leg": "HTTP/1.1 only, Node TLS client; sites that vary by protocol or client can answer differently than they do to a direct browser"
+	},
+	"exclusions": ["a navigation whose ok field is not true did not finish loading"],
+	"rows": [
+		{
+			"site": "https://demo.drupflare.com/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://demo.drupflare.com/",
+					"ok": true,
+					"wallMs": 4689,
+					"requests": 64,
+					"networkRequests": 64,
+					"networkSameOrigin": 63,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 204059,
+					"docBytes": 5646,
+					"docStatus": 200,
+					"taskMs": 130,
+					"scriptMs": 25,
+					"layoutMs": 28,
+					"thirdPartyBytes": 10715,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 5646,
+						"Other": 815,
+						"Font": 87118,
+						"Stylesheet": 76864,
+						"Script": 32886,
+						"XHR": 730
+					},
+					"wire": {
+						"requests": 64,
+						"bytes": 237945,
+						"responseBytes": 201836,
+						"bodyBytes": 155407,
+						"byStatus": {
+							"200": 63,
+							"204": 1
+						},
+						"sameHost": 63,
+						"thirdParty": 1,
+						"hosts": 2
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://demo.drupflare.com/user/login",
+					"ok": true,
+					"wallMs": 3328,
+					"requests": 22,
+					"networkRequests": 21,
+					"networkSameOrigin": 21,
+					"revalidations304": 15,
+					"cacheHits": 1,
+					"bytes": 39054,
+					"docBytes": 5462,
+					"docStatus": 200,
+					"taskMs": 40,
+					"scriptMs": 3,
+					"layoutMs": 1,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 5462,
+						"Other": 819,
+						"Font": 2834,
+						"Stylesheet": 22638,
+						"Script": 6557,
+						"XHR": 744
+					},
+					"wire": {
+						"requests": 22,
+						"bytes": 53483,
+						"responseBytes": 39217,
+						"bodyBytes": 23523,
+						"byStatus": {
+							"200": 5,
+							"204": 2,
+							"304": 15
+						},
+						"sameHost": 22,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://demo.drupflare.com/node/3",
+					"ok": true,
+					"wallMs": 3044,
+					"requests": 21,
+					"networkRequests": 20,
+					"networkSameOrigin": 20,
+					"revalidations304": 17,
+					"cacheHits": 1,
+					"bytes": 19323,
+					"docBytes": 5749,
+					"docStatus": 200,
+					"taskMs": 29,
+					"scriptMs": 3,
+					"layoutMs": 2,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 5749,
+						"Other": 813,
+						"Font": 2826,
+						"Stylesheet": 4218,
+						"Script": 4979,
+						"XHR": 738
+					},
+					"wire": {
+						"requests": 21,
+						"bytes": 33373,
+						"responseBytes": 19553,
+						"bodyBytes": 4699,
+						"byStatus": {
+							"200": 2,
+							"204": 2,
+							"304": 17
+						},
+						"sameHost": 21,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://demo.drupflare.com/node/2",
+					"ok": true,
+					"wallMs": 3028,
+					"requests": 22,
+					"networkRequests": 21,
+					"networkSameOrigin": 21,
+					"revalidations304": 17,
+					"cacheHits": 1,
+					"bytes": 45171,
+					"docBytes": 5276,
+					"docStatus": 200,
+					"taskMs": 6,
+					"scriptMs": 2,
+					"layoutMs": 4,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 5276,
+						"Other": 819,
+						"Font": 29131,
+						"Stylesheet": 4230,
+						"Script": 4981,
+						"XHR": 734
+					},
+					"wire": {
+						"requests": 22,
+						"bytes": 59766,
+						"responseBytes": 45374,
+						"bodyBytes": 30168,
+						"byStatus": {
+							"200": 3,
+							"204": 2,
+							"304": 17
+						},
+						"sameHost": 22,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://demo.drupflare.com/node/1",
+					"ok": true,
+					"wallMs": 2732,
+					"requests": 21,
+					"networkRequests": 20,
+					"networkSameOrigin": 20,
+					"revalidations304": 17,
+					"cacheHits": 1,
+					"bytes": 18424,
+					"docBytes": 4838,
+					"docStatus": 200,
+					"taskMs": 18,
+					"scriptMs": 2,
+					"layoutMs": 1,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 4838,
+						"Other": 813,
+						"Font": 2832,
+						"Stylesheet": 4224,
+						"Script": 4981,
+						"XHR": 736
+					},
+					"wire": {
+						"requests": 21,
+						"bytes": 32412,
+						"responseBytes": 18663,
+						"bodyBytes": 3792,
+						"byStatus": {
+							"200": 2,
+							"204": 2,
+							"304": 17
+						},
+						"sameHost": 21,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://demo.drupflare.com/",
+					"ok": true,
+					"wallMs": 3052,
+					"requests": 64,
+					"networkRequests": 63,
+					"networkSameOrigin": 63,
+					"revalidations304": 60,
+					"cacheHits": 1,
+					"bytes": 49413,
+					"docBytes": 5459,
+					"docStatus": 200,
+					"taskMs": 18,
+					"scriptMs": 1,
+					"layoutMs": 1,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 5459,
+						"Other": 823,
+						"Font": 2834,
+						"Stylesheet": 34582,
+						"Script": 4985,
+						"XHR": 730
+					},
+					"wire": {
+						"requests": 64,
+						"bytes": 88485,
+						"responseBytes": 48671,
+						"bodyBytes": 4575,
+						"byStatus": {
+							"200": 2,
+							"204": 2,
+							"304": 60
+						},
+						"sameHost": 64,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				}
+			],
+			"generator": "Drupal 11 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.asu.edu/",
+					"ok": true,
+					"wallMs": 3648,
+					"requests": 85,
+					"networkRequests": 85,
+					"networkSameOrigin": 36,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 9370222,
+					"docBytes": 17160,
+					"docStatus": 200,
+					"taskMs": 522,
+					"scriptMs": 354,
+					"layoutMs": 10,
+					"thirdPartyBytes": 1328424,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 19456,
+						"Stylesheet": 110639,
+						"Script": 2245328,
+						"Image": 4269508,
+						"Media": 2686066,
+						"Fetch": 4472,
+						"XHR": 34753
+					},
+					"wire": {
+						"requests": 87,
+						"bytes": 9514703,
+						"responseBytes": 9370669,
+						"bodyBytes": 9314522,
+						"byStatus": {
+							"200": 64,
+							"204": 8,
+							"206": 1,
+							"302": 2,
+							"400": 9,
+							"404": 3
+						},
+						"sameHost": 36,
+						"thirdParty": 51,
+						"hosts": 31
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/about/privacy",
+					"ok": true,
+					"wallMs": 3170,
+					"requests": 47,
+					"networkRequests": 28,
+					"networkSameOrigin": 7,
+					"revalidations304": 0,
+					"cacheHits": 19,
+					"bytes": 559029,
+					"docBytes": 18603,
+					"docStatus": 200,
+					"taskMs": 240,
+					"scriptMs": 134,
+					"layoutMs": 2,
+					"thirdPartyBytes": 42837,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18897,
+						"Stylesheet": 78694,
+						"Script": 423304,
+						"Fetch": 1787,
+						"XHR": 36347
+					},
+					"wire": {
+						"requests": 31,
+						"bytes": 674211,
+						"responseBytes": 559584,
+						"bodyBytes": 541353,
+						"byStatus": {
+							"200": 26,
+							"204": 4,
+							"404": 1
+						},
+						"sameHost": 8,
+						"thirdParty": 23,
+						"hosts": 17
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/privacy",
+					"ok": true,
+					"wallMs": 2988,
+					"requests": 48,
+					"networkRequests": 24,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 24,
+					"bytes": 60657,
+					"docBytes": 18669,
+					"docStatus": 200,
+					"taskMs": 137,
+					"scriptMs": 91,
+					"layoutMs": 1,
+					"thirdPartyBytes": 41560,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18963,
+						"Fetch": 1726,
+						"XHR": 35819,
+						"Script": 4149
+					},
+					"wire": {
+						"requests": 28,
+						"bytes": 176406,
+						"responseBytes": 62569,
+						"bodyBytes": 47717,
+						"byStatus": {
+							"200": 21,
+							"204": 5,
+							"302": 1,
+							"404": 1
+						},
+						"sameHost": 4,
+						"thirdParty": 24,
+						"hosts": 17
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/academics/colleges-schools",
+					"ok": true,
+					"wallMs": 3317,
+					"requests": 55,
+					"networkRequests": 33,
+					"networkSameOrigin": 5,
+					"revalidations304": 0,
+					"cacheHits": 22,
+					"bytes": 588227,
+					"docBytes": 8737,
+					"docStatus": 200,
+					"taskMs": 47,
+					"scriptMs": 44,
+					"layoutMs": 0,
+					"thirdPartyBytes": 46731,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 9031,
+						"Image": 119630,
+						"Script": 420289,
+						"Fetch": 3756,
+						"XHR": 35521
+					},
+					"wire": {
+						"requests": 37,
+						"bytes": 702579,
+						"responseBytes": 590108,
+						"bodyBytes": 570050,
+						"byStatus": {
+							"200": 29,
+							"204": 4,
+							"302": 1,
+							"404": 3
+						},
+						"sameHost": 6,
+						"thirdParty": 31,
+						"hosts": 20
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/caslogin",
+					"ok": true,
+					"wallMs": 3991,
+					"requests": 23,
+					"networkRequests": 23,
+					"networkSameOrigin": 1,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 466858,
+					"docBytes": 13966,
+					"docStatus": 200,
+					"taskMs": 158,
+					"scriptMs": 94,
+					"layoutMs": 4,
+					"thirdPartyBytes": 443600,
+					"docHeaders": {
+						"cc": "no-cache, no-store, max-age=0, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 13966,
+						"Stylesheet": 4774,
+						"Script": 402857,
+						"Image": 42869,
+						"XHR": 2392
+					},
+					"wire": {
+						"requests": 33,
+						"bytes": 554463,
+						"responseBytes": 472928,
+						"bodyBytes": 441477,
+						"byStatus": {
+							"200": 23,
+							"204": 3,
+							"302": 7
+						},
+						"sameHost": 3,
+						"thirdParty": 30,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/news-events",
+					"ok": true,
+					"wallMs": 8731,
+					"requests": 51,
+					"networkRequests": 37,
+					"networkSameOrigin": 17,
+					"revalidations304": 0,
+					"cacheHits": 14,
+					"bytes": 6979977,
+					"docBytes": 10680,
+					"docStatus": 200,
+					"taskMs": 157,
+					"scriptMs": 120,
+					"layoutMs": 0,
+					"thirdPartyBytes": 2367488,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 10974,
+						"Image": 5729233,
+						"Script": 790486,
+						"Fetch": 448558,
+						"XHR": 726
+					},
+					"wire": {
+						"requests": 40,
+						"bytes": 7127503,
+						"responseBytes": 6982856,
+						"bodyBytes": 6957095,
+						"byStatus": {
+							"0": 1,
+							"200": 31,
+							"204": 3,
+							"301": 1,
+							"302": 1,
+							"404": 3
+						},
+						"sameHost": 18,
+						"thirdParty": 22,
+						"hosts": 14
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.asu.edu/academics",
+					"ok": true,
+					"wallMs": 3138,
+					"requests": 77,
+					"networkRequests": 56,
+					"networkSameOrigin": 26,
+					"revalidations304": 0,
+					"cacheHits": 21,
+					"bytes": 4018339,
+					"docBytes": 18573,
+					"docStatus": 200,
+					"taskMs": 312,
+					"scriptMs": 197,
+					"layoutMs": 6,
+					"thirdPartyBytes": 51231,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18867,
+						"Image": 2086934,
+						"Script": 604640,
+						"Media": 1268358,
+						"Fetch": 3721,
+						"XHR": 35819
+					},
+					"wire": {
+						"requests": 60,
+						"bytes": 4206433,
+						"responseBytes": 4019899,
+						"bodyBytes": 3984166,
+						"byStatus": {
+							"200": 50,
+							"204": 5,
+							"206": 1,
+							"302": 1,
+							"404": 3
+						},
+						"sameHost": 27,
+						"thirdParty": 33,
+						"hosts": 20
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.asu.edu/",
+					"ok": true,
+					"wallMs": 2895,
+					"requests": 84,
+					"networkRequests": 58,
+					"networkSameOrigin": 26,
+					"revalidations304": 1,
+					"cacheHits": 26,
+					"bytes": 6976813,
+					"docBytes": 17413,
+					"docStatus": 200,
+					"taskMs": 221,
+					"scriptMs": 121,
+					"layoutMs": 3,
+					"thirdPartyBytes": 50645,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": false
+					},
+					"byType": {
+						"Document": 19707,
+						"Script": 5089,
+						"Image": 4225699,
+						"Fetch": 4134,
+						"Media": 2686066,
+						"XHR": 36118
+					},
+					"wire": {
+						"requests": 62,
+						"bytes": 7168049,
+						"responseBytes": 6978326,
+						"bodyBytes": 6940787,
+						"byStatus": {
+							"200": 51,
+							"204": 5,
+							"206": 1,
+							"302": 1,
+							"304": 1,
+							"404": 3
+						},
+						"sameHost": 27,
+						"thirdParty": 35,
+						"hosts": 23
+					}
+				}
+			],
+			"generator": "Drupal 10 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.yale.edu/",
+					"ok": true,
+					"wallMs": 3248,
+					"requests": 57,
+					"networkRequests": 57,
+					"networkSameOrigin": 44,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 1934309,
+					"docBytes": 32456,
+					"docStatus": 200,
+					"taskMs": 216,
+					"scriptMs": 139,
+					"layoutMs": 22,
+					"thirdPartyBytes": 566283,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 32456,
+						"Stylesheet": 89649,
+						"Script": 798293,
+						"Image": 602079,
+						"Font": 410655,
+						"Fetch": 0,
+						"XHR": 1177
+					},
+					"wire": {
+						"requests": 57,
+						"bytes": 1969811,
+						"responseBytes": 1933691,
+						"bodyBytes": 1888757,
+						"byStatus": {
+							"200": 56,
+							"204": 1
+						},
+						"sameHost": 44,
+						"thirdParty": 13,
+						"hosts": 9
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/calendars",
+					"ok": true,
+					"wallMs": 2855,
+					"requests": 45,
+					"networkRequests": 13,
+					"networkSameOrigin": 7,
+					"revalidations304": 0,
+					"cacheHits": 32,
+					"bytes": 323597,
+					"docBytes": 26057,
+					"docStatus": 200,
+					"taskMs": 113,
+					"scriptMs": 63,
+					"layoutMs": 2,
+					"thirdPartyBytes": 130852,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 26057,
+						"Stylesheet": 62991,
+						"Script": 222868,
+						"Image": 10506,
+						"Fetch": 0,
+						"XHR": 1175
+					},
+					"wire": {
+						"requests": 16,
+						"bytes": 341540,
+						"responseBytes": 325836,
+						"bodyBytes": 315543,
+						"byStatus": {
+							"200": 14,
+							"204": 2
+						},
+						"sameHost": 7,
+						"thirdParty": 9,
+						"hosts": 5
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/directories",
+					"ok": true,
+					"wallMs": 2644,
+					"requests": 45,
+					"networkRequests": 11,
+					"networkSameOrigin": 7,
+					"revalidations304": 0,
+					"cacheHits": 34,
+					"bytes": 194574,
+					"docBytes": 28234,
+					"docStatus": 200,
+					"taskMs": 73,
+					"scriptMs": 39,
+					"layoutMs": 2,
+					"thirdPartyBytes": 1842,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 28234,
+						"Stylesheet": 62699,
+						"Script": 101799,
+						"XHR": 1176,
+						"Image": 666
+					},
+					"wire": {
+						"requests": 14,
+						"bytes": 209795,
+						"responseBytes": 196032,
+						"bodyBytes": 187351,
+						"byStatus": {
+							"200": 13,
+							"204": 1
+						},
+						"sameHost": 7,
+						"thirdParty": 7,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/search",
+					"ok": true,
+					"wallMs": 3167,
+					"requests": 42,
+					"networkRequests": 11,
+					"networkSameOrigin": 6,
+					"revalidations304": 0,
+					"cacheHits": 31,
+					"bytes": 180973,
+					"docBytes": 23518,
+					"docStatus": 200,
+					"taskMs": 67,
+					"scriptMs": 33,
+					"layoutMs": 1,
+					"thirdPartyBytes": 1841,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 23518,
+						"Stylesheet": 61735,
+						"Script": 93879,
+						"Image": 666,
+						"XHR": 1175
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 203025,
+						"responseBytes": 186577,
+						"bodyBytes": 176395,
+						"byStatus": {
+							"200": 12,
+							"204": 2,
+							"301": 1,
+							"302": 1,
+							"404": 1
+						},
+						"sameHost": 7,
+						"thirdParty": 10,
+						"hosts": 6
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/about-yale",
+					"ok": true,
+					"wallMs": 2707,
+					"requests": 59,
+					"networkRequests": 21,
+					"networkSameOrigin": 17,
+					"revalidations304": 0,
+					"cacheHits": 38,
+					"bytes": 877518,
+					"docBytes": 30521,
+					"docStatus": 200,
+					"taskMs": 30,
+					"scriptMs": 6,
+					"layoutMs": 5,
+					"thirdPartyBytes": 1841,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 30521,
+						"Stylesheet": 890,
+						"Image": 844932,
+						"XHR": 1175
+					},
+					"wire": {
+						"requests": 25,
+						"bytes": 904137,
+						"responseBytes": 879574,
+						"bodyBytes": 859400,
+						"byStatus": {
+							"200": 23,
+							"204": 2
+						},
+						"sameHost": 17,
+						"thirdParty": 8,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/about-yale/leadership-organization",
+					"ok": true,
+					"wallMs": 2681,
+					"requests": 44,
+					"networkRequests": 13,
+					"networkSameOrigin": 8,
+					"revalidations304": 0,
+					"cacheHits": 31,
+					"bytes": 136250,
+					"docBytes": 28066,
+					"docStatus": 200,
+					"taskMs": 83,
+					"scriptMs": 4,
+					"layoutMs": 2,
+					"thirdPartyBytes": 1842,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 28066,
+						"Stylesheet": 5665,
+						"Script": 100677,
+						"Fetch": 0,
+						"XHR": 1176,
+						"Image": 666
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 156858,
+						"responseBytes": 139341,
+						"bodyBytes": 128353,
+						"byStatus": {
+							"200": 14,
+							"204": 3
+						},
+						"sameHost": 8,
+						"thirdParty": 9,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.yale.edu/about-yale/yale-facts",
+					"ok": true,
+					"wallMs": 3219,
+					"requests": 71,
+					"networkRequests": 36,
+					"networkSameOrigin": 20,
+					"revalidations304": 0,
+					"cacheHits": 35,
+					"bytes": 1630922,
+					"docBytes": 33186,
+					"docStatus": 200,
+					"taskMs": 203,
+					"scriptMs": 89,
+					"layoutMs": 9,
+					"thirdPartyBytes": 368054,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 50068,
+						"Stylesheet": 69928,
+						"Image": 1086566,
+						"Script": 388809,
+						"Font": 33150,
+						"Fetch": 1225,
+						"XHR": 1176
+					},
+					"wire": {
+						"requests": 40,
+						"bytes": 1666582,
+						"responseBytes": 1632307,
+						"bodyBytes": 1603211,
+						"byStatus": {
+							"200": 38,
+							"204": 2
+						},
+						"sameHost": 20,
+						"thirdParty": 20,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.yale.edu/",
+					"ok": true,
+					"wallMs": 2637,
+					"requests": 56,
+					"networkRequests": 17,
+					"networkSameOrigin": 13,
+					"revalidations304": 0,
+					"cacheHits": 39,
+					"bytes": 586848,
+					"docBytes": 32455,
+					"docStatus": 200,
+					"taskMs": 104,
+					"scriptMs": 41,
+					"layoutMs": 5,
+					"thirdPartyBytes": 1841,
+					"docHeaders": {
+						"cc": "public, max-age=21600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 32455,
+						"Image": 553218,
+						"XHR": 1175
+					},
+					"wire": {
+						"requests": 21,
+						"bytes": 610227,
+						"responseBytes": 588996,
+						"bodyBytes": 572246,
+						"byStatus": {
+							"200": 19,
+							"204": 2
+						},
+						"sameHost": 13,
+						"thirdParty": 8,
+						"hosts": 4
+					}
+				}
+			],
+			"generator": "Drupal 7 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.colorado.edu/",
+					"ok": true,
+					"wallMs": 4190,
+					"requests": 103,
+					"networkRequests": 103,
+					"networkSameOrigin": 27,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 4468601,
+					"docBytes": 18823,
+					"docStatus": 200,
+					"taskMs": 646,
+					"scriptMs": 445,
+					"layoutMs": 61,
+					"thirdPartyBytes": 2271644,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 23762,
+						"Stylesheet": 95906,
+						"Script": 2656298,
+						"Image": 1562331,
+						"Font": 38384,
+						"Fetch": 84885,
+						"Ping": 7035,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 116,
+						"bytes": 4600791,
+						"responseBytes": 4489143,
+						"bodyBytes": 4381195,
+						"byStatus": {
+							"0": 3,
+							"200": 95,
+							"204": 5,
+							"302": 13
+						},
+						"sameHost": 27,
+						"thirdParty": 89,
+						"hosts": 38
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/search/results",
+					"ok": true,
+					"wallMs": 2878,
+					"requests": 71,
+					"networkRequests": 44,
+					"networkSameOrigin": 8,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 209001,
+					"docBytes": 14824,
+					"docStatus": 200,
+					"taskMs": 282,
+					"scriptMs": 150,
+					"layoutMs": 8,
+					"thirdPartyBytes": 52751,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 17603,
+						"Ping": 4701,
+						"Stylesheet": 91588,
+						"Script": 83638,
+						"Image": 3602,
+						"Fetch": 7869
+					},
+					"wire": {
+						"requests": 53,
+						"bytes": 300965,
+						"responseBytes": 225382,
+						"bodyBytes": 184860,
+						"byStatus": {
+							"0": 3,
+							"200": 40,
+							"204": 3,
+							"302": 7
+						},
+						"sameHost": 8,
+						"thirdParty": 45,
+						"hosts": 21
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/map",
+					"ok": true,
+					"wallMs": 3517,
+					"requests": 154,
+					"networkRequests": 132,
+					"networkSameOrigin": 11,
+					"revalidations304": 1,
+					"cacheHits": 22,
+					"bytes": 3560683,
+					"docBytes": 3703,
+					"docStatus": 200,
+					"taskMs": 1736,
+					"scriptMs": 237,
+					"layoutMs": 15,
+					"thirdPartyBytes": 3396577,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 8497,
+						"Ping": 3535,
+						"Stylesheet": 110885,
+						"Script": 2166249,
+						"Fetch": 583467,
+						"Image": 436303,
+						"Other": 0,
+						"XHR": 47499,
+						"Font": 204248
+					},
+					"wire": {
+						"requests": 148,
+						"bytes": 4456037,
+						"responseBytes": 4323334,
+						"bodyBytes": 4225397,
+						"byStatus": {
+							"200": 135,
+							"204": 5,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 11,
+						"thirdParty": 137,
+						"hosts": 29
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/about",
+					"ok": true,
+					"wallMs": 3548,
+					"requests": 128,
+					"networkRequests": 101,
+					"networkSameOrigin": 35,
+					"revalidations304": 1,
+					"cacheHits": 27,
+					"bytes": 3970146,
+					"docBytes": 24171,
+					"docStatus": 200,
+					"taskMs": 530,
+					"scriptMs": 287,
+					"layoutMs": 19,
+					"thirdPartyBytes": 1513777,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Fetch": 164888,
+						"Document": 92778,
+						"Ping": 3321,
+						"Stylesheet": 162563,
+						"Script": 1105003,
+						"Image": 2319998,
+						"Font": 82476,
+						"XHR": 39119,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 117,
+						"bytes": 4147673,
+						"responseBytes": 3992046,
+						"bodyBytes": 3901075,
+						"byStatus": {
+							"0": 9,
+							"200": 94,
+							"204": 6,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 35,
+						"thirdParty": 82,
+						"hosts": 30
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/about/mission",
+					"ok": true,
+					"wallMs": 2899,
+					"requests": 75,
+					"networkRequests": 47,
+					"networkSameOrigin": 9,
+					"revalidations304": 1,
+					"cacheHits": 28,
+					"bytes": 380040,
+					"docBytes": 15088,
+					"docStatus": 200,
+					"taskMs": 260,
+					"scriptMs": 159,
+					"layoutMs": 9,
+					"thirdPartyBytes": 27098,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 17857,
+						"Ping": 3537,
+						"XHR": 432,
+						"Stylesheet": 91544,
+						"Script": 62458,
+						"Image": 196404,
+						"Fetch": 7808,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 59,
+						"bytes": 489660,
+						"responseBytes": 397969,
+						"bodyBytes": 355638,
+						"byStatus": {
+							"0": 5,
+							"200": 41,
+							"204": 5,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 9,
+						"thirdParty": 50,
+						"hosts": 22
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/about/free-expression",
+					"ok": true,
+					"wallMs": 2860,
+					"requests": 96,
+					"networkRequests": 60,
+					"networkSameOrigin": 16,
+					"revalidations304": 1,
+					"cacheHits": 36,
+					"bytes": 973784,
+					"docBytes": 34532,
+					"docStatus": 200,
+					"taskMs": 210,
+					"scriptMs": 99,
+					"layoutMs": 5,
+					"thirdPartyBytes": 459973,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 100065,
+						"Ping": 3523,
+						"Stylesheet": 93168,
+						"Script": 77726,
+						"Image": 689724,
+						"Fetch": 7848,
+						"XHR": 1730
+					},
+					"wire": {
+						"requests": 70,
+						"bytes": 1101221,
+						"responseBytes": 990922,
+						"bodyBytes": 932382,
+						"byStatus": {
+							"0": 3,
+							"200": 54,
+							"204": 5,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 16,
+						"thirdParty": 54,
+						"hosts": 25
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.colorado.edu/about/rankings-achievements",
+					"ok": true,
+					"wallMs": 2851,
+					"requests": 121,
+					"networkRequests": 79,
+					"networkSameOrigin": 30,
+					"revalidations304": 1,
+					"cacheHits": 42,
+					"bytes": 2246072,
+					"docBytes": 24043,
+					"docStatus": 200,
+					"taskMs": 406,
+					"scriptMs": 236,
+					"layoutMs": 13,
+					"thirdPartyBytes": 138785,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 90990,
+						"Ping": 3522,
+						"XHR": 39552,
+						"Stylesheet": 95827,
+						"Script": 94342,
+						"Image": 1913983,
+						"Fetch": 7856,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 91,
+						"bytes": 2407598,
+						"responseBytes": 2263086,
+						"bodyBytes": 2186969,
+						"byStatus": {
+							"0": 5,
+							"200": 71,
+							"204": 7,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 30,
+						"thirdParty": 61,
+						"hosts": 26
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.colorado.edu/",
+					"ok": true,
+					"wallMs": 2823,
+					"requests": 98,
+					"networkRequests": 62,
+					"networkSameOrigin": 16,
+					"revalidations304": 1,
+					"cacheHits": 36,
+					"bytes": 1681185,
+					"docBytes": 18822,
+					"docStatus": 200,
+					"taskMs": 252,
+					"scriptMs": 144,
+					"layoutMs": 10,
+					"thirdPartyBytes": 318123,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 21584,
+						"Ping": 3523,
+						"XHR": 0,
+						"Image": 1562162,
+						"Fetch": 84980,
+						"Script": 8936
+					},
+					"wire": {
+						"requests": 73,
+						"bytes": 1798923,
+						"responseBytes": 1698221,
+						"bodyBytes": 1637075,
+						"byStatus": {
+							"0": 4,
+							"200": 57,
+							"204": 4,
+							"302": 7,
+							"304": 1
+						},
+						"sameHost": 16,
+						"thirdParty": 57,
+						"hosts": 23
+					}
+				}
+			],
+			"generator": "Drupal 11 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.ox.ac.uk/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.ox.ac.uk/",
+					"ok": true,
+					"wallMs": 3113,
+					"requests": 8,
+					"networkRequests": 8,
+					"networkSameOrigin": 4,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 224332,
+					"docBytes": 5552,
+					"docStatus": 403,
+					"taskMs": 144,
+					"scriptMs": 115,
+					"layoutMs": 6,
+					"thirdPartyBytes": 28582,
+					"docHeaders": {
+						"cc": null,
+						"etag": false
+					},
+					"byType": {
+						"Document": 5552,
+						"Script": 133786,
+						"Image": 3986,
+						"XHR": 81008
+					},
+					"wire": {
+						"requests": 13,
+						"bytes": 1163988,
+						"responseBytes": 1054291,
+						"bodyBytes": 1039900,
+						"byStatus": {
+							"0": 1,
+							"200": 7,
+							"301": 1,
+							"401": 1,
+							"403": 3
+						},
+						"sameHost": 6,
+						"thirdParty": 7,
+						"hosts": 3
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.ox.ac.uk/",
+					"ok": true,
+					"wallMs": 2784,
+					"requests": 8,
+					"networkRequests": 7,
+					"networkSameOrigin": 4,
+					"revalidations304": 0,
+					"cacheHits": 1,
+					"bytes": 193244,
+					"docBytes": 5564,
+					"docStatus": 403,
+					"taskMs": 114,
+					"scriptMs": 92,
+					"layoutMs": 1,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": null,
+						"etag": false
+					},
+					"byType": {
+						"Document": 5564,
+						"Script": 101676,
+						"Image": 6316,
+						"XHR": 79688
+					},
+					"wire": {
+						"requests": 11,
+						"bytes": 1132270,
+						"responseBytes": 1021924,
+						"bodyBytes": 1010000,
+						"byStatus": {
+							"0": 1,
+							"200": 6,
+							"301": 1,
+							"401": 1,
+							"403": 2
+						},
+						"sameHost": 5,
+						"thirdParty": 6,
+						"hosts": 3
+					}
+				}
+			],
+			"generator": null,
+			"drupal": false,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.berkeley.edu/",
+					"ok": true,
+					"wallMs": 3214,
+					"requests": 46,
+					"networkRequests": 46,
+					"networkSameOrigin": 29,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 4509613,
+					"docBytes": 16951,
+					"docStatus": 200,
+					"taskMs": 140,
+					"scriptMs": 73,
+					"layoutMs": 12,
+					"thirdPartyBytes": 1776606,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 16951,
+						"Stylesheet": 27358,
+						"Script": 404711,
+						"Image": 4003273,
+						"Font": 56441,
+						"Media": 0,
+						"Fetch": 0,
+						"Ping": 879
+					},
+					"wire": {
+						"requests": 45,
+						"bytes": 16647606,
+						"responseBytes": 16613668,
+						"bodyBytes": 16580781,
+						"byStatus": {
+							"200": 42,
+							"204": 2,
+							"206": 1
+						},
+						"sameHost": 29,
+						"thirdParty": 16,
+						"hosts": 10
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/students/",
+					"ok": true,
+					"wallMs": 2807,
+					"requests": 39,
+					"networkRequests": 12,
+					"networkSameOrigin": 10,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 221243,
+					"docBytes": 11875,
+					"docStatus": 200,
+					"taskMs": 65,
+					"scriptMs": 20,
+					"layoutMs": 5,
+					"thirdPartyBytes": 4240,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 11875,
+						"Script": 3907,
+						"Image": 205461
+					},
+					"wire": {
+						"requests": 13,
+						"bytes": 234667,
+						"responseBytes": 221827,
+						"bodyBytes": 210605,
+						"byStatus": {
+							"200": 12,
+							"204": 1
+						},
+						"sameHost": 10,
+						"thirdParty": 3,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/faculty-staff/",
+					"ok": true,
+					"wallMs": 2818,
+					"requests": 40,
+					"networkRequests": 11,
+					"networkSameOrigin": 9,
+					"revalidations304": 0,
+					"cacheHits": 29,
+					"bytes": 218235,
+					"docBytes": 11966,
+					"docStatus": 200,
+					"taskMs": 54,
+					"scriptMs": 19,
+					"layoutMs": 0,
+					"thirdPartyBytes": 3599,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 11966,
+						"Script": 3266,
+						"Image": 203003
+					},
+					"wire": {
+						"requests": 12,
+						"bytes": 230761,
+						"responseBytes": 218842,
+						"bodyBytes": 208903,
+						"byStatus": {
+							"200": 11,
+							"204": 1
+						},
+						"sameHost": 9,
+						"thirdParty": 3,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/map/",
+					"ok": true,
+					"wallMs": 4313,
+					"requests": 261,
+					"networkRequests": 234,
+					"networkSameOrigin": 219,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 6920716,
+					"docBytes": 22394,
+					"docStatus": 200,
+					"taskMs": 251,
+					"scriptMs": 49,
+					"layoutMs": 15,
+					"thirdPartyBytes": 446459,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 23916,
+						"Script": 446390,
+						"Image": 6449734,
+						"XHR": 676
+					},
+					"wire": {
+						"requests": 235,
+						"bytes": 7135110,
+						"responseBytes": 6915829,
+						"bodyBytes": 6760754,
+						"byStatus": {
+							"200": 234,
+							"204": 1
+						},
+						"sameHost": 219,
+						"thirdParty": 16,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/directory/",
+					"ok": true,
+					"wallMs": 2694,
+					"requests": 31,
+					"networkRequests": 4,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 17393,
+					"docBytes": 12397,
+					"docStatus": 200,
+					"taskMs": 48,
+					"scriptMs": 18,
+					"layoutMs": 4,
+					"thirdPartyBytes": 3599,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 12397,
+						"Script": 4663,
+						"Image": 333
+					},
+					"wire": {
+						"requests": 6,
+						"bytes": 25313,
+						"responseBytes": 18987,
+						"bodyBytes": 12776,
+						"byStatus": {
+							"200": 4,
+							"204": 2
+						},
+						"sameHost": 2,
+						"thirdParty": 4,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/about/",
+					"ok": true,
+					"wallMs": 3187,
+					"requests": 55,
+					"networkRequests": 28,
+					"networkSameOrigin": 10,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 2325537,
+					"docBytes": 13292,
+					"docStatus": 200,
+					"taskMs": 216,
+					"scriptMs": 100,
+					"layoutMs": 9,
+					"thirdPartyBytes": 1280343,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 76001,
+						"Script": 980678,
+						"Image": 1032011,
+						"Font": 171264,
+						"Stylesheet": 63349,
+						"XHR": 2234,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 31,
+						"bytes": 2369531,
+						"responseBytes": 2327325,
+						"bodyBytes": 2301788,
+						"byStatus": {
+							"200": 27,
+							"204": 3,
+							"302": 1
+						},
+						"sameHost": 10,
+						"thirdParty": 21,
+						"hosts": 10
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.berkeley.edu/about/by-the-numbers/",
+					"ok": true,
+					"wallMs": 2650,
+					"requests": 33,
+					"networkRequests": 4,
+					"networkSameOrigin": 1,
+					"revalidations304": 0,
+					"cacheHits": 29,
+					"bytes": 16955,
+					"docBytes": 12924,
+					"docStatus": 200,
+					"taskMs": 51,
+					"scriptMs": 16,
+					"layoutMs": 4,
+					"thirdPartyBytes": 4031,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 12924,
+						"XHR": 432,
+						"Script": 3266,
+						"Image": 333
+					},
+					"wire": {
+						"requests": 8,
+						"bytes": 36971,
+						"responseBytes": 18543,
+						"bodyBytes": 12533,
+						"byStatus": {
+							"0": 2,
+							"200": 4,
+							"204": 2
+						},
+						"sameHost": 1,
+						"thirdParty": 7,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.berkeley.edu/",
+					"ok": true,
+					"wallMs": 2728,
+					"requests": 44,
+					"networkRequests": 4,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 40,
+					"bytes": 20218,
+					"docBytes": 16619,
+					"docStatus": 200,
+					"taskMs": 18,
+					"scriptMs": 5,
+					"layoutMs": 5,
+					"thirdPartyBytes": 3599,
+					"docHeaders": {
+						"cc": "max-age=600, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 16619,
+						"Script": 3266,
+						"Media": 0,
+						"Image": 333
+					},
+					"wire": {
+						"requests": 6,
+						"bytes": 12132778,
+						"responseBytes": 12126457,
+						"bodyBytes": 12120259,
+						"byStatus": {
+							"200": 3,
+							"204": 2,
+							"206": 1
+						},
+						"sameHost": 2,
+						"thirdParty": 4,
+						"hosts": 4
+					}
+				}
+			],
+			"generator": null,
+			"drupal": false,
+			"wordpress": true,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.cornell.edu/",
+					"ok": true,
+					"wallMs": 3473,
+					"requests": 78,
+					"networkRequests": 78,
+					"networkSameOrigin": 28,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 8190760,
+					"docBytes": 19183,
+					"docStatus": 200,
+					"taskMs": 302,
+					"scriptMs": 170,
+					"layoutMs": 26,
+					"thirdPartyBytes": 7600811,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 19183,
+						"Script": 938329,
+						"Stylesheet": 63533,
+						"Image": 3559449,
+						"Font": 196283,
+						"Media": 3413983,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 80,
+						"bytes": 25268914,
+						"responseBytes": 25216417,
+						"bodyBytes": 25170026,
+						"byStatus": {
+							"200": 74,
+							"204": 2,
+							"206": 2,
+							"302": 2
+						},
+						"sameHost": 28,
+						"thirdParty": 52,
+						"hosts": 13
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about",
+					"ok": true,
+					"wallMs": 2961,
+					"requests": 74,
+					"networkRequests": 29,
+					"networkSameOrigin": 23,
+					"revalidations304": 0,
+					"cacheHits": 45,
+					"bytes": 6521507,
+					"docBytes": 15200,
+					"docStatus": 200,
+					"taskMs": 169,
+					"scriptMs": 57,
+					"layoutMs": 11,
+					"thirdPartyBytes": 802549,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 15200,
+						"Stylesheet": 2062,
+						"Image": 6323671,
+						"Script": 180574,
+						"Media": 0
+					},
+					"wire": {
+						"requests": 33,
+						"bytes": 21556094,
+						"responseBytes": 21524243,
+						"bodyBytes": 21501835,
+						"byStatus": {
+							"200": 28,
+							"204": 2,
+							"206": 1,
+							"301": 1,
+							"302": 1
+						},
+						"sameHost": 24,
+						"thirdParty": 9,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about/",
+					"ok": true,
+					"wallMs": 2825,
+					"requests": 73,
+					"networkRequests": 5,
+					"networkSameOrigin": 1,
+					"revalidations304": 0,
+					"cacheHits": 68,
+					"bytes": 16870,
+					"docBytes": 15201,
+					"docStatus": 200,
+					"taskMs": 143,
+					"scriptMs": 41,
+					"layoutMs": 8,
+					"thirdPartyBytes": 1669,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 15201,
+						"Media": 0,
+						"Image": 1669
+					},
+					"wire": {
+						"requests": 10,
+						"bytes": 15034934,
+						"responseBytes": 15025057,
+						"bodyBytes": 15017532,
+						"byStatus": {
+							"200": 4,
+							"204": 4,
+							"206": 1,
+							"302": 1
+						},
+						"sameHost": 1,
+						"thirdParty": 9,
+						"hosts": 6
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about/timeline/",
+					"ok": true,
+					"wallMs": 4769,
+					"requests": 185,
+					"networkRequests": 135,
+					"networkSameOrigin": 126,
+					"revalidations304": 0,
+					"cacheHits": 50,
+					"bytes": 114757620,
+					"docBytes": 63043,
+					"docStatus": 200,
+					"taskMs": 146,
+					"scriptMs": 24,
+					"layoutMs": 13,
+					"thirdPartyBytes": 5412982,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 63043,
+						"Stylesheet": 6636,
+						"Image": 109279412,
+						"Fetch": 0,
+						"Font": 5408529
+					},
+					"wire": {
+						"requests": 139,
+						"bytes": 114848411,
+						"responseBytes": 114706177,
+						"bodyBytes": 114611555,
+						"byStatus": {
+							"200": 133,
+							"204": 6
+						},
+						"sameHost": 126,
+						"thirdParty": 13,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about/maps/",
+					"ok": true,
+					"wallMs": 3369,
+					"requests": 152,
+					"networkRequests": 93,
+					"networkSameOrigin": 30,
+					"revalidations304": 0,
+					"cacheHits": 59,
+					"bytes": 1851117,
+					"docBytes": 14465,
+					"docStatus": 200,
+					"taskMs": 109,
+					"scriptMs": 84,
+					"layoutMs": 1,
+					"thirdPartyBytes": 1123176,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 28890,
+						"Stylesheet": 18639,
+						"Script": 772463,
+						"Fetch": 0,
+						"Image": 368012,
+						"XHR": 508249,
+						"Font": 154864,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 100,
+						"bytes": 2038841,
+						"responseBytes": 1953382,
+						"bodyBytes": 1876990,
+						"byStatus": {
+							"0": 7,
+							"200": 82,
+							"204": 10,
+							"302": 1
+						},
+						"sameHost": 30,
+						"thirdParty": 70,
+						"hosts": 14
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about/mission.cfm",
+					"ok": true,
+					"wallMs": 2659,
+					"requests": 50,
+					"networkRequests": 5,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 45,
+					"bytes": 1214625,
+					"docBytes": 10480,
+					"docStatus": 200,
+					"taskMs": 91,
+					"scriptMs": 30,
+					"layoutMs": 7,
+					"thirdPartyBytes": 1669,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 10480,
+						"Image": 1204145
+					},
+					"wire": {
+						"requests": 9,
+						"bytes": 1227317,
+						"responseBytes": 1217123,
+						"bodyBytes": 1210970,
+						"byStatus": {
+							"200": 5,
+							"204": 4
+						},
+						"sameHost": 2,
+						"thirdParty": 7,
+						"hosts": 5
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.cornell.edu/about/values.cfm",
+					"ok": true,
+					"wallMs": 2804,
+					"requests": 50,
+					"networkRequests": 5,
+					"networkSameOrigin": 1,
+					"revalidations304": 0,
+					"cacheHits": 45,
+					"bytes": 1405592,
+					"docBytes": 10625,
+					"docStatus": 200,
+					"taskMs": 70,
+					"scriptMs": 9,
+					"layoutMs": 2,
+					"thirdPartyBytes": 1394967,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 10625,
+						"Image": 1394967
+					},
+					"wire": {
+						"requests": 9,
+						"bytes": 1418434,
+						"responseBytes": 1408757,
+						"bodyBytes": 1402926,
+						"byStatus": {
+							"200": 5,
+							"204": 4
+						},
+						"sameHost": 1,
+						"thirdParty": 8,
+						"hosts": 6
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.cornell.edu/",
+					"ok": true,
+					"wallMs": 2921,
+					"requests": 76,
+					"networkRequests": 29,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 47,
+					"bytes": 6651732,
+					"docBytes": 19183,
+					"docStatus": 200,
+					"taskMs": 133,
+					"scriptMs": 11,
+					"layoutMs": 8,
+					"thirdPartyBytes": 6526771,
+					"docHeaders": {
+						"cc": "max-age=601, s-maxage=601, public, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 19183,
+						"Image": 3218566,
+						"Media": 3413983
+					},
+					"wire": {
+						"requests": 35,
+						"bytes": 23710752,
+						"responseBytes": 23680452,
+						"bodyBytes": 23661860,
+						"byStatus": {
+							"200": 27,
+							"204": 4,
+							"206": 2,
+							"302": 2
+						},
+						"sameHost": 2,
+						"thirdParty": 33,
+						"hosts": 8
+					}
+				}
+			],
+			"generator": null,
+			"drupal": false,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.uiowa.edu/",
+					"ok": true,
+					"wallMs": 3987,
+					"requests": 117,
+					"networkRequests": 117,
+					"networkSameOrigin": 0,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 5044395,
+					"docBytes": 27116,
+					"docStatus": 200,
+					"taskMs": 562,
+					"scriptMs": 353,
+					"layoutMs": 29,
+					"thirdPartyBytes": 5044395,
+					"docHeaders": {
+						"cc": "max-age=2764800, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 32229,
+						"Stylesheet": 77406,
+						"Script": 2024398,
+						"Image": 2470547,
+						"Font": 397452,
+						"Media": 32116,
+						"TextTrack": 3314,
+						"Fetch": 2508,
+						"Ping": 1632,
+						"Other": 0,
+						"XHR": 2793
+					},
+					"wire": {
+						"requests": 127,
+						"bytes": 8077683,
+						"responseBytes": 7941745,
+						"bodyBytes": 7860453,
+						"byStatus": {
+							"200": 103,
+							"204": 6,
+							"206": 7,
+							"301": 1,
+							"302": 10
+						},
+						"sameHost": 1,
+						"thirdParty": 126,
+						"hosts": 41
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.uiowa.edu/",
+					"ok": true,
+					"wallMs": 3003,
+					"requests": 100,
+					"networkRequests": 47,
+					"networkSameOrigin": 0,
+					"revalidations304": 1,
+					"cacheHits": 53,
+					"bytes": 116196,
+					"docBytes": 27116,
+					"docStatus": 200,
+					"taskMs": 273,
+					"scriptMs": 130,
+					"layoutMs": 7,
+					"thirdPartyBytes": 116196,
+					"docHeaders": {
+						"cc": "max-age=2764800, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 31155,
+						"Ping": 1184,
+						"Media": 32116,
+						"TextTrack": 3314,
+						"Script": 40013,
+						"XHR": 2792,
+						"Fetch": 2448,
+						"Image": 3174
+					},
+					"wire": {
+						"requests": 54,
+						"bytes": 2170014,
+						"responseBytes": 2073036,
+						"bodyBytes": 2043434,
+						"byStatus": {
+							"200": 39,
+							"204": 5,
+							"206": 7,
+							"301": 1,
+							"302": 1,
+							"304": 1
+						},
+						"sameHost": 1,
+						"thirdParty": 53,
+						"hosts": 23
+					}
+				}
+			],
+			"generator": "Drupal 8 (http://drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.tufts.edu/",
+					"ok": true,
+					"wallMs": 3630,
+					"requests": 146,
+					"networkRequests": 146,
+					"networkSameOrigin": 41,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 5152742,
+					"docBytes": 43603,
+					"docStatus": 200,
+					"taskMs": 915,
+					"scriptMs": 478,
+					"layoutMs": 33,
+					"thirdPartyBytes": 3694055,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 46325,
+						"Stylesheet": 122471,
+						"Image": 2539541,
+						"Script": 2089673,
+						"Font": 287610,
+						"Fetch": 7702,
+						"Ping": 1752,
+						"XHR": 57668,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 155,
+						"bytes": 5311087,
+						"responseBytes": 5177940,
+						"bodyBytes": 5043582,
+						"byStatus": {
+							"0": 1,
+							"200": 138,
+							"202": 1,
+							"204": 6,
+							"302": 9
+						},
+						"sameHost": 41,
+						"thirdParty": 114,
+						"hosts": 49
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/about/privacy",
+					"ok": true,
+					"wallMs": 2995,
+					"requests": 107,
+					"networkRequests": 52,
+					"networkSameOrigin": 7,
+					"revalidations304": 1,
+					"cacheHits": 55,
+					"bytes": 424998,
+					"docBytes": 84383,
+					"docStatus": 200,
+					"taskMs": 600,
+					"scriptMs": 256,
+					"layoutMs": 88,
+					"thirdPartyBytes": 162077,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 87131,
+						"Stylesheet": 56659,
+						"Script": 132510,
+						"Fetch": 5737,
+						"Image": 9849,
+						"Font": 131928,
+						"XHR": 1184
+					},
+					"wire": {
+						"requests": 63,
+						"bytes": 530944,
+						"responseBytes": 450202,
+						"bodyBytes": 404771,
+						"byStatus": {
+							"0": 1,
+							"200": 46,
+							"202": 1,
+							"204": 8,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 7,
+						"thirdParty": 56,
+						"hosts": 23
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/academics",
+					"ok": true,
+					"wallMs": 2939,
+					"requests": 130,
+					"networkRequests": 67,
+					"networkSameOrigin": 22,
+					"revalidations304": 1,
+					"cacheHits": 63,
+					"bytes": 1379594,
+					"docBytes": 43249,
+					"docStatus": 200,
+					"taskMs": 412,
+					"scriptMs": 203,
+					"layoutMs": 10,
+					"thirdPartyBytes": 79031,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 45969,
+						"Stylesheet": 80432,
+						"Image": 1040597,
+						"Script": 205742,
+						"Fetch": 5670,
+						"XHR": 1184,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 78,
+						"bytes": 1505761,
+						"responseBytes": 1404611,
+						"bodyBytes": 1340754,
+						"byStatus": {
+							"0": 1,
+							"200": 61,
+							"202": 1,
+							"204": 8,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 22,
+						"thirdParty": 56,
+						"hosts": 25
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/admissions",
+					"ok": true,
+					"wallMs": 2783,
+					"requests": 117,
+					"networkRequests": 51,
+					"networkSameOrigin": 9,
+					"revalidations304": 1,
+					"cacheHits": 66,
+					"bytes": 911582,
+					"docBytes": 26407,
+					"docStatus": 200,
+					"taskMs": 322,
+					"scriptMs": 161,
+					"layoutMs": 8,
+					"thirdPartyBytes": 33425,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 29172,
+						"Stylesheet": 74783,
+						"Image": 784197,
+						"Script": 16501,
+						"Fetch": 5745,
+						"XHR": 1184
+					},
+					"wire": {
+						"requests": 62,
+						"bytes": 1017641,
+						"responseBytes": 936817,
+						"bodyBytes": 887532,
+						"byStatus": {
+							"0": 1,
+							"200": 45,
+							"202": 1,
+							"204": 8,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 9,
+						"thirdParty": 53,
+						"hosts": 23
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/research",
+					"ok": true,
+					"wallMs": 2868,
+					"requests": 145,
+					"networkRequests": 80,
+					"networkSameOrigin": 14,
+					"revalidations304": 1,
+					"cacheHits": 65,
+					"bytes": 5258195,
+					"docBytes": 29521,
+					"docStatus": 200,
+					"taskMs": 286,
+					"scriptMs": 105,
+					"layoutMs": 9,
+					"thirdPartyBytes": 4749566,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 32259,
+						"Stylesheet": 80199,
+						"Image": 318933,
+						"Script": 435380,
+						"Fetch": 11478,
+						"XHR": 4379946,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 91,
+						"bytes": 5399047,
+						"responseBytes": 5283338,
+						"bodyBytes": 5211372,
+						"byStatus": {
+							"0": 1,
+							"200": 73,
+							"202": 1,
+							"204": 9,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 14,
+						"thirdParty": 77,
+						"hosts": 29
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/student-experience",
+					"ok": true,
+					"wallMs": 2815,
+					"requests": 172,
+					"networkRequests": 96,
+					"networkSameOrigin": 18,
+					"revalidations304": 1,
+					"cacheHits": 76,
+					"bytes": 8440235,
+					"docBytes": 37531,
+					"docStatus": 200,
+					"taskMs": 544,
+					"scriptMs": 220,
+					"layoutMs": 2,
+					"thirdPartyBytes": 7269104,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 40255,
+						"Stylesheet": 85434,
+						"Image": 1405726,
+						"Script": 23602,
+						"Fetch": 10983,
+						"XHR": 6874235
+					},
+					"wire": {
+						"requests": 107,
+						"bytes": 8593291,
+						"responseBytes": 8464838,
+						"bodyBytes": 8381393,
+						"byStatus": {
+							"0": 1,
+							"200": 89,
+							"202": 1,
+							"204": 9,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 18,
+						"thirdParty": 89,
+						"hosts": 32
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.tufts.edu/about",
+					"ok": true,
+					"wallMs": 2767,
+					"requests": 123,
+					"networkRequests": 56,
+					"networkSameOrigin": 13,
+					"revalidations304": 1,
+					"cacheHits": 67,
+					"bytes": 1020176,
+					"docBytes": 28944,
+					"docStatus": 200,
+					"taskMs": 402,
+					"scriptMs": 172,
+					"layoutMs": 13,
+					"thirdPartyBytes": 33257,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 31662,
+						"Stylesheet": 79687,
+						"Image": 885510,
+						"Script": 16432,
+						"Fetch": 5701,
+						"XHR": 1184,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 67,
+						"bytes": 1131324,
+						"responseBytes": 1045390,
+						"bodyBytes": 992262,
+						"byStatus": {
+							"0": 1,
+							"200": 50,
+							"202": 1,
+							"204": 8,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 13,
+						"thirdParty": 54,
+						"hosts": 23
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.tufts.edu/",
+					"ok": true,
+					"wallMs": 2782,
+					"requests": 145,
+					"networkRequests": 71,
+					"networkSameOrigin": 20,
+					"revalidations304": 1,
+					"cacheHits": 74,
+					"bytes": 2425487,
+					"docBytes": 43602,
+					"docStatus": 200,
+					"taskMs": 143,
+					"scriptMs": 165,
+					"layoutMs": 11,
+					"thirdPartyBytes": 1428827,
+					"docHeaders": {
+						"cc": "max-age=3600, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 46342,
+						"Image": 2294266,
+						"Script": 18333,
+						"Stylesheet": 1130,
+						"Fetch": 7732,
+						"XHR": 57684
+					},
+					"wire": {
+						"requests": 81,
+						"bytes": 2550858,
+						"responseBytes": 2448813,
+						"bodyBytes": 2383778,
+						"byStatus": {
+							"0": 1,
+							"200": 65,
+							"202": 1,
+							"204": 8,
+							"302": 5,
+							"304": 1
+						},
+						"sameHost": 20,
+						"thirdParty": 61,
+						"hosts": 27
+					}
+				}
+			],
+			"generator": "Drupal 10 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.unl.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.unl.edu/",
+					"ok": true,
+					"wallMs": 3909,
+					"requests": 204,
+					"networkRequests": 204,
+					"networkSameOrigin": 29,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 8595638,
+					"docBytes": 56641,
+					"docStatus": 200,
+					"taskMs": 750,
+					"scriptMs": 507,
+					"layoutMs": 32,
+					"thirdPartyBytes": 7155778,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 79902,
+						"Stylesheet": 105680,
+						"Script": 3598733,
+						"Image": 3147737,
+						"Font": 685715,
+						"Fetch": 12910,
+						"Ping": 1957,
+						"XHR": 963004,
+						"Media": 0,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 215,
+						"bytes": 8788586,
+						"responseBytes": 8615246,
+						"bodyBytes": 8466634,
+						"byStatus": {
+							"0": 1,
+							"200": 188,
+							"204": 9,
+							"206": 1,
+							"302": 15,
+							"400": 1
+						},
+						"sameHost": 29,
+						"thirdParty": 186,
+						"hosts": 50
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/visit/",
+					"ok": true,
+					"wallMs": 2897,
+					"requests": 159,
+					"networkRequests": 73,
+					"networkSameOrigin": 17,
+					"revalidations304": 1,
+					"cacheHits": 86,
+					"bytes": 1910357,
+					"docBytes": 39921,
+					"docStatus": 200,
+					"taskMs": 313,
+					"scriptMs": 170,
+					"layoutMs": 6,
+					"thirdPartyBytes": 165741,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 46485,
+						"Ping": 1509,
+						"Stylesheet": 18167,
+						"Image": 1701573,
+						"Script": 127765,
+						"Fetch": 2933,
+						"XHR": 11925
+					},
+					"wire": {
+						"requests": 83,
+						"bytes": 2022752,
+						"responseBytes": 1924351,
+						"bodyBytes": 1867766,
+						"byStatus": {
+							"200": 66,
+							"204": 10,
+							"302": 6,
+							"304": 1
+						},
+						"sameHost": 17,
+						"thirdParty": 66,
+						"hosts": 34
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/apply/",
+					"ok": true,
+					"wallMs": 2859,
+					"requests": 155,
+					"networkRequests": 69,
+					"networkSameOrigin": 16,
+					"revalidations304": 3,
+					"cacheHits": 86,
+					"bytes": 347816,
+					"docBytes": 36671,
+					"docStatus": 200,
+					"taskMs": 236,
+					"scriptMs": 154,
+					"layoutMs": 5,
+					"thirdPartyBytes": 134884,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 40346,
+						"Ping": 1509,
+						"Stylesheet": 16895,
+						"Image": 172008,
+						"Script": 102187,
+						"Fetch": 2933,
+						"XHR": 11938,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 75,
+						"bytes": 450040,
+						"responseBytes": 358902,
+						"bodyBytes": 310583,
+						"byStatus": {
+							"200": 60,
+							"204": 10,
+							"302": 2,
+							"304": 3
+						},
+						"sameHost": 16,
+						"thirdParty": 59,
+						"hosts": 29
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/give/",
+					"ok": true,
+					"wallMs": 2870,
+					"requests": 159,
+					"networkRequests": 71,
+					"networkSameOrigin": 16,
+					"revalidations304": 3,
+					"cacheHits": 88,
+					"bytes": 1897985,
+					"docBytes": 47291,
+					"docStatus": 200,
+					"taskMs": 18,
+					"scriptMs": 5,
+					"layoutMs": 5,
+					"thirdPartyBytes": 202055,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 51038,
+						"Ping": 1509,
+						"Stylesheet": 17529,
+						"Image": 1643852,
+						"Script": 102188,
+						"Fetch": 2933,
+						"Font": 66998,
+						"XHR": 11938
+					},
+					"wire": {
+						"requests": 76,
+						"bytes": 2000547,
+						"responseBytes": 1907972,
+						"bodyBytes": 1860343,
+						"byStatus": {
+							"200": 61,
+							"204": 11,
+							"302": 1,
+							"304": 3
+						},
+						"sameHost": 16,
+						"thirdParty": 60,
+						"hosts": 30
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/caslogin?destination=node/2",
+					"ok": true,
+					"wallMs": 3105,
+					"requests": 44,
+					"networkRequests": 36,
+					"networkSameOrigin": 0,
+					"revalidations304": 0,
+					"cacheHits": 8,
+					"bytes": 1358971,
+					"docBytes": 22790,
+					"docStatus": 200,
+					"taskMs": 114,
+					"scriptMs": 38,
+					"layoutMs": 3,
+					"thirdPartyBytes": 1358971,
+					"docHeaders": {
+						"cc": "no-store",
+						"etag": false
+					},
+					"byType": {
+						"Document": 143103,
+						"Ping": 1070,
+						"Stylesheet": 146111,
+						"Script": 770390,
+						"Font": 293856,
+						"Fetch": 0,
+						"XHR": 3316,
+						"Image": 1125
+					},
+					"wire": {
+						"requests": 49,
+						"bytes": 1441305,
+						"responseBytes": 1377289,
+						"bodyBytes": 1345046,
+						"byStatus": {
+							"0": 1,
+							"200": 23,
+							"204": 17,
+							"301": 1,
+							"302": 7
+						},
+						"sameHost": 2,
+						"thirdParty": 47,
+						"hosts": 12
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/about/",
+					"ok": true,
+					"wallMs": 3029,
+					"requests": 159,
+					"networkRequests": 70,
+					"networkSameOrigin": 17,
+					"revalidations304": 3,
+					"cacheHits": 89,
+					"bytes": 1371959,
+					"docBytes": 41621,
+					"docStatus": 200,
+					"taskMs": 134,
+					"scriptMs": 119,
+					"layoutMs": 6,
+					"thirdPartyBytes": 134265,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 45510,
+						"Ping": 1405,
+						"Stylesheet": 17691,
+						"Image": 1190284,
+						"Script": 102198,
+						"Fetch": 2933,
+						"XHR": 11938,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 75,
+						"bytes": 1476985,
+						"responseBytes": 1383370,
+						"bodyBytes": 1335322,
+						"byStatus": {
+							"200": 59,
+							"204": 11,
+							"302": 1,
+							"304": 3,
+							"400": 1
+						},
+						"sameHost": 17,
+						"thirdParty": 58,
+						"hosts": 29
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.unl.edu/about/news/",
+					"ok": true,
+					"wallMs": 3846,
+					"requests": 160,
+					"networkRequests": 160,
+					"networkSameOrigin": 0,
+					"revalidations304": 1,
+					"cacheHits": 0,
+					"bytes": 7616266,
+					"docBytes": 156249,
+					"docStatus": 200,
+					"taskMs": 183,
+					"scriptMs": 82,
+					"layoutMs": 15,
+					"thirdPartyBytes": 7616266,
+					"docHeaders": {
+						"cc": "max-age=43200, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 160253,
+						"Ping": 2386,
+						"Stylesheet": 48527,
+						"Script": 2165070,
+						"Image": 5041136,
+						"Font": 161643,
+						"Fetch": 34858,
+						"XHR": 2393,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 167,
+						"bytes": 7781052,
+						"responseBytes": 7628299,
+						"bodyBytes": 7518843,
+						"byStatus": {
+							"200": 148,
+							"204": 14,
+							"301": 3,
+							"304": 1,
+							"403": 1
+						},
+						"sameHost": 1,
+						"thirdParty": 166,
+						"hosts": 39
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.unl.edu/",
+					"ok": true,
+					"wallMs": 3434,
+					"requests": 188,
+					"networkRequests": 153,
+					"networkSameOrigin": 9,
+					"revalidations304": 1,
+					"cacheHits": 35,
+					"bytes": 6608946,
+					"docBytes": 56688,
+					"docStatus": 200,
+					"taskMs": 34,
+					"scriptMs": 224,
+					"layoutMs": 2,
+					"thirdPartyBytes": 6543639,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 76223,
+						"Ping": 1510,
+						"Stylesheet": 73689,
+						"Script": 3203940,
+						"Image": 1968265,
+						"Font": 309631,
+						"Fetch": 12282,
+						"XHR": 963406,
+						"Media": 0,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 158,
+						"bytes": 6769220,
+						"responseBytes": 6621673,
+						"bodyBytes": 6523572,
+						"byStatus": {
+							"0": 2,
+							"200": 138,
+							"204": 12,
+							"206": 1,
+							"301": 1,
+							"302": 2,
+							"304": 1,
+							"400": 1
+						},
+						"sameHost": 9,
+						"thirdParty": 149,
+						"hosts": 40
+					}
+				}
+			],
+			"generator": "Drupal 11 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.georgetown.edu/",
+					"ok": true,
+					"wallMs": 3827,
+					"requests": 97,
+					"networkRequests": 97,
+					"networkSameOrigin": 32,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 6209169,
+					"docBytes": 56520,
+					"docStatus": 200,
+					"taskMs": 384,
+					"scriptMs": 241,
+					"layoutMs": 26,
+					"thirdPartyBytes": 4860795,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 56520,
+						"Stylesheet": 111611,
+						"Script": 1262426,
+						"Image": 4378152,
+						"Font": 386459,
+						"Media": 0,
+						"Other": 0,
+						"XHR": 11358,
+						"Fetch": 0,
+						"Ping": 2643
+					},
+					"wire": {
+						"requests": 98,
+						"bytes": 25977746,
+						"responseBytes": 25910988,
+						"bodyBytes": 25807120,
+						"byStatus": {
+							"200": 89,
+							"204": 7,
+							"206": 1,
+							"302": 1
+						},
+						"sameHost": 32,
+						"thirdParty": 66,
+						"hosts": 14
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/",
+					"ok": true,
+					"wallMs": 2707,
+					"requests": 99,
+					"networkRequests": 68,
+					"networkSameOrigin": 22,
+					"revalidations304": 0,
+					"cacheHits": 31,
+					"bytes": 5752828,
+					"docBytes": 56512,
+					"docStatus": 200,
+					"taskMs": 198,
+					"scriptMs": 118,
+					"layoutMs": 7,
+					"thirdPartyBytes": 3456584,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 267306,
+						"Stylesheet": 183991,
+						"Image": 2247654,
+						"Script": 2940836,
+						"Fetch": 0,
+						"XHR": 6445,
+						"Font": 106596,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 78,
+						"bytes": 5841228,
+						"responseBytes": 5759660,
+						"bodyBytes": 5660006,
+						"byStatus": {
+							"200": 66,
+							"204": 9,
+							"302": 3
+						},
+						"sameHost": 22,
+						"thirdParty": 56,
+						"hosts": 11
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/the-whole-person/",
+					"ok": true,
+					"wallMs": 2672,
+					"requests": 66,
+					"networkRequests": 24,
+					"networkSameOrigin": 11,
+					"revalidations304": 0,
+					"cacheHits": 42,
+					"bytes": 1027428,
+					"docBytes": 55316,
+					"docStatus": 200,
+					"taskMs": 307,
+					"scriptMs": 144,
+					"layoutMs": 3,
+					"thirdPartyBytes": 87780,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 125579,
+						"XHR": 4197,
+						"Image": 887127,
+						"Script": 10525,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 40,
+						"bytes": 1148280,
+						"responseBytes": 1035766,
+						"bodyBytes": 990809,
+						"byStatus": {
+							"0": 6,
+							"200": 23,
+							"204": 10,
+							"302": 1
+						},
+						"sameHost": 11,
+						"thirdParty": 29,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/our-catholic-jesuit-heritage/",
+					"ok": true,
+					"wallMs": 2876,
+					"requests": 59,
+					"networkRequests": 28,
+					"networkSameOrigin": 22,
+					"revalidations304": 0,
+					"cacheHits": 31,
+					"bytes": 3373457,
+					"docBytes": 58437,
+					"docStatus": 200,
+					"taskMs": 148,
+					"scriptMs": 59,
+					"layoutMs": 2,
+					"thirdPartyBytes": 69633,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 58437,
+						"XHR": 1194,
+						"Stylesheet": 2029,
+						"Image": 3242231,
+						"Script": 11652,
+						"Font": 57914,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 39,
+						"bytes": 3431165,
+						"responseBytes": 3381694,
+						"bodyBytes": 3339710,
+						"byStatus": {
+							"0": 1,
+							"200": 29,
+							"204": 9
+						},
+						"sameHost": 22,
+						"thirdParty": 17,
+						"hosts": 6
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/local-global-impact/",
+					"ok": true,
+					"wallMs": 2678,
+					"requests": 94,
+					"networkRequests": 33,
+					"networkSameOrigin": 14,
+					"revalidations304": 0,
+					"cacheHits": 61,
+					"bytes": 1857776,
+					"docBytes": 55526,
+					"docStatus": 200,
+					"taskMs": 414,
+					"scriptMs": 228,
+					"layoutMs": 2,
+					"thirdPartyBytes": 237507,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 266530,
+						"Image": 1574281,
+						"Script": 10525,
+						"Fetch": 0,
+						"XHR": 6440
+					},
+					"wire": {
+						"requests": 46,
+						"bytes": 1920093,
+						"responseBytes": 1866677,
+						"bodyBytes": 1792995,
+						"byStatus": {
+							"200": 31,
+							"204": 12,
+							"302": 3
+						},
+						"sameHost": 14,
+						"thirdParty": 32,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/our-history/",
+					"ok": true,
+					"wallMs": 2666,
+					"requests": 48,
+					"networkRequests": 16,
+					"networkSameOrigin": 9,
+					"revalidations304": 0,
+					"cacheHits": 32,
+					"bytes": 614595,
+					"docBytes": 56271,
+					"docStatus": 200,
+					"taskMs": 145,
+					"scriptMs": 57,
+					"layoutMs": 2,
+					"thirdPartyBytes": 11719,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 56271,
+						"XHR": 1194,
+						"Image": 546605,
+						"Script": 10525,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 26,
+						"bytes": 689733,
+						"responseBytes": 623154,
+						"bodyBytes": 594484,
+						"byStatus": {
+							"0": 2,
+							"200": 15,
+							"204": 9
+						},
+						"sameHost": 9,
+						"thirdParty": 17,
+						"hosts": 5
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.georgetown.edu/who-we-are/student-stories/",
+					"ok": true,
+					"wallMs": 2651,
+					"requests": 52,
+					"networkRequests": 17,
+					"networkSameOrigin": 13,
+					"revalidations304": 0,
+					"cacheHits": 35,
+					"bytes": 1215179,
+					"docBytes": 55357,
+					"docStatus": 200,
+					"taskMs": 125,
+					"scriptMs": 1,
+					"layoutMs": 2,
+					"thirdPartyBytes": 11719,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 55357,
+						"Image": 1148103,
+						"Script": 10525,
+						"Fetch": 0,
+						"XHR": 1194
+					},
+					"wire": {
+						"requests": 27,
+						"bytes": 1253858,
+						"responseBytes": 1223249,
+						"bodyBytes": 1190658,
+						"byStatus": {
+							"200": 18,
+							"204": 9
+						},
+						"sameHost": 13,
+						"thirdParty": 14,
+						"hosts": 5
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.georgetown.edu/",
+					"ok": true,
+					"wallMs": 3230,
+					"requests": 91,
+					"networkRequests": 53,
+					"networkSameOrigin": 14,
+					"revalidations304": 2,
+					"cacheHits": 38,
+					"bytes": 4359038,
+					"docBytes": 56519,
+					"docStatus": 200,
+					"taskMs": 139,
+					"scriptMs": 25,
+					"layoutMs": 10,
+					"thirdPartyBytes": 3363644,
+					"docHeaders": {
+						"cc": "public, max-age=86400",
+						"etag": false
+					},
+					"byType": {
+						"Document": 56519,
+						"Image": 4278201,
+						"Script": 11741,
+						"Media": 0,
+						"Other": 1216,
+						"XHR": 11361,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 64,
+						"bytes": 24120055,
+						"responseBytes": 24064685,
+						"bodyBytes": 23986946,
+						"byStatus": {
+							"200": 51,
+							"204": 9,
+							"206": 1,
+							"302": 1,
+							"304": 2
+						},
+						"sameHost": 14,
+						"thirdParty": 50,
+						"hosts": 8
+					}
+				}
+			],
+			"generator": null,
+			"drupal": false,
+			"wordpress": true,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.mass.gov/",
+					"ok": true,
+					"wallMs": 3372,
+					"requests": 45,
+					"networkRequests": 44,
+					"networkSameOrigin": 21,
+					"revalidations304": 0,
+					"cacheHits": 1,
+					"bytes": 1696662,
+					"docBytes": 52923,
+					"docStatus": 200,
+					"taskMs": 414,
+					"scriptMs": 204,
+					"layoutMs": 20,
+					"thirdPartyBytes": 744963,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 52923,
+						"XHR": 2194,
+						"Stylesheet": 107774,
+						"Script": 973483,
+						"Font": 127952,
+						"Image": 431413,
+						"Fetch": 923
+					},
+					"wire": {
+						"requests": 44,
+						"bytes": 1727512,
+						"responseBytes": 1696679,
+						"bodyBytes": 1667522,
+						"byStatus": {
+							"200": 42,
+							"204": 2
+						},
+						"sameHost": 21,
+						"thirdParty": 23,
+						"hosts": 16
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/massachusetts-state-organizations",
+					"ok": true,
+					"wallMs": 2795,
+					"requests": 36,
+					"networkRequests": 13,
+					"networkSameOrigin": 7,
+					"revalidations304": 0,
+					"cacheHits": 23,
+					"bytes": 306049,
+					"docBytes": 50550,
+					"docStatus": 200,
+					"taskMs": 318,
+					"scriptMs": 95,
+					"layoutMs": 17,
+					"thirdPartyBytes": 8065,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 50550,
+						"Script": 251317,
+						"XHR": 3081,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 20,
+						"bytes": 333297,
+						"responseBytes": 309609,
+						"bodyBytes": 297008,
+						"byStatus": {
+							"200": 18,
+							"204": 2
+						},
+						"sameHost": 7,
+						"thirdParty": 13,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/topics/health-social-services",
+					"ok": true,
+					"wallMs": 2798,
+					"requests": 35,
+					"networkRequests": 10,
+					"networkSameOrigin": 4,
+					"revalidations304": 0,
+					"cacheHits": 25,
+					"bytes": 161992,
+					"docBytes": 52173,
+					"docStatus": 200,
+					"taskMs": 253,
+					"scriptMs": 62,
+					"layoutMs": 11,
+					"thirdPartyBytes": 7978,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 52173,
+						"Stylesheet": 100950,
+						"XHR": 2194,
+						"Script": 5574,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 19,
+						"bytes": 190506,
+						"responseBytes": 167364,
+						"bodyBytes": 155177,
+						"byStatus": {
+							"200": 15,
+							"204": 4
+						},
+						"sameHost": 4,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/topics/families-children",
+					"ok": true,
+					"wallMs": 2846,
+					"requests": 34,
+					"networkRequests": 11,
+					"networkSameOrigin": 5,
+					"revalidations304": 0,
+					"cacheHits": 23,
+					"bytes": 302012,
+					"docBytes": 50088,
+					"docStatus": 200,
+					"taskMs": 64,
+					"scriptMs": 40,
+					"layoutMs": 4,
+					"thirdPartyBytes": 8007,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 50088,
+						"Script": 248628,
+						"XHR": 2195,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 20,
+						"bytes": 332417,
+						"responseBytes": 307333,
+						"bodyBytes": 294538,
+						"byStatus": {
+							"200": 16,
+							"204": 4
+						},
+						"sameHost": 5,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/topics/housing-property",
+					"ok": true,
+					"wallMs": 2876,
+					"requests": 34,
+					"networkRequests": 8,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 26,
+					"bytes": 59874,
+					"docBytes": 50972,
+					"docStatus": 200,
+					"taskMs": 269,
+					"scriptMs": 59,
+					"layoutMs": 13,
+					"thirdPartyBytes": 8011,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 50972,
+						"XHR": 2194,
+						"Script": 5607,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 86693,
+						"responseBytes": 65258,
+						"bodyBytes": 54324,
+						"byStatus": {
+							"200": 13,
+							"204": 4
+						},
+						"sameHost": 2,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/topics/transportation",
+					"ok": true,
+					"wallMs": 2734,
+					"requests": 35,
+					"networkRequests": 8,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 27,
+					"bytes": 59245,
+					"docBytes": 50294,
+					"docStatus": 200,
+					"taskMs": 7,
+					"scriptMs": 57,
+					"layoutMs": 2,
+					"thirdPartyBytes": 8060,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 50294,
+						"XHR": 2194,
+						"Script": 5656,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 86078,
+						"responseBytes": 64580,
+						"bodyBytes": 53647,
+						"byStatus": {
+							"200": 13,
+							"204": 4
+						},
+						"sameHost": 2,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mass.gov/topics/legal-justice",
+					"ok": true,
+					"wallMs": 2746,
+					"requests": 34,
+					"networkRequests": 8,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 26,
+					"bytes": 60119,
+					"docBytes": 51157,
+					"docStatus": 200,
+					"taskMs": 251,
+					"scriptMs": 1,
+					"layoutMs": 15,
+					"thirdPartyBytes": 8071,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 51157,
+						"XHR": 2194,
+						"Script": 5667,
+						"Image": 1101
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 86683,
+						"responseBytes": 65443,
+						"bodyBytes": 54511,
+						"byStatus": {
+							"200": 13,
+							"204": 4
+						},
+						"sameHost": 2,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.mass.gov/",
+					"ok": true,
+					"wallMs": 2711,
+					"requests": 42,
+					"networkRequests": 12,
+					"networkSameOrigin": 6,
+					"revalidations304": 0,
+					"cacheHits": 30,
+					"bytes": 487597,
+					"docBytes": 52923,
+					"docStatus": 200,
+					"taskMs": 21,
+					"scriptMs": 56,
+					"layoutMs": 15,
+					"thirdPartyBytes": 7977,
+					"docHeaders": {
+						"cc": "public, max-age=1800",
+						"etag": true
+					},
+					"byType": {
+						"Document": 52923,
+						"Image": 426907,
+						"XHR": 2194,
+						"Script": 5573
+					},
+					"wire": {
+						"requests": 21,
+						"bytes": 517783,
+						"responseBytes": 492923,
+						"bodyBytes": 479745,
+						"byStatus": {
+							"200": 17,
+							"204": 4
+						},
+						"sameHost": 6,
+						"thirdParty": 15,
+						"hosts": 8
+					}
+				}
+			],
+			"generator": "Drupal 11 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.ucdavis.edu/",
+					"ok": true,
+					"wallMs": 3965,
+					"requests": 265,
+					"networkRequests": 262,
+					"networkSameOrigin": 48,
+					"revalidations304": 1,
+					"cacheHits": 3,
+					"bytes": 31034922,
+					"docBytes": 957804,
+					"docStatus": 200,
+					"taskMs": 937,
+					"scriptMs": 490,
+					"layoutMs": 34,
+					"thirdPartyBytes": 26083512,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 1020052,
+						"Script": 2319023,
+						"Font": 550764,
+						"Stylesheet": 201324,
+						"Image": 8656631,
+						"Media": 1461,
+						"Fetch": 10601,
+						"XHR": 18274188,
+						"Ping": 878,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 264,
+						"bytes": 48815067,
+						"responseBytes": 48630169,
+						"bodyBytes": 48423017,
+						"byStatus": {
+							"200": 252,
+							"204": 4,
+							"206": 3,
+							"302": 3,
+							"304": 1,
+							"403": 1
+						},
+						"sameHost": 48,
+						"thirdParty": 216,
+						"hosts": 38
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/about",
+					"ok": true,
+					"wallMs": 2830,
+					"requests": 78,
+					"networkRequests": 41,
+					"networkSameOrigin": 28,
+					"revalidations304": 4,
+					"cacheHits": 37,
+					"bytes": 2516251,
+					"docBytes": 28574,
+					"docStatus": 200,
+					"taskMs": 181,
+					"scriptMs": 59,
+					"layoutMs": 12,
+					"thirdPartyBytes": 9527,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 28574,
+						"Font": 2172,
+						"Stylesheet": 129307,
+						"Script": 37748,
+						"Image": 2317633,
+						"Fetch": 0,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 43,
+						"bytes": 2560602,
+						"responseBytes": 2519606,
+						"bodyBytes": 2482657,
+						"byStatus": {
+							"200": 36,
+							"204": 3,
+							"304": 4
+						},
+						"sameHost": 28,
+						"thirdParty": 15,
+						"hosts": 9
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/about/administration",
+					"ok": true,
+					"wallMs": 2805,
+					"requests": 60,
+					"networkRequests": 24,
+					"networkSameOrigin": 10,
+					"revalidations304": 3,
+					"cacheHits": 36,
+					"bytes": 636762,
+					"docBytes": 24274,
+					"docStatus": 200,
+					"taskMs": 132,
+					"scriptMs": 58,
+					"layoutMs": 3,
+					"thirdPartyBytes": 154250,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 24274,
+						"Font": 1629,
+						"Stylesheet": 129569,
+						"Script": 164073,
+						"Image": 316400,
+						"Fetch": 0,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 27,
+						"bytes": 667818,
+						"responseBytes": 641297,
+						"bodyBytes": 621073,
+						"byStatus": {
+							"200": 20,
+							"204": 4,
+							"304": 3
+						},
+						"sameHost": 10,
+						"thirdParty": 17,
+						"hosts": 11
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/about/administration/initiatives",
+					"ok": true,
+					"wallMs": 2703,
+					"requests": 61,
+					"networkRequests": 20,
+					"networkSameOrigin": 6,
+					"revalidations304": 5,
+					"cacheHits": 41,
+					"bytes": 312492,
+					"docBytes": 21555,
+					"docStatus": 200,
+					"taskMs": 92,
+					"scriptMs": 42,
+					"layoutMs": 9,
+					"thirdPartyBytes": 24825,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 21555,
+						"Font": 17769,
+						"Image": 268547,
+						"Fetch": 0,
+						"Script": 3804,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 23,
+						"bytes": 338020,
+						"responseBytes": 316313,
+						"bodyBytes": 299277,
+						"byStatus": {
+							"200": 15,
+							"204": 3,
+							"304": 5
+						},
+						"sameHost": 6,
+						"thirdParty": 17,
+						"hosts": 9
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/principles-and-policies",
+					"ok": true,
+					"wallMs": 2743,
+					"requests": 55,
+					"networkRequests": 17,
+					"networkSameOrigin": 4,
+					"revalidations304": 4,
+					"cacheHits": 38,
+					"bytes": 156344,
+					"docBytes": 19559,
+					"docStatus": 200,
+					"taskMs": 36,
+					"scriptMs": 15,
+					"layoutMs": 2,
+					"thirdPartyBytes": 9187,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 19559,
+						"Font": 2109,
+						"Stylesheet": 127598,
+						"Image": 2435,
+						"Fetch": 0,
+						"Script": 3826,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 20,
+						"bytes": 181693,
+						"responseBytes": 161076,
+						"bodyBytes": 147010,
+						"byStatus": {
+							"200": 12,
+							"204": 4,
+							"304": 4
+						},
+						"sameHost": 4,
+						"thirdParty": 16,
+						"hosts": 9
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/top-administrative-units",
+					"ok": true,
+					"wallMs": 2698,
+					"requests": 57,
+					"networkRequests": 16,
+					"networkSameOrigin": 2,
+					"revalidations304": 5,
+					"cacheHits": 41,
+					"bytes": 81145,
+					"docBytes": 21580,
+					"docStatus": 200,
+					"taskMs": 112,
+					"scriptMs": 50,
+					"layoutMs": 1,
+					"thirdPartyBytes": 9767,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 21580,
+						"Font": 2698,
+						"Image": 52233,
+						"Fetch": 0,
+						"Script": 3817,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 19,
+						"bytes": 105078,
+						"responseBytes": 85906,
+						"bodyBytes": 72623,
+						"byStatus": {
+							"200": 10,
+							"204": 4,
+							"304": 5
+						},
+						"sameHost": 2,
+						"thirdParty": 17,
+						"hosts": 9
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.ucdavis.edu/about/administration/staff-resources",
+					"ok": true,
+					"wallMs": 8639,
+					"requests": 60,
+					"networkRequests": 19,
+					"networkSameOrigin": 2,
+					"revalidations304": 4,
+					"cacheHits": 41,
+					"bytes": 50993,
+					"docBytes": 21346,
+					"docStatus": 200,
+					"taskMs": 58,
+					"scriptMs": 28,
+					"layoutMs": 13,
+					"thirdPartyBytes": 9192,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 21346,
+						"Font": 2109,
+						"Image": 22890,
+						"Fetch": 0,
+						"Script": 3831,
+						"XHR": 817
+					},
+					"wire": {
+						"requests": 22,
+						"bytes": 78115,
+						"responseBytes": 56602,
+						"bodyBytes": 43063,
+						"byStatus": {
+							"0": 3,
+							"200": 10,
+							"204": 5,
+							"304": 4
+						},
+						"sameHost": 2,
+						"thirdParty": 20,
+						"hosts": 10
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.ucdavis.edu/",
+					"ok": true,
+					"wallMs": 3444,
+					"requests": 258,
+					"networkRequests": 196,
+					"networkSameOrigin": 22,
+					"revalidations304": 6,
+					"cacheHits": 62,
+					"bytes": 25375673,
+					"docBytes": 957803,
+					"docStatus": 200,
+					"taskMs": 442,
+					"scriptMs": 175,
+					"layoutMs": 5,
+					"thirdPartyBytes": 23571962,
+					"docHeaders": {
+						"cc": "max-age=86400, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 1020057,
+						"Font": 238915,
+						"Image": 5733572,
+						"Fetch": 4938,
+						"Script": 65661,
+						"XHR": 18274159,
+						"Media": 1463,
+						"Stylesheet": 36908
+					},
+					"wire": {
+						"requests": 199,
+						"bytes": 44339758,
+						"responseBytes": 44191600,
+						"bodyBytes": 44042157,
+						"byStatus": {
+							"200": 179,
+							"204": 3,
+							"206": 9,
+							"302": 1,
+							"304": 6,
+							"403": 1
+						},
+						"sameHost": 22,
+						"thirdParty": 177,
+						"hosts": 23
+					}
+				}
+			],
+			"generator": "Drupal 11 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.rutgers.edu/",
+					"ok": true,
+					"wallMs": 4272,
+					"requests": 174,
+					"networkRequests": 174,
+					"networkSameOrigin": 135,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 19655707,
+					"docBytes": 193767,
+					"docStatus": 200,
+					"taskMs": 384,
+					"scriptMs": 195,
+					"layoutMs": 25,
+					"thirdPartyBytes": 935172,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 195262,
+						"Stylesheet": 3596640,
+						"Script": 1277984,
+						"Image": 14358428,
+						"Font": 217579,
+						"XHR": 8936,
+						"Fetch": 0,
+						"Ping": 878
+					},
+					"wire": {
+						"requests": 177,
+						"bytes": 19825693,
+						"responseBytes": 19655708,
+						"bodyBytes": 19574173,
+						"byStatus": {
+							"200": 169,
+							"204": 5,
+							"301": 1,
+							"302": 2
+						},
+						"sameHost": 135,
+						"thirdParty": 42,
+						"hosts": 23
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/info/prospective-students-parents",
+					"ok": true,
+					"wallMs": 3326,
+					"requests": 122,
+					"networkRequests": 28,
+					"networkSameOrigin": 13,
+					"revalidations304": 0,
+					"cacheHits": 94,
+					"bytes": 3417263,
+					"docBytes": 141398,
+					"docStatus": 200,
+					"taskMs": 192,
+					"scriptMs": 65,
+					"layoutMs": 5,
+					"thirdPartyBytes": 20128,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 142893,
+						"Script": 11977,
+						"Image": 3253170,
+						"XHR": 9223,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 32,
+						"bytes": 3495521,
+						"responseBytes": 3421586,
+						"bodyBytes": 3404058,
+						"byStatus": {
+							"200": 23,
+							"204": 8,
+							"301": 1
+						},
+						"sameHost": 13,
+						"thirdParty": 19,
+						"hosts": 10
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/information-current-students",
+					"ok": true,
+					"wallMs": 5559,
+					"requests": 132,
+					"networkRequests": 38,
+					"networkSameOrigin": 20,
+					"revalidations304": 0,
+					"cacheHits": 94,
+					"bytes": 28390390,
+					"docBytes": 152159,
+					"docStatus": 200,
+					"taskMs": 107,
+					"scriptMs": 25,
+					"layoutMs": 3,
+					"thirdPartyBytes": 164219,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 153654,
+						"Stylesheet": 13711,
+						"Image": 28068825,
+						"Script": 144650,
+						"XHR": 9550,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 42,
+						"bytes": 28480923,
+						"responseBytes": 28394199,
+						"bodyBytes": 28371599,
+						"byStatus": {
+							"200": 32,
+							"204": 9,
+							"301": 1
+						},
+						"sameHost": 20,
+						"thirdParty": 22,
+						"hosts": 11
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/info/faculty-staff",
+					"ok": true,
+					"wallMs": 5651,
+					"requests": 123,
+					"networkRequests": 26,
+					"networkSameOrigin": 10,
+					"revalidations304": 0,
+					"cacheHits": 97,
+					"bytes": 14308289,
+					"docBytes": 147890,
+					"docStatus": 200,
+					"taskMs": 227,
+					"scriptMs": 73,
+					"layoutMs": 3,
+					"thirdPartyBytes": 20398,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 149385,
+						"Stylesheet": 972,
+						"Image": 14114245,
+						"Script": 34142,
+						"XHR": 9545,
+						"Fetch": 0
+					},
+					"wire": {
+						"requests": 29,
+						"bytes": 14390802,
+						"responseBytes": 14312251,
+						"bodyBytes": 14295453,
+						"byStatus": {
+							"200": 20,
+							"204": 8,
+							"301": 1
+						},
+						"sameHost": 10,
+						"thirdParty": 19,
+						"hosts": 10
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/why-work-rutgers",
+					"ok": true,
+					"wallMs": 3708,
+					"requests": 121,
+					"networkRequests": 30,
+					"networkSameOrigin": 15,
+					"revalidations304": 0,
+					"cacheHits": 91,
+					"bytes": 8630013,
+					"docBytes": 143649,
+					"docStatus": 200,
+					"taskMs": 4,
+					"scriptMs": 5,
+					"layoutMs": 6,
+					"thirdPartyBytes": 35158,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 145144,
+						"Script": 10344,
+						"Image": 8450258,
+						"Font": 15028,
+						"XHR": 9239
+					},
+					"wire": {
+						"requests": 33,
+						"bytes": 8708233,
+						"responseBytes": 8633323,
+						"bodyBytes": 8615184,
+						"byStatus": {
+							"200": 26,
+							"204": 6,
+							"301": 1
+						},
+						"sameHost": 15,
+						"thirdParty": 18,
+						"hosts": 11
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/veterans",
+					"ok": true,
+					"wallMs": 4242,
+					"requests": 177,
+					"networkRequests": 72,
+					"networkSameOrigin": 28,
+					"revalidations304": 0,
+					"cacheHits": 105,
+					"bytes": 12247399,
+					"docBytes": 182424,
+					"docStatus": 200,
+					"taskMs": 246,
+					"scriptMs": 164,
+					"layoutMs": 0,
+					"thirdPartyBytes": 1316854,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 259656,
+						"Stylesheet": 112757,
+						"Image": 10712500,
+						"Script": 1103707,
+						"XHR": 23247,
+						"Font": 35532,
+						"Other": 0
+					},
+					"wire": {
+						"requests": 89,
+						"bytes": 13995999,
+						"responseBytes": 13722789,
+						"bodyBytes": 13652086,
+						"byStatus": {
+							"0": 2,
+							"200": 70,
+							"204": 8,
+							"301": 1,
+							"302": 4,
+							"401": 4
+						},
+						"sameHost": 28,
+						"thirdParty": 61,
+						"hosts": 21
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.rutgers.edu/news",
+					"ok": true,
+					"wallMs": 4095,
+					"requests": 152,
+					"networkRequests": 57,
+					"networkSameOrigin": 34,
+					"revalidations304": 0,
+					"cacheHits": 95,
+					"bytes": 8989680,
+					"docBytes": 234255,
+					"docStatus": 200,
+					"taskMs": 309,
+					"scriptMs": 116,
+					"layoutMs": 5,
+					"thirdPartyBytes": 236241,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 235750,
+						"XHR": 9963,
+						"Ping": 210,
+						"Script": 216111,
+						"Image": 8511817,
+						"Stylesheet": 15829
+					},
+					"wire": {
+						"requests": 63,
+						"bytes": 9147082,
+						"responseBytes": 8992862,
+						"bodyBytes": 8960816,
+						"byStatus": {
+							"0": 2,
+							"200": 51,
+							"204": 9,
+							"301": 1
+						},
+						"sameHost": 34,
+						"thirdParty": 29,
+						"hosts": 14
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.rutgers.edu/",
+					"ok": true,
+					"wallMs": 4037,
+					"requests": 173,
+					"networkRequests": 46,
+					"networkSameOrigin": 31,
+					"revalidations304": 0,
+					"cacheHits": 127,
+					"bytes": 14568405,
+					"docBytes": 193766,
+					"docStatus": 200,
+					"taskMs": 221,
+					"scriptMs": 66,
+					"layoutMs": 1,
+					"thirdPartyBytes": 20427,
+					"docHeaders": {
+						"cc": "max-age=31536000, public",
+						"etag": true
+					},
+					"byType": {
+						"Document": 195261,
+						"Script": 8352,
+						"Image": 14355265,
+						"XHR": 9527
+					},
+					"wire": {
+						"requests": 50,
+						"bytes": 14677553,
+						"responseBytes": 14572017,
+						"bodyBytes": 14548788,
+						"byStatus": {
+							"200": 41,
+							"204": 8,
+							"301": 1
+						},
+						"sameHost": 31,
+						"thirdParty": 19,
+						"hosts": 10
+					}
+				}
+			],
+			"generator": "Drupal 10 (https://www.drupal.org)",
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.harvard.edu/",
+					"ok": true,
+					"wallMs": 3574,
+					"requests": 65,
+					"networkRequests": 65,
+					"networkSameOrigin": 43,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 3232472,
+					"docBytes": 29844,
+					"docStatus": 200,
+					"taskMs": 299,
+					"scriptMs": 157,
+					"layoutMs": 29,
+					"thirdPartyBytes": 808545,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 29844,
+						"Stylesheet": 117243,
+						"Image": 1974895,
+						"Script": 915431,
+						"Font": 192277,
+						"Media": 0,
+						"Fetch": 0,
+						"Ping": 878,
+						"XHR": 1904
+					},
+					"wire": {
+						"requests": 65,
+						"bytes": 8917045,
+						"responseBytes": 8872505,
+						"bodyBytes": 8829875,
+						"byStatus": {
+							"200": 61,
+							"204": 3,
+							"206": 1
+						},
+						"sameHost": 43,
+						"thirdParty": 22,
+						"hosts": 14
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu/federal-lawsuits/",
+					"ok": true,
+					"wallMs": 2729,
+					"requests": 40,
+					"networkRequests": 28,
+					"networkSameOrigin": 25,
+					"revalidations304": 0,
+					"cacheHits": 12,
+					"bytes": 1235990,
+					"docBytes": 11972,
+					"docStatus": 200,
+					"taskMs": 154,
+					"scriptMs": 60,
+					"layoutMs": 3,
+					"thirdPartyBytes": 2156,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 11972,
+						"Stylesheet": 99512,
+						"Image": 886640,
+						"Script": 235962,
+						"XHR": 1904
+					},
+					"wire": {
+						"requests": 30,
+						"bytes": 1270244,
+						"responseBytes": 1236155,
+						"bodyBytes": 1220280,
+						"byStatus": {
+							"200": 29,
+							"204": 1
+						},
+						"sameHost": 25,
+						"thirdParty": 5,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu/a-to-z/",
+					"ok": true,
+					"wallMs": 3005,
+					"requests": 49,
+					"networkRequests": 12,
+					"networkSameOrigin": 4,
+					"revalidations304": 0,
+					"cacheHits": 37,
+					"bytes": 978982,
+					"docBytes": 29233,
+					"docStatus": 200,
+					"taskMs": 4,
+					"scriptMs": 7,
+					"layoutMs": 6,
+					"thirdPartyBytes": 151628,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 29233,
+						"Script": 135694,
+						"Image": 765871,
+						"Font": 33033,
+						"XHR": 1904,
+						"Stylesheet": 13247
+					},
+					"wire": {
+						"requests": 14,
+						"bytes": 992661,
+						"responseBytes": 978965,
+						"bodyBytes": 970503,
+						"byStatus": {
+							"200": 12,
+							"204": 2
+						},
+						"sameHost": 4,
+						"thirdParty": 10,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu/academics/",
+					"ok": true,
+					"wallMs": 3206,
+					"requests": 53,
+					"networkRequests": 13,
+					"networkSameOrigin": 4,
+					"revalidations304": 0,
+					"cacheHits": 40,
+					"bytes": 1883731,
+					"docBytes": 22299,
+					"docStatus": 200,
+					"taskMs": 101,
+					"scriptMs": 52,
+					"layoutMs": 3,
+					"thirdPartyBytes": 559786,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 22299,
+						"Image": 1854993,
+						"Script": 4535,
+						"XHR": 1904
+					},
+					"wire": {
+						"requests": 16,
+						"bytes": 1900940,
+						"responseBytes": 1885184,
+						"bodyBytes": 1876557,
+						"byStatus": {
+							"200": 13,
+							"204": 3
+						},
+						"sameHost": 4,
+						"thirdParty": 12,
+						"hosts": 8
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu//programs/",
+					"ok": true,
+					"wallMs": 2718,
+					"requests": 53,
+					"networkRequests": 13,
+					"networkSameOrigin": 7,
+					"revalidations304": 0,
+					"cacheHits": 40,
+					"bytes": 170261,
+					"docBytes": 18717,
+					"docStatus": 200,
+					"taskMs": 51,
+					"scriptMs": 14,
+					"layoutMs": 1,
+					"thirdPartyBytes": 7237,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18717,
+						"Image": 124404,
+						"Script": 17339,
+						"Stylesheet": 6109,
+						"XHR": 3692
+					},
+					"wire": {
+						"requests": 17,
+						"bytes": 190135,
+						"responseBytes": 172127,
+						"bodyBytes": 162593,
+						"byStatus": {
+							"200": 13,
+							"204": 3,
+							"301": 1
+						},
+						"sameHost": 8,
+						"thirdParty": 9,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu//programs/?degree_levels=undergraduate",
+					"ok": true,
+					"wallMs": 2774,
+					"requests": 53,
+					"networkRequests": 9,
+					"networkSameOrigin": 3,
+					"revalidations304": 0,
+					"cacheHits": 44,
+					"bytes": 32622,
+					"docBytes": 18717,
+					"docStatus": 200,
+					"taskMs": 125,
+					"scriptMs": 58,
+					"layoutMs": 4,
+					"thirdPartyBytes": 7165,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18717,
+						"Image": 5746,
+						"Script": 4478,
+						"XHR": 3681
+					},
+					"wire": {
+						"requests": 13,
+						"bytes": 48577,
+						"responseBytes": 34729,
+						"bodyBytes": 27219,
+						"byStatus": {
+							"200": 9,
+							"204": 3,
+							"301": 1
+						},
+						"sameHost": 4,
+						"thirdParty": 9,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.harvard.edu//programs/?degree_levels=graduate",
+					"ok": true,
+					"wallMs": 2811,
+					"requests": 53,
+					"networkRequests": 8,
+					"networkSameOrigin": 2,
+					"revalidations304": 0,
+					"cacheHits": 45,
+					"bytes": 27890,
+					"docBytes": 18779,
+					"docStatus": 200,
+					"taskMs": 100,
+					"scriptMs": 53,
+					"layoutMs": 3,
+					"thirdPartyBytes": 7258,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 18779,
+						"Script": 4571,
+						"Image": 783,
+						"XHR": 3757
+					},
+					"wire": {
+						"requests": 12,
+						"bytes": 42636,
+						"responseBytes": 29918,
+						"bodyBytes": 22860,
+						"byStatus": {
+							"200": 8,
+							"204": 3,
+							"301": 1
+						},
+						"sameHost": 3,
+						"thirdParty": 9,
+						"hosts": 7
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.harvard.edu/",
+					"ok": true,
+					"wallMs": 2766,
+					"requests": 63,
+					"networkRequests": 23,
+					"networkSameOrigin": 17,
+					"revalidations304": 0,
+					"cacheHits": 40,
+					"bytes": 629072,
+					"docBytes": 29781,
+					"docStatus": 200,
+					"taskMs": 59,
+					"scriptMs": 3,
+					"layoutMs": 3,
+					"thirdPartyBytes": 7179,
+					"docHeaders": {
+						"cc": "max-age=300, must-revalidate",
+						"etag": false
+					},
+					"byType": {
+						"Document": 29781,
+						"Image": 592895,
+						"Script": 4492,
+						"Media": 0,
+						"XHR": 1904
+					},
+					"wire": {
+						"requests": 26,
+						"bytes": 6300672,
+						"responseBytes": 6272700,
+						"bodyBytes": 6258644,
+						"byStatus": {
+							"200": 22,
+							"204": 3,
+							"206": 1
+						},
+						"sameHost": 17,
+						"thirdParty": 9,
+						"hosts": 7
+					}
+				}
+			],
+			"generator": null,
+			"drupal": false,
+			"wordpress": true,
+			"swRegistered": false
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"navs": [
+				{
+					"kind": "cold-home",
+					"url": "https://www.mit.edu/",
+					"ok": true,
+					"wallMs": 3328,
+					"requests": 26,
+					"networkRequests": 26,
+					"networkSameOrigin": 18,
+					"revalidations304": 0,
+					"cacheHits": 0,
+					"bytes": 1593108,
+					"docBytes": 12237,
+					"docStatus": 200,
+					"taskMs": 141,
+					"scriptMs": 64,
+					"layoutMs": 31,
+					"thirdPartyBytes": 262169,
+					"docHeaders": {
+						"cc": "public, max-age=2643, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 12237,
+						"Stylesheet": 79123,
+						"Image": 844475,
+						"Script": 520063,
+						"Font": 133426,
+						"XHR": 3784
+					},
+					"wire": {
+						"requests": 26,
+						"bytes": 1607656,
+						"responseBytes": 1592486,
+						"bodyBytes": 1579067,
+						"byStatus": {
+							"200": 26
+						},
+						"sameHost": 18,
+						"thirdParty": 8,
+						"hosts": 4
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/education",
+					"ok": true,
+					"wallMs": 2799,
+					"requests": 24,
+					"networkRequests": 12,
+					"networkSameOrigin": 12,
+					"revalidations304": 0,
+					"cacheHits": 12,
+					"bytes": 99317,
+					"docBytes": 14328,
+					"docStatus": 200,
+					"taskMs": 73,
+					"scriptMs": 17,
+					"layoutMs": 4,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=2662, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 14328,
+						"Image": 1821,
+						"Media": 16265,
+						"XHR": 949,
+						"Script": 65954
+					},
+					"wire": {
+						"requests": 13,
+						"bytes": 5664945,
+						"responseBytes": 5657573,
+						"bodyBytes": 5650168,
+						"byStatus": {
+							"200": 9,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 13,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/research",
+					"ok": true,
+					"wallMs": 2747,
+					"requests": 32,
+					"networkRequests": 13,
+					"networkSameOrigin": 13,
+					"revalidations304": 0,
+					"cacheHits": 19,
+					"bytes": 1582709,
+					"docBytes": 12558,
+					"docStatus": 200,
+					"taskMs": 68,
+					"scriptMs": 1,
+					"layoutMs": 3,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=519, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 12558,
+						"Image": 1541915,
+						"Media": 27287,
+						"XHR": 949
+					},
+					"wire": {
+						"requests": 14,
+						"bytes": 5749794,
+						"responseBytes": 5741630,
+						"bodyBytes": 5733703,
+						"byStatus": {
+							"200": 10,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 14,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/innovation",
+					"ok": true,
+					"wallMs": 2929,
+					"requests": 20,
+					"networkRequests": 6,
+					"networkSameOrigin": 6,
+					"revalidations304": 0,
+					"cacheHits": 14,
+					"bytes": 2930842,
+					"docBytes": 11781,
+					"docStatus": 200,
+					"taskMs": 51,
+					"scriptMs": 13,
+					"layoutMs": 2,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=2352, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 11781,
+						"Image": 2896669,
+						"Media": 21443,
+						"XHR": 949
+					},
+					"wire": {
+						"requests": 7,
+						"bytes": 8390040,
+						"responseBytes": 8385993,
+						"bodyBytes": 8381941,
+						"byStatus": {
+							"200": 3,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 7,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/admissions-aid",
+					"ok": true,
+					"wallMs": 2777,
+					"requests": 19,
+					"networkRequests": 5,
+					"networkSameOrigin": 5,
+					"revalidations304": 0,
+					"cacheHits": 14,
+					"bytes": 41037,
+					"docBytes": 11360,
+					"docStatus": 200,
+					"taskMs": 50,
+					"scriptMs": 1,
+					"layoutMs": 0,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=2030, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 11360,
+						"Media": 28728,
+						"XHR": 949
+					},
+					"wire": {
+						"requests": 6,
+						"bytes": 4770725,
+						"responseBytes": 4767237,
+						"bodyBytes": 4763734,
+						"byStatus": {
+							"200": 2,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 6,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/campus-life",
+					"ok": true,
+					"wallMs": 2877,
+					"requests": 33,
+					"networkRequests": 14,
+					"networkSameOrigin": 14,
+					"revalidations304": 0,
+					"cacheHits": 19,
+					"bytes": 1374230,
+					"docBytes": 15836,
+					"docStatus": 200,
+					"taskMs": 18,
+					"scriptMs": 1,
+					"layoutMs": 2,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=574, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 15836,
+						"Image": 1343144,
+						"Media": 14301,
+						"XHR": 949
+					},
+					"wire": {
+						"requests": 15,
+						"bytes": 7987981,
+						"responseBytes": 7979163,
+						"bodyBytes": 7970686,
+						"byStatus": {
+							"200": 11,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 15,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				},
+				{
+					"kind": "warm-internal",
+					"url": "https://www.mit.edu/alumni",
+					"ok": true,
+					"wallMs": 2787,
+					"requests": 31,
+					"networkRequests": 12,
+					"networkSameOrigin": 11,
+					"revalidations304": 0,
+					"cacheHits": 19,
+					"bytes": 2010588,
+					"docBytes": 12941,
+					"docStatus": 200,
+					"taskMs": 5,
+					"scriptMs": 1,
+					"layoutMs": 1,
+					"thirdPartyBytes": 28086,
+					"docHeaders": {
+						"cc": "public, max-age=3182, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 12941,
+						"Image": 1933704,
+						"Font": 28086,
+						"Media": 34908,
+						"XHR": 949
+					},
+					"wire": {
+						"requests": 13,
+						"bytes": 6678460,
+						"responseBytes": 6670772,
+						"bodyBytes": 6663563,
+						"byStatus": {
+							"200": 9,
+							"206": 3,
+							"301": 1
+						},
+						"sameHost": 12,
+						"thirdParty": 1,
+						"hosts": 2
+					}
+				},
+				{
+					"kind": "warm-home-repeat",
+					"url": "https://www.mit.edu/",
+					"ok": true,
+					"wallMs": 2561,
+					"requests": 27,
+					"networkRequests": 5,
+					"networkSameOrigin": 5,
+					"revalidations304": 0,
+					"cacheHits": 22,
+					"bytes": 16021,
+					"docBytes": 12237,
+					"docStatus": 200,
+					"taskMs": 35,
+					"scriptMs": 12,
+					"layoutMs": 2,
+					"thirdPartyBytes": 0,
+					"docHeaders": {
+						"cc": "public, max-age=2623, s-maxage=3600",
+						"etag": true
+					},
+					"byType": {
+						"Document": 12237,
+						"XHR": 3784
+					},
+					"wire": {
+						"requests": 5,
+						"bytes": 18883,
+						"responseBytes": 15906,
+						"bodyBytes": 13009,
+						"byStatus": {
+							"200": 5
+						},
+						"sameHost": 5,
+						"thirdParty": 0,
+						"hosts": 1
+					}
+				}
+			],
+			"generator": null,
+			"drupal": true,
+			"wordpress": false,
+			"swRegistered": false
+		}
+	]
+}

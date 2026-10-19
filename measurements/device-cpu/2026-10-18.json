@@ -1,0 +1,52 @@
+{
+	"schema": 1,
+	"rig": "device-cpu",
+	"date": "2026-10-18",
+	"layer": "L1",
+	"question": "browser CPU seconds per navigation: HTTP 304 revalidation vs a service-worker render",
+	"instrument": "CPU time of the Playwright Chromium process tree (ps), a proxy for device energy, not joules",
+	"machine": {
+		"name": "MacBook Pro",
+		"cpu": "Apple M2 Pro",
+		"os": "macOS 26.5.2"
+	},
+	"software": {
+		"browser": "Chromium, Playwright 1.62.1 bundled browsers"
+	},
+	"method": {
+		"emulated rtt ms": 40,
+		"navigations per run": 60,
+		"runs per arm": 2
+	},
+	"exclusions": [],
+	"rows": [
+		{
+			"arm": "network",
+			"run": 0,
+			"cpuS": 2.46,
+			"wallMsPerNav": 49,
+			"serverHitsPerNav": 1
+		},
+		{
+			"arm": "network",
+			"run": 1,
+			"cpuS": 3.12,
+			"wallMsPerNav": 49,
+			"serverHitsPerNav": 1
+		},
+		{
+			"arm": "spool",
+			"run": 0,
+			"cpuS": 1.51,
+			"wallMsPerNav": 5,
+			"serverHitsPerNav": 0
+		},
+		{
+			"arm": "spool",
+			"run": 1,
+			"cpuS": 1.04,
+			"wallMsPerNav": 5,
+			"serverHitsPerNav": 0
+		}
+	]
+}
