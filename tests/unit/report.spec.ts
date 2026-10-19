@@ -18,6 +18,7 @@ import {
 	raplRun,
 	repeatBytesBySite,
 	repeatNavFigures,
+	runtimeRun,
 	saving,
 	serverYearMWh,
 	serversAfter,
@@ -278,6 +279,39 @@ describe('phone windows', () => {
 	it('leaves out an arm with no usable idle window', () => {
 		const run = phoneRun([read('idle', 0, 0, 100), read('net', 1, 10, 200)]);
 		expect(run.arms['net']).toBeUndefined();
+	});
+});
+
+describe('a runtimes reading', () => {
+	const window = (arm: string, round: number, views: number, joules: number, bytes: number) => ({
+		runtime: 'node',
+		arm,
+		round,
+		views,
+		discarded: null,
+		windowS: 60,
+		pkgJ: joules,
+		tailscaleRxB: bytes,
+		tailscaleTxB: 0,
+		wlanRxB: 2 * bytes,
+		wlanTxB: 0,
+		originNet: { requests: arm === 'idle' ? 0 : views },
+		originSpool: { requests: 0 }
+	});
+
+	it('takes each window above the idle window of its round, per view', () => {
+		const run = runtimeRun([
+			window('idle', 0, 0, 1200, 600),
+			window('network', 0, 60, 1260, 60_600),
+			{ ...window('network', 1, 60, 9999, 1), discarded: '2 view errors' },
+			window('idle', 1, 0, 1200, 600)
+		]);
+		const net = run['node']?.['network'];
+		expect(net?.windows).toBe(1);
+		expect(net?.joules.median).toBe(1);
+		expect(net?.overlayBytes.median).toBe(1000);
+		expect(net?.wireBytes.median).toBe(2000);
+		expect(net?.originRequests.median).toBe(1);
 	});
 });
 

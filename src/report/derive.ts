@@ -374,6 +374,59 @@ export function phoneRun(rows: readonly Row[]): PhoneRun {
 	};
 }
 
+/** one arm of one server runtime, per view and above the idle window of the same round */
+export type RuntimeArm = {
+	windows: number;
+	joules: Spread;
+	/** bytes on the overlay interface (`tailscale0`) */
+	overlayBytes: Spread;
+	/** bytes on the physical interface, overlay framing included */
+	wireBytes: Spread;
+	/** requests that reached the origin, the app's own and `/.spool/*` together */
+	originRequests: Spread;
+};
+
+/**
+ * A runtimes reading by runtime and arm. Rows with a `discarded` reason are dropped, and so is
+ * a round whose idle window was.
+ */
+export function runtimeRun(rows: readonly Row[]): Record<string, Record<string, RuntimeArm>> {
+	const clean = rows.filter((r) => r.discarded === null || r.discarded === undefined);
+	const key = (r: Row) => `${str(r, 'runtime')}/${num(r, 'round')}`;
+	const idle = new Map(clean.filter((r) => str(r, 'arm') === 'idle').map((r) => [key(r), r]));
+	const rate = (r: Row, field: string) =>
+		(num(r, field) as number) / (num(r, 'windowS') as number);
+	const requests = (r: Row) =>
+		['originNet', 'originSpool'].reduce(
+			(s, f) => s + ((r[f] as { requests?: number } | undefined)?.requests ?? 0),
+			0
+		);
+	const out: Record<string, Record<string, RuntimeArm>> = {};
+	const groups = new Map<string, Row[]>();
+	for (const row of clean) {
+		if (str(row, 'arm') === 'idle' || !idle.has(key(row))) continue;
+		const group = `${str(row, 'runtime')}/${str(row, 'arm')}`;
+		groups.set(group, [...(groups.get(group) ?? []), row]);
+	}
+	for (const [group, list] of groups) {
+		const [runtime = '', arm = ''] = group.split('/');
+		const above = (r: Row, fields: string[]) => {
+			const base = idle.get(key(r)) as Row;
+			const seconds = num(r, 'windowS') as number;
+			const sum = (x: Row) => fields.reduce((s, f) => s + rate(x, f), 0);
+			return ((sum(r) - sum(base)) * seconds) / (num(r, 'views') as number);
+		};
+		(out[runtime] ??= {})[arm] = {
+			windows: list.length,
+			joules: spread(list.map((r) => above(r, ['pkgJ']))),
+			overlayBytes: spread(list.map((r) => above(r, ['tailscaleRxB', 'tailscaleTxB']))),
+			wireBytes: spread(list.map((r) => above(r, ['wlanRxB', 'wlanTxB']))),
+			originRequests: spread(list.map((r) => requests(r) / (num(r, 'views') as number)))
+		};
+	}
+	return out;
+}
+
 /** one kind of navigation across the sites of a repeat-navigation run */
 export type NavFigures = {
 	navs: number;
