@@ -1,0 +1,163 @@
+{
+	"schema": 1,
+	"rig": "iphone",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "phone joules per view, network vs spool, back to back",
+	"instrument": "AppleSmartBattery PowerTelemetryData via libimobiledevice idevicediagnostics: AccumulatedSystemEnergyConsumed (uWh) for energy_j, AccumulatedSystemLoad / count for mean_mw; 20 s ticks",
+	"machine": {
+		"name": "iPhone 14 Pro",
+		"os": "iOS 26.6.2",
+		"network": "Wi-Fi (eduroam)",
+		"power": "wired to the Mac"
+	},
+	"software": {
+		"browser": "Safari, driven by safaridriver (W3C WebDriver)",
+		"origins": "Cloudflare Workers static assets (free plan), demo.drupflare.com mirror, analytics token zeroed"
+	},
+	"method": {
+		"arms": ["network", "spool", "idle"],
+		"arm order": "rotated per round",
+		"window ticks": 6,
+		"pages": ["/", "/node/3", "/node/2", "/node/1"],
+		"pace s": 0,
+		"service worker": "registered in the same session with updateViaCache all; controlled asserted before the run"
+	},
+	"exclusions": [
+		"windows with any tick charging true: the energy counter then includes charge power"
+	],
+	"rows": [
+		{
+			"arm": "network",
+			"round": 0,
+			"navs": 1947,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 565.596,
+			"mean_mw": 5022.008403361345,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 0,
+			"navs": 3911,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 734.7024,
+			"mean_mw": 6323.975206611571,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 0,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 132.0156,
+			"mean_mw": 1101.8916666666667,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 1,
+			"navs": 3047,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 625.9392,
+			"mean_mw": 5229.775,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 1,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 123.9804,
+			"mean_mw": 1043.5294117647059,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "network",
+			"round": 1,
+			"navs": 1519,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 490.4388,
+			"mean_mw": 4274.016666666666,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 2,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 128.9988,
+			"mean_mw": 1076.5333333333333,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "network",
+			"round": 2,
+			"navs": 1703,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 547.1244,
+			"mean_mw": 4774.683333333333,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 2,
+			"navs": 3369,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 623.6568,
+			"mean_mw": 5211.133333333333,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "network",
+			"round": 3,
+			"navs": 1628,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 539.1756,
+			"mean_mw": 4692.675,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 3,
+			"navs": 2465,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 472.6116,
+			"mean_mw": 4012.3083333333334,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 3,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 120,
+			"energy_j": 135.9,
+			"mean_mw": 1134.1916666666666,
+			"charging": [false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		}
+	]
+}

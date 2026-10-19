@@ -1,0 +1,205 @@
+{
+	"schema": 1,
+	"rig": "iphone",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "phone joules per view: network fetch of a computed page, local render of it, and a local render that aggregates stored records on the device",
+	"instrument": "AppleSmartBattery PowerTelemetryData via libimobiledevice idevicediagnostics: AccumulatedSystemEnergyConsumed (uWh) for energy_j, AccumulatedSystemLoad / count for mean_mw; 20 s ticks",
+	"machine": {
+		"name": "iPhone 14 Pro",
+		"os": "iOS 26.6.2",
+		"network": "Wi-Fi (eduroam)",
+		"power": "wired to the Mac"
+	},
+	"software": {
+		"browser": "Safari, driven by safaridriver (W3C WebDriver)",
+		"origins": "two Cloudflare Workers static-assets sites (free plan), one without a service worker and one with"
+	},
+	"method": {
+		"arms": {
+			"net-baked": "network fetch of the already-computed page",
+			"spool-baked": "local render of the same page",
+			"spool-proj": "local render plus on-device aggregation of the stored records",
+			"net-proj": "network page plus aggregation, records from the HTTP cache",
+			"idle": "screen on, no navigation"
+		},
+		"rounds": 3,
+		"window ticks": 5,
+		"pace s": 0,
+		"arm order": "rotated per round",
+		"records": "synthetic, 97,000 rows, 1.63 MB JSON",
+		"record rows": 97000,
+		"record bytes": 1630000,
+		"service worker": "registered in the same session with updateViaCache all; controlled asserted before the run"
+	},
+	"exclusions": [
+		"windows with any tick charging true: the energy counter then includes charge power"
+	],
+	"rows": [
+		{
+			"arm": "net-baked",
+			"round": 0,
+			"navs": 1461,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 421.36199999999997,
+			"mean_mw": 4477.61,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-baked",
+			"round": 0,
+			"navs": 3479,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 657.0612,
+			"mean_mw": 7271.79,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-proj",
+			"round": 0,
+			"navs": 1945,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 592.8804,
+			"mean_mw": 6105.51,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "net-proj",
+			"round": 0,
+			"navs": 1191,
+			"pace": 0.0,
+			"seconds": 98,
+			"energy_j": 496.7532,
+			"mean_mw": 5289.693877551021,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "idle",
+			"round": 0,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 116.3772,
+			"mean_mw": 1165.51,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-baked",
+			"round": 1,
+			"navs": 2882,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 512.6436,
+			"mean_mw": 5149.93,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-proj",
+			"round": 1,
+			"navs": 1783,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 557.2404,
+			"mean_mw": 5737.88,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "net-proj",
+			"round": 1,
+			"navs": 1210,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 504.4932,
+			"mean_mw": 5393.16,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "idle",
+			"round": 1,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 114.89399999999999,
+			"mean_mw": 1150.62,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "net-baked",
+			"round": 1,
+			"navs": 1457,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 466.1784,
+			"mean_mw": 5032.37,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-proj",
+			"round": 2,
+			"navs": 1360,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 415.91519999999997,
+			"mean_mw": 4178.95,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "net-proj",
+			"round": 2,
+			"navs": 1146,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 463.158,
+			"mean_mw": 4871.38,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "idle",
+			"round": 2,
+			"navs": 0,
+			"pace": 0.0,
+			"seconds": 99,
+			"energy_j": 113.6772,
+			"mean_mw": 1150.030303030303,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "net-baked",
+			"round": 2,
+			"navs": 1379,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 429.2208,
+			"mean_mw": 4431.47,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		},
+		{
+			"arm": "spool-baked",
+			"round": 2,
+			"navs": 2277,
+			"pace": 0.0,
+			"seconds": 100,
+			"energy_j": 434.2356,
+			"mean_mw": 4466.57,
+			"charging": [false, false, false, false, false, false],
+			"capacity": [100, 100]
+		}
+	]
+}

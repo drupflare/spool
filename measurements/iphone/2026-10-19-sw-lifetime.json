@@ -1,0 +1,525 @@
+{
+	"schema": 1,
+	"rig": "iphone",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "does iOS Safari restart the service worker between navigations spaced 0 to 60 s apart",
+	"instrument": "the service worker reports its own start time and navigation count over postMessage; Navigation Timing from the page",
+	"machine": {
+		"name": "iPhone 14 Pro",
+		"os": "iOS 26.6.2",
+		"network": "Wi-Fi (eduroam)",
+		"power": "wired to the Mac"
+	},
+	"software": {
+		"browser": "Safari, driven by safaridriver (W3C WebDriver)",
+		"origins": "Cloudflare Workers static assets (free plan), demo.drupflare.com mirror, analytics token zeroed"
+	},
+	"method": {
+		"gaps s": [0, 5, 15, 30, 60],
+		"navigations per gap": 5
+	},
+	"exclusions": [],
+	"rows": [
+		{
+			"gap": 0.0,
+			"k": 0,
+			"wall": 1792375355.238689,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 7,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 9,
+				"fetch": 90,
+				"boot": 1792375351705,
+				"q": 18
+			}
+		},
+		{
+			"gap": 0.0,
+			"k": 1,
+			"wall": 1792375355.2896981,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 6,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 10,
+				"fetch": 93,
+				"boot": 1792375351705,
+				"q": 20
+			}
+		},
+		{
+			"gap": 0.0,
+			"k": 2,
+			"wall": 1792375355.3219619,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 6,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 11,
+				"fetch": 96,
+				"boot": 1792375351705,
+				"q": 22
+			}
+		},
+		{
+			"gap": 0.0,
+			"k": 3,
+			"wall": 1792375355.350205,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 8,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 12,
+				"fetch": 99,
+				"boot": 1792375351705,
+				"q": 24
+			}
+		},
+		{
+			"gap": 0.0,
+			"k": 4,
+			"wall": 1792375355.3810859,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 6,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 13,
+				"fetch": 102,
+				"boot": 1792375351705,
+				"q": 26
+			}
+		},
+		{
+			"gap": 5.0,
+			"k": 0,
+			"wall": 1792375355.414036,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 0,
+				"resp": 1,
+				"end": 5,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 14,
+				"fetch": 105,
+				"boot": 1792375351705,
+				"q": 28
+			}
+		},
+		{
+			"gap": 5.0,
+			"k": 1,
+			"wall": 1792375360.5241642,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 2,
+				"resp": 5,
+				"end": 19,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 1,
+				"fetch": 17,
+				"boot": 1792375356031,
+				"q": 2
+			}
+		},
+		{
+			"gap": 5.0,
+			"k": 2,
+			"wall": 1792375365.7000608,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 4,
+				"end": 18.000000000000004,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 2,
+				"fetch": 20,
+				"boot": 1792375356031,
+				"q": 4
+			}
+		},
+		{
+			"gap": 5.0,
+			"k": 3,
+			"wall": 1792375370.874414,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 3,
+				"end": 18.000000000000004,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 3,
+				"fetch": 24,
+				"boot": 1792375356031,
+				"q": 6
+			}
+		},
+		{
+			"gap": 5.0,
+			"k": 4,
+			"wall": 1792375376.032365,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 3,
+				"end": 15,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 4,
+				"fetch": 27,
+				"boot": 1792375356031,
+				"q": 8
+			}
+		},
+		{
+			"gap": 15.0,
+			"k": 0,
+			"wall": 1792375381.184151,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 4,
+				"end": 17,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 5,
+				"fetch": 30,
+				"boot": 1792375356031,
+				"q": 10
+			}
+		},
+		{
+			"gap": 15.0,
+			"k": 1,
+			"wall": 1792375396.31311,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 5,
+				"end": 19,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 6,
+				"fetch": 33,
+				"boot": 1792375356031,
+				"q": 12
+			}
+		},
+		{
+			"gap": 15.0,
+			"k": 2,
+			"wall": 1792375411.442206,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 4,
+				"end": 19,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 7,
+				"fetch": 36,
+				"boot": 1792375356031,
+				"q": 14
+			}
+		},
+		{
+			"gap": 15.0,
+			"k": 3,
+			"wall": 1792375426.589201,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 5,
+				"end": 22,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 8,
+				"fetch": 39,
+				"boot": 1792375356031,
+				"q": 16
+			}
+		},
+		{
+			"gap": 15.0,
+			"k": 4,
+			"wall": 1792375441.7224782,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 2,
+				"resp": 1007.0000000000001,
+				"end": 1028,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 9,
+				"fetch": 42,
+				"boot": 1792375356031,
+				"q": 18
+			}
+		},
+		{
+			"gap": 30.0,
+			"k": 0,
+			"wall": 1792375456.8650901,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 4,
+				"end": 17,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 10,
+				"fetch": 45,
+				"boot": 1792375356031,
+				"q": 20
+			}
+		},
+		{
+			"gap": 30.0,
+			"k": 1,
+			"wall": 1792375487.010732,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 5,
+				"end": 21,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 11,
+				"fetch": 48,
+				"boot": 1792375356031,
+				"q": 22
+			}
+		},
+		{
+			"gap": 30.0,
+			"k": 2,
+			"wall": 1792375517.16701,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 1009.0000000000001,
+				"end": 1028,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 12,
+				"fetch": 51,
+				"boot": 1792375356031,
+				"q": 24
+			}
+		},
+		{
+			"gap": 30.0,
+			"k": 3,
+			"wall": 1792375547.295507,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 6,
+				"end": 24,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 13,
+				"fetch": 54,
+				"boot": 1792375356031,
+				"q": 26
+			}
+		},
+		{
+			"gap": 30.0,
+			"k": 4,
+			"wall": 1792375577.434773,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 1010,
+				"end": 1037,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 14,
+				"fetch": 57,
+				"boot": 1792375356031,
+				"q": 28
+			}
+		},
+		{
+			"gap": 60.0,
+			"k": 0,
+			"wall": 1792375607.569299,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 4,
+				"end": 25,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 15,
+				"fetch": 60,
+				"boot": 1792375356031,
+				"q": 30
+			}
+		},
+		{
+			"gap": 60.0,
+			"k": 1,
+			"wall": 1792375667.7070599,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 2,
+				"resp": 5,
+				"end": 30,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 16,
+				"fetch": 63,
+				"boot": 1792375356031,
+				"q": 32
+			}
+		},
+		{
+			"gap": 60.0,
+			"k": 2,
+			"wall": 1792375727.7733781,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 8,
+				"end": 20,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 17,
+				"fetch": 66,
+				"boot": 1792375356031,
+				"q": 34
+			}
+		},
+		{
+			"gap": 60.0,
+			"k": 3,
+			"wall": 1792375787.8737202,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 6,
+				"end": 25,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 18,
+				"fetch": 69,
+				"boot": 1792375356031,
+				"q": 36
+			}
+		},
+		{
+			"gap": 60.0,
+			"k": 4,
+			"wall": 1792375847.8912199,
+			"t": {
+				"size": 0,
+				"fetch": 0,
+				"worker": 1,
+				"resp": 6,
+				"end": 23,
+				"start": 0
+			},
+			"controlled": true,
+			"sw": {
+				"nav": 19,
+				"fetch": 72,
+				"boot": 1792375356031,
+				"q": 38
+			}
+		}
+	]
+}

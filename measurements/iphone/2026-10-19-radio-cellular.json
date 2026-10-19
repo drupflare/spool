@@ -1,0 +1,231 @@
+{
+	"schema": 1,
+	"rig": "iphone",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "phone joules of one isolated network request over cellular, against the same script call with no request",
+	"instrument": "AppleSmartBattery PowerTelemetryData via libimobiledevice idevicediagnostics: AccumulatedSystemEnergyConsumed (uWh) for energy_j, AccumulatedSystemLoad / count for mean_mw; 20 s ticks",
+	"machine": {
+		"name": "iPhone 14 Pro",
+		"os": "iOS 26.6.2",
+		"network": "cellular, Wi-Fi switched off",
+		"power": "wired to the Mac"
+	},
+	"software": {
+		"browser": "Safari, driven by safaridriver (W3C WebDriver)",
+		"origin": "a Cloudflare Worker (free plan) answering GET /ping with 204 and no body"
+	},
+	"method": {
+		"arms": ["request", "script", "idle"],
+		"request": "one WebDriver async script per slot that runs fetch('/ping?<time>', {cache: 'no-store'})",
+		"script": "the same WebDriver async script per slot with no fetch, so the two arms differ only by the request",
+		"idle": "no calls",
+		"arm order": "rotated per round",
+		"window ticks": 9,
+		"slot s": 20,
+		"page": "the origin's small HTML page, loaded once before the first window"
+	},
+	"exclusions": [
+		"windows with any tick charging true: the energy counter then includes charge power"
+	],
+	"rows": [
+		{
+			"arm": "request",
+			"round": 0,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 219.3876,
+			"mean_mw": 1220.5166666666667,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 0,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 208.3464,
+			"mean_mw": 1159.1888888888889,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 0,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 177,
+			"energy_j": 203.778,
+			"mean_mw": 1152.9378531073446,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 1,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 229.29479999999998,
+			"mean_mw": 1275.5611111111111,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 1,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 209.27519999999998,
+			"mean_mw": 1164.3111111111111,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "request",
+			"round": 1,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 222.0228,
+			"mean_mw": 1235.3277777777778,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 2,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 195.678,
+			"mean_mw": 1088.6833333333334,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "request",
+			"round": 2,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 176,
+			"energy_j": 208.7064,
+			"mean_mw": 1187.5738636363637,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 2,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 218.97,
+			"mean_mw": 1218.3,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "request",
+			"round": 3,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 209.5992,
+			"mean_mw": 1166.1222222222223,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 3,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 199.2996,
+			"mean_mw": 1108.9333333333334,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 3,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 199.7064,
+			"mean_mw": 1111.0333333333333,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 4,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 206.0964,
+			"mean_mw": 1146.6555555555556,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 4,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 192.9708,
+			"mean_mw": 1073.75,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "request",
+			"round": 4,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 217.0908,
+			"mean_mw": 1207.7777777777778,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "idle",
+			"round": 5,
+			"navs": 0,
+			"ok": 0,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 195.59879999999998,
+			"mean_mw": 1088.3166666666666,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "request",
+			"round": 5,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 206.262,
+			"mean_mw": 1147.6333333333334,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		},
+		{
+			"arm": "script",
+			"round": 5,
+			"navs": 9,
+			"ok": 9,
+			"slot": 20.0,
+			"seconds": 180,
+			"energy_j": 195.5556,
+			"mean_mw": 1088.1833333333334,
+			"charging": [false, false, false, false, false, false, false, false, false, false]
+		}
+	]
+}

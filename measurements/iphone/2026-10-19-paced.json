@@ -1,0 +1,130 @@
+{
+	"schema": 1,
+	"rig": "iphone",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "phone joules per view, network vs spool, one view every 15 s",
+	"instrument": "AppleSmartBattery PowerTelemetryData via libimobiledevice idevicediagnostics: AccumulatedSystemEnergyConsumed (uWh) for energy_j, AccumulatedSystemLoad / count for mean_mw; 20 s ticks",
+	"machine": {
+		"name": "iPhone 14 Pro",
+		"os": "iOS 26.6.2",
+		"network": "Wi-Fi (eduroam)",
+		"power": "wired to the Mac"
+	},
+	"software": {
+		"browser": "Safari, driven by safaridriver (W3C WebDriver)",
+		"origins": "Cloudflare Workers static assets (free plan), demo.drupflare.com mirror, analytics token zeroed"
+	},
+	"method": {
+		"arms": ["network", "spool", "idle"],
+		"arm order": "rotated per round",
+		"window ticks": 9,
+		"pages": ["/", "/node/3", "/node/2", "/node/1"],
+		"pace s": 15,
+		"service worker": "registered in the same session with updateViaCache all; controlled asserted before the run"
+	},
+	"exclusions": [
+		"windows with any tick charging true: the energy counter then includes charge power"
+	],
+	"rows": [
+		{
+			"arm": "network",
+			"round": 0,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 195.3396,
+			"mean_mw": 1087.1222222222223,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 0,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 176,
+			"energy_j": 205.308,
+			"mean_mw": 1168.25,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 0,
+			"navs": 0,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 186.2064,
+			"mean_mw": 1036.2777777777778,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 1,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 217.8036,
+			"mean_mw": 1214.7,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 1,
+			"navs": 0,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 189.93959999999998,
+			"mean_mw": 1056.911111111111,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "network",
+			"round": 1,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 191.25,
+			"mean_mw": 1064.3833333333334,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "idle",
+			"round": 2,
+			"navs": 0,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 191.39759999999998,
+			"mean_mw": 1065.05,
+			"charging": [false, false, false, false, false, false, false, false, false, false],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "network",
+			"round": 2,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 180,
+			"energy_j": 551.0052,
+			"mean_mw": 1659.2611111111112,
+			"charging": [false, false, false, false, false, true, true, true, true, true],
+			"capacity": [95, 95]
+		},
+		{
+			"arm": "spool",
+			"round": 2,
+			"navs": 12,
+			"pace": 15.0,
+			"seconds": 176,
+			"energy_j": 731.7108,
+			"mean_mw": 1295.5170454545455,
+			"charging": [true, true, true, true, true, true, true, true, true, true],
+			"capacity": [95, 95]
+		}
+	]
+}
