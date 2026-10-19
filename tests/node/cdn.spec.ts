@@ -14,9 +14,11 @@ import {
 	publish,
 	RELEASE_CACHE,
 	remoteExists,
+	remoteSame,
 	summaryFor,
 	verifyRemote,
-	wranglerArgs
+	wranglerArgs,
+	type Put
 } from '../../scripts/publish-cdn';
 import { cdnClientUrl, releasePrefix } from '../../src/cdn/location';
 import { CLIENT_CORE, SW_CORE } from '../../src/server/embedded';
@@ -37,7 +39,12 @@ function dist(version = '1.2.3', tamper = false): string {
 	return dir;
 }
 
-function options(kind: 'release' | 'dev', existing: string[] = [], dryRun = false) {
+function options(
+	kind: 'release' | 'dev',
+	existing: string[] = [],
+	dryRun = false,
+	identical: string[] = []
+) {
 	const calls = { exists: [] as string[], run: [] as string[][], log: [] as string[] };
 	return {
 		calls,
@@ -48,6 +55,7 @@ function options(kind: 'release' | 'dev', existing: string[] = [], dryRun = fals
 				calls.exists.push(key);
 				return existing.includes(key);
 			},
+			same: async (put: Put) => identical.includes(put.key),
 			run: (args: string[]) => void calls.run.push(args),
 			log: (line: string) => void calls.log.push(line)
 		}
@@ -179,7 +187,7 @@ describe('the job summary', () => {
 describe('publishing', () => {
 	const puts = plan('release', 'spool/1.2.3', '/d');
 
-	it('refuses a release when either key exists, before it uploads anything', async () => {
+	it('refuses a release when any key holds other bytes, before it uploads anything', async () => {
 		for (const existing of [
 			['spool/1.2.3/client.js'],
 			['spool/1.2.3/spool-sw.js'],
@@ -187,10 +195,27 @@ describe('publishing', () => {
 		]) {
 			const { calls, options: opts } = options('release', existing);
 			await expect(publish(puts, opts)).rejects.toThrow(
-				/immutable and are never overwritten/
+				/other bytes; release keys are immutable and are never overwritten/
 			);
 			expect(calls.run).toEqual([]);
 		}
+	});
+
+	it('keeps keys that already hold the same bytes, so a failed read-back can be re-run', async () => {
+		const done = ['spool/1.2.3/client.js', 'spool/1.2.3/spool-sw.js'];
+		const { calls, options: opts } = options('release', done, false, done);
+		await publish(puts, opts);
+		expect(calls.run.map((a) => a[4])).toEqual(['drupflare-cdn/spool/1.2.3/manifest.json']);
+		expect(calls.log.filter((line) => line.startsWith('kept'))).toHaveLength(2);
+	});
+
+	it('refuses the whole release when one existing key differs, even beside identical ones', async () => {
+		const existing = ['spool/1.2.3/client.js', 'spool/1.2.3/spool-sw.js'];
+		const { calls, options: opts } = options('release', existing, false, [
+			'spool/1.2.3/client.js'
+		]);
+		await expect(publish(puts, opts)).rejects.toThrow(/spool-sw\.js exists with other bytes/);
+		expect(calls.run).toEqual([]);
 	});
 
 	it('uploads a new release in order, client first', async () => {
@@ -240,6 +265,14 @@ describe('reading the public host', () => {
 			throw new Error('offline');
 		}) as typeof fetch;
 		await expect(remoteExists('spool/1.2.3/client.js', failing)).rejects.toThrow(/offline/);
+	});
+
+	it('compares a published key with the local file byte for byte', async () => {
+		const [put] = plan('release', 'spool/1.2.3', dist()) as [Put];
+		const body = readFileSync(put.file);
+		expect(await remoteSame(put, reply(200, body.toString()))).toBe(true);
+		expect(await remoteSame(put, reply(200, `${body.toString()};`))).toBe(false);
+		await expect(remoteSame(put, reply(404))).rejects.toThrow(/HTTP 404/);
 	});
 
 	it('verifies bytes, digest and the CORS header of the page runtime', async () => {

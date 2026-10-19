@@ -97,30 +97,52 @@ export async function remoteExists(key: string, fetcher: typeof fetch = fetch): 
 	throw new Error(`${key}: could not tell whether it exists (HTTP ${response.status})`);
 }
 
+/** whether the public host serves exactly the bytes of `put.file` under `put.key` */
+export async function remoteSame(put: Put, fetcher: typeof fetch = fetch): Promise<boolean> {
+	const response = await fetcher(`${CDN_ORIGIN}/${put.key}?probe=${Date.now()}`, {
+		headers: { 'accept-encoding': 'identity', 'cache-control': 'no-cache' }
+	});
+	if (response.status !== 200) {
+		throw new Error(`${put.key}: could not read it back (HTTP ${response.status})`);
+	}
+	return Buffer.from(await response.arrayBuffer()).equals(readFileSync(put.file));
+}
+
 export type PublishOptions = {
 	kind: Kind;
 	dryRun: boolean;
 	exists: (key: string) => Promise<boolean>;
+	/** whether the published `put.key` holds the same bytes as `put.file` */
+	same: (put: Put) => Promise<boolean>;
 	run: (args: string[]) => void;
 	log: (line: string) => void;
 };
 
 /**
- * Uploads the plan. A release key is refused when it already exists, every key checked before
- * the first upload, so a re-run never half-replaces a published version.
+ * Uploads the plan. A release key that already holds other bytes is refused, every key checked
+ * before the first upload, so a re-run never half-replaces a published version. A key that holds
+ * the same bytes is left as it is, so a run that uploaded and then failed its read-back can be
+ * re-run.
  * ponytail: check then put is not atomic; two concurrent releases of one version could race.
  */
 export async function publish(puts: readonly Put[], options: PublishOptions): Promise<void> {
+	const published = new Set<string>();
 	if (options.kind === 'release' && !options.dryRun) {
-		for (const { key } of puts) {
-			if (await options.exists(key)) {
+		for (const put of puts) {
+			if (!(await options.exists(put.key))) continue;
+			if (!(await options.same(put))) {
 				throw new Error(
-					`${key} exists; release keys are immutable and are never overwritten`
+					`${put.key} exists with other bytes; release keys are immutable and are never overwritten`
 				);
 			}
+			published.add(put.key);
 		}
 	}
 	for (const put of puts) {
+		if (published.has(put.key)) {
+			options.log(`kept ${BUCKET}/${put.key}, already published with the same bytes`);
+			continue;
+		}
 		const args = wranglerArgs(put);
 		if (options.dryRun) {
 			options.log(
@@ -214,6 +236,7 @@ async function main(): Promise<void> {
 		kind,
 		dryRun: flag('dry-run'),
 		exists: remoteExists,
+		same: remoteSame,
 		run: (args) => void execFileSync('bunx', args, { cwd: root, stdio: 'inherit' }),
 		log: console.log
 	});
