@@ -1,4 +1,5 @@
 import type { Measurement, Row } from './measurement.js';
+import { classifyOrigin, type OriginClass } from './thirdparty.js';
 
 /** a median with the range it came from and how many readings that is */
 export type Spread = { median: number; min: number; max: number; n: number };
@@ -487,6 +488,85 @@ export function repeatBytesBySite(
 					bytes: num(nav, 'bytes') as number,
 					document: num(nav, 'docBytes') ?? 0
 				});
+			}
+		}
+	}
+	return out;
+}
+
+/** resource types a site's own static files arrive as; every other same-origin type is dynamic */
+const STATIC_TYPES: ReadonlySet<string> = new Set([
+	'Script',
+	'Stylesheet',
+	'Font',
+	'Image',
+	'Media'
+]);
+
+/** the network bytes of one home-page repeat view, split by what they were */
+export type ByteSplit = {
+	/** the page's own document request */
+	document: number;
+	/** same-origin Script, Stylesheet, Font, Image and Media */
+	sameOriginStatic: number;
+	/** every other same-origin request: XHR, Fetch, Ping, EventSource, Other, further documents */
+	sameOriginDynamic: number;
+	/** bytes from other origins, by the class `classifyOrigin` gives their host */
+	thirdParty: Partial<Record<OriginClass, number>>;
+	thirdPartyTotal: number;
+	/** the same third-party bytes by host */
+	thirdPartyHosts: Record<string, number>;
+	total: number;
+};
+
+/**
+ * Splits a repeat view's network bytes from its per-request records: requests the browser cache
+ * answered carry no bytes and are skipped. The document is the first Document request, the one
+ * `docBytes` counts. Same-origin is the recorded field, an exact origin match.
+ */
+export function splitRequestBytes(requests: ReadonlyArray<Row>): ByteSplit {
+	const split: ByteSplit = {
+		document: 0,
+		sameOriginStatic: 0,
+		sameOriginDynamic: 0,
+		thirdParty: {},
+		thirdPartyTotal: 0,
+		thirdPartyHosts: {},
+		total: 0
+	};
+	let seenDocument = false;
+	for (const request of requests) {
+		const isDocument = str(request, 'type') === 'Document' && !seenDocument;
+		if (isDocument) seenDocument = true;
+		if (request.fromCache === true) continue;
+		const bytes = num(request, 'bytes') ?? 0;
+		split.total += bytes;
+		if (isDocument) split.document += bytes;
+		else if (request.sameOrigin === true) {
+			if (STATIC_TYPES.has(str(request, 'type'))) split.sameOriginStatic += bytes;
+			else split.sameOriginDynamic += bytes;
+		} else {
+			const { class: kind } = classifyOrigin(str(request, 'url'));
+			split.thirdParty[kind] = (split.thirdParty[kind] ?? 0) + bytes;
+			split.thirdPartyTotal += bytes;
+			const host = str(request, 'host');
+			split.thirdPartyHosts[host] = (split.thirdPartyHosts[host] ?? 0) + bytes;
+		}
+	}
+	return split;
+}
+
+/** {@link splitRequestBytes} for each site's loaded home-page repeat view that carries request records */
+export function repeatSplitBySite(rows: readonly Row[]): Map<string, ByteSplit> {
+	const out = new Map<string, ByteSplit>();
+	for (const row of rows) {
+		for (const nav of (row.navs as Row[] | undefined) ?? []) {
+			if (
+				loaded(nav) &&
+				str(nav, 'kind') === 'warm-home-repeat' &&
+				Array.isArray(nav.requestList)
+			) {
+				out.set(str(row, 'site'), splitRequestBytes(nav.requestList as Row[]));
 			}
 		}
 	}
