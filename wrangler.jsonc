@@ -1,0 +1,11 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "spool-test",
+	"main": "tests/fixtures/worker.ts",
+	"compatibility_date": "2026-08-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"durable_objects": {
+		"bindings": [{ "name": "SPOOL_VERSIONS", "class_name": "SpoolVersions" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["SpoolVersions"] }]
+}

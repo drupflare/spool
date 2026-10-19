@@ -1,0 +1,10 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+		"types": ["node"],
+		"experimentalDecorators": true
+	},
+	"include": ["./**/*.ts", "../../src/node/**/*.ts", "../../scripts/source-hash.ts"],
+	"exclude": ["elysia.spec.ts", "readme/elysia.ts"]
+}
