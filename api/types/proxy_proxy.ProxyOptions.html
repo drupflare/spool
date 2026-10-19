@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">ProxyOptions</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#exposetags">exposeTags</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#fetch">fetch</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Request</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Response</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#ignore">ignore</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxbytes">maxBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxremembered">maxRemembered</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxtags">maxTags</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#origin">origin</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">URL</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#publiccookies">publicCookies</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#purgesecret">purgeSecret</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#routes">routes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="proxy_proxy.ProxyRoute.html" class="tsd-signature-type tsd-kind-type-alias">ProxyRoute</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#spool">spool</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="server_spool.SpoolOptions.html" class="tsd-signature-type tsd-kind-type-alias">SpoolOptions</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;routes&quot;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L41">proxy/proxy.ts:41</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L41">proxy/proxy.ts:41</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -45,49 +45,49 @@
 <div class="tsd-comment tsd-typography"><p>keep the tag headers on what the browser receives; default false</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L57">proxy/proxy.ts:57</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L57">proxy/proxy.ts:57</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="fetch"><code class="tsd-tag">Optional</code><span>fetch</span><a href="#fetch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">fetch</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Request</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Response</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>how requests reach the origin; default global <code>fetch</code>. A Workers service binding passes its <code>fetch</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L69">proxy/proxy.ts:69</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L69">proxy/proxy.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="ignore"><code class="tsd-tag">Optional</code><span>ignore</span><a href="#ignore" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">ignore</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>patterns blanked before a page is hashed, such as a per-render form token</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L63">proxy/proxy.ts:63</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L63">proxy/proxy.ts:63</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxbytes"><code class="tsd-tag">Optional</code><span>max<wbr/>Bytes</span><a href="#maxbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>largest page body kept, in bytes; default 2 MiB</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L61">proxy/proxy.ts:61</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L61">proxy/proxy.ts:61</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxremembered"><code class="tsd-tag">Optional</code><span>max<wbr/>Remembered</span><a href="#maxremembered" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxRemembered</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>most pages whose last body hash is remembered, the oldest going first; default 10,000</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L65">proxy/proxy.ts:65</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L65">proxy/proxy.ts:65</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxtags"><code class="tsd-tag">Optional</code><span>max<wbr/>Tags</span><a href="#maxtags" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxTags</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>most tags one response may name before it is not kept; default 512</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L59">proxy/proxy.ts:59</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L59">proxy/proxy.ts:59</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="origin"><span>origin</span><a href="#origin" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">origin</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">URL</span></div>
 <div class="tsd-comment tsd-typography"><p>the origin to forward to, such as <code>https://origin.internal</code>; no path</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L43">proxy/proxy.ts:43</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L43">proxy/proxy.ts:43</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="publiccookies"><code class="tsd-tag">Optional</code><span>public<wbr/>Cookies</span><a href="#publiccookies" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">publicCookies</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
@@ -95,21 +95,21 @@
 make a request ineligible, and setting them does not clear the device; default none</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L55">proxy/proxy.ts:55</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L55">proxy/proxy.ts:55</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="purgesecret"><code class="tsd-tag">Optional</code><span>purge<wbr/>Secret</span><a href="#purgesecret" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">purgeSecret</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>the shared secret <code>POST /.spool/purge</code> requires; without one every purge is refused</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L67">proxy/proxy.ts:67</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L67">proxy/proxy.ts:67</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="routes"><code class="tsd-tag">Optional</code><span>routes</span><a href="#routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">routes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="proxy_proxy.ProxyRoute.html" class="tsd-signature-type tsd-kind-type-alias">ProxyRoute</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>routes that override the default of one public <code>assembly</code> route per path; they match first</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L50">proxy/proxy.ts:50</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L50">proxy/proxy.ts:50</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="spool"><span>spool</span><a href="#spool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">spool</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="server_spool.SpoolOptions.html" class="tsd-signature-type tsd-kind-type-alias">SpoolOptions</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;routes&quot;</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -117,7 +117,7 @@ make a request ineligible, and setting them does not clear the device; default n
 spool is created, and the proxy puts its own catch-all route there</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/b8c5cbed6400a17a1982412558882efe5009c77a/src/proxy/proxy.ts#L48">proxy/proxy.ts:48</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/352e232963a8038df3044f4a55ffc4829ab42478/src/proxy/proxy.ts#L48">proxy/proxy.ts:48</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
