@@ -26,6 +26,25 @@ import {
 } from '../../scripts/measure/lib';
 import { parse as parseOnWire } from '../../scripts/measure/on-wire';
 import {
+	K_J_PER_B,
+	breakEven,
+	deriveShell,
+	dictSizes,
+	evenly,
+	internalLinks,
+	isDrupal,
+	lcs,
+	lines,
+	median,
+	nodeBundles,
+	parse as parsePayload,
+	pickPages,
+	renderFields,
+	sizes,
+	spread,
+	uniquePart
+} from '../../scripts/measure/payload';
+import {
 	PAISLEY,
 	conditions,
 	inferenceRows,
@@ -36,9 +55,13 @@ import {
 } from '../../scripts/measure/rapl';
 import {
 	SITES,
+	originOf,
 	pageOrigin,
 	parse as parseRepeatNav,
-	sameOrigin
+	redactPath,
+	requestRecord,
+	sameOrigin,
+	stripQuery
 } from '../../scripts/measure/repeat-nav';
 import { parseTrace, parseViews, peakWork } from '../../scripts/measure/traces';
 import {
@@ -230,6 +253,73 @@ describe('rig arguments', () => {
 		expect(sameOrigin('https://a.test/x.js', 'https://a.test')).toBe(true);
 		expect(sameOrigin('https://a.test.cdn.net/x.js', 'https://a.test')).toBe(false);
 		expect(sameOrigin('data:,x', 'https://a.test')).toBe(false);
+	});
+
+	it('maps a request to a record without its query string or any cookie', () => {
+		const record = requestRecord(
+			{
+				url: 'https://a.test/app.js?user=42#x',
+				type: 'Script',
+				bytes: 120,
+				status: 200,
+				fromCache: false,
+				cache: null,
+				responseHeaders: {
+					'Cache-Control': 'max-age=60',
+					ETag: '"x"',
+					Vary: 'Accept-Encoding',
+					'Content-Type': 'text/javascript',
+					'Set-Cookie': 'sid=secret',
+					Age: '5'
+				}
+			},
+			'https://a.test'
+		);
+		expect(record).toEqual({
+			url: 'https://a.test/app.js',
+			host: 'a.test',
+			sameOrigin: true,
+			type: 'Script',
+			status: 200,
+			bytes: 120,
+			fromCache: false,
+			cache: null,
+			cacheControl: 'max-age=60',
+			etag: true,
+			lastModified: false,
+			expires: false,
+			age: '5',
+			vary: 'Accept-Encoding',
+			contentType: 'text/javascript'
+		});
+		expect(JSON.stringify(record)).not.toContain('secret');
+		const other = requestRecord(
+			{
+				url: 'https://a.test.cdn.net/x.css?v=1',
+				type: 'Stylesheet',
+				bytes: 0,
+				status: 200,
+				fromCache: true,
+				cache: 'disk'
+			},
+			'https://a.test'
+		);
+		expect(other).toMatchObject({
+			sameOrigin: false,
+			cache: 'disk',
+			cacheControl: null,
+			etag: false,
+			url: 'https://a.test.cdn.net/x.css'
+		});
+		expect(stripQuery('not a url')).toBe('');
+		expect(stripQuery('about:blank')).toBe('about:');
+		expect(stripQuery('https://a.test/cdn-cgi/h/3142:99:vG/x-1.2.1.1-cW/app.js?z=1')).toBe(
+			'https://a.test/cdn-cgi/h/{opaque}/{opaque}/app.js'
+		);
+		expect(redactPath(`/${'a'.repeat(80)}/ok.css`)).toBe('/{opaque}/ok.css');
+		expect(redactPath('/css/css_abc-123.css')).toBe('/css/css_abc-123.css');
+		expect(originOf('http://a.test:8080/x?y=1')).toBe('http://a.test:8080');
+		expect(originOf('nope')).toBe('');
 	});
 
 	it('sums the CPU of the Chromium processes in a ps listing', () => {
@@ -551,5 +641,132 @@ describe('the counting proxy', () => {
 			thirdParty: 0,
 			hosts: 0
 		});
+	});
+});
+
+describe('the payload rig', () => {
+	const page = (title: string, body: string) =>
+		lines(
+			`<html>\n<head>\n<title>${title}</title>\n</head>\n<body>\n<nav>menu</nav>\n${body}\n</body>\n</html>`
+		);
+
+	it('keeps the lines common to every page as the shell and the rest as the unique part', () => {
+		const pages = [page('a', 'one'), page('b', 'two\nmore'), page('c', 'three')];
+		const { shell, outliers } = deriveShell(pages);
+		expect(outliers).toEqual([]);
+		expect(shell).toContain('<nav>menu</nav>');
+		expect(shell).not.toContain('<title>a</title>');
+		const part = uniquePart(pages[1] as string[], shell);
+		expect(part.text).toContain('two\nmore');
+		expect(part.uniqueLines).toBe(3);
+		expect(part.gaps).toBeGreaterThan(0);
+		expect(part.text).toMatch(/^@\d+$/m);
+	});
+
+	it('finds a common subsequence and refuses a shell the page does not hold', () => {
+		expect(lcs(['a', 'b', 'c', 'd'], ['a', 'c', 'x', 'd'])).toEqual(['a', 'c', 'd']);
+		expect(lcs(['a'], [])).toEqual([]);
+		expect(deriveShell([])).toEqual({ shell: [], outliers: [] });
+		const odd = lines('x\ny');
+		const withOdd = deriveShell([page('a', 'one'), page('b', 'two'), odd, page('c', 'three')]);
+		expect(withOdd.outliers).toEqual([2]);
+		expect(withOdd.shell).toContain('<nav>menu</nav>');
+		expect(() => uniquePart(['a'], ['a', 'b'])).toThrow(/subsequence/);
+		expect(uniquePart(['x'], []).text).toBe('x');
+	});
+
+	it('compresses at every level, and a dictionary helps a page it resembles', () => {
+		const html = '<div class="card"><p>hello world</p></div>\n'.repeat(200);
+		const s = sizes(html);
+		expect(s.raw).toBe(html.length);
+		for (const k of ['gzip6', 'gzip9', 'br5', 'br11', 'zstd3', 'zstd19'] as const) {
+			expect(s[k]).toBeGreaterThan(0);
+			expect(s[k]).toBeLessThan(s.raw);
+		}
+		const next = '<div class="card"><p>hello there</p></div>\n'.repeat(5);
+		expect(dictSizes(next, html).zstd19).toBeLessThan(sizes(next).zstd19);
+		expect(sizes(new TextEncoder().encode('abc')).raw).toBe(3);
+	});
+
+	it('takes medians and quartiles', () => {
+		expect(median([])).toBeNull();
+		expect(median([3, 1, 2])).toBe(2);
+		expect(median([1, 2, 3, 4])).toBe(2.5);
+		expect(spread([1, 2, 3, 4, 5])).toEqual({
+			n: 5,
+			min: 1,
+			p25: 2,
+			median: 3,
+			p75: 4,
+			max: 5
+		});
+	});
+
+	it('prices an entry against the document it replaces', () => {
+		expect(K_J_PER_B).toBeCloseTo(6.984e-4, 7);
+		expect(breakEven(0, 20_000)).toBe(0);
+		expect(breakEven(17_054, 17_054)).toBeCloseTo(0.963, 2);
+		expect(breakEven(5_000, 20_000)).toBeLessThan(breakEven(10_000, 20_000));
+	});
+
+	it('lists internal pages without query, fragment, assets or admin paths', () => {
+		const html = [
+			'<a href="/about?x=1#top">a</a>',
+			'<a href="https://site.test/news/one">b</a>',
+			'<a href="https://other.test/x">c</a>',
+			'<a href="/files/report.pdf">d</a>',
+			'<a href="/user/login">e</a>',
+			'<a href="/about">dup</a>',
+			'<a href="/">home</a>',
+			'<a href="mailto:a@b.test">m</a>'
+		].join('');
+		expect(internalLinks(html, 'https://site.test/')).toEqual(['/about', '/news/one']);
+		expect(evenly([1, 2, 3, 4, 5, 6], 3)).toEqual([1, 3, 5]);
+		expect(evenly([1, 2], 5)).toEqual([1, 2]);
+		expect(pickPages(['/a', '/b', '/c', '/d'], new Set(['/c']), 2)).toEqual(['/c', '/a']);
+	});
+
+	it('confirms Drupal from markup or headers', () => {
+		expect(isDrupal('<meta name="Generator" content="Drupal 11">', {})).toBe(true);
+		expect(isDrupal('<div data-drupal-selector="x">', new Headers())).toBe(true);
+		expect(isDrupal('<p>plain</p>', { 'x-generator': 'Drupal 10' })).toBe(true);
+		expect(isDrupal('<p>plain</p>', new Headers({ 'x-drupal-cache': 'HIT' }))).toBe(true);
+		expect(isDrupal('<p>plain</p>', {})).toBe(false);
+	});
+
+	it('keeps only what a template prints from a JSON:API node', () => {
+		const resource = {
+			attributes: {
+				drupal_internal__nid: 1,
+				title: 'T',
+				created: '2026-01-01',
+				path: { alias: '/t', pid: 4 },
+				body: { value: '<p>raw</p>', processed: '<p>cooked</p>', format: 'basic' },
+				field_empty: [],
+				field_tags: [{ value: 'a' }, 'b'],
+				field_summary: null,
+				promote: true
+			}
+		};
+		expect(renderFields(resource)).toEqual({
+			title: 'T',
+			created: '2026-01-01',
+			alias: '/t',
+			body: '<p>cooked</p>',
+			field_tags: ['a', 'b']
+		});
+		expect(renderFields({})).toEqual({});
+		expect(
+			nodeBundles({ links: { 'node--article': {}, 'file--file': {}, 'node--page': {} } })
+		).toEqual(['article', 'page']);
+		expect(nodeBundles({})).toEqual([]);
+	});
+
+	it('keeps the defaults and parses its flags', () => {
+		const a = parsePayload([]);
+		expect(a.pages).toBe(20);
+		expect(a.sites).toEqual(SITES);
+		const b = parsePayload(['--site', 'https://x.test/', '--pages', '5', '--dry-run']);
+		expect([b.sites, b.pages, b.dryRun]).toEqual([['https://x.test/'], 5, true]);
 	});
 });

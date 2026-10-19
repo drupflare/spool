@@ -1,0 +1,8229 @@
+{
+	"schema": 1,
+	"rig": "payload",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "how many compressed bytes a page is once the markup shared across a site is counted once, and what the unique part and a node record weigh",
+	"instrument": "plain HTTPS GETs, then Node zlib gzip, brotli and zstd (zstd with a raw dictionary for the RFC 9842 case)",
+	"machine": {
+		"name": "Gregory's MacBook Pro",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"runtime": "Bun 1.4.3",
+		"node": "26.3.0"
+	},
+	"method": {
+		"pages per site": "home plus up to 20 internal links",
+		"page choice": "links from the home page without query strings, pages with a known JSON:API alias first, the rest spread evenly",
+		"shell": "lines common to the fetched pages: the median-length page cut down by each other page in turn (longest common subsequence); a page that would cut the shell below 60% of its length is an outlier, left out of the shell and counted whole as its unique part",
+		"unique part": "the page lines outside the shell, with an @n line for each run of n shell lines",
+		"dictionary": "zstd raw dictionary of up to 4 other pages of the site, capped at 1048576 B",
+		"json rendered": "title, dates, alias, body and non-empty field_* attributes; references excluded",
+		"json pairing": "a node pairs with a page when its path alias equals the page path; other nodes go to nodeSample",
+		"sizes unit": "bytes; gzip 6 and 9, brotli 5 and 11, zstd 3 and 19",
+		"k J per B": 0.0006984,
+		"origin request J": 0.455
+	},
+	"exclusions": [
+		"https://www.ox.ac.uk/: HTTP 403 text/html; charset=UTF-8",
+		"https://www.berkeley.edu/: no Drupal markup in the home page",
+		"https://www.cornell.edu/: no Drupal markup in the home page",
+		"https://www.georgetown.edu/: no Drupal markup in the home page",
+		"https://www.mass.gov/: HTTP 403 text/html",
+		"https://www.harvard.edu/: no Drupal markup in the home page"
+	],
+	"rows": [
+		{
+			"site": "https://demo.drupflare.com/",
+			"drupal": "Drupal 11 (https://www.drupal.org)",
+			"jsonapi": false,
+			"shellLines": 250,
+			"shell": {
+				"raw": 8930,
+				"gzip6": 2773,
+				"gzip9": 2755,
+				"br5": 2520,
+				"br11": 2254,
+				"zstd3": 2893,
+				"zstd19": 2681
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 17530,
+					"gzip6": 4175,
+					"gzip9": 4176,
+					"br5": 3853,
+					"br11": 3442,
+					"zstd3": 4425,
+					"zstd19": 4026
+				},
+				"unique": {
+					"raw": 8655,
+					"gzip6": 1751,
+					"gzip9": 1757,
+					"br5": 1596,
+					"br11": 1407,
+					"zstd3": 1831,
+					"zstd19": 1729
+				},
+				"uniqueLines": 137,
+				"gaps": 17,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 943,
+					"zstd19": 770
+				},
+				"uniqueDict": {
+					"zstd3": 989,
+					"zstd19": 816
+				}
+			},
+			"pages": [
+				{
+					"path": "/node/3",
+					"document": {
+						"raw": 14645,
+						"gzip6": 4321,
+						"gzip9": 4320,
+						"br5": 3965,
+						"br11": 3480,
+						"zstd3": 4511,
+						"zstd19": 4170
+					},
+					"unique": {
+						"raw": 5768,
+						"gzip6": 1836,
+						"gzip9": 1850,
+						"br5": 1660,
+						"br11": 1428,
+						"zstd3": 1908,
+						"zstd19": 1824
+					},
+					"uniqueLines": 38,
+					"gaps": 16,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 933,
+						"zstd19": 837
+					},
+					"uniqueDict": {
+						"zstd3": 1061,
+						"zstd19": 900
+					}
+				},
+				{
+					"path": "/node/2",
+					"document": {
+						"raw": 12600,
+						"gzip6": 4195,
+						"gzip9": 4189,
+						"br5": 3837,
+						"br11": 3384,
+						"zstd3": 4375,
+						"zstd19": 4052
+					},
+					"unique": {
+						"raw": 3723,
+						"gzip6": 1691,
+						"gzip9": 1707,
+						"br5": 1527,
+						"br11": 1311,
+						"zstd3": 1744,
+						"zstd19": 1689
+					},
+					"uniqueLines": 38,
+					"gaps": 16,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 835,
+						"zstd19": 787
+					},
+					"uniqueDict": {
+						"zstd3": 961,
+						"zstd19": 857
+					}
+				},
+				{
+					"path": "/node/1",
+					"document": {
+						"raw": 11053,
+						"gzip6": 3435,
+						"gzip9": 3421,
+						"br5": 3148,
+						"br11": 2794,
+						"zstd3": 3605,
+						"zstd19": 3328
+					},
+					"unique": {
+						"raw": 2176,
+						"gzip6": 955,
+						"gzip9": 957,
+						"br5": 844,
+						"br11": 759,
+						"zstd3": 1000,
+						"zstd19": 960
+					},
+					"uniqueLines": 38,
+					"gaps": 16,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 72,
+						"zstd19": 58
+					},
+					"uniqueDict": {
+						"zstd3": 222,
+						"zstd19": 117
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"drupal": "Drupal 10 (https://www.drupal.org)",
+			"jsonapi": false,
+			"shellLines": 290,
+			"shell": {
+				"raw": 9582,
+				"gzip6": 2339,
+				"gzip9": 2352,
+				"br5": 2024,
+				"br11": 1817,
+				"zstd3": 2513,
+				"zstd19": 2307
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 77298,
+					"gzip6": 15256,
+					"gzip9": 15250,
+					"br5": 13906,
+					"br11": 12177,
+					"zstd3": 15861,
+					"zstd19": 14034
+				},
+				"unique": {
+					"raw": 77298,
+					"gzip6": 15256,
+					"gzip9": 15250,
+					"br5": 13906,
+					"br11": 12177,
+					"zstd3": 15861,
+					"zstd19": 14034
+				},
+				"uniqueLines": 1552,
+				"gaps": 0,
+				"outlier": true,
+				"documentDict": {
+					"zstd3": 10692,
+					"zstd19": 8801
+				},
+				"uniqueDict": {
+					"zstd3": 10692,
+					"zstd19": 8801
+				}
+			},
+			"pages": [
+				{
+					"path": "/academics/colleges-schools",
+					"document": {
+						"raw": 33373,
+						"gzip6": 7053,
+						"gzip9": 7085,
+						"br5": 6539,
+						"br11": 5801,
+						"zstd3": 7521,
+						"zstd19": 6772
+					},
+					"unique": {
+						"raw": 33373,
+						"gzip6": 7053,
+						"gzip9": 7085,
+						"br5": 6539,
+						"br11": 5801,
+						"zstd3": 7521,
+						"zstd19": 6772
+					},
+					"uniqueLines": 622,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 2624,
+						"zstd19": 1993
+					},
+					"uniqueDict": {
+						"zstd3": 2624,
+						"zstd19": 1993
+					}
+				},
+				{
+					"path": "/caslogin",
+					"document": {
+						"raw": 37357,
+						"gzip6": 11892,
+						"gzip9": 11900,
+						"br5": 10837,
+						"br11": 10130,
+						"zstd3": 12047,
+						"zstd19": 11492
+					},
+					"unique": {
+						"raw": 37357,
+						"gzip6": 11892,
+						"gzip9": 11900,
+						"br5": 10837,
+						"br11": 10130,
+						"zstd3": 12047,
+						"zstd19": 11492
+					},
+					"uniqueLines": 453,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 11226,
+						"zstd19": 10651
+					},
+					"uniqueDict": {
+						"zstd3": 11226,
+						"zstd19": 10651
+					}
+				},
+				{
+					"path": "/news-events",
+					"document": {
+						"raw": 36638,
+						"gzip6": 9243,
+						"gzip9": 9260,
+						"br5": 8537,
+						"br11": 7443,
+						"zstd3": 9753,
+						"zstd19": 8798
+					},
+					"unique": {
+						"raw": 36638,
+						"gzip6": 9243,
+						"gzip9": 9260,
+						"br5": 8537,
+						"br11": 7443,
+						"zstd3": 9753,
+						"zstd19": 8798
+					},
+					"uniqueLines": 761,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 4455,
+						"zstd19": 3690
+					},
+					"uniqueDict": {
+						"zstd3": 4455,
+						"zstd19": 3690
+					}
+				},
+				{
+					"path": "/academics",
+					"document": {
+						"raw": 68095,
+						"gzip6": 16824,
+						"gzip9": 16836,
+						"br5": 15527,
+						"br11": 13128,
+						"zstd3": 17478,
+						"zstd19": 15691
+					},
+					"unique": {
+						"raw": 68095,
+						"gzip6": 16824,
+						"gzip9": 16836,
+						"br5": 15527,
+						"br11": 13128,
+						"zstd3": 17478,
+						"zstd19": 15691
+					},
+					"uniqueLines": 1001,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 10645,
+						"zstd19": 8788
+					},
+					"uniqueDict": {
+						"zstd3": 10645,
+						"zstd19": 8788
+					}
+				},
+				{
+					"path": "/admission",
+					"document": {
+						"raw": 42880,
+						"gzip6": 10070,
+						"gzip9": 10108,
+						"br5": 9347,
+						"br11": 8127,
+						"zstd3": 10714,
+						"zstd19": 9560
+					},
+					"unique": {
+						"raw": 42880,
+						"gzip6": 10070,
+						"gzip9": 10108,
+						"br5": 9347,
+						"br11": 8127,
+						"zstd3": 10714,
+						"zstd19": 9560
+					},
+					"uniqueLines": 1068,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 4286,
+						"zstd19": 3217
+					},
+					"uniqueDict": {
+						"zstd3": 4286,
+						"zstd19": 3217
+					}
+				},
+				{
+					"path": "/research",
+					"document": {
+						"raw": 53339,
+						"gzip6": 12528,
+						"gzip9": 12559,
+						"br5": 11667,
+						"br11": 10015,
+						"zstd3": 13259,
+						"zstd19": 11860
+					},
+					"unique": {
+						"raw": 53339,
+						"gzip6": 12528,
+						"gzip9": 12559,
+						"br5": 11667,
+						"br11": 10015,
+						"zstd3": 13259,
+						"zstd19": 11860
+					},
+					"uniqueLines": 1242,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 6706,
+						"zstd19": 5321
+					},
+					"uniqueDict": {
+						"zstd3": 6706,
+						"zstd19": 5321
+					}
+				},
+				{
+					"path": "/athletics",
+					"document": {
+						"raw": 53522,
+						"gzip6": 11806,
+						"gzip9": 11825,
+						"br5": 10975,
+						"br11": 9603,
+						"zstd3": 12650,
+						"zstd19": 11069
+					},
+					"unique": {
+						"raw": 53522,
+						"gzip6": 11806,
+						"gzip9": 11825,
+						"br5": 10975,
+						"br11": 9603,
+						"zstd3": 12650,
+						"zstd19": 11069
+					},
+					"uniqueLines": 1128,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 7285,
+						"zstd19": 5772
+					},
+					"uniqueDict": {
+						"zstd3": 7285,
+						"zstd19": 5772
+					}
+				},
+				{
+					"path": "/alumni",
+					"document": {
+						"raw": 37832,
+						"gzip6": 9372,
+						"gzip9": 9358,
+						"br5": 8650,
+						"br11": 7541,
+						"zstd3": 9936,
+						"zstd19": 8919
+					},
+					"unique": {
+						"raw": 37832,
+						"gzip6": 9372,
+						"gzip9": 9358,
+						"br5": 8650,
+						"br11": 7541,
+						"zstd3": 9936,
+						"zstd19": 8919
+					},
+					"uniqueLines": 831,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 3974,
+						"zstd19": 3076
+					},
+					"uniqueDict": {
+						"zstd3": 3974,
+						"zstd19": 3076
+					}
+				},
+				{
+					"path": "/giving",
+					"document": {
+						"raw": 35601,
+						"gzip6": 7978,
+						"gzip9": 8018,
+						"br5": 7348,
+						"br11": 6495,
+						"zstd3": 8477,
+						"zstd19": 7629
+					},
+					"unique": {
+						"raw": 35601,
+						"gzip6": 7978,
+						"gzip9": 8018,
+						"br5": 7348,
+						"br11": 6495,
+						"zstd3": 8477,
+						"zstd19": 7629
+					},
+					"uniqueLines": 914,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 3313,
+						"zstd19": 2595
+					},
+					"uniqueDict": {
+						"zstd3": 3313,
+						"zstd19": 2595
+					}
+				},
+				{
+					"path": "/president",
+					"document": {
+						"raw": 36951,
+						"gzip6": 9106,
+						"gzip9": 9136,
+						"br5": 8372,
+						"br11": 7316,
+						"zstd3": 9610,
+						"zstd19": 8680
+					},
+					"unique": {
+						"raw": 36951,
+						"gzip6": 9106,
+						"gzip9": 9136,
+						"br5": 8372,
+						"br11": 7316,
+						"zstd3": 9610,
+						"zstd19": 8680
+					},
+					"uniqueLines": 772,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 3816,
+						"zstd19": 3110
+					},
+					"uniqueDict": {
+						"zstd3": 3816,
+						"zstd19": 3110
+					}
+				},
+				{
+					"path": "/about",
+					"document": {
+						"raw": 43662,
+						"gzip6": 9988,
+						"gzip9": 10013,
+						"br5": 9240,
+						"br11": 7990,
+						"zstd3": 10602,
+						"zstd19": 9484
+					},
+					"unique": {
+						"raw": 43662,
+						"gzip6": 9988,
+						"gzip9": 10013,
+						"br5": 9240,
+						"br11": 7990,
+						"zstd3": 10602,
+						"zstd19": 9484
+					},
+					"uniqueLines": 821,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 5324,
+						"zstd19": 4162
+					},
+					"uniqueDict": {
+						"zstd3": 5324,
+						"zstd19": 4162
+					}
+				},
+				{
+					"path": "/rankings",
+					"document": {
+						"raw": 259730,
+						"gzip6": 47161,
+						"gzip9": 47161,
+						"br5": 25969,
+						"br11": 22073,
+						"zstd3": 30140,
+						"zstd19": 25592
+					},
+					"unique": {
+						"raw": 250317,
+						"gzip6": 45167,
+						"gzip9": 45109,
+						"br5": 24342,
+						"br11": 20541,
+						"zstd3": 28064,
+						"zstd19": 23702
+					},
+					"uniqueLines": 595,
+					"gaps": 55,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 24797,
+						"zstd19": 19976
+					},
+					"uniqueDict": {
+						"zstd3": 24998,
+						"zstd19": 20174
+					}
+				},
+				{
+					"path": "/about/spanish",
+					"document": {
+						"raw": 72952,
+						"gzip6": 15779,
+						"gzip9": 15728,
+						"br5": 14334,
+						"br11": 12654,
+						"zstd3": 16119,
+						"zstd19": 14438
+					},
+					"unique": {
+						"raw": 63558,
+						"gzip6": 13761,
+						"gzip9": 13678,
+						"br5": 12669,
+						"br11": 11185,
+						"zstd3": 14133,
+						"zstd19": 12701
+					},
+					"uniqueLines": 999,
+					"gaps": 63,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 11272,
+						"zstd19": 9425
+					},
+					"uniqueDict": {
+						"zstd3": 11603,
+						"zstd19": 9644
+					}
+				},
+				{
+					"path": "/about/locations-maps",
+					"document": {
+						"raw": 68547,
+						"gzip6": 13585,
+						"gzip9": 13605,
+						"br5": 12405,
+						"br11": 10636,
+						"zstd3": 14189,
+						"zstd19": 12602
+					},
+					"unique": {
+						"raw": 59155,
+						"gzip6": 11629,
+						"gzip9": 11614,
+						"br5": 10790,
+						"br11": 9186,
+						"zstd3": 12274,
+						"zstd19": 10912
+					},
+					"uniqueLines": 1040,
+					"gaps": 63,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 8030,
+						"zstd19": 6380
+					},
+					"uniqueDict": {
+						"zstd3": 8406,
+						"zstd19": 6603
+					}
+				},
+				{
+					"path": "/about/contact",
+					"document": {
+						"raw": 37357,
+						"gzip6": 8556,
+						"gzip9": 8558,
+						"br5": 7963,
+						"br11": 7109,
+						"zstd3": 9142,
+						"zstd19": 8186
+					},
+					"unique": {
+						"raw": 27971,
+						"gzip6": 6810,
+						"gzip9": 6802,
+						"br5": 6369,
+						"br11": 5659,
+						"zstd3": 7181,
+						"zstd19": 6516
+					},
+					"uniqueLines": 484,
+					"gaps": 64,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3611,
+						"zstd19": 2788
+					},
+					"uniqueDict": {
+						"zstd3": 3936,
+						"zstd19": 2987
+					}
+				},
+				{
+					"path": "/about/copyright-trademark",
+					"document": {
+						"raw": 27058,
+						"gzip6": 6231,
+						"gzip9": 6247,
+						"br5": 5704,
+						"br11": 5034,
+						"zstd3": 6647,
+						"zstd19": 5990
+					},
+					"unique": {
+						"raw": 17648,
+						"gzip6": 4339,
+						"gzip9": 4343,
+						"br5": 3989,
+						"br11": 3520,
+						"zstd3": 4568,
+						"zstd19": 4196
+					},
+					"uniqueLines": 257,
+					"gaps": 56,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2106,
+						"zstd19": 1683
+					},
+					"uniqueDict": {
+						"zstd3": 2474,
+						"zstd19": 1895
+					}
+				},
+				{
+					"path": "/about/privacy",
+					"document": {
+						"raw": 64227,
+						"gzip6": 16917,
+						"gzip9": 16897,
+						"br5": 15655,
+						"br11": 13392,
+						"zstd3": 17664,
+						"zstd19": 15750
+					},
+					"unique": {
+						"raw": 54817,
+						"gzip6": 14969,
+						"gzip9": 14929,
+						"br5": 13957,
+						"br11": 11907,
+						"zstd3": 15579,
+						"zstd19": 13978
+					},
+					"uniqueLines": 526,
+					"gaps": 56,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 12714,
+						"zstd19": 10554
+					},
+					"uniqueDict": {
+						"zstd3": 13087,
+						"zstd19": 10782
+					}
+				},
+				{
+					"path": "/about/terms-of-use",
+					"document": {
+						"raw": 47642,
+						"gzip6": 12752,
+						"gzip9": 12771,
+						"br5": 11786,
+						"br11": 10109,
+						"zstd3": 13333,
+						"zstd19": 11989
+					},
+					"unique": {
+						"raw": 38235,
+						"gzip6": 10802,
+						"gzip9": 10785,
+						"br5": 10111,
+						"br11": 8606,
+						"zstd3": 11241,
+						"zstd19": 10214
+					},
+					"uniqueLines": 269,
+					"gaps": 57,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 8545,
+						"zstd19": 7170
+					},
+					"uniqueDict": {
+						"zstd3": 8910,
+						"zstd19": 7385
+					}
+				},
+				{
+					"path": "/emergency",
+					"document": {
+						"raw": 140905,
+						"gzip6": 20282,
+						"gzip9": 20307,
+						"br5": 16596,
+						"br11": 14553,
+						"zstd3": 19928,
+						"zstd19": 16393
+					},
+					"unique": {
+						"raw": 131500,
+						"gzip6": 18654,
+						"gzip9": 18696,
+						"br5": 15157,
+						"br11": 13282,
+						"zstd3": 17991,
+						"zstd19": 14934
+					},
+					"uniqueLines": 1699,
+					"gaps": 58,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 16716,
+						"zstd19": 12767
+					},
+					"uniqueDict": {
+						"zstd3": 16506,
+						"zstd19": 12844
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"drupal": "Drupal 7 (https://www.drupal.org)",
+			"jsonapi": false,
+			"shellLines": 450,
+			"shell": {
+				"raw": 51920,
+				"gzip6": 16885,
+				"gzip9": 16772,
+				"br5": 16070,
+				"br11": 14479,
+				"zstd3": 17869,
+				"zstd19": 16127
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 102950,
+					"gzip6": 27395,
+					"gzip9": 27251,
+					"br5": 25504,
+					"br11": 22827,
+					"zstd3": 28685,
+					"zstd19": 25306
+				},
+				"unique": {
+					"raw": 51160,
+					"gzip6": 10737,
+					"gzip9": 10770,
+					"br5": 10057,
+					"br11": 8874,
+					"zstd3": 11425,
+					"zstd19": 10160
+				},
+				"uniqueLines": 709,
+				"gaps": 41,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 8179,
+					"zstd19": 6575
+				},
+				"uniqueDict": {
+					"zstd3": 8223,
+					"zstd19": 6702
+				}
+			},
+			"pages": [
+				{
+					"path": "/calendars",
+					"document": {
+						"raw": 76673,
+						"gzip6": 21832,
+						"gzip9": 21720,
+						"br5": 20680,
+						"br11": 18609,
+						"zstd3": 23134,
+						"zstd19": 20637
+					},
+					"unique": {
+						"raw": 24889,
+						"gzip6": 5536,
+						"gzip9": 5554,
+						"br5": 5177,
+						"br11": 4559,
+						"zstd3": 5913,
+						"zstd19": 5385
+					},
+					"uniqueLines": 240,
+					"gaps": 43,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2201,
+						"zstd19": 1691
+					},
+					"uniqueDict": {
+						"zstd3": 2440,
+						"zstd19": 1794
+					}
+				},
+				{
+					"path": "/directories",
+					"document": {
+						"raw": 106823,
+						"gzip6": 24007,
+						"gzip9": 23804,
+						"br5": 21824,
+						"br11": 19573,
+						"zstd3": 24411,
+						"zstd19": 21798
+					},
+					"unique": {
+						"raw": 55030,
+						"gzip6": 7100,
+						"gzip9": 7085,
+						"br5": 6322,
+						"br11": 5624,
+						"zstd3": 7179,
+						"zstd19": 6540
+					},
+					"uniqueLines": 1155,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3282,
+						"zstd19": 2628
+					},
+					"uniqueDict": {
+						"zstd3": 3579,
+						"zstd19": 2780
+					}
+				},
+				{
+					"path": "/about-yale/leadership-organization",
+					"document": {
+						"raw": 100591,
+						"gzip6": 23793,
+						"gzip9": 23586,
+						"br5": 21765,
+						"br11": 19609,
+						"zstd3": 24449,
+						"zstd19": 21774
+					},
+					"unique": {
+						"raw": 48798,
+						"gzip6": 6899,
+						"gzip9": 6908,
+						"br5": 6241,
+						"br11": 5588,
+						"zstd3": 7161,
+						"zstd19": 6508
+					},
+					"uniqueLines": 602,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3167,
+						"zstd19": 2539
+					},
+					"uniqueDict": {
+						"zstd3": 3474,
+						"zstd19": 2714
+					}
+				},
+				{
+					"path": "/about-yale/traditions-history",
+					"document": {
+						"raw": 265879,
+						"gzip6": 42305,
+						"gzip9": 42213,
+						"br5": 32244,
+						"br11": 28428,
+						"zstd3": 36225,
+						"zstd19": 32472
+					},
+					"unique": {
+						"raw": 214086,
+						"gzip6": 25486,
+						"gzip9": 25454,
+						"br5": 16675,
+						"br11": 14382,
+						"zstd3": 19013,
+						"zstd19": 17179
+					},
+					"uniqueLines": 3223,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 14574,
+						"zstd19": 12791
+					},
+					"uniqueDict": {
+						"zstd3": 14786,
+						"zstd19": 12884
+					}
+				},
+				{
+					"path": "/about-yale/yales-impact-america",
+					"document": {
+						"raw": 96638,
+						"gzip6": 26278,
+						"gzip9": 26053,
+						"br5": 24229,
+						"br11": 21547,
+						"zstd3": 27209,
+						"zstd19": 24179
+					},
+					"unique": {
+						"raw": 44845,
+						"gzip6": 9482,
+						"gzip9": 9473,
+						"br5": 8708,
+						"br11": 7574,
+						"zstd3": 9989,
+						"zstd19": 8990
+					},
+					"uniqueLines": 641,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5615,
+						"zstd19": 4584
+					},
+					"uniqueDict": {
+						"zstd3": 5862,
+						"zstd19": 4737
+					}
+				},
+				{
+					"path": "/about-yale/yales-impact-america/impact-state",
+					"document": {
+						"raw": 98082,
+						"gzip6": 25865,
+						"gzip9": 25679,
+						"br5": 23913,
+						"br11": 21426,
+						"zstd3": 26832,
+						"zstd19": 23873
+					},
+					"unique": {
+						"raw": 46307,
+						"gzip6": 9239,
+						"gzip9": 9271,
+						"br5": 8510,
+						"br11": 7429,
+						"zstd3": 9706,
+						"zstd19": 8793
+					},
+					"uniqueLines": 717,
+					"gaps": 46,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5317,
+						"zstd19": 4218
+					},
+					"uniqueDict": {
+						"zstd3": 5564,
+						"zstd19": 4331
+					}
+				},
+				{
+					"path": "/academics",
+					"document": {
+						"raw": 84668,
+						"gzip6": 22562,
+						"gzip9": 22372,
+						"br5": 20977,
+						"br11": 18798,
+						"zstd3": 23478,
+						"zstd19": 20935
+					},
+					"unique": {
+						"raw": 32875,
+						"gzip6": 5985,
+						"gzip9": 5999,
+						"br5": 5504,
+						"br11": 4857,
+						"zstd3": 6307,
+						"zstd19": 5762
+					},
+					"uniqueLines": 340,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2267,
+						"zstd19": 1742
+					},
+					"uniqueDict": {
+						"zstd3": 2630,
+						"zstd19": 1902
+					}
+				},
+				{
+					"path": "/academics/graduate-professional-study",
+					"document": {
+						"raw": 100431,
+						"gzip6": 24096,
+						"gzip9": 23929,
+						"br5": 22028,
+						"br11": 19753,
+						"zstd3": 24733,
+						"zstd19": 22071
+					},
+					"unique": {
+						"raw": 48635,
+						"gzip6": 7247,
+						"gzip9": 7275,
+						"br5": 6501,
+						"br11": 5748,
+						"zstd3": 7537,
+						"zstd19": 6877
+					},
+					"uniqueLines": 585,
+					"gaps": 39,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3482,
+						"zstd19": 2734
+					},
+					"uniqueDict": {
+						"zstd3": 3714,
+						"zstd19": 2871
+					}
+				},
+				{
+					"path": "/academics/non-degree-offerings",
+					"document": {
+						"raw": 77412,
+						"gzip6": 21782,
+						"gzip9": 21667,
+						"br5": 20586,
+						"br11": 18475,
+						"zstd3": 23023,
+						"zstd19": 20556
+					},
+					"unique": {
+						"raw": 25619,
+						"gzip6": 5510,
+						"gzip9": 5531,
+						"br5": 5074,
+						"br11": 4450,
+						"zstd3": 5845,
+						"zstd19": 5340
+					},
+					"uniqueLines": 222,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1869,
+						"zstd19": 1416
+					},
+					"uniqueDict": {
+						"zstd3": 2142,
+						"zstd19": 1569
+					}
+				},
+				{
+					"path": "/admissions",
+					"document": {
+						"raw": 86359,
+						"gzip6": 22841,
+						"gzip9": 22662,
+						"br5": 21222,
+						"br11": 19057,
+						"zstd3": 23753,
+						"zstd19": 21187
+					},
+					"unique": {
+						"raw": 34572,
+						"gzip6": 6260,
+						"gzip9": 6266,
+						"br5": 5736,
+						"br11": 5087,
+						"zstd3": 6597,
+						"zstd19": 6016
+					},
+					"uniqueLines": 374,
+					"gaps": 42,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2421,
+						"zstd19": 1756
+					},
+					"uniqueDict": {
+						"zstd3": 2700,
+						"zstd19": 1929
+					}
+				},
+				{
+					"path": "/admissions/financial-aid",
+					"document": {
+						"raw": 73550,
+						"gzip6": 21426,
+						"gzip9": 21288,
+						"br5": 20296,
+						"br11": 18303,
+						"zstd3": 22712,
+						"zstd19": 20252
+					},
+					"unique": {
+						"raw": 21757,
+						"gzip6": 5246,
+						"gzip9": 5255,
+						"br5": 4827,
+						"br11": 4294,
+						"zstd3": 5547,
+						"zstd19": 5082
+					},
+					"uniqueLines": 159,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1473,
+						"zstd19": 1063
+					},
+					"uniqueDict": {
+						"zstd3": 1749,
+						"zstd19": 1225
+					}
+				},
+				{
+					"path": "/collections",
+					"document": {
+						"raw": 89990,
+						"gzip6": 24682,
+						"gzip9": 24477,
+						"br5": 23027,
+						"br11": 20568,
+						"zstd3": 25779,
+						"zstd19": 22919
+					},
+					"unique": {
+						"raw": 38215,
+						"gzip6": 8173,
+						"gzip9": 8193,
+						"br5": 7595,
+						"br11": 6647,
+						"zstd3": 8670,
+						"zstd19": 7772
+					},
+					"uniqueLines": 519,
+					"gaps": 46,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4073,
+						"zstd19": 3009
+					},
+					"uniqueDict": {
+						"zstd3": 4274,
+						"zstd19": 3130
+					}
+				},
+				{
+					"path": "/life-yale",
+					"document": {
+						"raw": 103745,
+						"gzip6": 25119,
+						"gzip9": 24953,
+						"br5": 23064,
+						"br11": 20635,
+						"zstd3": 25811,
+						"zstd19": 23004
+					},
+					"unique": {
+						"raw": 51958,
+						"gzip6": 8335,
+						"gzip9": 8361,
+						"br5": 7611,
+						"br11": 6668,
+						"zstd3": 8573,
+						"zstd19": 7848
+					},
+					"uniqueLines": 568,
+					"gaps": 42,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4340,
+						"zstd19": 3534
+					},
+					"uniqueDict": {
+						"zstd3": 4627,
+						"zstd19": 3685
+					}
+				},
+				{
+					"path": "/life-yale/arts-culture",
+					"document": {
+						"raw": 76549,
+						"gzip6": 21456,
+						"gzip9": 21326,
+						"br5": 20257,
+						"br11": 18224,
+						"zstd3": 22601,
+						"zstd19": 20230
+					},
+					"unique": {
+						"raw": 24756,
+						"gzip6": 5179,
+						"gzip9": 5195,
+						"br5": 4742,
+						"br11": 4227,
+						"zstd3": 5434,
+						"zstd19": 5007
+					},
+					"uniqueLines": 230,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1370,
+						"zstd19": 1118
+					},
+					"uniqueDict": {
+						"zstd3": 1688,
+						"zstd19": 1281
+					}
+				},
+				{
+					"path": "/life-yale/health-wellness",
+					"document": {
+						"raw": 76512,
+						"gzip6": 21413,
+						"gzip9": 21286,
+						"br5": 20196,
+						"br11": 18190,
+						"zstd3": 22574,
+						"zstd19": 20200
+					},
+					"unique": {
+						"raw": 24719,
+						"gzip6": 5147,
+						"gzip9": 5175,
+						"br5": 4712,
+						"br11": 4194,
+						"zstd3": 5410,
+						"zstd19": 4988
+					},
+					"uniqueLines": 229,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1251,
+						"zstd19": 1004
+					},
+					"uniqueDict": {
+						"zstd3": 1588,
+						"zstd19": 1150
+					}
+				},
+				{
+					"path": "/life-yale/service",
+					"document": {
+						"raw": 75875,
+						"gzip6": 21448,
+						"gzip9": 21301,
+						"br5": 20263,
+						"br11": 18195,
+						"zstd3": 22637,
+						"zstd19": 20231
+					},
+					"unique": {
+						"raw": 24082,
+						"gzip6": 5171,
+						"gzip9": 5185,
+						"br5": 4765,
+						"br11": 4208,
+						"zstd3": 5456,
+						"zstd19": 5003
+					},
+					"uniqueLines": 214,
+					"gaps": 40,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1301,
+						"zstd19": 1089
+					},
+					"uniqueDict": {
+						"zstd3": 1664,
+						"zstd19": 1247
+					}
+				},
+				{
+					"path": "/feature-archive",
+					"document": {
+						"raw": 96398,
+						"gzip6": 24983,
+						"gzip9": 24861,
+						"br5": 22970,
+						"br11": 20533,
+						"zstd3": 25625,
+						"zstd19": 23020
+					},
+					"unique": {
+						"raw": 44599,
+						"gzip6": 8056,
+						"gzip9": 8117,
+						"br5": 7439,
+						"br11": 6474,
+						"zstd3": 8313,
+						"zstd19": 7728
+					},
+					"uniqueLines": 537,
+					"gaps": 39,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4276,
+						"zstd19": 3691
+					},
+					"uniqueDict": {
+						"zstd3": 4517,
+						"zstd19": 3855
+					}
+				},
+				{
+					"path": "/contact-us",
+					"document": {
+						"raw": 71671,
+						"gzip6": 21043,
+						"gzip9": 20914,
+						"br5": 19932,
+						"br11": 17894,
+						"zstd3": 22274,
+						"zstd19": 19871
+					},
+					"unique": {
+						"raw": 19875,
+						"gzip6": 4807,
+						"gzip9": 4810,
+						"br5": 4432,
+						"br11": 3939,
+						"zstd3": 5113,
+						"zstd19": 4648
+					},
+					"uniqueLines": 214,
+					"gaps": 39,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1432,
+						"zstd19": 1029
+					},
+					"uniqueDict": {
+						"zstd3": 1665,
+						"zstd19": 1168
+					}
+				},
+				{
+					"path": "/social-media",
+					"document": {
+						"raw": 537810,
+						"gzip6": 41920,
+						"gzip9": 41442,
+						"br5": 34750,
+						"br11": 30755,
+						"zstd3": 43087,
+						"zstd19": 33473
+					},
+					"unique": {
+						"raw": 486014,
+						"gzip6": 24826,
+						"gzip9": 24350,
+						"br5": 19151,
+						"br11": 16682,
+						"zstd3": 25748,
+						"zstd19": 18144
+					},
+					"uniqueLines": 6347,
+					"gaps": 39,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 22402,
+						"zstd19": 14424
+					},
+					"uniqueDict": {
+						"zstd3": 22616,
+						"zstd19": 14625
+					}
+				},
+				{
+					"path": "/index.html",
+					"document": {
+						"raw": 102950,
+						"gzip6": 27395,
+						"gzip9": 27251,
+						"br5": 25504,
+						"br11": 22827,
+						"zstd3": 28685,
+						"zstd19": 25306
+					},
+					"unique": {
+						"raw": 51160,
+						"gzip6": 10737,
+						"gzip9": 10770,
+						"br5": 10057,
+						"br11": 8874,
+						"zstd3": 11425,
+						"zstd19": 10160
+					},
+					"uniqueLines": 709,
+					"gaps": 41,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 39,
+						"zstd19": 23
+					},
+					"uniqueDict": {
+						"zstd3": 656,
+						"zstd19": 224
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"drupal": "Drupal 11 (https://www.drupal.org)",
+			"jsonapi": true,
+			"shellLines": 1290,
+			"shell": {
+				"raw": 48320,
+				"gzip6": 8511,
+				"gzip9": 8504,
+				"br5": 7747,
+				"br11": 6513,
+				"zstd3": 8993,
+				"zstd19": 7930
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 86317,
+					"gzip6": 14651,
+					"gzip9": 14639,
+					"br5": 12981,
+					"br11": 11111,
+					"zstd3": 14936,
+					"zstd19": 13132
+				},
+				"unique": {
+					"raw": 38120,
+					"gzip6": 6758,
+					"gzip9": 6782,
+					"br5": 5896,
+					"br11": 5168,
+					"zstd3": 6781,
+					"zstd19": 6162
+				},
+				"uniqueLines": 989,
+				"gaps": 37,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 4405,
+					"zstd19": 3720
+				},
+				"uniqueDict": {
+					"zstd3": 4625,
+					"zstd19": 3845
+				}
+			},
+			"pages": [
+				{
+					"path": "/about/mission",
+					"document": {
+						"raw": 59757,
+						"gzip6": 12059,
+						"gzip9": 12079,
+						"br5": 10813,
+						"br11": 9264,
+						"zstd3": 12362,
+						"zstd19": 10995
+					},
+					"unique": {
+						"raw": 11555,
+						"gzip6": 3926,
+						"gzip9": 3938,
+						"br5": 3566,
+						"br11": 3210,
+						"zstd3": 4021,
+						"zstd19": 3831
+					},
+					"uniqueLines": 154,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 825,
+						"zstd19": 532
+					},
+					"uniqueDict": {
+						"zstd3": 956,
+						"zstd19": 663
+					},
+					"json": {
+						"raw": {
+							"raw": 4606,
+							"gzip6": 1278,
+							"gzip9": 1272,
+							"br5": 1138,
+							"br11": 983,
+							"zstd3": 1318,
+							"zstd19": 1272
+						},
+						"rendered": {
+							"raw": 940,
+							"gzip6": 554,
+							"gzip9": 553,
+							"br5": 480,
+							"br11": 392,
+							"zstd3": 568,
+							"zstd19": 560
+						}
+					}
+				},
+				{
+					"path": "/about/free-expression",
+					"document": {
+						"raw": 139357,
+						"gzip6": 28005,
+						"gzip9": 27929,
+						"br5": 24904,
+						"br11": 20977,
+						"zstd3": 28022,
+						"zstd19": 24596
+					},
+					"unique": {
+						"raw": 91157,
+						"gzip6": 19979,
+						"gzip9": 19956,
+						"br5": 17764,
+						"br11": 15050,
+						"zstd3": 19715,
+						"zstd19": 17740
+					},
+					"uniqueLines": 1324,
+					"gaps": 36,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 17096,
+						"zstd19": 14674
+					},
+					"uniqueDict": {
+						"zstd3": 17139,
+						"zstd19": 14749
+					},
+					"json": {
+						"raw": {
+							"raw": 6074,
+							"gzip6": 1555,
+							"gzip9": 1548,
+							"br5": 1388,
+							"br11": 1144,
+							"zstd3": 1597,
+							"zstd19": 1541
+						},
+						"rendered": {
+							"raw": 1462,
+							"gzip6": 725,
+							"gzip9": 721,
+							"br5": 640,
+							"br11": 495,
+							"zstd3": 756,
+							"zstd19": 738
+						}
+					}
+				},
+				{
+					"path": "/students/manage-communications",
+					"document": {
+						"raw": 98999,
+						"gzip6": 16741,
+						"gzip9": 16709,
+						"br5": 14899,
+						"br11": 12719,
+						"zstd3": 17018,
+						"zstd19": 14899
+					},
+					"unique": {
+						"raw": 50797,
+						"gzip6": 8954,
+						"gzip9": 8984,
+						"br5": 7958,
+						"br11": 6939,
+						"zstd3": 9119,
+						"zstd19": 8208
+					},
+					"uniqueLines": 1078,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6182,
+						"zstd19": 4990
+					},
+					"uniqueDict": {
+						"zstd3": 6305,
+						"zstd19": 5082
+					},
+					"json": {
+						"raw": {
+							"raw": 6076,
+							"gzip6": 1330,
+							"gzip9": 1329,
+							"br5": 1202,
+							"br11": 1013,
+							"zstd3": 1378,
+							"zstd19": 1322
+						},
+						"rendered": {
+							"raw": 1639,
+							"gzip6": 624,
+							"gzip9": 618,
+							"br5": 555,
+							"br11": 432,
+							"zstd3": 645,
+							"zstd19": 633
+						}
+					}
+				},
+				{
+					"path": "/academics/programs",
+					"document": {
+						"raw": 66902,
+						"gzip6": 12646,
+						"gzip9": 12657,
+						"br5": 11348,
+						"br11": 9709,
+						"zstd3": 12993,
+						"zstd19": 11471
+					},
+					"unique": {
+						"raw": 18700,
+						"gzip6": 4625,
+						"gzip9": 4647,
+						"br5": 4168,
+						"br11": 3721,
+						"zstd3": 4797,
+						"zstd19": 4479
+					},
+					"uniqueLines": 280,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1166,
+						"zstd19": 791
+					},
+					"uniqueDict": {
+						"zstd3": 1402,
+						"zstd19": 932
+					},
+					"json": {
+						"raw": {
+							"raw": 3809,
+							"gzip6": 982,
+							"gzip9": 980,
+							"br5": 855,
+							"br11": 758,
+							"zstd3": 1022,
+							"zstd19": 989
+						},
+						"rendered": {
+							"raw": 537,
+							"gzip6": 350,
+							"gzip9": 347,
+							"br5": 289,
+							"br11": 260,
+							"zstd3": 356,
+							"zstd19": 351
+						}
+					}
+				},
+				{
+					"path": "/academics/programs/majors",
+					"document": {
+						"raw": 74460,
+						"gzip6": 13243,
+						"gzip9": 13261,
+						"br5": 11788,
+						"br11": 10117,
+						"zstd3": 13466,
+						"zstd19": 11882
+					},
+					"unique": {
+						"raw": 26258,
+						"gzip6": 5115,
+						"gzip9": 5124,
+						"br5": 4573,
+						"br11": 4133,
+						"zstd3": 5304,
+						"zstd19": 4914
+					},
+					"uniqueLines": 313,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 886,
+						"zstd19": 649
+					},
+					"uniqueDict": {
+						"zstd3": 1234,
+						"zstd19": 830
+					},
+					"json": {
+						"raw": {
+							"raw": 4838,
+							"gzip6": 1239,
+							"gzip9": 1229,
+							"br5": 1106,
+							"br11": 945,
+							"zstd3": 1294,
+							"zstd19": 1234
+						},
+						"rendered": {
+							"raw": 1116,
+							"gzip6": 564,
+							"gzip9": 560,
+							"br5": 498,
+							"br11": 440,
+							"zstd3": 580,
+							"zstd19": 575
+						}
+					}
+				},
+				{
+					"path": "/academics/programs/minors",
+					"document": {
+						"raw": 74391,
+						"gzip6": 13236,
+						"gzip9": 13256,
+						"br5": 11731,
+						"br11": 10098,
+						"zstd3": 13412,
+						"zstd19": 11827
+					},
+					"unique": {
+						"raw": 26189,
+						"gzip6": 5027,
+						"gzip9": 5034,
+						"br5": 4505,
+						"br11": 4046,
+						"zstd3": 5210,
+						"zstd19": 4814
+					},
+					"uniqueLines": 313,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 800,
+						"zstd19": 598
+					},
+					"uniqueDict": {
+						"zstd3": 1210,
+						"zstd19": 750
+					},
+					"json": {
+						"raw": {
+							"raw": 4701,
+							"gzip6": 1155,
+							"gzip9": 1150,
+							"br5": 1022,
+							"br11": 902,
+							"zstd3": 1211,
+							"zstd19": 1148
+						},
+						"rendered": {
+							"raw": 1066,
+							"gzip6": 538,
+							"gzip9": 533,
+							"br5": 462,
+							"br11": 418,
+							"zstd3": 547,
+							"zstd19": 544
+						}
+					}
+				},
+				{
+					"path": "/academics/programs/graduate",
+					"document": {
+						"raw": 73935,
+						"gzip6": 13076,
+						"gzip9": 13079,
+						"br5": 11634,
+						"br11": 10026,
+						"zstd3": 13311,
+						"zstd19": 11750
+					},
+					"unique": {
+						"raw": 25733,
+						"gzip6": 4897,
+						"gzip9": 4902,
+						"br5": 4382,
+						"br11": 3941,
+						"zstd3": 5077,
+						"zstd19": 4693
+					},
+					"uniqueLines": 313,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1002,
+						"zstd19": 692
+					},
+					"uniqueDict": {
+						"zstd3": 1238,
+						"zstd19": 833
+					},
+					"json": {
+						"raw": {
+							"raw": 3706,
+							"gzip6": 980,
+							"gzip9": 975,
+							"br5": 864,
+							"br11": 737,
+							"zstd3": 1020,
+							"zstd19": 980
+						},
+						"rendered": {
+							"raw": 496,
+							"gzip6": 347,
+							"gzip9": 341,
+							"br5": 297,
+							"br11": 235,
+							"zstd3": 355,
+							"zstd19": 350
+						}
+					}
+				},
+				{
+					"path": "/academics/programs/certificates",
+					"document": {
+						"raw": 74270,
+						"gzip6": 13119,
+						"gzip9": 13122,
+						"br5": 11642,
+						"br11": 10014,
+						"zstd3": 13342,
+						"zstd19": 11757
+					},
+					"unique": {
+						"raw": 26068,
+						"gzip6": 4967,
+						"gzip9": 4969,
+						"br5": 4451,
+						"br11": 4022,
+						"zstd3": 5147,
+						"zstd19": 4757
+					},
+					"uniqueLines": 313,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 999,
+						"zstd19": 663
+					},
+					"uniqueDict": {
+						"zstd3": 1184,
+						"zstd19": 822
+					},
+					"json": {
+						"raw": {
+							"raw": 4353,
+							"gzip6": 1084,
+							"gzip9": 1075,
+							"br5": 960,
+							"br11": 842,
+							"zstd3": 1130,
+							"zstd19": 1082
+						},
+						"rendered": {
+							"raw": 877,
+							"gzip6": 471,
+							"gzip9": 466,
+							"br5": 399,
+							"br11": 354,
+							"zstd3": 478,
+							"zstd19": 473
+						}
+					}
+				},
+				{
+					"path": "/academics/academic-resources",
+					"document": {
+						"raw": 77304,
+						"gzip6": 13302,
+						"gzip9": 13321,
+						"br5": 11781,
+						"br11": 10160,
+						"zstd3": 13505,
+						"zstd19": 11889
+					},
+					"unique": {
+						"raw": 29102,
+						"gzip6": 5135,
+						"gzip9": 5160,
+						"br5": 4577,
+						"br11": 4137,
+						"zstd3": 5262,
+						"zstd19": 4862
+					},
+					"uniqueLines": 535,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1790,
+						"zstd19": 1141
+					},
+					"uniqueDict": {
+						"zstd3": 1956,
+						"zstd19": 1287
+					},
+					"json": {
+						"raw": {
+							"raw": 5732,
+							"gzip6": 1171,
+							"gzip9": 1165,
+							"br5": 1043,
+							"br11": 889,
+							"zstd3": 1216,
+							"zstd19": 1169
+						},
+						"rendered": {
+							"raw": 1659,
+							"gzip6": 558,
+							"gzip9": 555,
+							"br5": 473,
+							"br11": 387,
+							"zstd3": 564,
+							"zstd19": 561
+						}
+					}
+				},
+				{
+					"path": "/registration",
+					"document": {
+						"raw": 85904,
+						"gzip6": 14185,
+						"gzip9": 14222,
+						"br5": 12710,
+						"br11": 10813,
+						"zstd3": 14504,
+						"zstd19": 12734
+					},
+					"unique": {
+						"raw": 37704,
+						"gzip6": 6269,
+						"gzip9": 6293,
+						"br5": 5600,
+						"br11": 4876,
+						"zstd3": 6422,
+						"zstd19": 5756
+					},
+					"uniqueLines": 857,
+					"gaps": 36,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3771,
+						"zstd19": 2830
+					},
+					"uniqueDict": {
+						"zstd3": 3927,
+						"zstd19": 2956
+					},
+					"json": {
+						"raw": {
+							"raw": 2534,
+							"gzip6": 767,
+							"gzip9": 759,
+							"br5": 681,
+							"br11": 608,
+							"zstd3": 794,
+							"zstd19": 763
+						},
+						"rendered": {
+							"raw": 124,
+							"gzip6": 115,
+							"gzip9": 115,
+							"br5": 90,
+							"br11": 98,
+							"zstd3": 103,
+							"zstd19": 101
+						}
+					}
+				},
+				{
+					"path": "/admissions/process/veteran/admitted",
+					"document": {
+						"raw": 97639,
+						"gzip6": 15923,
+						"gzip9": 15948,
+						"br5": 14290,
+						"br11": 12243,
+						"zstd3": 16310,
+						"zstd19": 14288
+					},
+					"unique": {
+						"raw": 49442,
+						"gzip6": 8267,
+						"gzip9": 8285,
+						"br5": 7462,
+						"br11": 6520,
+						"zstd3": 8499,
+						"zstd19": 7595
+					},
+					"uniqueLines": 1145,
+					"gaps": 37,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5294,
+						"zstd19": 4169
+					},
+					"uniqueDict": {
+						"zstd3": 5466,
+						"zstd19": 4281
+					},
+					"json": {
+						"raw": {
+							"raw": 4004,
+							"gzip6": 1121,
+							"gzip9": 1121,
+							"br5": 1012,
+							"br11": 895,
+							"zstd3": 1167,
+							"zstd19": 1126
+						},
+						"rendered": {
+							"raw": 536,
+							"gzip6": 365,
+							"gzip9": 365,
+							"br5": 320,
+							"br11": 292,
+							"zstd3": 379,
+							"zstd19": 371
+						}
+					}
+				},
+				{
+					"path": "/research/report",
+					"document": {
+						"raw": 71958,
+						"gzip6": 13709,
+						"gzip9": 13730,
+						"br5": 12189,
+						"br11": 10489,
+						"zstd3": 13890,
+						"zstd19": 12335
+					},
+					"unique": {
+						"raw": 23758,
+						"gzip6": 5459,
+						"gzip9": 5475,
+						"br5": 4949,
+						"br11": 4453,
+						"zstd3": 5647,
+						"zstd19": 5233
+					},
+					"uniqueLines": 471,
+					"gaps": 36,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3140,
+						"zstd19": 2630
+					},
+					"uniqueDict": {
+						"zstd3": 3265,
+						"zstd19": 2743
+					},
+					"json": {
+						"raw": {
+							"raw": 3891,
+							"gzip6": 1061,
+							"gzip9": 1055,
+							"br5": 942,
+							"br11": 815,
+							"zstd3": 1099,
+							"zstd19": 1063
+						},
+						"rendered": {
+							"raw": 485,
+							"gzip6": 348,
+							"gzip9": 347,
+							"br5": 299,
+							"br11": 249,
+							"zstd3": 356,
+							"zstd19": 350
+						}
+					}
+				},
+				{
+					"path": "/resources",
+					"document": {
+						"raw": 66002,
+						"gzip6": 12773,
+						"gzip9": 12811,
+						"br5": 11400,
+						"br11": 9855,
+						"zstd3": 12977,
+						"zstd19": 11596
+					},
+					"unique": {
+						"raw": 17800,
+						"gzip6": 4579,
+						"gzip9": 4596,
+						"br5": 4180,
+						"br11": 3810,
+						"zstd3": 4723,
+						"zstd19": 4440
+					},
+					"uniqueLines": 241,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2217,
+						"zstd19": 1928
+					},
+					"uniqueDict": {
+						"zstd3": 2350,
+						"zstd19": 2038
+					},
+					"json": {
+						"raw": {
+							"raw": 5069,
+							"gzip6": 1278,
+							"gzip9": 1264,
+							"br5": 1135,
+							"br11": 1012,
+							"zstd3": 1328,
+							"zstd19": 1270
+						},
+						"rendered": {
+							"raw": 1309,
+							"gzip6": 685,
+							"gzip9": 673,
+							"br5": 596,
+							"br11": 526,
+							"zstd3": 700,
+							"zstd19": 682
+						}
+					}
+				},
+				{
+					"path": "/safety-health-quick-calls",
+					"document": {
+						"raw": 58270,
+						"gzip6": 11945,
+						"gzip9": 11951,
+						"br5": 10626,
+						"br11": 9172,
+						"zstd3": 12131,
+						"zstd19": 10839
+					},
+					"unique": {
+						"raw": 10063,
+						"gzip6": 3516,
+						"gzip9": 3514,
+						"br5": 3179,
+						"br11": 2919,
+						"zstd3": 3560,
+						"zstd19": 3435
+					},
+					"uniqueLines": 50,
+					"gaps": 33,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 909,
+						"zstd19": 759
+					},
+					"uniqueDict": {
+						"zstd3": 1062,
+						"zstd19": 860
+					},
+					"json": {
+						"raw": {
+							"raw": 7019,
+							"gzip6": 1520,
+							"gzip9": 1508,
+							"br5": 1405,
+							"br11": 1236,
+							"zstd3": 1580,
+							"zstd19": 1504
+						},
+						"rendered": {
+							"raw": 2457,
+							"gzip6": 843,
+							"gzip9": 846,
+							"br5": 778,
+							"br11": 687,
+							"zstd3": 867,
+							"zstd19": 842
+						}
+					}
+				},
+				{
+					"path": "/about/legal-trademarks",
+					"document": {
+						"raw": 60687,
+						"gzip6": 12989,
+						"gzip9": 13006,
+						"br5": 11501,
+						"br11": 9767,
+						"zstd3": 13105,
+						"zstd19": 11687
+					},
+					"unique": {
+						"raw": 12480,
+						"gzip6": 4483,
+						"gzip9": 4477,
+						"br5": 4084,
+						"br11": 3548,
+						"zstd3": 4589,
+						"zstd19": 4378
+					},
+					"uniqueLines": 80,
+					"gaps": 33,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2317,
+						"zstd19": 2031
+					},
+					"uniqueDict": {
+						"zstd3": 2436,
+						"zstd19": 2123
+					},
+					"json": {
+						"raw": {
+							"raw": 9822,
+							"gzip6": 2216,
+							"gzip9": 2199,
+							"br5": 2001,
+							"br11": 1642,
+							"zstd3": 2287,
+							"zstd19": 2174
+						},
+						"rendered": {
+							"raw": 3527,
+							"gzip6": 1565,
+							"gzip9": 1566,
+							"br5": 1429,
+							"br11": 1123,
+							"zstd3": 1625,
+							"zstd19": 1574
+						}
+					}
+				},
+				{
+					"path": "/accessibility",
+					"document": {
+						"raw": 65049,
+						"gzip6": 13000,
+						"gzip9": 13014,
+						"br5": 11372,
+						"br11": 9711,
+						"zstd3": 13041,
+						"zstd19": 11571
+					},
+					"unique": {
+						"raw": 16849,
+						"gzip6": 4565,
+						"gzip9": 4578,
+						"br5": 4131,
+						"br11": 3667,
+						"zstd3": 4749,
+						"zstd19": 4441
+					},
+					"uniqueLines": 253,
+					"gaps": 36,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2060,
+						"zstd19": 1707
+					},
+					"uniqueDict": {
+						"zstd3": 2203,
+						"zstd19": 1837
+					},
+					"json": {
+						"raw": {
+							"raw": 6844,
+							"gzip6": 1640,
+							"gzip9": 1631,
+							"br5": 1441,
+							"br11": 1230,
+							"zstd3": 1691,
+							"zstd19": 1618
+						},
+						"rendered": {
+							"raw": 1882,
+							"gzip6": 903,
+							"gzip9": 910,
+							"br5": 787,
+							"br11": 635,
+							"zstd3": 938,
+							"zstd19": 918
+						}
+					}
+				},
+				{
+					"path": "/about/land-acknowledgment",
+					"document": {
+						"raw": 60417,
+						"gzip6": 12709,
+						"gzip9": 12733,
+						"br5": 11339,
+						"br11": 9697,
+						"zstd3": 12910,
+						"zstd19": 11524
+					},
+					"unique": {
+						"raw": 12210,
+						"gzip6": 4316,
+						"gzip9": 4325,
+						"br5": 3913,
+						"br11": 3456,
+						"zstd3": 4401,
+						"zstd19": 4218
+					},
+					"uniqueLines": 80,
+					"gaps": 33,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1511,
+						"zstd19": 1268
+					},
+					"uniqueDict": {
+						"zstd3": 1663,
+						"zstd19": 1395
+					},
+					"json": {
+						"raw": {
+							"raw": 9865,
+							"gzip6": 2044,
+							"gzip9": 2043,
+							"br5": 1824,
+							"br11": 1550,
+							"zstd3": 2093,
+							"zstd19": 1995
+						},
+						"rendered": {
+							"raw": 3564,
+							"gzip6": 1406,
+							"gzip9": 1413,
+							"br5": 1265,
+							"br11": 1035,
+							"zstd3": 1452,
+							"zstd19": 1402
+						}
+					}
+				},
+				{
+					"path": "/map",
+					"document": {
+						"raw": 6267,
+						"gzip6": 2596,
+						"gzip9": 2602,
+						"br5": 2267,
+						"br11": 2043,
+						"zstd3": 2638,
+						"zstd19": 2570
+					},
+					"unique": {
+						"raw": 6267,
+						"gzip6": 2596,
+						"gzip9": 2602,
+						"br5": 2267,
+						"br11": 2043,
+						"zstd3": 2638,
+						"zstd19": 2570
+					},
+					"uniqueLines": 13,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 1500,
+						"zstd19": 1380
+					},
+					"uniqueDict": {
+						"zstd3": 1500,
+						"zstd19": 1380
+					}
+				},
+				{
+					"path": "/admissions/visit/graduate",
+					"document": {
+						"raw": 90869,
+						"gzip6": 15451,
+						"gzip9": 15462,
+						"br5": 13867,
+						"br11": 11889,
+						"zstd3": 15949,
+						"zstd19": 13905
+					},
+					"unique": {
+						"raw": 42672,
+						"gzip6": 7891,
+						"gzip9": 7917,
+						"br5": 7084,
+						"br11": 6179,
+						"zstd3": 8106,
+						"zstd19": 7275
+					},
+					"uniqueLines": 899,
+					"gaps": 37,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5026,
+						"zstd19": 3881
+					},
+					"uniqueDict": {
+						"zstd3": 5176,
+						"zstd19": 4004
+					}
+				},
+				{
+					"path": "/venturepartners",
+					"document": {
+						"raw": 94923,
+						"gzip6": 15214,
+						"gzip9": 15091,
+						"br5": 13379,
+						"br11": 11684,
+						"zstd3": 15386,
+						"zstd19": 13577
+					},
+					"unique": {
+						"raw": 94923,
+						"gzip6": 15214,
+						"gzip9": 15091,
+						"br5": 13379,
+						"br11": 11684,
+						"zstd3": 15386,
+						"zstd19": 13577
+					},
+					"uniqueLines": 419,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 12141,
+						"zstd19": 9968
+					},
+					"uniqueDict": {
+						"zstd3": 12141,
+						"zstd19": 9968
+					}
+				}
+			],
+			"nodeSample": [
+				{
+					"raw": {
+						"raw": 3871,
+						"gzip6": 994,
+						"gzip9": 992,
+						"br5": 880,
+						"br11": 767,
+						"zstd3": 1031,
+						"zstd19": 998
+					},
+					"rendered": {
+						"raw": 567,
+						"gzip6": 382,
+						"gzip9": 381,
+						"br5": 322,
+						"br11": 273,
+						"zstd3": 388,
+						"zstd19": 382
+					}
+				},
+				{
+					"raw": {
+						"raw": 3610,
+						"gzip6": 915,
+						"gzip9": 910,
+						"br5": 807,
+						"br11": 712,
+						"zstd3": 951,
+						"zstd19": 916
+					},
+					"rendered": {
+						"raw": 437,
+						"gzip6": 307,
+						"gzip9": 304,
+						"br5": 253,
+						"br11": 219,
+						"zstd3": 312,
+						"zstd19": 305
+					}
+				},
+				{
+					"raw": {
+						"raw": 3687,
+						"gzip6": 1003,
+						"gzip9": 995,
+						"br5": 904,
+						"br11": 766,
+						"zstd3": 1051,
+						"zstd19": 1011
+					},
+					"rendered": {
+						"raw": 486,
+						"gzip6": 347,
+						"gzip9": 342,
+						"br5": 308,
+						"br11": 249,
+						"zstd3": 352,
+						"zstd19": 350
+					}
+				},
+				{
+					"raw": {
+						"raw": 3749,
+						"gzip6": 972,
+						"gzip9": 966,
+						"br5": 866,
+						"br11": 751,
+						"zstd3": 1009,
+						"zstd19": 976
+					},
+					"rendered": {
+						"raw": 518,
+						"gzip6": 354,
+						"gzip9": 351,
+						"br5": 304,
+						"br11": 265,
+						"zstd3": 365,
+						"zstd19": 358
+					}
+				},
+				{
+					"raw": {
+						"raw": 3745,
+						"gzip6": 957,
+						"gzip9": 954,
+						"br5": 843,
+						"br11": 743,
+						"zstd3": 997,
+						"zstd19": 961
+					},
+					"rendered": {
+						"raw": 512,
+						"gzip6": 354,
+						"gzip9": 350,
+						"br5": 300,
+						"br11": 251,
+						"zstd3": 357,
+						"zstd19": 355
+					}
+				},
+				{
+					"raw": {
+						"raw": 3702,
+						"gzip6": 934,
+						"gzip9": 932,
+						"br5": 829,
+						"br11": 719,
+						"zstd3": 967,
+						"zstd19": 939
+					},
+					"rendered": {
+						"raw": 483,
+						"gzip6": 337,
+						"gzip9": 335,
+						"br5": 298,
+						"br11": 250,
+						"zstd3": 337,
+						"zstd19": 333
+					}
+				},
+				{
+					"raw": {
+						"raw": 3812,
+						"gzip6": 970,
+						"gzip9": 969,
+						"br5": 849,
+						"br11": 732,
+						"zstd3": 1013,
+						"zstd19": 972
+					},
+					"rendered": {
+						"raw": 546,
+						"gzip6": 361,
+						"gzip9": 358,
+						"br5": 298,
+						"br11": 248,
+						"zstd3": 365,
+						"zstd19": 359
+					}
+				},
+				{
+					"raw": {
+						"raw": 3643,
+						"gzip6": 950,
+						"gzip9": 944,
+						"br5": 835,
+						"br11": 733,
+						"zstd3": 988,
+						"zstd19": 955
+					},
+					"rendered": {
+						"raw": 467,
+						"gzip6": 321,
+						"gzip9": 321,
+						"br5": 276,
+						"br11": 246,
+						"zstd3": 333,
+						"zstd19": 325
+					}
+				},
+				{
+					"raw": {
+						"raw": 4870,
+						"gzip6": 1325,
+						"gzip9": 1325,
+						"br5": 1179,
+						"br11": 984,
+						"zstd3": 1375,
+						"zstd19": 1320
+					},
+					"rendered": {
+						"raw": 1067,
+						"gzip6": 643,
+						"gzip9": 643,
+						"br5": 546,
+						"br11": 428,
+						"zstd3": 662,
+						"zstd19": 650
+					}
+				},
+				{
+					"raw": {
+						"raw": 6138,
+						"gzip6": 1264,
+						"gzip9": 1259,
+						"br5": 1119,
+						"br11": 970,
+						"zstd3": 1313,
+						"zstd19": 1267
+					},
+					"rendered": {
+						"raw": 1638,
+						"gzip6": 568,
+						"gzip9": 568,
+						"br5": 479,
+						"br11": 408,
+						"zstd3": 582,
+						"zstd19": 577
+					}
+				},
+				{
+					"raw": {
+						"raw": 6361,
+						"gzip6": 1360,
+						"gzip9": 1360,
+						"br5": 1195,
+						"br11": 1017,
+						"zstd3": 1405,
+						"zstd19": 1359
+					},
+					"rendered": {
+						"raw": 1829,
+						"gzip6": 664,
+						"gzip9": 658,
+						"br5": 559,
+						"br11": 448,
+						"zstd3": 677,
+						"zstd19": 669
+					}
+				},
+				{
+					"raw": {
+						"raw": 5085,
+						"gzip6": 1263,
+						"gzip9": 1261,
+						"br5": 1114,
+						"br11": 970,
+						"zstd3": 1315,
+						"zstd19": 1264
+					},
+					"rendered": {
+						"raw": 1240,
+						"gzip6": 582,
+						"gzip9": 580,
+						"br5": 497,
+						"br11": 417,
+						"zstd3": 598,
+						"zstd19": 594
+					}
+				},
+				{
+					"raw": {
+						"raw": 4449,
+						"gzip6": 1108,
+						"gzip9": 1106,
+						"br5": 998,
+						"br11": 849,
+						"zstd3": 1161,
+						"zstd19": 1109
+					},
+					"rendered": {
+						"raw": 709,
+						"gzip6": 409,
+						"gzip9": 411,
+						"br5": 364,
+						"br11": 286,
+						"zstd3": 420,
+						"zstd19": 413
+					}
+				},
+				{
+					"raw": {
+						"raw": 5858,
+						"gzip6": 1261,
+						"gzip9": 1259,
+						"br5": 1101,
+						"br11": 960,
+						"zstd3": 1300,
+						"zstd19": 1255
+					},
+					"rendered": {
+						"raw": 1662,
+						"gzip6": 566,
+						"gzip9": 566,
+						"br5": 463,
+						"br11": 388,
+						"zstd3": 571,
+						"zstd19": 572
+					}
+				},
+				{
+					"raw": {
+						"raw": 6270,
+						"gzip6": 1310,
+						"gzip9": 1308,
+						"br5": 1154,
+						"br11": 983,
+						"zstd3": 1353,
+						"zstd19": 1303
+					},
+					"rendered": {
+						"raw": 1736,
+						"gzip6": 607,
+						"gzip9": 607,
+						"br5": 507,
+						"br11": 405,
+						"zstd3": 615,
+						"zstd19": 612
+					}
+				},
+				{
+					"raw": {
+						"raw": 6348,
+						"gzip6": 1327,
+						"gzip9": 1322,
+						"br5": 1185,
+						"br11": 1018,
+						"zstd3": 1375,
+						"zstd19": 1327
+					},
+					"rendered": {
+						"raw": 1763,
+						"gzip6": 622,
+						"gzip9": 620,
+						"br5": 541,
+						"br11": 440,
+						"zstd3": 648,
+						"zstd19": 632
+					}
+				},
+				{
+					"raw": {
+						"raw": 4223,
+						"gzip6": 1082,
+						"gzip9": 1074,
+						"br5": 969,
+						"br11": 855,
+						"zstd3": 1128,
+						"zstd19": 1082
+					},
+					"rendered": {
+						"raw": 671,
+						"gzip6": 404,
+						"gzip9": 399,
+						"br5": 356,
+						"br11": 308,
+						"zstd3": 408,
+						"zstd19": 402
+					}
+				},
+				{
+					"raw": {
+						"raw": 3640,
+						"gzip6": 954,
+						"gzip9": 950,
+						"br5": 847,
+						"br11": 736,
+						"zstd3": 997,
+						"zstd19": 961
+					},
+					"rendered": {
+						"raw": 362,
+						"gzip6": 270,
+						"gzip9": 270,
+						"br5": 225,
+						"br11": 188,
+						"zstd3": 274,
+						"zstd19": 271
+					}
+				},
+				{
+					"raw": {
+						"raw": 8447,
+						"gzip6": 2177,
+						"gzip9": 2158,
+						"br5": 1961,
+						"br11": 1685,
+						"zstd3": 2245,
+						"zstd19": 2139
+					},
+					"rendered": {
+						"raw": 2809,
+						"gzip6": 1422,
+						"gzip9": 1405,
+						"br5": 1271,
+						"br11": 1068,
+						"zstd3": 1457,
+						"zstd19": 1411
+					}
+				},
+				{
+					"raw": {
+						"raw": 3930,
+						"gzip6": 998,
+						"gzip9": 995,
+						"br5": 890,
+						"br11": 788,
+						"zstd3": 1043,
+						"zstd19": 1005
+					},
+					"rendered": {
+						"raw": 492,
+						"gzip6": 331,
+						"gzip9": 327,
+						"br5": 283,
+						"br11": 236,
+						"zstd3": 339,
+						"zstd19": 332
+					}
+				},
+				{
+					"raw": {
+						"raw": 3541,
+						"gzip6": 936,
+						"gzip9": 935,
+						"br5": 835,
+						"br11": 738,
+						"zstd3": 969,
+						"zstd19": 937
+					},
+					"rendered": {
+						"raw": 340,
+						"gzip6": 256,
+						"gzip9": 257,
+						"br5": 221,
+						"br11": 181,
+						"zstd3": 255,
+						"zstd19": 254
+					}
+				},
+				{
+					"raw": {
+						"raw": 3964,
+						"gzip6": 1013,
+						"gzip9": 1007,
+						"br5": 896,
+						"br11": 796,
+						"zstd3": 1058,
+						"zstd19": 1016
+					},
+					"rendered": {
+						"raw": 502,
+						"gzip6": 335,
+						"gzip9": 332,
+						"br5": 291,
+						"br11": 238,
+						"zstd3": 344,
+						"zstd19": 338
+					}
+				},
+				{
+					"raw": {
+						"raw": 9364,
+						"gzip6": 2354,
+						"gzip9": 2339,
+						"br5": 2118,
+						"br11": 1787,
+						"zstd3": 2423,
+						"zstd19": 2307
+					},
+					"rendered": {
+						"raw": 3363,
+						"gzip6": 1602,
+						"gzip9": 1594,
+						"br5": 1427,
+						"br11": 1172,
+						"zstd3": 1648,
+						"zstd19": 1597
+					}
+				},
+				{
+					"raw": {
+						"raw": 3816,
+						"gzip6": 980,
+						"gzip9": 976,
+						"br5": 873,
+						"br11": 751,
+						"zstd3": 1013,
+						"zstd19": 983
+					},
+					"rendered": {
+						"raw": 410,
+						"gzip6": 295,
+						"gzip9": 293,
+						"br5": 256,
+						"br11": 187,
+						"zstd3": 293,
+						"zstd19": 293
+					}
+				},
+				{
+					"raw": {
+						"raw": 10565,
+						"gzip6": 2652,
+						"gzip9": 2625,
+						"br5": 2413,
+						"br11": 2067,
+						"zstd3": 2725,
+						"zstd19": 2585
+					},
+					"rendered": {
+						"raw": 4196,
+						"gzip6": 1843,
+						"gzip9": 1830,
+						"br5": 1660,
+						"br11": 1400,
+						"zstd3": 1888,
+						"zstd19": 1820
+					}
+				},
+				{
+					"raw": {
+						"raw": 7443,
+						"gzip6": 2095,
+						"gzip9": 2077,
+						"br5": 1894,
+						"br11": 1597,
+						"zstd3": 2148,
+						"zstd19": 2055
+					},
+					"rendered": {
+						"raw": 2648,
+						"gzip6": 1407,
+						"gzip9": 1390,
+						"br5": 1261,
+						"br11": 1044,
+						"zstd3": 1446,
+						"zstd19": 1403
+					}
+				},
+				{
+					"raw": {
+						"raw": 4560,
+						"gzip6": 1138,
+						"gzip9": 1133,
+						"br5": 1004,
+						"br11": 889,
+						"zstd3": 1168,
+						"zstd19": 1130
+					},
+					"rendered": {
+						"raw": 686,
+						"gzip6": 444,
+						"gzip9": 441,
+						"br5": 383,
+						"br11": 328,
+						"zstd3": 446,
+						"zstd19": 441
+					}
+				},
+				{
+					"raw": {
+						"raw": 3726,
+						"gzip6": 963,
+						"gzip9": 958,
+						"br5": 858,
+						"br11": 775,
+						"zstd3": 1002,
+						"zstd19": 966
+					},
+					"rendered": {
+						"raw": 384,
+						"gzip6": 279,
+						"gzip9": 279,
+						"br5": 247,
+						"br11": 219,
+						"zstd3": 283,
+						"zstd19": 278
+					}
+				},
+				{
+					"raw": {
+						"raw": 3675,
+						"gzip6": 959,
+						"gzip9": 954,
+						"br5": 859,
+						"br11": 750,
+						"zstd3": 996,
+						"zstd19": 970
+					},
+					"rendered": {
+						"raw": 365,
+						"gzip6": 272,
+						"gzip9": 273,
+						"br5": 239,
+						"br11": 196,
+						"zstd3": 277,
+						"zstd19": 273
+					}
+				},
+				{
+					"raw": {
+						"raw": 3641,
+						"gzip6": 969,
+						"gzip9": 963,
+						"br5": 859,
+						"br11": 761,
+						"zstd3": 1003,
+						"zstd19": 972
+					},
+					"rendered": {
+						"raw": 363,
+						"gzip6": 268,
+						"gzip9": 266,
+						"br5": 229,
+						"br11": 196,
+						"zstd3": 272,
+						"zstd19": 268
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"drupal": "Drupal 8 (http://drupal.org)",
+			"jsonapi": false,
+			"shellLines": 751,
+			"shell": {
+				"raw": 50898,
+				"gzip6": 15984,
+				"gzip9": 15871,
+				"br5": 15225,
+				"br11": 13826,
+				"zstd3": 16896,
+				"zstd19": 15301
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 106357,
+					"gzip6": 27292,
+					"gzip9": 27189,
+					"br5": 24860,
+					"br11": 22327,
+					"zstd3": 27903,
+					"zstd19": 24638
+				},
+				"unique": {
+					"raw": 55644,
+					"gzip6": 11356,
+					"gzip9": 11381,
+					"br5": 10235,
+					"br11": 8974,
+					"zstd3": 11640,
+					"zstd19": 10296
+				},
+				"uniqueLines": 1280,
+				"gaps": 57,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 6790,
+					"zstd19": 5291
+				},
+				"uniqueDict": {
+					"zstd3": 7058,
+					"zstd19": 5530
+				}
+			},
+			"pages": [
+				{
+					"path": "/a-z",
+					"document": {
+						"raw": 93727,
+						"gzip6": 23608,
+						"gzip9": 23475,
+						"br5": 21491,
+						"br11": 19479,
+						"zstd3": 23923,
+						"zstd19": 21549
+					},
+					"unique": {
+						"raw": 43005,
+						"gzip6": 7663,
+						"gzip9": 7701,
+						"br5": 6754,
+						"br11": 6030,
+						"zstd3": 7518,
+						"zstd19": 7068
+					},
+					"uniqueLines": 258,
+					"gaps": 54,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3933,
+						"zstd19": 3427
+					},
+					"uniqueDict": {
+						"zstd3": 4140,
+						"zstd19": 3614
+					}
+				},
+				{
+					"path": "/admissions",
+					"document": {
+						"raw": 99397,
+						"gzip6": 25589,
+						"gzip9": 25506,
+						"br5": 23369,
+						"br11": 21051,
+						"zstd3": 26145,
+						"zstd19": 23310
+					},
+					"unique": {
+						"raw": 48696,
+						"gzip6": 9770,
+						"gzip9": 9789,
+						"br5": 8792,
+						"br11": 7735,
+						"zstd3": 9970,
+						"zstd19": 9018
+					},
+					"uniqueLines": 955,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4209,
+						"zstd19": 3222
+					},
+					"uniqueDict": {
+						"zstd3": 4625,
+						"zstd19": 3512
+					}
+				},
+				{
+					"path": "/admissions/cost-and-aid",
+					"document": {
+						"raw": 80621,
+						"gzip6": 23285,
+						"gzip9": 23145,
+						"br5": 21684,
+						"br11": 19598,
+						"zstd3": 24239,
+						"zstd19": 21676
+					},
+					"unique": {
+						"raw": 29920,
+						"gzip6": 7633,
+						"gzip9": 7639,
+						"br5": 7110,
+						"br11": 6302,
+						"zstd3": 8013,
+						"zstd19": 7305
+					},
+					"uniqueLines": 469,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2530,
+						"zstd19": 1873
+					},
+					"uniqueDict": {
+						"zstd3": 2928,
+						"zstd19": 2147
+					}
+				},
+				{
+					"path": "/academics",
+					"document": {
+						"raw": 94770,
+						"gzip6": 25289,
+						"gzip9": 25174,
+						"br5": 23208,
+						"br11": 20877,
+						"zstd3": 25886,
+						"zstd19": 23084
+					},
+					"unique": {
+						"raw": 44069,
+						"gzip6": 9452,
+						"gzip9": 9454,
+						"br5": 8567,
+						"br11": 7478,
+						"zstd3": 9621,
+						"zstd19": 8718
+					},
+					"uniqueLines": 859,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3863,
+						"zstd19": 2835
+					},
+					"uniqueDict": {
+						"zstd3": 4334,
+						"zstd19": 3120
+					}
+				},
+				{
+					"path": "/academics/areas-study",
+					"document": {
+						"raw": 105888,
+						"gzip6": 25464,
+						"gzip9": 25353,
+						"br5": 23025,
+						"br11": 20707,
+						"zstd3": 25785,
+						"zstd19": 22970
+					},
+					"unique": {
+						"raw": 55187,
+						"gzip6": 9449,
+						"gzip9": 9447,
+						"br5": 8357,
+						"br11": 7369,
+						"zstd3": 9450,
+						"zstd19": 8554
+					},
+					"uniqueLines": 1156,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3769,
+						"zstd19": 2889
+					},
+					"uniqueDict": {
+						"zstd3": 4235,
+						"zstd19": 3183
+					}
+				},
+				{
+					"path": "/academics/leading-programs",
+					"document": {
+						"raw": 94422,
+						"gzip6": 24917,
+						"gzip9": 24797,
+						"br5": 22766,
+						"br11": 20470,
+						"zstd3": 25415,
+						"zstd19": 22730
+					},
+					"unique": {
+						"raw": 43720,
+						"gzip6": 9021,
+						"gzip9": 9048,
+						"br5": 8108,
+						"br11": 7076,
+						"zstd3": 9103,
+						"zstd19": 8314
+					},
+					"uniqueLines": 866,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3439,
+						"zstd19": 2767
+					},
+					"uniqueDict": {
+						"zstd3": 3956,
+						"zstd19": 3059
+					}
+				},
+				{
+					"path": "/academics/career-preparation",
+					"document": {
+						"raw": 89806,
+						"gzip6": 24833,
+						"gzip9": 24693,
+						"br5": 22712,
+						"br11": 20455,
+						"zstd3": 25314,
+						"zstd19": 22604
+					},
+					"unique": {
+						"raw": 39108,
+						"gzip6": 8564,
+						"gzip9": 8586,
+						"br5": 8064,
+						"br11": 7125,
+						"zstd3": 9056,
+						"zstd19": 8201
+					},
+					"uniqueLines": 714,
+					"gaps": 62,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3408,
+						"zstd19": 2612
+					},
+					"uniqueDict": {
+						"zstd3": 3828,
+						"zstd19": 2879
+					}
+				},
+				{
+					"path": "/academics/colleges",
+					"document": {
+						"raw": 107166,
+						"gzip6": 25083,
+						"gzip9": 24896,
+						"br5": 22687,
+						"br11": 20516,
+						"zstd3": 25453,
+						"zstd19": 22613
+					},
+					"unique": {
+						"raw": 56465,
+						"gzip6": 9084,
+						"gzip9": 9023,
+						"br5": 8021,
+						"br11": 7161,
+						"zstd3": 9101,
+						"zstd19": 8167
+					},
+					"uniqueLines": 1080,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3591,
+						"zstd19": 2733
+					},
+					"uniqueDict": {
+						"zstd3": 4086,
+						"zstd19": 3030
+					}
+				},
+				{
+					"path": "/research",
+					"document": {
+						"raw": 88321,
+						"gzip6": 25714,
+						"gzip9": 25615,
+						"br5": 23543,
+						"br11": 21242,
+						"zstd3": 26249,
+						"zstd19": 23471
+					},
+					"unique": {
+						"raw": 37620,
+						"gzip6": 9501,
+						"gzip9": 9525,
+						"br5": 8866,
+						"br11": 7808,
+						"zstd3": 9899,
+						"zstd19": 9076
+					},
+					"uniqueLines": 753,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4825,
+						"zstd19": 3971
+					},
+					"uniqueDict": {
+						"zstd3": 5223,
+						"zstd19": 4246
+					}
+				},
+				{
+					"path": "/student-life",
+					"document": {
+						"raw": 79966,
+						"gzip6": 23228,
+						"gzip9": 23065,
+						"br5": 21664,
+						"br11": 19605,
+						"zstd3": 24225,
+						"zstd19": 21631
+					},
+					"unique": {
+						"raw": 29265,
+						"gzip6": 7509,
+						"gzip9": 7499,
+						"br5": 7019,
+						"br11": 6201,
+						"zstd3": 7918,
+						"zstd19": 7201
+					},
+					"uniqueLines": 494,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2000,
+						"zstd19": 1319
+					},
+					"uniqueDict": {
+						"zstd3": 2382,
+						"zstd19": 1602
+					}
+				},
+				{
+					"path": "/student-life/iowa-city",
+					"document": {
+						"raw": 81718,
+						"gzip6": 23554,
+						"gzip9": 23438,
+						"br5": 21972,
+						"br11": 19797,
+						"zstd3": 24546,
+						"zstd19": 21893
+					},
+					"unique": {
+						"raw": 31015,
+						"gzip6": 7879,
+						"gzip9": 7875,
+						"br5": 7360,
+						"br11": 6458,
+						"zstd3": 8294,
+						"zstd19": 7533
+					},
+					"uniqueLines": 561,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2817,
+						"zstd19": 2078
+					},
+					"uniqueDict": {
+						"zstd3": 3227,
+						"zstd19": 2362
+					}
+				},
+				{
+					"path": "/student-life/living-campus",
+					"document": {
+						"raw": 79936,
+						"gzip6": 23152,
+						"gzip9": 23003,
+						"br5": 21597,
+						"br11": 19522,
+						"zstd3": 24059,
+						"zstd19": 21545
+					},
+					"unique": {
+						"raw": 29235,
+						"gzip6": 7425,
+						"gzip9": 7436,
+						"br5": 6941,
+						"br11": 6122,
+						"zstd3": 7780,
+						"zstd19": 7121
+					},
+					"uniqueLines": 489,
+					"gaps": 61,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2335,
+						"zstd19": 1731
+					},
+					"uniqueDict": {
+						"zstd3": 2739,
+						"zstd19": 2009
+					}
+				},
+				{
+					"path": "/student-life/safety-and-support",
+					"document": {
+						"raw": 110065,
+						"gzip6": 26247,
+						"gzip9": 26108,
+						"br5": 23902,
+						"br11": 21414,
+						"zstd3": 26780,
+						"zstd19": 23781
+					},
+					"unique": {
+						"raw": 59367,
+						"gzip6": 10265,
+						"gzip9": 10291,
+						"br5": 9211,
+						"br11": 8011,
+						"zstd3": 10513,
+						"zstd19": 9385
+					},
+					"uniqueLines": 1364,
+					"gaps": 62,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5586,
+						"zstd19": 4349
+					},
+					"uniqueDict": {
+						"zstd3": 5876,
+						"zstd19": 4608
+					}
+				},
+				{
+					"path": "/about-iowa",
+					"document": {
+						"raw": 92514,
+						"gzip6": 25286,
+						"gzip9": 25073,
+						"br5": 23099,
+						"br11": 20680,
+						"zstd3": 26007,
+						"zstd19": 23035
+					},
+					"unique": {
+						"raw": 41807,
+						"gzip6": 9032,
+						"gzip9": 9011,
+						"br5": 8374,
+						"br11": 7216,
+						"zstd3": 9630,
+						"zstd19": 8581
+					},
+					"uniqueLines": 1201,
+					"gaps": 59,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4652,
+						"zstd19": 3694
+					},
+					"uniqueDict": {
+						"zstd3": 5055,
+						"zstd19": 3938
+					}
+				},
+				{
+					"path": "/contact",
+					"document": {
+						"raw": 72471,
+						"gzip6": 22280,
+						"gzip9": 22146,
+						"br5": 21023,
+						"br11": 19068,
+						"zstd3": 23409,
+						"zstd19": 21055
+					},
+					"unique": {
+						"raw": 21767,
+						"gzip6": 6942,
+						"gzip9": 6939,
+						"br5": 6398,
+						"br11": 5701,
+						"zstd3": 7158,
+						"zstd19": 6651
+					},
+					"uniqueLines": 181,
+					"gaps": 60,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3070,
+						"zstd19": 2629
+					},
+					"uniqueDict": {
+						"zstd3": 3388,
+						"zstd19": 2894
+					}
+				},
+				{
+					"path": "/feedback",
+					"document": {
+						"raw": 71758,
+						"gzip6": 22293,
+						"gzip9": 22160,
+						"br5": 21025,
+						"br11": 19116,
+						"zstd3": 23439,
+						"zstd19": 21058
+					},
+					"unique": {
+						"raw": 21051,
+						"gzip6": 6846,
+						"gzip9": 6828,
+						"br5": 6345,
+						"br11": 5689,
+						"zstd3": 7094,
+						"zstd19": 6567
+					},
+					"uniqueLines": 121,
+					"gaps": 59,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3508,
+						"zstd19": 3007
+					},
+					"uniqueDict": {
+						"zstd3": 3711,
+						"zstd19": 3221
+					}
+				},
+				{
+					"path": "/privacy",
+					"document": {
+						"raw": 76553,
+						"gzip6": 24537,
+						"gzip9": 24368,
+						"br5": 21485,
+						"br11": 19350,
+						"zstd3": 24024,
+						"zstd19": 21602
+					},
+					"unique": {
+						"raw": 25837,
+						"gzip6": 7319,
+						"gzip9": 7314,
+						"br5": 6754,
+						"br11": 5881,
+						"zstd3": 7611,
+						"zstd19": 7039
+					},
+					"uniqueLines": 115,
+					"gaps": 56,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3676,
+						"zstd19": 3181
+					},
+					"uniqueDict": {
+						"zstd3": 3970,
+						"zstd19": 3426
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"drupal": "Drupal 10 (https://www.drupal.org)",
+			"jsonapi": false,
+			"shellLines": 1323,
+			"shell": {
+				"raw": 81648,
+				"gzip6": 15508,
+				"gzip9": 15401,
+				"br5": 13321,
+				"br11": 11757,
+				"zstd3": 15179,
+				"zstd19": 13546
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 200379,
+					"gzip6": 35300,
+					"gzip9": 34779,
+					"br5": 26085,
+					"br11": 22269,
+					"zstd3": 30189,
+					"zstd19": 25966
+				},
+				"unique": {
+					"raw": 119016,
+					"gzip6": 22700,
+					"gzip9": 22409,
+					"br5": 15529,
+					"br11": 13213,
+					"zstd3": 18106,
+					"zstd19": 15359
+				},
+				"uniqueLines": 1502,
+				"gaps": 83,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 13514,
+					"zstd19": 10366
+				},
+				"uniqueDict": {
+					"zstd3": 13724,
+					"zstd19": 10896
+				}
+			},
+			"pages": [
+				{
+					"path": "/about/visit",
+					"document": {
+						"raw": 111083,
+						"gzip6": 25362,
+						"gzip9": 25212,
+						"br5": 18266,
+						"br11": 15974,
+						"zstd3": 20914,
+						"zstd19": 18440
+					},
+					"unique": {
+						"raw": 29713,
+						"gzip6": 6095,
+						"gzip9": 6104,
+						"br5": 5619,
+						"br11": 4938,
+						"zstd3": 6494,
+						"zstd19": 5800
+					},
+					"uniqueLines": 425,
+					"gaps": 81,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3277,
+						"zstd19": 2555
+					},
+					"uniqueDict": {
+						"zstd3": 3934,
+						"zstd19": 2902
+					}
+				},
+				{
+					"path": "/current-students",
+					"document": {
+						"raw": 107865,
+						"gzip6": 20338,
+						"gzip9": 20111,
+						"br5": 17478,
+						"br11": 15294,
+						"zstd3": 19991,
+						"zstd19": 17686
+					},
+					"unique": {
+						"raw": 26499,
+						"gzip6": 5134,
+						"gzip9": 5170,
+						"br5": 4735,
+						"br11": 4210,
+						"zstd3": 5495,
+						"zstd19": 4939
+					},
+					"uniqueLines": 443,
+					"gaps": 82,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3204,
+						"zstd19": 2305
+					},
+					"uniqueDict": {
+						"zstd3": 3574,
+						"zstd19": 2677
+					}
+				},
+				{
+					"path": "/academics",
+					"document": {
+						"raw": 198461,
+						"gzip6": 39480,
+						"gzip9": 38856,
+						"br5": 26084,
+						"br11": 22200,
+						"zstd3": 30255,
+						"zstd19": 25985
+					},
+					"unique": {
+						"raw": 117101,
+						"gzip6": 20494,
+						"gzip9": 20217,
+						"br5": 13421,
+						"br11": 11402,
+						"zstd3": 15936,
+						"zstd19": 13660
+					},
+					"uniqueLines": 1460,
+					"gaps": 84,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7197,
+						"zstd19": 5078
+					},
+					"uniqueDict": {
+						"zstd3": 7441,
+						"zstd19": 5268
+					}
+				},
+				{
+					"path": "/academics/schools-colleges",
+					"document": {
+						"raw": 133544,
+						"gzip6": 24032,
+						"gzip9": 23775,
+						"br5": 20481,
+						"br11": 17762,
+						"zstd3": 23390,
+						"zstd19": 20694
+					},
+					"unique": {
+						"raw": 52180,
+						"gzip6": 9192,
+						"gzip9": 9101,
+						"br5": 8185,
+						"br11": 6995,
+						"zstd3": 9250,
+						"zstd19": 8302
+					},
+					"uniqueLines": 1009,
+					"gaps": 83,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6296,
+						"zstd19": 4944
+					},
+					"uniqueDict": {
+						"zstd3": 6630,
+						"zstd19": 5349
+					}
+				},
+				{
+					"path": "/graduate-programs",
+					"document": {
+						"raw": 165696,
+						"gzip6": 27354,
+						"gzip9": 27078,
+						"br5": 23050,
+						"br11": 19991,
+						"zstd3": 26465,
+						"zstd19": 22940
+					},
+					"unique": {
+						"raw": 84357,
+						"gzip6": 12446,
+						"gzip9": 12386,
+						"br5": 10413,
+						"br11": 9012,
+						"zstd3": 11937,
+						"zstd19": 10407
+					},
+					"uniqueLines": 1532,
+					"gaps": 91,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9618,
+						"zstd19": 7371
+					},
+					"uniqueDict": {
+						"zstd3": 9701,
+						"zstd19": 7608
+					}
+				},
+				{
+					"path": "/admissions",
+					"document": {
+						"raw": 111868,
+						"gzip6": 25368,
+						"gzip9": 25182,
+						"br5": 18350,
+						"br11": 16042,
+						"zstd3": 20981,
+						"zstd19": 18537
+					},
+					"unique": {
+						"raw": 30502,
+						"gzip6": 6114,
+						"gzip9": 6150,
+						"br5": 5699,
+						"br11": 5069,
+						"zstd3": 6606,
+						"zstd19": 5879
+					},
+					"uniqueLines": 468,
+					"gaps": 82,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3864,
+						"zstd19": 2708
+					},
+					"uniqueDict": {
+						"zstd3": 4290,
+						"zstd19": 3042
+					}
+				},
+				{
+					"path": "/admissions/graduate",
+					"document": {
+						"raw": 107240,
+						"gzip6": 20394,
+						"gzip9": 20164,
+						"br5": 17398,
+						"br11": 15128,
+						"zstd3": 19872,
+						"zstd19": 17550
+					},
+					"unique": {
+						"raw": 25876,
+						"gzip6": 5229,
+						"gzip9": 5231,
+						"br5": 4821,
+						"br11": 4209,
+						"zstd3": 5605,
+						"zstd19": 4979
+					},
+					"uniqueLines": 477,
+					"gaps": 83,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2487,
+						"zstd19": 1576
+					},
+					"uniqueDict": {
+						"zstd3": 2844,
+						"zstd19": 1985
+					}
+				},
+				{
+					"path": "/admissions/financial-aid",
+					"document": {
+						"raw": 106945,
+						"gzip6": 20333,
+						"gzip9": 20122,
+						"br5": 17340,
+						"br11": 15073,
+						"zstd3": 19776,
+						"zstd19": 17464
+					},
+					"unique": {
+						"raw": 25580,
+						"gzip6": 5125,
+						"gzip9": 5138,
+						"br5": 4748,
+						"br11": 4188,
+						"zstd3": 5493,
+						"zstd19": 4897
+					},
+					"uniqueLines": 467,
+					"gaps": 83,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2483,
+						"zstd19": 1579
+					},
+					"uniqueDict": {
+						"zstd3": 2840,
+						"zstd19": 1982
+					}
+				},
+				{
+					"path": "/research",
+					"document": {
+						"raw": 124849,
+						"gzip6": 27794,
+						"gzip9": 27573,
+						"br5": 20598,
+						"br11": 17910,
+						"zstd3": 23542,
+						"zstd19": 20685
+					},
+					"unique": {
+						"raw": 43495,
+						"gzip6": 8760,
+						"gzip9": 8804,
+						"br5": 8036,
+						"br11": 7009,
+						"zstd3": 9156,
+						"zstd19": 8091
+					},
+					"uniqueLines": 673,
+					"gaps": 86,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6245,
+						"zstd19": 4620
+					},
+					"uniqueDict": {
+						"zstd3": 6638,
+						"zstd19": 4948
+					}
+				},
+				{
+					"path": "/research/libraries",
+					"document": {
+						"raw": 102648,
+						"gzip6": 20349,
+						"gzip9": 20152,
+						"br5": 17449,
+						"br11": 15196,
+						"zstd3": 19893,
+						"zstd19": 17700
+					},
+					"unique": {
+						"raw": 21278,
+						"gzip6": 5149,
+						"gzip9": 5166,
+						"br5": 4716,
+						"br11": 4081,
+						"zstd3": 5463,
+						"zstd19": 4940
+					},
+					"uniqueLines": 359,
+					"gaps": 81,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2754,
+						"zstd19": 1898
+					},
+					"uniqueDict": {
+						"zstd3": 3029,
+						"zstd19": 2311
+					}
+				},
+				{
+					"path": "/research/opportunities-for-students",
+					"document": {
+						"raw": 105489,
+						"gzip6": 20159,
+						"gzip9": 19949,
+						"br5": 17174,
+						"br11": 14963,
+						"zstd3": 19599,
+						"zstd19": 17344
+					},
+					"unique": {
+						"raw": 24122,
+						"gzip6": 4963,
+						"gzip9": 4964,
+						"br5": 4538,
+						"br11": 4045,
+						"zstd3": 5284,
+						"zstd19": 4738
+					},
+					"uniqueLines": 429,
+					"gaps": 82,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1999,
+						"zstd19": 1480
+					},
+					"uniqueDict": {
+						"zstd3": 2624,
+						"zstd19": 1867
+					}
+				},
+				{
+					"path": "/student-experience",
+					"document": {
+						"raw": 158049,
+						"gzip6": 30726,
+						"gzip9": 30309,
+						"br5": 22835,
+						"br11": 19846,
+						"zstd3": 26444,
+						"zstd19": 22856
+					},
+					"unique": {
+						"raw": 76689,
+						"gzip6": 13859,
+						"gzip9": 13723,
+						"br5": 12468,
+						"br11": 10869,
+						"zstd3": 14443,
+						"zstd19": 12611
+					},
+					"uniqueLines": 1263,
+					"gaps": 84,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 8555,
+						"zstd19": 6388
+					},
+					"uniqueDict": {
+						"zstd3": 8972,
+						"zstd19": 6671
+					}
+				},
+				{
+					"path": "/student-life/arts",
+					"document": {
+						"raw": 123075,
+						"gzip6": 27564,
+						"gzip9": 27430,
+						"br5": 20149,
+						"br11": 17613,
+						"zstd3": 23086,
+						"zstd19": 20389
+					},
+					"unique": {
+						"raw": 41720,
+						"gzip6": 8330,
+						"gzip9": 8377,
+						"br5": 7559,
+						"br11": 6693,
+						"zstd3": 8680,
+						"zstd19": 7725
+					},
+					"uniqueLines": 678,
+					"gaps": 86,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5767,
+						"zstd19": 4619
+					},
+					"uniqueDict": {
+						"zstd3": 6188,
+						"zstd19": 4939
+					}
+				},
+				{
+					"path": "/about",
+					"document": {
+						"raw": 123786,
+						"gzip6": 23201,
+						"gzip9": 22898,
+						"br5": 20100,
+						"br11": 17546,
+						"zstd3": 22978,
+						"zstd19": 20330
+					},
+					"unique": {
+						"raw": 42426,
+						"gzip6": 8292,
+						"gzip9": 8338,
+						"br5": 7575,
+						"br11": 6542,
+						"zstd3": 8711,
+						"zstd19": 7709
+					},
+					"uniqueLines": 720,
+					"gaps": 84,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5220,
+						"zstd19": 4079
+					},
+					"uniqueDict": {
+						"zstd3": 5949,
+						"zstd19": 4461
+					}
+				},
+				{
+					"path": "/about/mission-vision",
+					"document": {
+						"raw": 103376,
+						"gzip6": 23629,
+						"gzip9": 23453,
+						"br5": 16850,
+						"br11": 14635,
+						"zstd3": 19129,
+						"zstd19": 17002
+					},
+					"unique": {
+						"raw": 22003,
+						"gzip6": 4337,
+						"gzip9": 4346,
+						"br5": 3986,
+						"br11": 3446,
+						"zstd3": 4619,
+						"zstd19": 4154
+					},
+					"uniqueLines": 403,
+					"gaps": 80,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1311,
+						"zstd19": 808
+					},
+					"uniqueDict": {
+						"zstd3": 1681,
+						"zstd19": 1134
+					}
+				},
+				{
+					"path": "/about/university-leadership",
+					"document": {
+						"raw": 130463,
+						"gzip6": 25916,
+						"gzip9": 25811,
+						"br5": 18594,
+						"br11": 16254,
+						"zstd3": 21239,
+						"zstd19": 18707
+					},
+					"unique": {
+						"raw": 49102,
+						"gzip6": 6782,
+						"gzip9": 6722,
+						"br5": 5863,
+						"br11": 5242,
+						"zstd3": 6735,
+						"zstd19": 6001
+					},
+					"uniqueLines": 972,
+					"gaps": 84,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3754,
+						"zstd19": 2986
+					},
+					"uniqueDict": {
+						"zstd3": 4228,
+						"zstd19": 3319
+					}
+				},
+				{
+					"path": "/president",
+					"document": {
+						"raw": 101618,
+						"gzip6": 20638,
+						"gzip9": 20403,
+						"br5": 17746,
+						"br11": 15460,
+						"zstd3": 20285,
+						"zstd19": 18034
+					},
+					"unique": {
+						"raw": 20245,
+						"gzip6": 5301,
+						"gzip9": 5318,
+						"br5": 4888,
+						"br11": 4213,
+						"zstd3": 5675,
+						"zstd19": 5107
+					},
+					"uniqueLines": 279,
+					"gaps": 80,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3262,
+						"zstd19": 2369
+					},
+					"uniqueDict": {
+						"zstd3": 3533,
+						"zstd19": 2742
+					}
+				},
+				{
+					"path": "/about/offices-and-services",
+					"document": {
+						"raw": 113715,
+						"gzip6": 21524,
+						"gzip9": 21289,
+						"br5": 18621,
+						"br11": 16213,
+						"zstd3": 21283,
+						"zstd19": 18687
+					},
+					"unique": {
+						"raw": 32345,
+						"gzip6": 6249,
+						"gzip9": 6272,
+						"br5": 5813,
+						"br11": 5152,
+						"zstd3": 6711,
+						"zstd19": 5953
+					},
+					"uniqueLines": 405,
+					"gaps": 81,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3400,
+						"zstd19": 2391
+					},
+					"uniqueDict": {
+						"zstd3": 3768,
+						"zstd19": 2811
+					}
+				},
+				{
+					"path": "/about/contact-us",
+					"document": {
+						"raw": 117863,
+						"gzip6": 24669,
+						"gzip9": 24597,
+						"br5": 17762,
+						"br11": 15529,
+						"zstd3": 20317,
+						"zstd19": 17877
+					},
+					"unique": {
+						"raw": 36493,
+						"gzip6": 5474,
+						"gzip9": 5466,
+						"br5": 5020,
+						"br11": 4484,
+						"zstd3": 5836,
+						"zstd19": 5127
+					},
+					"uniqueLines": 807,
+					"gaps": 81,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2842,
+						"zstd19": 2126
+					},
+					"uniqueDict": {
+						"zstd3": 3379,
+						"zstd19": 2495
+					}
+				},
+				{
+					"path": "/about/privacy",
+					"document": {
+						"raw": 313511,
+						"gzip6": 65651,
+						"gzip9": 63458,
+						"br5": 53000,
+						"br11": 45128,
+						"zstd3": 59750,
+						"zstd19": 50075
+					},
+					"unique": {
+						"raw": 232138,
+						"gzip6": 50879,
+						"gzip9": 48687,
+						"br5": 40146,
+						"br11": 33898,
+						"zstd3": 45900,
+						"zstd19": 37668
+					},
+					"uniqueLines": 490,
+					"gaps": 80,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 42386,
+						"zstd19": 33928
+					},
+					"uniqueDict": {
+						"zstd3": 42675,
+						"zstd19": 34330
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.unl.edu/",
+			"drupal": "Drupal 11 (https://www.drupal.org)",
+			"jsonapi": true,
+			"shellLines": 648,
+			"shell": {
+				"raw": 77226,
+				"gzip6": 21567,
+				"gzip9": 21326,
+				"br5": 19151,
+				"br11": 16894,
+				"zstd3": 21036,
+				"zstd19": 18510
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 233683,
+					"gzip6": 56487,
+					"gzip9": 55899,
+					"br5": 50843,
+					"br11": 44215,
+					"zstd3": 57536,
+					"zstd19": 49104
+				},
+				"unique": {
+					"raw": 156690,
+					"gzip6": 35496,
+					"gzip9": 35219,
+					"br5": 32601,
+					"br11": 28507,
+					"zstd3": 36702,
+					"zstd19": 31807
+				},
+				"uniqueLines": 2415,
+				"gaps": 75,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 21680,
+					"zstd19": 17688
+				},
+				"uniqueDict": {
+					"zstd3": 22465,
+					"zstd19": 18045
+				}
+			},
+			"pages": [
+				{
+					"path": "/apply",
+					"document": {
+						"raw": 137291,
+						"gzip6": 36327,
+						"gzip9": 35929,
+						"br5": 32552,
+						"br11": 28619,
+						"zstd3": 36803,
+						"zstd19": 31676
+					},
+					"unique": {
+						"raw": 60283,
+						"gzip6": 15203,
+						"gzip9": 15120,
+						"br5": 14282,
+						"br11": 12740,
+						"zstd3": 16138,
+						"zstd19": 14294
+					},
+					"uniqueLines": 782,
+					"gaps": 70,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1711,
+						"zstd19": 1375
+					},
+					"uniqueDict": {
+						"zstd3": 2303,
+						"zstd19": 1661
+					},
+					"json": {
+						"raw": {
+							"raw": 3491,
+							"gzip6": 791,
+							"gzip9": 784,
+							"br5": 710,
+							"br11": 647,
+							"zstd3": 819,
+							"zstd19": 797
+						},
+						"rendered": {
+							"raw": 110,
+							"gzip6": 105,
+							"gzip9": 104,
+							"br5": 86,
+							"br11": 82,
+							"zstd3": 97,
+							"zstd19": 97
+						}
+					}
+				},
+				{
+					"path": "/no-place-like/warren-buffett",
+					"document": {
+						"raw": 137354,
+						"gzip6": 38203,
+						"gzip9": 37773,
+						"br5": 34370,
+						"br11": 30041,
+						"zstd3": 38817,
+						"zstd19": 33623
+					},
+					"unique": {
+						"raw": 60349,
+						"gzip6": 17038,
+						"gzip9": 16942,
+						"br5": 16009,
+						"br11": 14154,
+						"zstd3": 18076,
+						"zstd19": 16042
+					},
+					"uniqueLines": 708,
+					"gaps": 71,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3494,
+						"zstd19": 2985
+					},
+					"uniqueDict": {
+						"zstd3": 4094,
+						"zstd19": 3282
+					},
+					"json": {
+						"raw": {
+							"raw": 3555,
+							"gzip6": 849,
+							"gzip9": 843,
+							"br5": 773,
+							"br11": 707,
+							"zstd3": 882,
+							"zstd19": 855
+						},
+						"rendered": {
+							"raw": 143,
+							"gzip6": 133,
+							"gzip9": 134,
+							"br5": 110,
+							"br11": 110,
+							"zstd3": 123,
+							"zstd19": 122
+						}
+					}
+				},
+				{
+					"path": "/visit/",
+					"document": {
+						"raw": 148562,
+						"gzip6": 39632,
+						"gzip9": 39229,
+						"br5": 35761,
+						"br11": 31363,
+						"zstd3": 40385,
+						"zstd19": 34647
+					},
+					"unique": {
+						"raw": 71560,
+						"gzip6": 18591,
+						"gzip9": 18478,
+						"br5": 17552,
+						"br11": 15489,
+						"zstd3": 19853,
+						"zstd19": 17429
+					},
+					"uniqueLines": 1000,
+					"gaps": 72,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4947,
+						"zstd19": 3884
+					},
+					"uniqueDict": {
+						"zstd3": 5592,
+						"zstd19": 4229
+					}
+				},
+				{
+					"path": "/give/",
+					"document": {
+						"raw": 178446,
+						"gzip6": 47148,
+						"gzip9": 46590,
+						"br5": 42498,
+						"br11": 37275,
+						"zstd3": 47817,
+						"zstd19": 41061
+					},
+					"unique": {
+						"raw": 101453,
+						"gzip6": 26238,
+						"gzip9": 25930,
+						"br5": 24098,
+						"br11": 21204,
+						"zstd3": 27091,
+						"zstd19": 23902
+					},
+					"uniqueLines": 1090,
+					"gaps": 75,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 11937,
+						"zstd19": 10225
+					},
+					"uniqueDict": {
+						"zstd3": 12768,
+						"zstd19": 10697
+					}
+				},
+				{
+					"path": "/about/events/",
+					"document": {
+						"raw": 287193,
+						"gzip6": 45787,
+						"gzip9": 41451,
+						"br5": 35878,
+						"br11": 31109,
+						"zstd3": 40391,
+						"zstd19": 34710
+					},
+					"unique": {
+						"raw": 287193,
+						"gzip6": 45787,
+						"gzip9": 41451,
+						"br5": 35878,
+						"br11": 31109,
+						"zstd3": 40391,
+						"zstd19": 34710
+					},
+					"uniqueLines": 3335,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 19379,
+						"zstd19": 14803
+					},
+					"uniqueDict": {
+						"zstd3": 19379,
+						"zstd19": 14803
+					}
+				},
+				{
+					"path": "/about/strategic-framework/",
+					"document": {
+						"raw": 126704,
+						"gzip6": 35223,
+						"gzip9": 34846,
+						"br5": 30444,
+						"br11": 26824,
+						"zstd3": 34388,
+						"zstd19": 29577
+					},
+					"unique": {
+						"raw": 49708,
+						"gzip6": 13857,
+						"gzip9": 13798,
+						"br5": 13074,
+						"br11": 11642,
+						"zstd3": 14793,
+						"zstd19": 13098
+					},
+					"uniqueLines": 611,
+					"gaps": 74,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3398,
+						"zstd19": 2735
+					},
+					"uniqueDict": {
+						"zstd3": 4040,
+						"zstd19": 3051
+					}
+				},
+				{
+					"path": "/admissions/undergraduate/",
+					"document": {
+						"raw": 201304,
+						"gzip6": 58196,
+						"gzip9": 57315,
+						"br5": 51470,
+						"br11": 45015,
+						"zstd3": 57755,
+						"zstd19": 49504
+					},
+					"unique": {
+						"raw": 123223,
+						"gzip6": 37183,
+						"gzip9": 36756,
+						"br5": 33934,
+						"br11": 29762,
+						"zstd3": 37820,
+						"zstd19": 32870
+					},
+					"uniqueLines": 1289,
+					"gaps": 84,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 29747,
+						"zstd19": 24764
+					},
+					"uniqueDict": {
+						"zstd3": 29962,
+						"zstd19": 24634
+					}
+				},
+				{
+					"path": "/admissions/law/",
+					"document": {
+						"raw": 159881,
+						"gzip6": 42065,
+						"gzip9": 41673,
+						"br5": 36860,
+						"br11": 32354,
+						"zstd3": 41523,
+						"zstd19": 35715
+					},
+					"unique": {
+						"raw": 82879,
+						"gzip6": 20881,
+						"gzip9": 20798,
+						"br5": 19493,
+						"br11": 17306,
+						"zstd3": 21905,
+						"zstd19": 19255
+					},
+					"uniqueLines": 1320,
+					"gaps": 72,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9876,
+						"zstd19": 7872
+					},
+					"uniqueDict": {
+						"zstd3": 10317,
+						"zstd19": 8107
+					}
+				},
+				{
+					"path": "/academics/colleges-departments/",
+					"document": {
+						"raw": 185626,
+						"gzip6": 42058,
+						"gzip9": 41675,
+						"br5": 37734,
+						"br11": 33063,
+						"zstd3": 43095,
+						"zstd19": 36729
+					},
+					"unique": {
+						"raw": 108627,
+						"gzip6": 20893,
+						"gzip9": 20816,
+						"br5": 19479,
+						"br11": 17224,
+						"zstd3": 22336,
+						"zstd19": 19307
+					},
+					"uniqueLines": 1253,
+					"gaps": 73,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7173,
+						"zstd19": 5571
+					},
+					"uniqueDict": {
+						"zstd3": 7888,
+						"zstd19": 5924
+					}
+				},
+				{
+					"path": "/academics/academic-catalog/",
+					"document": {
+						"raw": 31901,
+						"gzip6": 11169,
+						"gzip9": 11065,
+						"br5": 10289,
+						"br11": 9135,
+						"zstd3": 11742,
+						"zstd19": 10429
+					},
+					"unique": {
+						"raw": 31901,
+						"gzip6": 11169,
+						"gzip9": 11065,
+						"br5": 10289,
+						"br11": 9135,
+						"zstd3": 11742,
+						"zstd19": 10429
+					},
+					"uniqueLines": 412,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 6667,
+						"zstd19": 5474
+					},
+					"uniqueDict": {
+						"zstd3": 6667,
+						"zstd19": 5474
+					}
+				},
+				{
+					"path": "/academics/accounts-services/",
+					"document": {
+						"raw": 178668,
+						"gzip6": 47647,
+						"gzip9": 47277,
+						"br5": 41771,
+						"br11": 36769,
+						"zstd3": 47123,
+						"zstd19": 40521
+					},
+					"unique": {
+						"raw": 101669,
+						"gzip6": 26795,
+						"gzip9": 26581,
+						"br5": 24778,
+						"br11": 21945,
+						"zstd3": 27806,
+						"zstd19": 24496
+					},
+					"uniqueLines": 1188,
+					"gaps": 73,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9793,
+						"zstd19": 8156
+					},
+					"uniqueDict": {
+						"zstd3": 10536,
+						"zstd19": 8517
+					}
+				},
+				{
+					"path": "/research/nebraska-innovation-campus/",
+					"document": {
+						"raw": 28228,
+						"gzip6": 7477,
+						"gzip9": 7517,
+						"br5": 6951,
+						"br11": 6170,
+						"zstd3": 7830,
+						"zstd19": 7184
+					},
+					"unique": {
+						"raw": 28228,
+						"gzip6": 7477,
+						"gzip9": 7517,
+						"br5": 6951,
+						"br11": 6170,
+						"zstd3": 7830,
+						"zstd19": 7184
+					},
+					"uniqueLines": 473,
+					"gaps": 0,
+					"outlier": true,
+					"documentDict": {
+						"zstd3": 6503,
+						"zstd19": 5440
+					},
+					"uniqueDict": {
+						"zstd3": 6503,
+						"zstd19": 5440
+					}
+				},
+				{
+					"path": "/life-nebraska/",
+					"document": {
+						"raw": 157679,
+						"gzip6": 40651,
+						"gzip9": 40258,
+						"br5": 36549,
+						"br11": 32003,
+						"zstd3": 41227,
+						"zstd19": 35563
+					},
+					"unique": {
+						"raw": 80680,
+						"gzip6": 19525,
+						"gzip9": 19415,
+						"br5": 18246,
+						"br11": 16064,
+						"zstd3": 20558,
+						"zstd19": 18181
+					},
+					"uniqueLines": 1137,
+					"gaps": 73,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5513,
+						"zstd19": 4583
+					},
+					"uniqueDict": {
+						"zstd3": 6242,
+						"zstd19": 4931
+					}
+				},
+				{
+					"path": "/life-nebraska/about-lincoln/",
+					"document": {
+						"raw": 342668,
+						"gzip6": 51617,
+						"gzip9": 50654,
+						"br5": 43903,
+						"br11": 38403,
+						"zstd3": 49821,
+						"zstd19": 42718
+					},
+					"unique": {
+						"raw": 265672,
+						"gzip6": 30268,
+						"gzip9": 29667,
+						"br5": 26305,
+						"br11": 22994,
+						"zstd3": 29965,
+						"zstd19": 25945
+					},
+					"uniqueLines": 2782,
+					"gaps": 74,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 20016,
+						"zstd19": 16231
+					},
+					"uniqueDict": {
+						"zstd3": 20374,
+						"zstd19": 16393
+					}
+				},
+				{
+					"path": "/life-nebraska/recreation-well-being/",
+					"document": {
+						"raw": 155789,
+						"gzip6": 39442,
+						"gzip9": 39062,
+						"br5": 35305,
+						"br11": 31131,
+						"zstd3": 39979,
+						"zstd19": 34628
+					},
+					"unique": {
+						"raw": 78790,
+						"gzip6": 18326,
+						"gzip9": 18238,
+						"br5": 17020,
+						"br11": 15114,
+						"zstd3": 19337,
+						"zstd19": 17060
+					},
+					"uniqueLines": 1092,
+					"gaps": 73,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4278,
+						"zstd19": 3501
+					},
+					"uniqueDict": {
+						"zstd3": 4995,
+						"zstd19": 3843
+					}
+				},
+				{
+					"path": "/WeAreNebraska/",
+					"document": {
+						"raw": 225362,
+						"gzip6": 52102,
+						"gzip9": 51438,
+						"br5": 47031,
+						"br11": 40996,
+						"zstd3": 53338,
+						"zstd19": 45428
+					},
+					"unique": {
+						"raw": 148384,
+						"gzip6": 30910,
+						"gzip9": 30603,
+						"br5": 28776,
+						"br11": 25139,
+						"zstd3": 32287,
+						"zstd19": 28130
+					},
+					"uniqueLines": 1895,
+					"gaps": 80,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 17939,
+						"zstd19": 14833
+					},
+					"uniqueDict": {
+						"zstd3": 18699,
+						"zstd19": 15157
+					}
+				},
+				{
+					"path": "/outreach-impact/parent-family-association/",
+					"document": {
+						"raw": 147532,
+						"gzip6": 38449,
+						"gzip9": 38075,
+						"br5": 33265,
+						"br11": 29288,
+						"zstd3": 37652,
+						"zstd19": 32346
+					},
+					"unique": {
+						"raw": 70536,
+						"gzip6": 17287,
+						"gzip9": 17185,
+						"br5": 16104,
+						"br11": 14374,
+						"zstd3": 18291,
+						"zstd19": 16023
+					},
+					"uniqueLines": 1008,
+					"gaps": 74,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7249,
+						"zstd19": 5797
+					},
+					"uniqueDict": {
+						"zstd3": 7679,
+						"zstd19": 6061
+					}
+				},
+				{
+					"path": "/outreach-impact/entrepreneurship/",
+					"document": {
+						"raw": 186093,
+						"gzip6": 43834,
+						"gzip9": 43407,
+						"br5": 37920,
+						"br11": 33277,
+						"zstd3": 42986,
+						"zstd19": 36810
+					},
+					"unique": {
+						"raw": 109100,
+						"gzip6": 22547,
+						"gzip9": 22444,
+						"br5": 20645,
+						"br11": 18326,
+						"zstd3": 23426,
+						"zstd19": 20486
+					},
+					"uniqueLines": 1892,
+					"gaps": 75,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 11206,
+						"zstd19": 8899
+					},
+					"uniqueDict": {
+						"zstd3": 11607,
+						"zstd19": 9091
+					}
+				},
+				{
+					"path": "/no-place-like/aaron-douglas/",
+					"document": {
+						"raw": 133597,
+						"gzip6": 36927,
+						"gzip9": 36479,
+						"br5": 33116,
+						"br11": 29164,
+						"zstd3": 37489,
+						"zstd19": 32420
+					},
+					"unique": {
+						"raw": 56601,
+						"gzip6": 15768,
+						"gzip9": 15676,
+						"br5": 14772,
+						"br11": 13052,
+						"zstd3": 16746,
+						"zstd19": 14843
+					},
+					"uniqueLines": 700,
+					"gaps": 74,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2336,
+						"zstd19": 1998
+					},
+					"uniqueDict": {
+						"zstd3": 2957,
+						"zstd19": 2298
+					}
+				},
+				{
+					"path": "/bigredblog/ask-alum-shelby-jacobs/",
+					"document": {
+						"raw": 144777,
+						"gzip6": 40797,
+						"gzip9": 40284,
+						"br5": 36656,
+						"br11": 31956,
+						"zstd3": 41398,
+						"zstd19": 35825
+					},
+					"unique": {
+						"raw": 67763,
+						"gzip6": 19555,
+						"gzip9": 19383,
+						"br5": 18334,
+						"br11": 15964,
+						"zstd3": 20558,
+						"zstd19": 18317
+					},
+					"uniqueLines": 662,
+					"gaps": 68,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6219,
+						"zstd19": 5521
+					},
+					"uniqueDict": {
+						"zstd3": 6975,
+						"zstd19": 5854
+					}
+				}
+			],
+			"nodeSample": [
+				{
+					"raw": {
+						"raw": 3511,
+						"gzip6": 832,
+						"gzip9": 825,
+						"br5": 752,
+						"br11": 689,
+						"zstd3": 861,
+						"zstd19": 832
+					},
+					"rendered": {
+						"raw": 108,
+						"gzip6": 107,
+						"gzip9": 106,
+						"br5": 84,
+						"br11": 88,
+						"zstd3": 98,
+						"zstd19": 94
+					}
+				},
+				{
+					"raw": {
+						"raw": 3561,
+						"gzip6": 814,
+						"gzip9": 810,
+						"br5": 732,
+						"br11": 665,
+						"zstd3": 843,
+						"zstd19": 818
+					},
+					"rendered": {
+						"raw": 147,
+						"gzip6": 133,
+						"gzip9": 132,
+						"br5": 110,
+						"br11": 97,
+						"zstd3": 124,
+						"zstd19": 121
+					}
+				},
+				{
+					"raw": {
+						"raw": 3556,
+						"gzip6": 848,
+						"gzip9": 842,
+						"br5": 766,
+						"br11": 696,
+						"zstd3": 879,
+						"zstd19": 854
+					},
+					"rendered": {
+						"raw": 144,
+						"gzip6": 132,
+						"gzip9": 133,
+						"br5": 108,
+						"br11": 105,
+						"zstd3": 122,
+						"zstd19": 120
+					}
+				},
+				{
+					"raw": {
+						"raw": 3565,
+						"gzip6": 814,
+						"gzip9": 810,
+						"br5": 735,
+						"br11": 661,
+						"zstd3": 844,
+						"zstd19": 814
+					},
+					"rendered": {
+						"raw": 148,
+						"gzip6": 132,
+						"gzip9": 132,
+						"br5": 103,
+						"br11": 96,
+						"zstd3": 122,
+						"zstd19": 118
+					}
+				},
+				{
+					"raw": {
+						"raw": 3594,
+						"gzip6": 861,
+						"gzip9": 856,
+						"br5": 775,
+						"br11": 715,
+						"zstd3": 892,
+						"zstd19": 866
+					},
+					"rendered": {
+						"raw": 163,
+						"gzip6": 143,
+						"gzip9": 142,
+						"br5": 111,
+						"br11": 114,
+						"zstd3": 132,
+						"zstd19": 132
+					}
+				},
+				{
+					"raw": {
+						"raw": 3560,
+						"gzip6": 834,
+						"gzip9": 831,
+						"br5": 755,
+						"br11": 691,
+						"zstd3": 865,
+						"zstd19": 843
+					},
+					"rendered": {
+						"raw": 146,
+						"gzip6": 125,
+						"gzip9": 126,
+						"br5": 98,
+						"br11": 102,
+						"zstd3": 113,
+						"zstd19": 110
+					}
+				},
+				{
+					"raw": {
+						"raw": 3537,
+						"gzip6": 801,
+						"gzip9": 797,
+						"br5": 726,
+						"br11": 663,
+						"zstd3": 830,
+						"zstd19": 808
+					},
+					"rendered": {
+						"raw": 134,
+						"gzip6": 121,
+						"gzip9": 121,
+						"br5": 96,
+						"br11": 105,
+						"zstd3": 109,
+						"zstd19": 106
+					}
+				},
+				{
+					"raw": {
+						"raw": 3561,
+						"gzip6": 849,
+						"gzip9": 842,
+						"br5": 771,
+						"br11": 699,
+						"zstd3": 879,
+						"zstd19": 853
+					},
+					"rendered": {
+						"raw": 146,
+						"gzip6": 134,
+						"gzip9": 134,
+						"br5": 110,
+						"br11": 115,
+						"zstd3": 125,
+						"zstd19": 123
+					}
+				},
+				{
+					"raw": {
+						"raw": 3831,
+						"gzip6": 934,
+						"gzip9": 926,
+						"br5": 845,
+						"br11": 759,
+						"zstd3": 974,
+						"zstd19": 942
+					},
+					"rendered": {
+						"raw": 197,
+						"gzip6": 170,
+						"gzip9": 170,
+						"br5": 142,
+						"br11": 127,
+						"zstd3": 163,
+						"zstd19": 160
+					}
+				},
+				{
+					"raw": {
+						"raw": 8000,
+						"gzip6": 1823,
+						"gzip9": 1818,
+						"br5": 1642,
+						"br11": 1439,
+						"zstd3": 1864,
+						"zstd19": 1788
+					},
+					"rendered": {
+						"raw": 2178,
+						"gzip6": 1034,
+						"gzip9": 1032,
+						"br5": 930,
+						"br11": 797,
+						"zstd3": 1053,
+						"zstd19": 1032
+					}
+				},
+				{
+					"raw": {
+						"raw": 5018,
+						"gzip6": 1143,
+						"gzip9": 1132,
+						"br5": 1025,
+						"br11": 918,
+						"zstd3": 1183,
+						"zstd19": 1135
+					},
+					"rendered": {
+						"raw": 779,
+						"gzip6": 376,
+						"gzip9": 372,
+						"br5": 320,
+						"br11": 291,
+						"zstd3": 373,
+						"zstd19": 375
+					}
+				},
+				{
+					"raw": {
+						"raw": 3527,
+						"gzip6": 838,
+						"gzip9": 833,
+						"br5": 764,
+						"br11": 702,
+						"zstd3": 867,
+						"zstd19": 841
+					},
+					"rendered": {
+						"raw": 136,
+						"gzip6": 127,
+						"gzip9": 128,
+						"br5": 107,
+						"br11": 99,
+						"zstd3": 116,
+						"zstd19": 112
+					}
+				},
+				{
+					"raw": {
+						"raw": 3545,
+						"gzip6": 834,
+						"gzip9": 830,
+						"br5": 758,
+						"br11": 693,
+						"zstd3": 864,
+						"zstd19": 840
+					},
+					"rendered": {
+						"raw": 138,
+						"gzip6": 126,
+						"gzip9": 126,
+						"br5": 99,
+						"br11": 96,
+						"zstd3": 115,
+						"zstd19": 113
+					}
+				},
+				{
+					"raw": {
+						"raw": 3545,
+						"gzip6": 836,
+						"gzip9": 828,
+						"br5": 751,
+						"br11": 698,
+						"zstd3": 867,
+						"zstd19": 839
+					},
+					"rendered": {
+						"raw": 138,
+						"gzip6": 128,
+						"gzip9": 128,
+						"br5": 100,
+						"br11": 120,
+						"zstd3": 117,
+						"zstd19": 115
+					}
+				},
+				{
+					"raw": {
+						"raw": 3587,
+						"gzip6": 848,
+						"gzip9": 840,
+						"br5": 766,
+						"br11": 689,
+						"zstd3": 879,
+						"zstd19": 849
+					},
+					"rendered": {
+						"raw": 152,
+						"gzip6": 133,
+						"gzip9": 133,
+						"br5": 106,
+						"br11": 98,
+						"zstd3": 122,
+						"zstd19": 119
+					}
+				},
+				{
+					"raw": {
+						"raw": 3591,
+						"gzip6": 841,
+						"gzip9": 834,
+						"br5": 758,
+						"br11": 688,
+						"zstd3": 876,
+						"zstd19": 845
+					},
+					"rendered": {
+						"raw": 154,
+						"gzip6": 135,
+						"gzip9": 136,
+						"br5": 103,
+						"br11": 97,
+						"zstd3": 123,
+						"zstd19": 121
+					}
+				},
+				{
+					"raw": {
+						"raw": 3552,
+						"gzip6": 841,
+						"gzip9": 838,
+						"br5": 768,
+						"br11": 698,
+						"zstd3": 870,
+						"zstd19": 844
+					},
+					"rendered": {
+						"raw": 134,
+						"gzip6": 122,
+						"gzip9": 119,
+						"br5": 98,
+						"br11": 104,
+						"zstd3": 112,
+						"zstd19": 109
+					}
+				},
+				{
+					"raw": {
+						"raw": 3564,
+						"gzip6": 853,
+						"gzip9": 850,
+						"br5": 778,
+						"br11": 704,
+						"zstd3": 882,
+						"zstd19": 859
+					},
+					"rendered": {
+						"raw": 140,
+						"gzip6": 129,
+						"gzip9": 132,
+						"br5": 106,
+						"br11": 101,
+						"zstd3": 120,
+						"zstd19": 119
+					}
+				},
+				{
+					"raw": {
+						"raw": 3561,
+						"gzip6": 846,
+						"gzip9": 840,
+						"br5": 774,
+						"br11": 707,
+						"zstd3": 878,
+						"zstd19": 851
+					},
+					"rendered": {
+						"raw": 146,
+						"gzip6": 132,
+						"gzip9": 133,
+						"br5": 109,
+						"br11": 107,
+						"zstd3": 124,
+						"zstd19": 125
+					}
+				},
+				{
+					"raw": {
+						"raw": 3515,
+						"gzip6": 830,
+						"gzip9": 825,
+						"br5": 758,
+						"br11": 688,
+						"zstd3": 860,
+						"zstd19": 836
+					},
+					"rendered": {
+						"raw": 122,
+						"gzip6": 114,
+						"gzip9": 116,
+						"br5": 94,
+						"br11": 100,
+						"zstd3": 107,
+						"zstd19": 106
+					}
+				},
+				{
+					"raw": {
+						"raw": 3533,
+						"gzip6": 837,
+						"gzip9": 829,
+						"br5": 763,
+						"br11": 695,
+						"zstd3": 866,
+						"zstd19": 843
+					},
+					"rendered": {
+						"raw": 131,
+						"gzip6": 124,
+						"gzip9": 123,
+						"br5": 101,
+						"br11": 107,
+						"zstd3": 113,
+						"zstd19": 110
+					}
+				},
+				{
+					"raw": {
+						"raw": 3540,
+						"gzip6": 832,
+						"gzip9": 826,
+						"br5": 762,
+						"br11": 688,
+						"zstd3": 860,
+						"zstd19": 840
+					},
+					"rendered": {
+						"raw": 142,
+						"gzip6": 129,
+						"gzip9": 128,
+						"br5": 107,
+						"br11": 95,
+						"zstd3": 117,
+						"zstd19": 115
+					}
+				},
+				{
+					"raw": {
+						"raw": 3514,
+						"gzip6": 833,
+						"gzip9": 824,
+						"br5": 752,
+						"br11": 697,
+						"zstd3": 862,
+						"zstd19": 838
+					},
+					"rendered": {
+						"raw": 114,
+						"gzip6": 117,
+						"gzip9": 113,
+						"br5": 90,
+						"br11": 92,
+						"zstd3": 107,
+						"zstd19": 103
+					}
+				},
+				{
+					"raw": {
+						"raw": 3487,
+						"gzip6": 824,
+						"gzip9": 817,
+						"br5": 749,
+						"br11": 681,
+						"zstd3": 852,
+						"zstd19": 829
+					},
+					"rendered": {
+						"raw": 108,
+						"gzip6": 107,
+						"gzip9": 107,
+						"br5": 88,
+						"br11": 87,
+						"zstd3": 96,
+						"zstd19": 93
+					}
+				},
+				{
+					"raw": {
+						"raw": 3511,
+						"gzip6": 826,
+						"gzip9": 822,
+						"br5": 752,
+						"br11": 679,
+						"zstd3": 858,
+						"zstd19": 833
+					},
+					"rendered": {
+						"raw": 120,
+						"gzip6": 114,
+						"gzip9": 115,
+						"br5": 89,
+						"br11": 93,
+						"zstd3": 104,
+						"zstd19": 101
+					}
+				},
+				{
+					"raw": {
+						"raw": 3516,
+						"gzip6": 827,
+						"gzip9": 824,
+						"br5": 745,
+						"br11": 679,
+						"zstd3": 858,
+						"zstd19": 832
+					},
+					"rendered": {
+						"raw": 116,
+						"gzip6": 109,
+						"gzip9": 110,
+						"br5": 91,
+						"br11": 85,
+						"zstd3": 101,
+						"zstd19": 100
+					}
+				},
+				{
+					"raw": {
+						"raw": 3601,
+						"gzip6": 854,
+						"gzip9": 844,
+						"br5": 780,
+						"br11": 709,
+						"zstd3": 883,
+						"zstd19": 860
+					},
+					"rendered": {
+						"raw": 158,
+						"gzip6": 141,
+						"gzip9": 140,
+						"br5": 126,
+						"br11": 115,
+						"zstd3": 131,
+						"zstd19": 128
+					}
+				},
+				{
+					"raw": {
+						"raw": 3521,
+						"gzip6": 827,
+						"gzip9": 817,
+						"br5": 743,
+						"br11": 682,
+						"zstd3": 856,
+						"zstd19": 831
+					},
+					"rendered": {
+						"raw": 118,
+						"gzip6": 109,
+						"gzip9": 109,
+						"br5": 90,
+						"br11": 87,
+						"zstd3": 102,
+						"zstd19": 100
+					}
+				},
+				{
+					"raw": {
+						"raw": 3519,
+						"gzip6": 834,
+						"gzip9": 828,
+						"br5": 758,
+						"br11": 698,
+						"zstd3": 866,
+						"zstd19": 838
+					},
+					"rendered": {
+						"raw": 124,
+						"gzip6": 120,
+						"gzip9": 120,
+						"br5": 95,
+						"br11": 97,
+						"zstd3": 112,
+						"zstd19": 109
+					}
+				},
+				{
+					"raw": {
+						"raw": 3544,
+						"gzip6": 832,
+						"gzip9": 825,
+						"br5": 759,
+						"br11": 692,
+						"zstd3": 864,
+						"zstd19": 837
+					},
+					"rendered": {
+						"raw": 129,
+						"gzip6": 123,
+						"gzip9": 123,
+						"br5": 104,
+						"br11": 107,
+						"zstd3": 112,
+						"zstd19": 110
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"drupal": "Drupal 11 (https://www.drupal.org)",
+			"jsonapi": false,
+			"shellLines": 1695,
+			"shell": {
+				"raw": 73336,
+				"gzip6": 7372,
+				"gzip9": 7209,
+				"br5": 6518,
+				"br11": 5654,
+				"zstd3": 7768,
+				"zstd19": 6716
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 1497794,
+					"gzip6": 915108,
+					"gzip9": 933863,
+					"br5": 905108,
+					"br11": 890744,
+					"zstd3": 914809,
+					"zstd19": 923810
+				},
+				"unique": {
+					"raw": 1425224,
+					"gzip6": 908544,
+					"gzip9": 927332,
+					"br5": 899247,
+					"br11": 885698,
+					"zstd3": 910097,
+					"zstd19": 915554
+				},
+				"uniqueLines": 1602,
+				"gaps": 237,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 899502,
+					"zstd19": 897043
+				},
+				"uniqueDict": {
+					"zstd3": 903009,
+					"zstd19": 914144
+				}
+			},
+			"pages": [
+				{
+					"path": "/about",
+					"document": {
+						"raw": 177978,
+						"gzip6": 22469,
+						"gzip9": 22310,
+						"br5": 19475,
+						"br11": 16870,
+						"zstd3": 22942,
+						"zstd19": 19302
+					},
+					"unique": {
+						"raw": 105414,
+						"gzip6": 16117,
+						"gzip9": 16116,
+						"br5": 14140,
+						"br11": 12250,
+						"zstd3": 16194,
+						"zstd19": 14043
+					},
+					"uniqueLines": 1448,
+					"gaps": 239,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 14993,
+						"zstd19": 10054
+					},
+					"uniqueDict": {
+						"zstd3": 12615,
+						"zstd19": 8320
+					}
+				},
+				{
+					"path": "/about/locations/middle-of-everywhere",
+					"document": {
+						"raw": 134258,
+						"gzip6": 18568,
+						"gzip9": 18468,
+						"br5": 16770,
+						"br11": 14644,
+						"zstd3": 19577,
+						"zstd19": 16739
+					},
+					"unique": {
+						"raw": 61700,
+						"gzip6": 12036,
+						"gzip9": 12067,
+						"br5": 10987,
+						"br11": 9720,
+						"zstd3": 12384,
+						"zstd19": 11099
+					},
+					"uniqueLines": 673,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 8028,
+						"zstd19": 6195
+					},
+					"uniqueDict": {
+						"zstd3": 8616,
+						"zstd19": 5426
+					}
+				},
+				{
+					"path": "/about/visit/plan-your-visit",
+					"document": {
+						"raw": 138887,
+						"gzip6": 17915,
+						"gzip9": 17808,
+						"br5": 16045,
+						"br11": 14039,
+						"zstd3": 18799,
+						"zstd19": 16009
+					},
+					"unique": {
+						"raw": 66329,
+						"gzip6": 11428,
+						"gzip9": 11441,
+						"br5": 10374,
+						"br11": 9180,
+						"zstd3": 11776,
+						"zstd19": 10476
+					},
+					"uniqueLines": 788,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7550,
+						"zstd19": 5761
+					},
+					"uniqueDict": {
+						"zstd3": 8162,
+						"zstd19": 4988
+					}
+				},
+				{
+					"path": "/about/student-safety/sexual-gender-based-violence",
+					"document": {
+						"raw": 125120,
+						"gzip6": 17187,
+						"gzip9": 17097,
+						"br5": 15408,
+						"br11": 13412,
+						"zstd3": 18194,
+						"zstd19": 15370
+					},
+					"unique": {
+						"raw": 52556,
+						"gzip6": 10799,
+						"gzip9": 10807,
+						"br5": 9730,
+						"br11": 8535,
+						"zstd3": 11030,
+						"zstd19": 9868
+					},
+					"uniqueLines": 410,
+					"gaps": 239,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7500,
+						"zstd19": 5956
+					},
+					"uniqueDict": {
+						"zstd3": 8287,
+						"zstd19": 5271
+					}
+				},
+				{
+					"path": "/admissions/undergraduate/first-year/requirements/international-baccalaureate-exam",
+					"document": {
+						"raw": 140308,
+						"gzip6": 16705,
+						"gzip9": 16567,
+						"br5": 13784,
+						"br11": 12059,
+						"zstd3": 16604,
+						"zstd19": 13886
+					},
+					"unique": {
+						"raw": 67741,
+						"gzip6": 10197,
+						"gzip9": 10162,
+						"br5": 8655,
+						"br11": 7482,
+						"zstd3": 10190,
+						"zstd19": 8661
+					},
+					"uniqueLines": 718,
+					"gaps": 238,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6255,
+						"zstd19": 4552
+					},
+					"uniqueDict": {
+						"zstd3": 7108,
+						"zstd19": 3739
+					}
+				},
+				{
+					"path": "/admissions/undergraduate/transfer/transfer-admission-guarantee/decisions",
+					"document": {
+						"raw": 149610,
+						"gzip6": 19194,
+						"gzip9": 19041,
+						"br5": 16206,
+						"br11": 14067,
+						"zstd3": 19315,
+						"zstd19": 16207
+					},
+					"unique": {
+						"raw": 77043,
+						"gzip6": 12751,
+						"gzip9": 12719,
+						"br5": 11153,
+						"br11": 9499,
+						"zstd3": 12938,
+						"zstd19": 11036
+					},
+					"uniqueLines": 718,
+					"gaps": 238,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9083,
+						"zstd19": 6908
+					},
+					"uniqueDict": {
+						"zstd3": 9858,
+						"zstd19": 6152
+					}
+				},
+				{
+					"path": "/admissions/transfer/major-requirements-college-letters-sciences",
+					"document": {
+						"raw": 143494,
+						"gzip6": 17647,
+						"gzip9": 17541,
+						"br5": 14833,
+						"br11": 12936,
+						"zstd3": 17777,
+						"zstd19": 14925
+					},
+					"unique": {
+						"raw": 70930,
+						"gzip6": 11218,
+						"gzip9": 11191,
+						"br5": 9779,
+						"br11": 8352,
+						"zstd3": 11436,
+						"zstd19": 9707
+					},
+					"uniqueLines": 720,
+					"gaps": 239,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7442,
+						"zstd19": 5519
+					},
+					"uniqueDict": {
+						"zstd3": 8318,
+						"zstd19": 4721
+					}
+				},
+				{
+					"path": "/admissions/undergraduate/apply/admitted-first-years",
+					"document": {
+						"raw": 128972,
+						"gzip6": 17115,
+						"gzip9": 17005,
+						"br5": 15289,
+						"br11": 13387,
+						"zstd3": 18166,
+						"zstd19": 15281
+					},
+					"unique": {
+						"raw": 56411,
+						"gzip6": 10549,
+						"gzip9": 10549,
+						"br5": 9643,
+						"br11": 8525,
+						"zstd3": 11012,
+						"zstd19": 9783
+					},
+					"uniqueLines": 633,
+					"gaps": 240,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7377,
+						"zstd19": 5696
+					},
+					"uniqueDict": {
+						"zstd3": 8098,
+						"zstd19": 5005
+					}
+				},
+				{
+					"path": "/admissions/undergraduate/parents",
+					"document": {
+						"raw": 132536,
+						"gzip6": 18576,
+						"gzip9": 18468,
+						"br5": 16778,
+						"br11": 14674,
+						"zstd3": 19849,
+						"zstd19": 16817
+					},
+					"unique": {
+						"raw": 59975,
+						"gzip6": 12306,
+						"gzip9": 12301,
+						"br5": 11326,
+						"br11": 9915,
+						"zstd3": 12825,
+						"zstd19": 11422
+					},
+					"uniqueLines": 706,
+					"gaps": 240,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9195,
+						"zstd19": 7208
+					},
+					"uniqueDict": {
+						"zstd3": 9997,
+						"zstd19": 6678
+					}
+				},
+				{
+					"path": "/undocumented-student-applicants",
+					"document": {
+						"raw": 124061,
+						"gzip6": 16167,
+						"gzip9": 16049,
+						"br5": 14453,
+						"br11": 12667,
+						"zstd3": 17124,
+						"zstd19": 14456
+					},
+					"unique": {
+						"raw": 51499,
+						"gzip6": 9671,
+						"gzip9": 9659,
+						"br5": 8742,
+						"br11": 7754,
+						"zstd3": 9989,
+						"zstd19": 8890
+					},
+					"uniqueLines": 543,
+					"gaps": 240,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6311,
+						"zstd19": 4885
+					},
+					"uniqueDict": {
+						"zstd3": 7080,
+						"zstd19": 4193
+					}
+				},
+				{
+					"path": "/colleges-and-schools/school-law",
+					"document": {
+						"raw": 112789,
+						"gzip6": 14486,
+						"gzip9": 14391,
+						"br5": 13035,
+						"br11": 11362,
+						"zstd3": 15518,
+						"zstd19": 13048
+					},
+					"unique": {
+						"raw": 40225,
+						"gzip6": 7911,
+						"gzip9": 7906,
+						"br5": 7159,
+						"br11": 6290,
+						"zstd3": 8134,
+						"zstd19": 7296
+					},
+					"uniqueLines": 326,
+					"gaps": 239,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4801,
+						"zstd19": 3648
+					},
+					"uniqueDict": {
+						"zstd3": 5357,
+						"zstd19": 2848
+					}
+				},
+				{
+					"path": "/academics/our-faculty",
+					"document": {
+						"raw": 149420,
+						"gzip6": 19900,
+						"gzip9": 19851,
+						"br5": 18012,
+						"br11": 15774,
+						"zstd3": 21167,
+						"zstd19": 17966
+					},
+					"unique": {
+						"raw": 76865,
+						"gzip6": 13308,
+						"gzip9": 13395,
+						"br5": 12284,
+						"br11": 10831,
+						"zstd3": 13961,
+						"zstd19": 12367
+					},
+					"uniqueLines": 1243,
+					"gaps": 242,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 10334,
+						"zstd19": 8109
+					},
+					"uniqueDict": {
+						"zstd3": 10887,
+						"zstd19": 7282
+					}
+				},
+				{
+					"path": "/research/discoveries/agricultural-discoveries/blazing-way-chardonnay",
+					"document": {
+						"raw": 124441,
+						"gzip6": 16382,
+						"gzip9": 16293,
+						"br5": 14777,
+						"br11": 12897,
+						"zstd3": 17488,
+						"zstd19": 14729
+					},
+					"unique": {
+						"raw": 51883,
+						"gzip6": 9869,
+						"gzip9": 9901,
+						"br5": 9049,
+						"br11": 7969,
+						"zstd3": 10310,
+						"zstd19": 9189
+					},
+					"uniqueLines": 533,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6714,
+						"zstd19": 5018
+					},
+					"uniqueDict": {
+						"zstd3": 7332,
+						"zstd19": 4263
+					}
+				},
+				{
+					"path": "/research/engineering-discoveries/giving-people-their-voice",
+					"document": {
+						"raw": 122836,
+						"gzip6": 16393,
+						"gzip9": 16306,
+						"br5": 14819,
+						"br11": 12887,
+						"zstd3": 17503,
+						"zstd19": 14752
+					},
+					"unique": {
+						"raw": 50278,
+						"gzip6": 9910,
+						"gzip9": 9930,
+						"br5": 9090,
+						"br11": 7950,
+						"zstd3": 10306,
+						"zstd19": 9209
+					},
+					"uniqueLines": 516,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6666,
+						"zstd19": 5028
+					},
+					"uniqueDict": {
+						"zstd3": 7238,
+						"zstd19": 4295
+					}
+				},
+				{
+					"path": "/research/discoveries/medical-discoveries/real-time-dna",
+					"document": {
+						"raw": 123241,
+						"gzip6": 16175,
+						"gzip9": 16076,
+						"br5": 14535,
+						"br11": 12663,
+						"zstd3": 17228,
+						"zstd19": 14481
+					},
+					"unique": {
+						"raw": 50683,
+						"gzip6": 9690,
+						"gzip9": 9701,
+						"br5": 8803,
+						"br11": 7770,
+						"zstd3": 10022,
+						"zstd19": 8934
+					},
+					"uniqueLines": 531,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6444,
+						"zstd19": 4775
+					},
+					"uniqueDict": {
+						"zstd3": 7024,
+						"zstd19": 4022
+					}
+				},
+				{
+					"path": "/campus-life/californias-college-town/the-college-tour",
+					"document": {
+						"raw": 186888,
+						"gzip6": 25827,
+						"gzip9": 25724,
+						"br5": 23507,
+						"br11": 20336,
+						"zstd3": 27382,
+						"zstd19": 23050
+					},
+					"unique": {
+						"raw": 114325,
+						"gzip6": 19281,
+						"gzip9": 19317,
+						"br5": 17785,
+						"br11": 15488,
+						"zstd3": 20126,
+						"zstd19": 17520
+					},
+					"uniqueLines": 1911,
+					"gaps": 241,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 16173,
+						"zstd19": 12822
+					},
+					"uniqueDict": {
+						"zstd3": 16809,
+						"zstd19": 12121
+					}
+				},
+				{
+					"path": "/campus-life/housing",
+					"document": {
+						"raw": 138999,
+						"gzip6": 17833,
+						"gzip9": 17735,
+						"br5": 16125,
+						"br11": 14086,
+						"zstd3": 19105,
+						"zstd19": 16161
+					},
+					"unique": {
+						"raw": 66429,
+						"gzip6": 11387,
+						"gzip9": 11417,
+						"br5": 10518,
+						"br11": 9209,
+						"zstd3": 11908,
+						"zstd19": 10589
+					},
+					"uniqueLines": 862,
+					"gaps": 237,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7851,
+						"zstd19": 6034
+					},
+					"uniqueDict": {
+						"zstd3": 8506,
+						"zstd19": 5191
+					}
+				},
+				{
+					"path": "/magazine",
+					"document": {
+						"raw": 141140,
+						"gzip6": 18841,
+						"gzip9": 18755,
+						"br5": 17126,
+						"br11": 14981,
+						"zstd3": 20149,
+						"zstd19": 17120
+					},
+					"unique": {
+						"raw": 68584,
+						"gzip6": 12383,
+						"gzip9": 12414,
+						"br5": 11424,
+						"br11": 10075,
+						"zstd3": 13001,
+						"zstd19": 11556
+					},
+					"uniqueLines": 980,
+					"gaps": 242,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9407,
+						"zstd19": 7470
+					},
+					"uniqueDict": {
+						"zstd3": 10076,
+						"zstd19": 6767
+					}
+				},
+				{
+					"path": "/food/news/buying-better-olive-avocado-oil",
+					"document": {
+						"raw": 124210,
+						"gzip6": 18177,
+						"gzip9": 18075,
+						"br5": 16424,
+						"br11": 14284,
+						"zstd3": 19301,
+						"zstd19": 16407
+					},
+					"unique": {
+						"raw": 51654,
+						"gzip6": 11738,
+						"gzip9": 11776,
+						"br5": 10695,
+						"br11": 9352,
+						"zstd3": 12045,
+						"zstd19": 10821
+					},
+					"uniqueLines": 423,
+					"gaps": 242,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 8504,
+						"zstd19": 6951
+					},
+					"uniqueDict": {
+						"zstd3": 9284,
+						"zstd19": 6243
+					}
+				},
+				{
+					"path": "/news/rankings-recognize-global-leadership-uc-davis-0",
+					"document": {
+						"raw": 120797,
+						"gzip6": 16895,
+						"gzip9": 16775,
+						"br5": 15128,
+						"br11": 13102,
+						"zstd3": 17897,
+						"zstd19": 15154
+					},
+					"unique": {
+						"raw": 48241,
+						"gzip6": 10424,
+						"gzip9": 10426,
+						"br5": 9374,
+						"br11": 8117,
+						"zstd3": 10632,
+						"zstd19": 9525
+					},
+					"uniqueLines": 366,
+					"gaps": 242,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7150,
+						"zstd19": 5791
+					},
+					"uniqueDict": {
+						"zstd3": 7946,
+						"zstd19": 5062
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"drupal": "Drupal 10 (https://www.drupal.org)",
+			"jsonapi": true,
+			"shellLines": 1682,
+			"shell": {
+				"raw": 96985,
+				"gzip6": 14092,
+				"gzip9": 13165,
+				"br5": 11329,
+				"br11": 9944,
+				"zstd3": 13258,
+				"zstd19": 11503
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 193061,
+					"gzip6": 28973,
+					"gzip9": 27719,
+					"br5": 24359,
+					"br11": 21325,
+					"zstd3": 28011,
+					"zstd19": 24249
+				},
+				"unique": {
+					"raw": 96447,
+					"gzip6": 16170,
+					"gzip9": 16160,
+					"br5": 14832,
+					"br11": 13162,
+					"zstd3": 16889,
+					"zstd19": 14871
+				},
+				"uniqueLines": 2253,
+				"gaps": 108,
+				"outlier": false,
+				"documentDict": {
+					"zstd3": 13246,
+					"zstd19": 10576
+				},
+				"uniqueDict": {
+					"zstd3": 13396,
+					"zstd19": 10749
+				}
+			},
+			"pages": [
+				{
+					"path": "/info/prospective-students-parents",
+					"document": {
+						"raw": 140688,
+						"gzip6": 21165,
+						"gzip9": 19881,
+						"br5": 17148,
+						"br11": 15089,
+						"zstd3": 19902,
+						"zstd19": 17270
+					},
+					"unique": {
+						"raw": 44041,
+						"gzip6": 7236,
+						"gzip9": 7255,
+						"br5": 6689,
+						"br11": 6002,
+						"zstd3": 7603,
+						"zstd19": 6852
+					},
+					"uniqueLines": 1017,
+					"gaps": 97,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4623,
+						"zstd19": 3351
+					},
+					"uniqueDict": {
+						"zstd3": 4932,
+						"zstd19": 3657
+					}
+				},
+				{
+					"path": "/why-work-rutgers",
+					"document": {
+						"raw": 142940,
+						"gzip6": 22192,
+						"gzip9": 20895,
+						"br5": 17940,
+						"br11": 15773,
+						"zstd3": 20796,
+						"zstd19": 18120
+					},
+					"unique": {
+						"raw": 46283,
+						"gzip6": 8119,
+						"gzip9": 8175,
+						"br5": 7471,
+						"br11": 6629,
+						"zstd3": 8574,
+						"zstd19": 7740
+					},
+					"uniqueLines": 1144,
+					"gaps": 94,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5454,
+						"zstd19": 4392
+					},
+					"uniqueDict": {
+						"zstd3": 5979,
+						"zstd19": 4678
+					}
+				},
+				{
+					"path": "/about-rutgers",
+					"document": {
+						"raw": 189756,
+						"gzip6": 28611,
+						"gzip9": 27331,
+						"br5": 23790,
+						"br11": 20576,
+						"zstd3": 27360,
+						"zstd19": 23637
+					},
+					"unique": {
+						"raw": 93123,
+						"gzip6": 14468,
+						"gzip9": 14449,
+						"br5": 13224,
+						"br11": 11557,
+						"zstd3": 15025,
+						"zstd19": 13345
+					},
+					"uniqueLines": 2126,
+					"gaps": 102,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 12027,
+						"zstd19": 9421
+					},
+					"uniqueDict": {
+						"zstd3": 12264,
+						"zstd19": 9654
+					}
+				},
+				{
+					"path": "/internships",
+					"document": {
+						"raw": 161970,
+						"gzip6": 25432,
+						"gzip9": 24215,
+						"br5": 21215,
+						"br11": 18543,
+						"zstd3": 24476,
+						"zstd19": 21202
+					},
+					"unique": {
+						"raw": 65341,
+						"gzip6": 11421,
+						"gzip9": 11482,
+						"br5": 10579,
+						"br11": 9338,
+						"zstd3": 12047,
+						"zstd19": 10762
+					},
+					"uniqueLines": 1438,
+					"gaps": 103,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 9306,
+						"zstd19": 7091
+					},
+					"uniqueDict": {
+						"zstd3": 9528,
+						"zstd19": 7359
+					}
+				},
+				{
+					"path": "/about/by-the-numbers",
+					"document": {
+						"raw": 178405,
+						"gzip6": 24428,
+						"gzip9": 23178,
+						"br5": 19212,
+						"br11": 16828,
+						"zstd3": 22302,
+						"zstd19": 19366
+					},
+					"unique": {
+						"raw": 81749,
+						"gzip6": 10322,
+						"gzip9": 10351,
+						"br5": 8641,
+						"br11": 7669,
+						"zstd3": 9932,
+						"zstd19": 8928
+					},
+					"uniqueLines": 1265,
+					"gaps": 94,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6723,
+						"zstd19": 4996
+					},
+					"uniqueDict": {
+						"zstd3": 7081,
+						"zstd19": 5306
+					}
+				},
+				{
+					"path": "/about/budget-facts",
+					"document": {
+						"raw": 124125,
+						"gzip6": 19348,
+						"gzip9": 18071,
+						"br5": 15641,
+						"br11": 13730,
+						"zstd3": 18244,
+						"zstd19": 15789
+					},
+					"unique": {
+						"raw": 27469,
+						"gzip6": 5460,
+						"gzip9": 5481,
+						"br5": 5031,
+						"br11": 4436,
+						"zstd3": 5795,
+						"zstd19": 5262
+					},
+					"uniqueLines": 630,
+					"gaps": 94,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2825,
+						"zstd19": 1970
+					},
+					"uniqueDict": {
+						"zstd3": 3252,
+						"zstd19": 2281
+					}
+				},
+				{
+					"path": "/academics/undergraduate",
+					"document": {
+						"raw": 146901,
+						"gzip6": 22540,
+						"gzip9": 21221,
+						"br5": 18418,
+						"br11": 16248,
+						"zstd3": 21586,
+						"zstd19": 18516
+					},
+					"unique": {
+						"raw": 50260,
+						"gzip6": 8543,
+						"gzip9": 8545,
+						"br5": 7881,
+						"br11": 7045,
+						"zstd3": 9034,
+						"zstd19": 8051
+					},
+					"uniqueLines": 1426,
+					"gaps": 99,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5928,
+						"zstd19": 4399
+					},
+					"uniqueDict": {
+						"zstd3": 6440,
+						"zstd19": 4719
+					}
+				},
+				{
+					"path": "/academics/explore-graduate-professional-programs",
+					"document": {
+						"raw": 131554,
+						"gzip6": 20257,
+						"gzip9": 18938,
+						"br5": 16568,
+						"br11": 14492,
+						"zstd3": 18944,
+						"zstd19": 16501
+					},
+					"unique": {
+						"raw": 34912,
+						"gzip6": 6464,
+						"gzip9": 6431,
+						"br5": 5941,
+						"br11": 5328,
+						"zstd3": 6747,
+						"zstd19": 6101
+					},
+					"uniqueLines": 700,
+					"gaps": 99,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4504,
+						"zstd19": 3653
+					},
+					"uniqueDict": {
+						"zstd3": 4874,
+						"zstd19": 3907
+					}
+				},
+				{
+					"path": "/student-support",
+					"document": {
+						"raw": 165292,
+						"gzip6": 24175,
+						"gzip9": 22836,
+						"br5": 19817,
+						"br11": 17221,
+						"zstd3": 23023,
+						"zstd19": 19875
+					},
+					"unique": {
+						"raw": 68645,
+						"gzip6": 10073,
+						"gzip9": 10085,
+						"br5": 9157,
+						"br11": 8019,
+						"zstd3": 10529,
+						"zstd19": 9359
+					},
+					"uniqueLines": 2053,
+					"gaps": 97,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 7797,
+						"zstd19": 6016
+					},
+					"uniqueDict": {
+						"zstd3": 8269,
+						"zstd19": 6240
+					}
+				},
+				{
+					"path": "/academics/statewide-at-your-community-college",
+					"document": {
+						"raw": 129741,
+						"gzip6": 19728,
+						"gzip9": 18423,
+						"br5": 15939,
+						"br11": 14050,
+						"zstd3": 18650,
+						"zstd19": 16079
+					},
+					"unique": {
+						"raw": 33087,
+						"gzip6": 6014,
+						"gzip9": 6041,
+						"br5": 5548,
+						"br11": 4938,
+						"zstd3": 6433,
+						"zstd19": 5783
+					},
+					"uniqueLines": 985,
+					"gaps": 95,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3312,
+						"zstd19": 2386
+					},
+					"uniqueDict": {
+						"zstd3": 3793,
+						"zstd19": 2713
+					}
+				},
+				{
+					"path": "/admissions-tuition/getting-ready-for-rutgers",
+					"document": {
+						"raw": 175270,
+						"gzip6": 24066,
+						"gzip9": 22691,
+						"br5": 19198,
+						"br11": 16829,
+						"zstd3": 22268,
+						"zstd19": 19302
+					},
+					"unique": {
+						"raw": 78617,
+						"gzip6": 9995,
+						"gzip9": 9947,
+						"br5": 8641,
+						"br11": 7616,
+						"zstd3": 9880,
+						"zstd19": 8860
+					},
+					"uniqueLines": 1613,
+					"gaps": 95,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 6637,
+						"zstd19": 5091
+					},
+					"uniqueDict": {
+						"zstd3": 6956,
+						"zstd19": 5382
+					}
+				},
+				{
+					"path": "/newark",
+					"document": {
+						"raw": 210658,
+						"gzip6": 28936,
+						"gzip9": 27602,
+						"br5": 24152,
+						"br11": 21261,
+						"zstd3": 27943,
+						"zstd19": 24131
+					},
+					"unique": {
+						"raw": 114025,
+						"gzip6": 15221,
+						"gzip9": 15209,
+						"br5": 13901,
+						"br11": 12255,
+						"zstd3": 15805,
+						"zstd19": 13911
+					},
+					"uniqueLines": 2422,
+					"gaps": 102,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 12403,
+						"zstd19": 9558
+					},
+					"uniqueDict": {
+						"zstd3": 12761,
+						"zstd19": 9816
+					}
+				},
+				{
+					"path": "/experience/show-your-pride",
+					"document": {
+						"raw": 125101,
+						"gzip6": 19936,
+						"gzip9": 18694,
+						"br5": 16211,
+						"br11": 14402,
+						"zstd3": 18891,
+						"zstd19": 16324
+					},
+					"unique": {
+						"raw": 28442,
+						"gzip6": 6163,
+						"gzip9": 6186,
+						"br5": 5695,
+						"br11": 5125,
+						"zstd3": 6528,
+						"zstd19": 5944
+					},
+					"uniqueLines": 586,
+					"gaps": 97,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3818,
+						"zstd19": 2927
+					},
+					"uniqueDict": {
+						"zstd3": 4113,
+						"zstd19": 3176
+					}
+				},
+				{
+					"path": "/picture-yourself-at-rutgers",
+					"document": {
+						"raw": 142834,
+						"gzip6": 21346,
+						"gzip9": 20023,
+						"br5": 17291,
+						"br11": 15148,
+						"zstd3": 20046,
+						"zstd19": 17410
+					},
+					"unique": {
+						"raw": 46196,
+						"gzip6": 7279,
+						"gzip9": 7281,
+						"br5": 6667,
+						"br11": 5852,
+						"zstd3": 7461,
+						"zstd19": 6858
+					},
+					"uniqueLines": 719,
+					"gaps": 100,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5306,
+						"zstd19": 4149
+					},
+					"uniqueDict": {
+						"zstd3": 5489,
+						"zstd19": 4399
+					}
+				},
+				{
+					"path": "/student-immunizations",
+					"document": {
+						"raw": 120852,
+						"gzip6": 19073,
+						"gzip9": 17794,
+						"br5": 15657,
+						"br11": 13777,
+						"zstd3": 18186,
+						"zstd19": 15713
+					},
+					"unique": {
+						"raw": 24202,
+						"gzip6": 5536,
+						"gzip9": 5530,
+						"br5": 5144,
+						"br11": 4626,
+						"zstd3": 5848,
+						"zstd19": 5348
+					},
+					"uniqueLines": 427,
+					"gaps": 96,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3337,
+						"zstd19": 2609
+					},
+					"uniqueDict": {
+						"zstd3": 3767,
+						"zstd19": 2917
+					}
+				},
+				{
+					"path": "/events/health-and-wellness",
+					"document": {
+						"raw": 109378,
+						"gzip6": 16928,
+						"gzip9": 15652,
+						"br5": 13568,
+						"br11": 11972,
+						"zstd3": 15819,
+						"zstd19": 13717
+					},
+					"unique": {
+						"raw": 12725,
+						"gzip6": 3182,
+						"gzip9": 3183,
+						"br5": 2901,
+						"br11": 2605,
+						"zstd3": 3319,
+						"zstd19": 3089
+					},
+					"uniqueLines": 199,
+					"gaps": 95,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1275,
+						"zstd19": 849
+					},
+					"uniqueDict": {
+						"zstd3": 1641,
+						"zstd19": 1160
+					}
+				},
+				{
+					"path": "/events/community",
+					"document": {
+						"raw": 120744,
+						"gzip6": 17902,
+						"gzip9": 16637,
+						"br5": 14427,
+						"br11": 12709,
+						"zstd3": 16853,
+						"zstd19": 14573
+					},
+					"unique": {
+						"raw": 24109,
+						"gzip6": 4303,
+						"gzip9": 4302,
+						"br5": 3920,
+						"br11": 3524,
+						"zstd3": 4584,
+						"zstd19": 4115
+					},
+					"uniqueLines": 804,
+					"gaps": 101,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2120,
+						"zstd19": 1510
+					},
+					"uniqueDict": {
+						"zstd3": 2569,
+						"zstd19": 1841
+					}
+				},
+				{
+					"path": "/news/university-celebrates-eva-andreis-kavli-prize-and-career-discovery",
+					"document": {
+						"raw": 161644,
+						"gzip6": 29003,
+						"gzip9": 27760,
+						"br5": 24278,
+						"br11": 21097,
+						"zstd3": 27666,
+						"zstd19": 24178
+					},
+					"unique": {
+						"raw": 65013,
+						"gzip6": 15308,
+						"gzip9": 15257,
+						"br5": 14224,
+						"br11": 12484,
+						"zstd3": 16025,
+						"zstd19": 14386
+					},
+					"uniqueLines": 1237,
+					"gaps": 103,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 12717,
+						"zstd19": 10764
+					},
+					"uniqueDict": {
+						"zstd3": 13169,
+						"zstd19": 11034
+					}
+				},
+				{
+					"path": "/news/categories/health",
+					"document": {
+						"raw": 181707,
+						"gzip6": 31645,
+						"gzip9": 30346,
+						"br5": 26460,
+						"br11": 23218,
+						"zstd3": 30295,
+						"zstd19": 26302
+					},
+					"unique": {
+						"raw": 85074,
+						"gzip6": 18015,
+						"gzip9": 17824,
+						"br5": 16202,
+						"br11": 14517,
+						"zstd3": 18357,
+						"zstd19": 16353
+					},
+					"uniqueLines": 1854,
+					"gaps": 102,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 15545,
+						"zstd19": 13315
+					},
+					"uniqueDict": {
+						"zstd3": 16034,
+						"zstd19": 13595
+					}
+				},
+				{
+					"path": "/contact-us",
+					"document": {
+						"raw": 137856,
+						"gzip6": 20801,
+						"gzip9": 19467,
+						"br5": 16953,
+						"br11": 14860,
+						"zstd3": 19762,
+						"zstd19": 16990
+					},
+					"unique": {
+						"raw": 41217,
+						"gzip6": 7047,
+						"gzip9": 7059,
+						"br5": 6546,
+						"br11": 5716,
+						"zstd3": 7556,
+						"zstd19": 6702
+					},
+					"uniqueLines": 1499,
+					"gaps": 100,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4951,
+						"zstd19": 3723
+					},
+					"uniqueDict": {
+						"zstd3": 5396,
+						"zstd19": 4021
+					}
+				}
+			],
+			"nodeSample": [
+				{
+					"raw": {
+						"raw": 38794,
+						"gzip6": 5173,
+						"gzip9": 5138,
+						"br5": 4718,
+						"br11": 4361,
+						"zstd3": 5016,
+						"zstd19": 4712
+					},
+					"rendered": {
+						"raw": 8081,
+						"gzip6": 2918,
+						"gzip9": 2920,
+						"br5": 2836,
+						"br11": 2701,
+						"zstd3": 2944,
+						"zstd19": 2761
+					}
+				},
+				{
+					"raw": {
+						"raw": 33544,
+						"gzip6": 4747,
+						"gzip9": 4721,
+						"br5": 4450,
+						"br11": 4050,
+						"zstd3": 4666,
+						"zstd19": 4420
+					},
+					"rendered": {
+						"raw": 6868,
+						"gzip6": 2652,
+						"gzip9": 2665,
+						"br5": 2594,
+						"br11": 2429,
+						"zstd3": 2660,
+						"zstd19": 2538
+					}
+				},
+				{
+					"raw": {
+						"raw": 34968,
+						"gzip6": 4903,
+						"gzip9": 4878,
+						"br5": 4569,
+						"br11": 4209,
+						"zstd3": 4843,
+						"zstd19": 4572
+					},
+					"rendered": {
+						"raw": 7165,
+						"gzip6": 2770,
+						"gzip9": 2775,
+						"br5": 2691,
+						"br11": 2541,
+						"zstd3": 2772,
+						"zstd19": 2629
+					}
+				},
+				{
+					"raw": {
+						"raw": 36460,
+						"gzip6": 5228,
+						"gzip9": 5222,
+						"br5": 4824,
+						"br11": 4397,
+						"zstd3": 5094,
+						"zstd19": 4801
+					},
+					"rendered": {
+						"raw": 7716,
+						"gzip6": 2936,
+						"gzip9": 2923,
+						"br5": 2881,
+						"br11": 2697,
+						"zstd3": 2944,
+						"zstd19": 2793
+					}
+				},
+				{
+					"raw": {
+						"raw": 35171,
+						"gzip6": 4921,
+						"gzip9": 4898,
+						"br5": 4605,
+						"br11": 4206,
+						"zstd3": 4872,
+						"zstd19": 4585
+					},
+					"rendered": {
+						"raw": 7145,
+						"gzip6": 2752,
+						"gzip9": 2742,
+						"br5": 2667,
+						"br11": 2518,
+						"zstd3": 2758,
+						"zstd19": 2615
+					}
+				},
+				{
+					"raw": {
+						"raw": 9482,
+						"gzip6": 1973,
+						"gzip9": 1969,
+						"br5": 1840,
+						"br11": 1644,
+						"zstd3": 2063,
+						"zstd19": 1955
+					},
+					"rendered": {
+						"raw": 655,
+						"gzip6": 424,
+						"gzip9": 426,
+						"br5": 371,
+						"br11": 348,
+						"zstd3": 427,
+						"zstd19": 422
+					}
+				},
+				{
+					"raw": {
+						"raw": 13482,
+						"gzip6": 2729,
+						"gzip9": 2729,
+						"br5": 2516,
+						"br11": 2192,
+						"zstd3": 2825,
+						"zstd19": 2678
+					},
+					"rendered": {
+						"raw": 2741,
+						"gzip6": 1194,
+						"gzip9": 1192,
+						"br5": 1077,
+						"br11": 928,
+						"zstd3": 1235,
+						"zstd19": 1193
+					}
+				},
+				{
+					"raw": {
+						"raw": 15287,
+						"gzip6": 3369,
+						"gzip9": 3346,
+						"br5": 3104,
+						"br11": 2570,
+						"zstd3": 3445,
+						"zstd19": 3261
+					},
+					"rendered": {
+						"raw": 3729,
+						"gzip6": 1782,
+						"gzip9": 1770,
+						"br5": 1615,
+						"br11": 1268,
+						"zstd3": 1817,
+						"zstd19": 1761
+					}
+				},
+				{
+					"raw": {
+						"raw": 14716,
+						"gzip6": 3191,
+						"gzip9": 3196,
+						"br5": 2936,
+						"br11": 2478,
+						"zstd3": 3280,
+						"zstd19": 3108
+					},
+					"rendered": {
+						"raw": 3558,
+						"gzip6": 1632,
+						"gzip9": 1634,
+						"br5": 1473,
+						"br11": 1182,
+						"zstd3": 1674,
+						"zstd19": 1609
+					}
+				},
+				{
+					"raw": {
+						"raw": 13313,
+						"gzip6": 2960,
+						"gzip9": 2966,
+						"br5": 2731,
+						"br11": 2306,
+						"zstd3": 3047,
+						"zstd19": 2897
+					},
+					"rendered": {
+						"raw": 2894,
+						"gzip6": 1414,
+						"gzip9": 1416,
+						"br5": 1261,
+						"br11": 1044,
+						"zstd3": 1452,
+						"zstd19": 1403
+					}
+				},
+				{
+					"raw": {
+						"raw": 24222,
+						"gzip6": 4975,
+						"gzip9": 4973,
+						"br5": 4563,
+						"br11": 3843,
+						"zstd3": 5093,
+						"zstd19": 4768
+					},
+					"rendered": {
+						"raw": 8239,
+						"gzip6": 3337,
+						"gzip9": 3339,
+						"br5": 3068,
+						"br11": 2511,
+						"zstd3": 3432,
+						"zstd19": 3260
+					}
+				},
+				{
+					"raw": {
+						"raw": 14090,
+						"gzip6": 3068,
+						"gzip9": 3074,
+						"br5": 2833,
+						"br11": 2392,
+						"zstd3": 3150,
+						"zstd19": 2991
+					},
+					"rendered": {
+						"raw": 3299,
+						"gzip6": 1526,
+						"gzip9": 1529,
+						"br5": 1391,
+						"br11": 1113,
+						"zstd3": 1571,
+						"zstd19": 1511
+					}
+				},
+				{
+					"raw": {
+						"raw": 14757,
+						"gzip6": 2623,
+						"gzip9": 2626,
+						"br5": 2451,
+						"br11": 2119,
+						"zstd3": 2783,
+						"zstd19": 2590
+					},
+					"rendered": {
+						"raw": 3633,
+						"gzip6": 1013,
+						"gzip9": 1012,
+						"br5": 905,
+						"br11": 781,
+						"zstd3": 1058,
+						"zstd19": 1012
+					}
+				},
+				{
+					"raw": {
+						"raw": 27375,
+						"gzip6": 5558,
+						"gzip9": 5581,
+						"br5": 5136,
+						"br11": 4211,
+						"zstd3": 5640,
+						"zstd19": 5321
+					},
+					"rendered": {
+						"raw": 9686,
+						"gzip6": 3897,
+						"gzip9": 3911,
+						"br5": 3656,
+						"br11": 2895,
+						"zstd3": 4011,
+						"zstd19": 3823
+					}
+				},
+				{
+					"raw": {
+						"raw": 12241,
+						"gzip6": 2750,
+						"gzip9": 2764,
+						"br5": 2536,
+						"br11": 2171,
+						"zstd3": 2839,
+						"zstd19": 2702
+					},
+					"rendered": {
+						"raw": 2331,
+						"gzip6": 1192,
+						"gzip9": 1201,
+						"br5": 1072,
+						"br11": 893,
+						"zstd3": 1222,
+						"zstd19": 1188
+					}
+				},
+				{
+					"raw": {
+						"raw": 12736,
+						"gzip6": 2780,
+						"gzip9": 2790,
+						"br5": 2571,
+						"br11": 2168,
+						"zstd3": 2862,
+						"zstd19": 2731
+					},
+					"rendered": {
+						"raw": 2577,
+						"gzip6": 1235,
+						"gzip9": 1238,
+						"br5": 1133,
+						"br11": 894,
+						"zstd3": 1274,
+						"zstd19": 1229
+					}
+				},
+				{
+					"raw": {
+						"raw": 12992,
+						"gzip6": 2960,
+						"gzip9": 2952,
+						"br5": 2727,
+						"br11": 2288,
+						"zstd3": 3046,
+						"zstd19": 2900
+					},
+					"rendered": {
+						"raw": 2653,
+						"gzip6": 1396,
+						"gzip9": 1390,
+						"br5": 1264,
+						"br11": 1017,
+						"zstd3": 1430,
+						"zstd19": 1389
+					}
+				},
+				{
+					"raw": {
+						"raw": 16218,
+						"gzip6": 3543,
+						"gzip9": 3528,
+						"br5": 3279,
+						"br11": 2760,
+						"zstd3": 3620,
+						"zstd19": 3449
+					},
+					"rendered": {
+						"raw": 4274,
+						"gzip6": 1954,
+						"gzip9": 1958,
+						"br5": 1795,
+						"br11": 1460,
+						"zstd3": 2002,
+						"zstd19": 1945
+					}
+				},
+				{
+					"raw": {
+						"raw": 20654,
+						"gzip6": 4606,
+						"gzip9": 4613,
+						"br5": 4261,
+						"br11": 3493,
+						"zstd3": 4678,
+						"zstd19": 4444
+					},
+					"rendered": {
+						"raw": 6567,
+						"gzip6": 2976,
+						"gzip9": 2984,
+						"br5": 2761,
+						"br11": 2164,
+						"zstd3": 3047,
+						"zstd19": 2916
+					}
+				},
+				{
+					"raw": {
+						"raw": 13368,
+						"gzip6": 2827,
+						"gzip9": 2820,
+						"br5": 2619,
+						"br11": 2230,
+						"zstd3": 2912,
+						"zstd19": 2761
+					},
+					"rendered": {
+						"raw": 2841,
+						"gzip6": 1284,
+						"gzip9": 1274,
+						"br5": 1168,
+						"br11": 973,
+						"zstd3": 1327,
+						"zstd19": 1283
+					}
+				},
+				{
+					"raw": {
+						"raw": 23747,
+						"gzip6": 4891,
+						"gzip9": 4933,
+						"br5": 4549,
+						"br11": 3700,
+						"zstd3": 5099,
+						"zstd19": 4746
+					},
+					"rendered": {
+						"raw": 7958,
+						"gzip6": 3206,
+						"gzip9": 3240,
+						"br5": 2951,
+						"br11": 2298,
+						"zstd3": 3310,
+						"zstd19": 3139
+					}
+				},
+				{
+					"raw": {
+						"raw": 15597,
+						"gzip6": 3598,
+						"gzip9": 3586,
+						"br5": 3309,
+						"br11": 2712,
+						"zstd3": 3663,
+						"zstd19": 3498
+					},
+					"rendered": {
+						"raw": 4029,
+						"gzip6": 2015,
+						"gzip9": 2017,
+						"br5": 1859,
+						"br11": 1430,
+						"zstd3": 2056,
+						"zstd19": 2005
+					}
+				},
+				{
+					"raw": {
+						"raw": 15524,
+						"gzip6": 3616,
+						"gzip9": 3602,
+						"br5": 3354,
+						"br11": 2806,
+						"zstd3": 3709,
+						"zstd19": 3519
+					},
+					"rendered": {
+						"raw": 3968,
+						"gzip6": 2023,
+						"gzip9": 2015,
+						"br5": 1874,
+						"br11": 1493,
+						"zstd3": 2067,
+						"zstd19": 2004
+					}
+				},
+				{
+					"raw": {
+						"raw": 11257,
+						"gzip6": 2588,
+						"gzip9": 2584,
+						"br5": 2403,
+						"br11": 1986,
+						"zstd3": 2666,
+						"zstd19": 2551
+					},
+					"rendered": {
+						"raw": 1865,
+						"gzip6": 1045,
+						"gzip9": 1035,
+						"br5": 949,
+						"br11": 721,
+						"zstd3": 1065,
+						"zstd19": 1044
+					}
+				},
+				{
+					"raw": {
+						"raw": 18955,
+						"gzip6": 4167,
+						"gzip9": 4190,
+						"br5": 3886,
+						"br11": 3229,
+						"zstd3": 4269,
+						"zstd19": 4018
+					},
+					"rendered": {
+						"raw": 5709,
+						"gzip6": 2548,
+						"gzip9": 2558,
+						"br5": 2385,
+						"br11": 1907,
+						"zstd3": 2605,
+						"zstd19": 2499
+					}
+				},
+				{
+					"raw": {
+						"raw": 10824,
+						"gzip6": 2478,
+						"gzip9": 2483,
+						"br5": 2277,
+						"br11": 1955,
+						"zstd3": 2549,
+						"zstd19": 2442
+					},
+					"rendered": {
+						"raw": 1603,
+						"gzip6": 940,
+						"gzip9": 942,
+						"br5": 837,
+						"br11": 689,
+						"zstd3": 955,
+						"zstd19": 943
+					}
+				},
+				{
+					"raw": {
+						"raw": 11272,
+						"gzip6": 2433,
+						"gzip9": 2443,
+						"br5": 2256,
+						"br11": 1931,
+						"zstd3": 2513,
+						"zstd19": 2399
+					},
+					"rendered": {
+						"raw": 1875,
+						"gzip6": 908,
+						"gzip9": 913,
+						"br5": 818,
+						"br11": 670,
+						"zstd3": 931,
+						"zstd19": 912
+					}
+				},
+				{
+					"raw": {
+						"raw": 9385,
+						"gzip6": 2052,
+						"gzip9": 2052,
+						"br5": 1897,
+						"br11": 1658,
+						"zstd3": 2127,
+						"zstd19": 2030
+					},
+					"rendered": {
+						"raw": 900,
+						"gzip6": 537,
+						"gzip9": 534,
+						"br5": 475,
+						"br11": 402,
+						"zstd3": 541,
+						"zstd19": 537
+					}
+				},
+				{
+					"raw": {
+						"raw": 11869,
+						"gzip6": 2631,
+						"gzip9": 2637,
+						"br5": 2426,
+						"br11": 2101,
+						"zstd3": 2715,
+						"zstd19": 2584
+					},
+					"rendered": {
+						"raw": 2154,
+						"gzip6": 1100,
+						"gzip9": 1104,
+						"br5": 993,
+						"br11": 846,
+						"zstd3": 1129,
+						"zstd19": 1109
+					}
+				},
+				{
+					"raw": {
+						"raw": 15701,
+						"gzip6": 3625,
+						"gzip9": 3619,
+						"br5": 3377,
+						"br11": 2882,
+						"zstd3": 3777,
+						"zstd19": 3561
+					},
+					"rendered": {
+						"raw": 3973,
+						"gzip6": 1935,
+						"gzip9": 1923,
+						"br5": 1765,
+						"br11": 1460,
+						"zstd3": 1990,
+						"zstd19": 1921
+					}
+				}
+			],
+			"excluded": []
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"drupal": "markup only",
+			"jsonapi": false,
+			"shellLines": 360,
+			"shell": {
+				"raw": 31642,
+				"gzip6": 8688,
+				"gzip9": 8625,
+				"br5": 7947,
+				"br11": 7148,
+				"zstd3": 8983,
+				"zstd19": 8186
+			},
+			"home": {
+				"path": "/",
+				"document": {
+					"raw": 48010,
+					"gzip6": 11782,
+					"gzip9": 11662,
+					"br5": 10711,
+					"br11": 9467,
+					"zstd3": 12273,
+					"zstd19": 11046
+				},
+				"unique": {
+					"raw": 48010,
+					"gzip6": 11782,
+					"gzip9": 11662,
+					"br5": 10711,
+					"br11": 9467,
+					"zstd3": 12273,
+					"zstd19": 11046
+				},
+				"uniqueLines": 698,
+				"gaps": 0,
+				"outlier": true,
+				"documentDict": {
+					"zstd3": 3071,
+					"zstd19": 2558
+				},
+				"uniqueDict": {
+					"zstd3": 3071,
+					"zstd19": 2558
+				}
+			},
+			"pages": [
+				{
+					"path": "/education",
+					"document": {
+						"raw": 55013,
+						"gzip6": 13895,
+						"gzip9": 13760,
+						"br5": 12694,
+						"br11": 11178,
+						"zstd3": 14566,
+						"zstd19": 13055
+					},
+					"unique": {
+						"raw": 23472,
+						"gzip6": 5536,
+						"gzip9": 5555,
+						"br5": 5147,
+						"br11": 4411,
+						"zstd3": 5796,
+						"zstd19": 5354
+					},
+					"uniqueLines": 677,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4148,
+						"zstd19": 3323
+					},
+					"uniqueDict": {
+						"zstd3": 4380,
+						"zstd19": 3503
+					}
+				},
+				{
+					"path": "/research",
+					"document": {
+						"raw": 47228,
+						"gzip6": 12069,
+						"gzip9": 11984,
+						"br5": 10944,
+						"br11": 9712,
+						"zstd3": 12575,
+						"zstd19": 11345
+					},
+					"unique": {
+						"raw": 15691,
+						"gzip6": 3728,
+						"gzip9": 3781,
+						"br5": 3411,
+						"br11": 2910,
+						"zstd3": 3916,
+						"zstd19": 3653
+					},
+					"uniqueLines": 288,
+					"gaps": 36,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2291,
+						"zstd19": 1869
+					},
+					"uniqueDict": {
+						"zstd3": 2578,
+						"zstd19": 2036
+					}
+				},
+				{
+					"path": "/innovation",
+					"document": {
+						"raw": 41653,
+						"gzip6": 11322,
+						"gzip9": 11201,
+						"br5": 10283,
+						"br11": 9127,
+						"zstd3": 11814,
+						"zstd19": 10629
+					},
+					"unique": {
+						"raw": 10118,
+						"gzip6": 2854,
+						"gzip9": 2870,
+						"br5": 2636,
+						"br11": 2198,
+						"zstd3": 3018,
+						"zstd19": 2801
+					},
+					"uniqueLines": 252,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1809,
+						"zstd19": 1455
+					},
+					"uniqueDict": {
+						"zstd3": 2096,
+						"zstd19": 1609
+					}
+				},
+				{
+					"path": "/admissions-aid",
+					"document": {
+						"raw": 41850,
+						"gzip6": 10888,
+						"gzip9": 10769,
+						"br5": 9851,
+						"br11": 8781,
+						"zstd3": 11331,
+						"zstd19": 10213
+					},
+					"unique": {
+						"raw": 10315,
+						"gzip6": 2447,
+						"gzip9": 2453,
+						"br5": 2194,
+						"br11": 1865,
+						"zstd3": 2577,
+						"zstd19": 2393
+					},
+					"uniqueLines": 295,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1567,
+						"zstd19": 1171
+					},
+					"uniqueDict": {
+						"zstd3": 1799,
+						"zstd19": 1320
+					}
+				},
+				{
+					"path": "/campus-life",
+					"document": {
+						"raw": 64300,
+						"gzip6": 15384,
+						"gzip9": 15254,
+						"br5": 14011,
+						"br11": 12386,
+						"zstd3": 16058,
+						"zstd19": 14373
+					},
+					"unique": {
+						"raw": 32753,
+						"gzip6": 6919,
+						"gzip9": 6961,
+						"br5": 6481,
+						"br11": 5534,
+						"zstd3": 7320,
+						"zstd19": 6662
+					},
+					"uniqueLines": 826,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5450,
+						"zstd19": 4398
+					},
+					"uniqueDict": {
+						"zstd3": 5659,
+						"zstd19": 4550
+					}
+				},
+				{
+					"path": "/alumni",
+					"document": {
+						"raw": 50776,
+						"gzip6": 12447,
+						"gzip9": 12358,
+						"br5": 11351,
+						"br11": 10086,
+						"zstd3": 13015,
+						"zstd19": 11707
+					},
+					"unique": {
+						"raw": 19239,
+						"gzip6": 4168,
+						"gzip9": 4194,
+						"br5": 3845,
+						"br11": 3321,
+						"zstd3": 4423,
+						"zstd19": 4058
+					},
+					"uniqueLines": 432,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 2700,
+						"zstd19": 2132
+					},
+					"uniqueDict": {
+						"zstd3": 3009,
+						"zstd19": 2276
+					}
+				},
+				{
+					"path": "/about",
+					"document": {
+						"raw": 61846,
+						"gzip6": 14337,
+						"gzip9": 14207,
+						"br5": 13038,
+						"br11": 11477,
+						"zstd3": 14976,
+						"zstd19": 13375
+					},
+					"unique": {
+						"raw": 30298,
+						"gzip6": 5933,
+						"gzip9": 5953,
+						"br5": 5525,
+						"br11": 4708,
+						"zstd3": 6296,
+						"zstd19": 5713
+					},
+					"uniqueLines": 697,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 4527,
+						"zstd19": 3603
+					},
+					"uniqueDict": {
+						"zstd3": 4719,
+						"zstd19": 3743
+					}
+				},
+				{
+					"path": "/building-a-better-world",
+					"document": {
+						"raw": 41662,
+						"gzip6": 10821,
+						"gzip9": 10698,
+						"br5": 9816,
+						"br11": 8708,
+						"zstd3": 11242,
+						"zstd19": 10137
+					},
+					"unique": {
+						"raw": 10126,
+						"gzip6": 2404,
+						"gzip9": 2408,
+						"br5": 2154,
+						"br11": 1807,
+						"zstd3": 2550,
+						"zstd19": 2361
+					},
+					"uniqueLines": 280,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1302,
+						"zstd19": 977
+					},
+					"uniqueDict": {
+						"zstd3": 1525,
+						"zstd19": 1114
+					}
+				},
+				{
+					"path": "/feedback",
+					"document": {
+						"raw": 35138,
+						"gzip6": 9348,
+						"gzip9": 9283,
+						"br5": 8513,
+						"br11": 7635,
+						"zstd3": 9649,
+						"zstd19": 8771
+					},
+					"unique": {
+						"raw": 3594,
+						"gzip6": 948,
+						"gzip9": 948,
+						"br5": 790,
+						"br11": 715,
+						"zstd3": 997,
+						"zstd19": 944
+					},
+					"uniqueLines": 51,
+					"gaps": 31,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 361,
+						"zstd19": 288
+					},
+					"uniqueDict": {
+						"zstd3": 591,
+						"zstd19": 401
+					}
+				},
+				{
+					"path": "/visitmit",
+					"document": {
+						"raw": 55720,
+						"gzip6": 14654,
+						"gzip9": 14522,
+						"br5": 13427,
+						"br11": 11895,
+						"zstd3": 15398,
+						"zstd19": 13794
+					},
+					"unique": {
+						"raw": 24069,
+						"gzip6": 6229,
+						"gzip9": 6249,
+						"br5": 5788,
+						"br11": 4978,
+						"zstd3": 6603,
+						"zstd19": 6029
+					},
+					"uniqueLines": 489,
+					"gaps": 35,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 5374,
+						"zstd19": 4660
+					},
+					"uniqueDict": {
+						"zstd3": 5693,
+						"zstd19": 4805
+					}
+				},
+				{
+					"path": "/contact",
+					"document": {
+						"raw": 41345,
+						"gzip6": 10363,
+						"gzip9": 10269,
+						"br5": 9347,
+						"br11": 8403,
+						"zstd3": 10740,
+						"zstd19": 9705
+					},
+					"unique": {
+						"raw": 9810,
+						"gzip6": 3252,
+						"gzip9": 3195,
+						"br5": 2934,
+						"br11": 2614,
+						"zstd3": 3353,
+						"zstd19": 3150
+					},
+					"uniqueLines": 102,
+					"gaps": 34,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1297,
+						"zstd19": 1125
+					},
+					"uniqueDict": {
+						"zstd3": 1555,
+						"zstd19": 1246
+					}
+				},
+				{
+					"path": "/privacy",
+					"document": {
+						"raw": 42967,
+						"gzip6": 12239,
+						"gzip9": 12122,
+						"br5": 11091,
+						"br11": 9740,
+						"zstd3": 12820,
+						"zstd19": 11506
+					},
+					"unique": {
+						"raw": 11432,
+						"gzip6": 3790,
+						"gzip9": 3805,
+						"br5": 3423,
+						"br11": 2810,
+						"zstd3": 3964,
+						"zstd19": 3689
+					},
+					"uniqueLines": 123,
+					"gaps": 34,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 3228,
+						"zstd19": 2844
+					},
+					"uniqueDict": {
+						"zstd3": 3485,
+						"zstd19": 3014
+					}
+				},
+				{
+					"path": "/accessibility",
+					"document": {
+						"raw": 37513,
+						"gzip6": 10099,
+						"gzip9": 10017,
+						"br5": 9116,
+						"br11": 8177,
+						"zstd3": 10448,
+						"zstd19": 9482
+					},
+					"unique": {
+						"raw": 5978,
+						"gzip6": 1640,
+						"gzip9": 1653,
+						"br5": 1439,
+						"br11": 1247,
+						"zstd3": 1731,
+						"zstd19": 1639
+					},
+					"uniqueLines": 72,
+					"gaps": 34,
+					"outlier": false,
+					"documentDict": {
+						"zstd3": 1029,
+						"zstd19": 855
+					},
+					"uniqueDict": {
+						"zstd3": 1259,
+						"zstd19": 1005
+					}
+				}
+			],
+			"excluded": []
+		}
+	]
+}

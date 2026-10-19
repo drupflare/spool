@@ -77,7 +77,8 @@
 		"measure:on-wire": "bun scripts/measure/on-wire.ts",
 		"measure:rapl": "node scripts/measure/rapl.ts",
 		"measure:iphone": "bun scripts/measure/iphone.ts",
-		"measure:traces": "bun scripts/measure/traces.ts"
+		"measure:traces": "bun scripts/measure/traces.ts",
+		"measure:payload": "bun scripts/measure/payload.ts"
 	},
 	"devDependencies": {
 		"@azure/functions": "^4.16.5",

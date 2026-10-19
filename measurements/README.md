@@ -4,14 +4,15 @@ Readings behind `docs/impact.md`, one folder per rig and one file per run (`<dat
 `<date>-<experiment>.json` when a rig ran more than one experiment that day). Every reading here is
 L1, measured on hardware described in the file.
 
-| rig            | measures                                                                       | instrument                             | script                            |
-| -------------- | ------------------------------------------------------------------------------ | -------------------------------------- | --------------------------------- |
-| `repeat-nav`   | bytes and requests of cold, warm and repeat views on 16 public sites           | Chromium DevTools Protocol             | `scripts/measure/repeat-nav.ts`   |
-| `on-wire`      | the same navigations, with the requests and bytes a proxy saw reach the origin | a counting proxy and Chromium DevTools | `scripts/measure/on-wire.ts`      |
-| `zero-network` | server hits per service-worker navigation in Chromium, Firefox and WebKit      | the origin's request log               | `scripts/measure/zero-network.ts` |
-| `device-cpu`   | browser CPU per navigation, HTTP revalidation vs a service-worker render       | process CPU time (a proxy, not joules) | `scripts/measure/device-cpu.ts`   |
-| `rapl`         | package joules on a desktop CPU, by experiment                                 | RAPL energy counters, a sampled GPU    | `scripts/measure/rapl.ts`         |
-| `iphone`       | phone joules per view, back to back and paced; service-worker lifetime         | the battery gauge's accumulated energy | `scripts/measure/iphone.ts`       |
+| rig            | measures                                                                        | instrument                             | script                            |
+| -------------- | ------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------- |
+| `repeat-nav`   | bytes and requests of cold, warm and repeat views on 16 public sites            | Chromium DevTools Protocol             | `scripts/measure/repeat-nav.ts`   |
+| `on-wire`      | the same navigations, with the requests and bytes a proxy saw reach the origin  | a counting proxy and Chromium DevTools | `scripts/measure/on-wire.ts`      |
+| `zero-network` | server hits per service-worker navigation in Chromium, Firefox and WebKit       | the origin's request log               | `scripts/measure/zero-network.ts` |
+| `device-cpu`   | browser CPU per navigation, HTTP revalidation vs a service-worker render        | process CPU time (a proxy, not joules) | `scripts/measure/device-cpu.ts`   |
+| `rapl`         | package joules on a desktop CPU, by experiment                                  | RAPL energy counters, a sampled GPU    | `scripts/measure/rapl.ts`         |
+| `iphone`       | phone joules per view, back to back and paced; service-worker lifetime          | the battery gauge's accumulated energy | `scripts/measure/iphone.ts`       |
+| `payload`      | compressed bytes of a page, its shared shell, its unique part and its node data | plain GETs, gzip, brotli, zstd         | `scripts/measure/payload.ts`      |
 
 The `rapl` experiments are `views` (optimized caching, spool and shipping headers), `compute-server`
 (recompute against a cache, per request), `compute-browser` (the same in Chromium), `projection`
@@ -19,7 +20,11 @@ The `rapl` experiments are `views` (optimized caching, spool and shipping header
 sampled) and `power-state` (request rate against package watts). The `iphone` experiments are
 `burst`, `paced`, `projection` and `sw-lifetime` over Wi-Fi, and `burst-cellular`, `paced-cellular`
 and `radio-cellular` (one isolated request against the same script call without it) over cellular.
-The `repeat-nav` experiment `document` records where each document landed after redirects.
+The `repeat-nav` experiment `document` records where each document landed after redirects, and
+`requests` adds a `requestList` to each home repeat view: one record per request (URL without its
+query, host, same-origin flag, type, status, bytes, which cache answered, and the response's
+`cache-control`, `age`, `vary` and `content-type` with `etag`, `last-modified` and `expires` as
+present or not), plus the document's `docRedirects`.
 
 ## File Format
 
