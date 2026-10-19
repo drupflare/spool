@@ -140,6 +140,27 @@ Over cellular, with the Wi-Fi switched off, the idle windows were steadier and b
 
 Back to back, a local view saves 0.101 J over cellular, about what it saves over Wi-Fi. At one view every 20 seconds, each view costs 11 to 18 times its back-to-back cost (most likely the cost of waking the phone from idle for one view; not measured separately), and the network view and the local view cost about the same (0.10 J apart, inside the spread across rounds). A second reading isolates the request. The phone ran the same WebDriver script every 20 s over 6 rounds, once with a `fetch` to a Worker that answers 204 with no body and once without it. Above idle, a call with the request cost 1.38 (1.10 to 2.68) J and a call without it 0.791 (-0.0452 to 2.59) J: the medians are 0.59 J apart and the ranges overlap. No radio wake can be attributed to the request at this resolution, so the headline carries 0 J for it. The earlier scenario value of 5 J per phone view stays out until a reading attributes one.
 
+### Server Runtimes
+
+The same small site ran under spool 0.1 in four server runtimes on paisley-park, one container at a time, with Chromium on another machine reaching it over Tailscale. Each window was 60 views. The server's package energy and its interface byte counters were read per window, less the idle window of the same round. The overlay interface carries the HTTP traffic; the physical interface adds the relay's framing, since this path went through a Tailscale relay in every round.
+
+| runtime | arm                      | server J per view above idle | overlay bytes per view | wire bytes per view | origin requests per view | windows |
+| ------- | ------------------------ | ---------------------------: | ---------------------: | ------------------: | -----------------------: | ------: |
+| node    | Network view             |        0.643 (0.117 to 1.01) |                    794 |               1,580 |          1.00 (max 1.00) |       6 |
+| node    | Spool local view         |      0.126 (-0.568 to 0.405) |                      4 |                 302 |          0.00 (max 0.08) |       6 |
+| node    | Bare HTML request (curl) |         1.08 (0.745 to 1.33) |                  1,290 |               3,932 |          1.00 (max 1.00) |       5 |
+| bun     | Network view             |       0.620 (0.345 to 0.931) |                    745 |               1,616 |          1.00 (max 1.00) |       6 |
+| bun     | Spool local view         |     0.259 (-0.0124 to 0.950) |                     39 |                 556 |          0.00 (max 0.10) |       6 |
+| bun     | Bare HTML request (curl) |         1.20 (0.794 to 1.62) |                  1,141 |               3,500 |          1.00 (max 1.00) |       6 |
+| hono    | Network view             |       0.608 (0.405 to 0.750) |                    791 |               1,566 |          1.00 (max 1.00) |       6 |
+| hono    | Spool local view         |     0.188 (-0.0730 to 0.261) |                      3 |                 109 |          0.00 (max 0.10) |       6 |
+| hono    | Bare HTML request (curl) |         1.10 (0.776 to 1.35) |                  1,188 |               3,313 |          1.00 (max 1.00) |       6 |
+| workerd | Network view             |        0.977 (0.577 to 1.49) |                    732 |               1,703 |          1.00 (max 1.00) |       6 |
+| workerd | Spool local view         |     0.324 (-0.0238 to 0.430) |                     21 |                 554 |          0.00 (max 0.10) |       6 |
+| workerd | Bare HTML request (curl) |          1.35 (1.21 to 1.71) |                  1,278 |               4,103 |          1.00 (max 1.00) |       6 |
+
+A spool local view sent nothing to the origin in every window but one per runtime, and its server energy is inside the idle drift. The exception is the fourth spool window, which made up to 6 requests to `/.spool/*` in every runtime. It ended about 15 minutes after the worker was primed, which is when the public routes' default soft bound expires: the timing matches one sync with the held view telemetry flushed on the same network moment (the rig counted `/.spool/*` requests, not their paths). That is spool's own overhead. The medians above leave it out, since it is one window in six; the measured per-view figure P8 reports nets syncs and flushes against the saving. A bare HTML request from curl costs the server more than a browser view, most likely because curl opens a new connection through the relay for each request while the browser reuses one.
+
 One request per view is also what breaks the saving. A page that posts to an analytics endpoint on every view makes each view a network view again, with that request's bytes and origin work. On a 2012 3G phone that post also woke the radio (Thiagarajan et al.); this phone showed no wake for an isolated request. Spool queues those posts in the service worker and sends them on a network moment that happens anyway.
 
 ### Origin Term by Workload

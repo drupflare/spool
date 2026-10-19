@@ -1,0 +1,3526 @@
+{
+	"schema": 1,
+	"rig": "rapl",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "per server runtime (workerd, Bun, Node, Hono on Node): package joules and tailscale0 and wlp12s0 bytes per page view, a normal browser view against a spool local view, and a bare HTML request from curl as the floor",
+	"instrument": "RAPL package-0 energy_uj read on the host; tailscale0 and wlp12s0 byte counters read on the host over ssh; Chromium driven by Playwright on the client Mac, with CDP request and response events (fromServiceWorker, fromCache) per view",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X",
+		"os": "Ubuntu 24.04",
+		"kernel": "6.8.0-138-generic",
+		"governor": "powersave"
+	},
+	"software": {
+		"browser": "Chromium 156.0.8078.4",
+		"client": "Playwright 1.64.1 on macOS, channel chromium, headless",
+		"containers": "node:24-slim (Node 24), oven/bun:1.4.3-slim (Bun 1.4.3), hono 4.13.13 with @hono/node-server 2.1.5, wrangler 4.151.1 (workerd, local mode)",
+		"spool": "0.1.0 (snapshot build of the repo on 2026-10-19 06:56Z)",
+		"docker": "Docker version 29.5.2, build 79eb04c"
+	},
+	"method": {
+		"pages": ["/", "/a", "/b", "/c"],
+		"views per window": 60,
+		"slot per view s": 1,
+		"rounds": 6,
+		"arm order": "network, spool, curl, idle, rotated per round",
+		"idle window s": 60,
+		"container limits": "--cpus 4 --memory 2g, one container per runtime, --rm",
+		"network path": "Tailscale to paisley-park over DERP relay (see tailscalePath); no emulated latency",
+		"tailscalePath": [
+			"round 0 node: DERP(ord)",
+			"round 1 node: DERP(ord)",
+			"round 2 node: DERP(ord)",
+			"round 3 node: DERP(ord)",
+			"round 4 node: DERP(ord)",
+			"round 5 node: DERP(ord)",
+			"round 0 bun: DERP(ord)",
+			"round 1 bun: DERP(ord)",
+			"round 2 bun: DERP(ord)",
+			"round 3 bun: DERP(ord)",
+			"round 4 bun: DERP(ord)",
+			"round 5 bun: DERP(ord)",
+			"round 0 hono: DERP(ord)",
+			"round 1 hono: DERP(ord)",
+			"round 2 hono: DERP(ord)",
+			"round 3 hono: DERP(ord)",
+			"round 4 hono: DERP(ord)",
+			"round 5 hono: DERP(ord)",
+			"round 0 workerd: DERP(ord)",
+			"round 1 workerd: DERP(ord)",
+			"round 2 workerd: DERP(ord)",
+			"round 3 workerd: DERP(ord)",
+			"round 4 workerd: DERP(ord)",
+			"round 5 workerd: DERP(ord)"
+		],
+		"spool origins": "four spool ports, Chromium launched with --unsafely-treat-insecure-origin-as-secure listing them",
+		"priming": "spool: visit / to register the worker, reload, visit each page twice, assert navigator.serviceWorker.controller; network: visit each page twice in the window context",
+		"check 1 criterion": "after priming, 10 spool views make 0 origin requests, and every CDP request in those views has fromServiceWorker true or came from the memory or disk cache",
+		"check 2 criterion": "after priming, 10 network views make 1 origin HTML request and 0 origin asset requests each",
+		"check 3 criterion": "RAPL readable inside the container, and tailscale0 tx moves by at least one curl body",
+		"counters": "package energy (intel-rapl:0 energy_uj, wrap handled with max_energy_range_uj); tailscale0 and wlp12s0 rx and tx bytes; origin counts from each container (requests, html, assets, spool), read on localhost",
+		"idle subtraction": "per round, idle package J per second and idle bytes per second times the window seconds of the same round",
+		"swAnswered": "count of CDP requests with fromServiceWorker true in the window",
+		"checks": {
+			"node": {
+				"check1": {
+					"originRequests": 0,
+					"cdpRequests": 40,
+					"swAnswered": 40,
+					"networkRequests": 0,
+					"errors": 0,
+					"pass": true
+				},
+				"check2": {
+					"htmlRequests": 10,
+					"assetRequests": 0,
+					"cdpRequests": 30,
+					"errors": 0,
+					"pass": true
+				},
+				"check3": {
+					"raplInContainer": "57663356703",
+					"curlBytes": 363,
+					"tailscaleTxDelta": 6664,
+					"pass": true
+				}
+			},
+			"bun": {
+				"check1": {
+					"originRequests": 0,
+					"cdpRequests": 40,
+					"swAnswered": 40,
+					"networkRequests": 0,
+					"errors": 0,
+					"pass": true
+				},
+				"check2": {
+					"htmlRequests": 10,
+					"assetRequests": 0,
+					"cdpRequests": 30,
+					"errors": 0,
+					"pass": true
+				},
+				"check3": {
+					"raplInContainer": "22215265695",
+					"curlBytes": 363,
+					"tailscaleTxDelta": 6650,
+					"pass": true
+				}
+			},
+			"hono": {
+				"check1": {
+					"originRequests": 0,
+					"cdpRequests": 40,
+					"swAnswered": 40,
+					"networkRequests": 0,
+					"errors": 0,
+					"pass": true
+				},
+				"check2": {
+					"htmlRequests": 10,
+					"assetRequests": 0,
+					"cdpRequests": 30,
+					"errors": 0,
+					"pass": true
+				},
+				"check3": {
+					"raplInContainer": "4840667162",
+					"curlBytes": 363,
+					"tailscaleTxDelta": 6697,
+					"pass": true
+				}
+			},
+			"workerd": {
+				"check1": {
+					"originRequests": 0,
+					"cdpRequests": 40,
+					"swAnswered": 40,
+					"networkRequests": 0,
+					"errors": 0,
+					"pass": true
+				},
+				"check2": {
+					"htmlRequests": 10,
+					"assetRequests": 0,
+					"cdpRequests": 30,
+					"errors": 0,
+					"pass": true
+				},
+				"check3": {
+					"raplInContainer": "34476870314",
+					"curlBytes": 363,
+					"tailscaleTxDelta": 6632,
+					"pass": true
+				}
+			}
+		}
+	},
+	"exclusions": [
+		"drop any row with a discarded reason (a view error, a failed sample, or 1-minute load above 2.0)",
+		"the idle row is the baseline for the same round and runtime; it is not a view"
+	],
+	"rows": [
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.976,
+			"pkgJ": 1178.929877,
+			"tailscaleRxB": 40788,
+			"tailscaleTxB": 18563,
+			"wlanRxB": 216398,
+			"wlanTxB": 92181,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.948,
+			"pkgJ": 1137.293617,
+			"tailscaleRxB": 5778,
+			"tailscaleTxB": 6079,
+			"wlanRxB": 68824,
+			"wlanTxB": 36769,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.17,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 0,
+			"views": 58,
+			"errors": 2,
+			"discarded": "2 view errors",
+			"windowS": 79.242,
+			"pkgJ": 1614.909375,
+			"tailscaleRxB": 35400,
+			"tailscaleTxB": 59890,
+			"wlanRxB": 216174,
+			"wlanTxB": 195886,
+			"originNet": {
+				"requests": 59,
+				"html": 59,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.07,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21011
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 0,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.905,
+			"pkgJ": 1170.569546,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 6059,
+			"wlanRxB": 86435,
+			"wlanTxB": 35828,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.07,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.03,
+			"pkgJ": 1159.761618,
+			"tailscaleRxB": 5634,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 64636,
+			"wlanTxB": 31069,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.064,
+			"pkgJ": 1224.3646,
+			"tailscaleRxB": 31363,
+			"tailscaleTxB": 57302,
+			"wlanRxB": 190283,
+			"wlanTxB": 154922,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 1,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.999,
+			"pkgJ": 1162.16814,
+			"tailscaleRxB": 5518,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 81224,
+			"wlanTxB": 27954,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.079,
+			"pkgJ": 1206.014779,
+			"tailscaleRxB": 40788,
+			"tailscaleTxB": 18408,
+			"wlanRxB": 130099,
+			"wlanTxB": 62827,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.105,
+			"pkgJ": 1216.862165,
+			"tailscaleRxB": 30907,
+			"tailscaleTxB": 57199,
+			"wlanRxB": 181000,
+			"wlanTxB": 150469,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 2,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.974,
+			"pkgJ": 1134.333383,
+			"tailscaleRxB": 5478,
+			"tailscaleTxB": 5915,
+			"wlanRxB": 51134,
+			"wlanTxB": 25769,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.987,
+			"pkgJ": 1195.291884,
+			"tailscaleRxB": 40644,
+			"tailscaleTxB": 18304,
+			"wlanRxB": 203093,
+			"wlanTxB": 90720,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.04,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.039,
+			"pkgJ": 1159.849458,
+			"tailscaleRxB": 5738,
+			"tailscaleTxB": 6131,
+			"wlanRxB": 51986,
+			"wlanTxB": 35509,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 3,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.981,
+			"pkgJ": 1158.107894,
+			"tailscaleRxB": 5582,
+			"tailscaleTxB": 6070,
+			"wlanRxB": 86243,
+			"wlanTxB": 38142,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.04,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.073,
+			"pkgJ": 1178.156052,
+			"tailscaleRxB": 40632,
+			"tailscaleTxB": 18344,
+			"wlanRxB": 114240,
+			"wlanTxB": 60627,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.014,
+			"pkgJ": 1162.289151,
+			"tailscaleRxB": 114019,
+			"tailscaleTxB": 9747,
+			"wlanRxB": 209393,
+			"wlanTxB": 52868,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 5,
+				"html": 0,
+				"assets": 0,
+				"spool": 5
+			},
+			"load1": 0,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.033,
+			"pkgJ": 1203.812288,
+			"tailscaleRxB": 33607,
+			"tailscaleTxB": 58382,
+			"wlanRxB": 153960,
+			"wlanTxB": 151442,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.002,
+			"pkgJ": 1174.968335,
+			"tailscaleRxB": 40776,
+			"tailscaleTxB": 18604,
+			"wlanRxB": 113686,
+			"wlanTxB": 61287,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.987,
+			"pkgJ": 1135.799813,
+			"tailscaleRxB": 5634,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 67361,
+			"wlanTxB": 30846,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.3,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.923,
+			"pkgJ": 1190.235582,
+			"tailscaleRxB": 34059,
+			"tailscaleTxB": 58562,
+			"wlanRxB": 160885,
+			"wlanTxB": 149943,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.18,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 4,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.931,
+			"pkgJ": 1123.189992,
+			"tailscaleRxB": 5466,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 45394,
+			"wlanTxB": 27011,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.06,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "spool",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.973,
+			"pkgJ": 1136.661265,
+			"tailscaleRxB": 5634,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 167353,
+			"wlanTxB": 60041,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.06,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "curl",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.929,
+			"pkgJ": 1187.775915,
+			"tailscaleRxB": 31739,
+			"tailscaleTxB": 57302,
+			"wlanRxB": 155948,
+			"wlanTxB": 145427,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "node",
+			"arm": "idle",
+			"round": 5,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.911,
+			"pkgJ": 1122.349947,
+			"tailscaleRxB": 5610,
+			"tailscaleTxB": 6007,
+			"wlanRxB": 57802,
+			"wlanTxB": 28852,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "node",
+			"arm": "network",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.012,
+			"pkgJ": 1159.080135,
+			"tailscaleRxB": 40592,
+			"tailscaleTxB": 18304,
+			"wlanRxB": 112183,
+			"wlanTxB": 61739,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.05,
+			"pkgJ": 1172.37713,
+			"tailscaleRxB": 40712,
+			"tailscaleTxB": 15640,
+			"wlanRxB": 124355,
+			"wlanTxB": 62922,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.048,
+			"pkgJ": 1139.394263,
+			"tailscaleRxB": 6890,
+			"tailscaleTxB": 7051,
+			"wlanRxB": 84254,
+			"wlanTxB": 37367,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.939,
+			"pkgJ": 1202.565343,
+			"tailscaleRxB": 29855,
+			"tailscaleTxB": 50119,
+			"wlanRxB": 170897,
+			"wlanTxB": 124089,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 0,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.899,
+			"pkgJ": 1124.326667,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 6059,
+			"wlanRxB": 60947,
+			"wlanTxB": 27041,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.913,
+			"pkgJ": 1141.281982,
+			"tailscaleRxB": 6734,
+			"tailscaleTxB": 6931,
+			"wlanRxB": 54829,
+			"wlanTxB": 39432,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.993,
+			"pkgJ": 1202.022921,
+			"tailscaleRxB": 29959,
+			"tailscaleTxB": 50119,
+			"wlanRxB": 210754,
+			"wlanTxB": 152278,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 1,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.846,
+			"pkgJ": 1128.38763,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 67589,
+			"wlanTxB": 28009,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.986,
+			"pkgJ": 1168.313055,
+			"tailscaleRxB": 40644,
+			"tailscaleTxB": 15484,
+			"wlanRxB": 130981,
+			"wlanTxB": 56270,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.988,
+			"pkgJ": 1197.139842,
+			"tailscaleRxB": 29763,
+			"tailscaleTxB": 50015,
+			"wlanRxB": 136761,
+			"wlanTxB": 126218,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 2,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.901,
+			"pkgJ": 1121.889767,
+			"tailscaleRxB": 5478,
+			"tailscaleTxB": 5915,
+			"wlanRxB": 60923,
+			"wlanTxB": 24568,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.901,
+			"pkgJ": 1159.013884,
+			"tailscaleRxB": 40592,
+			"tailscaleTxB": 15484,
+			"wlanRxB": 141842,
+			"wlanTxB": 54342,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.09,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.973,
+			"pkgJ": 1145.183362,
+			"tailscaleRxB": 6734,
+			"tailscaleTxB": 7035,
+			"wlanRxB": 52459,
+			"wlanTxB": 44143,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.07,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 3,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.928,
+			"pkgJ": 1146.872529,
+			"tailscaleRxB": 5622,
+			"tailscaleTxB": 6123,
+			"wlanRxB": 74795,
+			"wlanTxB": 34676,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.96,
+			"pkgJ": 1177.841981,
+			"tailscaleRxB": 40684,
+			"tailscaleTxB": 15524,
+			"wlanRxB": 116908,
+			"wlanTxB": 57718,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.889,
+			"pkgJ": 1164.871125,
+			"tailscaleRxB": 116939,
+			"tailscaleTxB": 10106,
+			"wlanRxB": 177021,
+			"wlanTxB": 57056,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 6,
+				"html": 0,
+				"assets": 0,
+				"spool": 6
+			},
+			"load1": 0.39,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.983,
+			"pkgJ": 1207.299977,
+			"tailscaleRxB": 29855,
+			"tailscaleTxB": 50223,
+			"wlanRxB": 235523,
+			"wlanTxB": 160212,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.14,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.98,
+			"pkgJ": 1171.420652,
+			"tailscaleRxB": 40736,
+			"tailscaleTxB": 15524,
+			"wlanRxB": 136217,
+			"wlanTxB": 58180,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.999,
+			"pkgJ": 1150.345708,
+			"tailscaleRxB": 6734,
+			"tailscaleTxB": 7035,
+			"wlanRxB": 89121,
+			"wlanTxB": 43780,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.962,
+			"pkgJ": 1198.000394,
+			"tailscaleRxB": 29959,
+			"tailscaleTxB": 50167,
+			"wlanRxB": 138729,
+			"wlanTxB": 125821,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.17,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 4,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.907,
+			"pkgJ": 1149.352336,
+			"tailscaleRxB": 5518,
+			"tailscaleTxB": 6059,
+			"wlanRxB": 64107,
+			"wlanTxB": 35369,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.06,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "spool",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.495,
+			"pkgJ": 1176.938388,
+			"tailscaleRxB": 6682,
+			"tailscaleTxB": 7035,
+			"wlanRxB": 81559,
+			"wlanTxB": 47290,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "curl",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.196,
+			"pkgJ": 1211.50647,
+			"tailscaleRxB": 29907,
+			"tailscaleTxB": 50171,
+			"wlanRxB": 155186,
+			"wlanTxB": 124885,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.17,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "bun",
+			"arm": "idle",
+			"round": 5,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 1083.48,
+			"pkgJ": 19732.21274,
+			"tailscaleRxB": 9372,
+			"tailscaleTxB": 7895,
+			"wlanRxB": 1065168,
+			"wlanTxB": 120631,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "bun",
+			"arm": "network",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.929,
+			"pkgJ": 1165.482406,
+			"tailscaleRxB": 40644,
+			"tailscaleTxB": 15536,
+			"wlanRxB": 111719,
+			"wlanTxB": 57347,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.931,
+			"pkgJ": 1171.858786,
+			"tailscaleRxB": 40736,
+			"tailscaleTxB": 18511,
+			"wlanRxB": 137902,
+			"wlanTxB": 65160,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.887,
+			"pkgJ": 1142.331641,
+			"tailscaleRxB": 5778,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 67946,
+			"wlanTxB": 38519,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.962,
+			"pkgJ": 1194.705947,
+			"tailscaleRxB": 29919,
+			"tailscaleTxB": 52990,
+			"wlanRxB": 137939,
+			"wlanTxB": 131650,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 0,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.902,
+			"pkgJ": 1146.996118,
+			"tailscaleRxB": 5610,
+			"tailscaleTxB": 6007,
+			"wlanRxB": 79230,
+			"wlanTxB": 39253,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.24,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.999,
+			"pkgJ": 1136.472341,
+			"tailscaleRxB": 5686,
+			"tailscaleTxB": 6131,
+			"wlanRxB": 48348,
+			"wlanTxB": 42772,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.14,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.947,
+			"pkgJ": 1214.358052,
+			"tailscaleRxB": 29867,
+			"tailscaleTxB": 52990,
+			"wlanRxB": 186914,
+			"wlanTxB": 128186,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 1,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.873,
+			"pkgJ": 1132.126877,
+			"tailscaleRxB": 5558,
+			"tailscaleTxB": 6007,
+			"wlanRxB": 49332,
+			"wlanTxB": 29866,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.944,
+			"pkgJ": 1170.221556,
+			"tailscaleRxB": 40592,
+			"tailscaleTxB": 18304,
+			"wlanRxB": 109229,
+			"wlanTxB": 58644,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.966,
+			"pkgJ": 1198.677284,
+			"tailscaleRxB": 29815,
+			"tailscaleTxB": 52835,
+			"wlanRxB": 176549,
+			"wlanTxB": 131543,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 2,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.876,
+			"pkgJ": 1131.548844,
+			"tailscaleRxB": 5478,
+			"tailscaleTxB": 5915,
+			"wlanRxB": 67020,
+			"wlanTxB": 30123,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.94,
+			"pkgJ": 1161.312883,
+			"tailscaleRxB": 40592,
+			"tailscaleTxB": 18304,
+			"wlanRxB": 110821,
+			"wlanTxB": 60045,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.001,
+			"pkgJ": 1145.249291,
+			"tailscaleRxB": 5686,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 63158,
+			"wlanTxB": 34035,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 3,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.867,
+			"pkgJ": 1138.864398,
+			"tailscaleRxB": 5674,
+			"tailscaleTxB": 6122,
+			"wlanRxB": 82957,
+			"wlanTxB": 37711,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.978,
+			"pkgJ": 1177.177343,
+			"tailscaleRxB": 40632,
+			"tailscaleTxB": 18344,
+			"wlanRxB": 191091,
+			"wlanTxB": 87552,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.929,
+			"pkgJ": 1151.177772,
+			"tailscaleRxB": 116677,
+			"tailscaleTxB": 8972,
+			"wlanRxB": 201967,
+			"wlanTxB": 51606,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 6,
+				"html": 0,
+				"assets": 0,
+				"spool": 6
+			},
+			"load1": 0.04,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.937,
+			"pkgJ": 1203.322139,
+			"tailscaleRxB": 29919,
+			"tailscaleTxB": 52990,
+			"wlanRxB": 143062,
+			"wlanTxB": 127546,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.009,
+			"pkgJ": 1174.077711,
+			"tailscaleRxB": 40672,
+			"tailscaleTxB": 18396,
+			"wlanRxB": 131426,
+			"wlanTxB": 59520,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.907,
+			"pkgJ": 1149.984627,
+			"tailscaleRxB": 5634,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 63797,
+			"wlanTxB": 29030,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.07,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.144,
+			"pkgJ": 1205.019988,
+			"tailscaleRxB": 29971,
+			"tailscaleTxB": 52990,
+			"wlanRxB": 173526,
+			"wlanTxB": 126664,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 4,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.931,
+			"pkgJ": 1134.788177,
+			"tailscaleRxB": 5558,
+			"tailscaleTxB": 6007,
+			"wlanRxB": 59887,
+			"wlanTxB": 31614,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "spool",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.972,
+			"pkgJ": 1141.864274,
+			"tailscaleRxB": 5634,
+			"tailscaleTxB": 6027,
+			"wlanRxB": 83954,
+			"wlanTxB": 27207,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "curl",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.968,
+			"pkgJ": 1196.535091,
+			"tailscaleRxB": 29867,
+			"tailscaleTxB": 52990,
+			"wlanRxB": 152323,
+			"wlanTxB": 122445,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "hono",
+			"arm": "idle",
+			"round": 5,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.888,
+			"pkgJ": 1126.23854,
+			"tailscaleRxB": 5558,
+			"tailscaleTxB": 6007,
+			"wlanRxB": 60306,
+			"wlanTxB": 25198,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "hono",
+			"arm": "network",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.957,
+			"pkgJ": 1172.539307,
+			"tailscaleRxB": 40644,
+			"tailscaleTxB": 18408,
+			"wlanRxB": 185091,
+			"wlanTxB": 83321,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.906,
+			"pkgJ": 1315.260992,
+			"tailscaleRxB": 40684,
+			"tailscaleTxB": 14756,
+			"wlanRxB": 120709,
+			"wlanTxB": 55332,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.963,
+			"pkgJ": 1249.940746,
+			"tailscaleRxB": 6358,
+			"tailscaleTxB": 6507,
+			"wlanRxB": 52073,
+			"wlanTxB": 31314,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 0,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.996,
+			"pkgJ": 1329.91981,
+			"tailscaleRxB": 32923,
+			"tailscaleTxB": 55279,
+			"wlanRxB": 171908,
+			"wlanTxB": 149083,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.05,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 0,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.894,
+			"pkgJ": 1225.539511,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 72371,
+			"wlanTxB": 28032,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.28,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.979,
+			"pkgJ": 1245.349843,
+			"tailscaleRxB": 6306,
+			"tailscaleTxB": 6467,
+			"wlanRxB": 60995,
+			"wlanTxB": 38151,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.12,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.014,
+			"pkgJ": 1323.04248,
+			"tailscaleRxB": 33443,
+			"tailscaleTxB": 55279,
+			"wlanRxB": 180472,
+			"wlanTxB": 151854,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.04,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 1,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.864,
+			"pkgJ": 1233.390348,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 6111,
+			"wlanRxB": 53345,
+			"wlanTxB": 26211,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.07,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 1,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.922,
+			"pkgJ": 1290.029722,
+			"tailscaleRxB": 40696,
+			"tailscaleTxB": 14704,
+			"wlanRxB": 134888,
+			"wlanTxB": 59450,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.02,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.911,
+			"pkgJ": 1315.42503,
+			"tailscaleRxB": 32779,
+			"tailscaleTxB": 55175,
+			"wlanRxB": 222325,
+			"wlanTxB": 170146,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.23,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 2,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.846,
+			"pkgJ": 1238.713894,
+			"tailscaleRxB": 5530,
+			"tailscaleTxB": 5915,
+			"wlanRxB": 58691,
+			"wlanTxB": 29476,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.965,
+			"pkgJ": 1292.146526,
+			"tailscaleRxB": 40696,
+			"tailscaleTxB": 14704,
+			"wlanRxB": 130924,
+			"wlanTxB": 56044,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 2,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.96,
+			"pkgJ": 1259.239307,
+			"tailscaleRxB": 6254,
+			"tailscaleTxB": 6467,
+			"wlanRxB": 89708,
+			"wlanTxB": 43388,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.23,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 3,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.918,
+			"pkgJ": 1247.296733,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 6067,
+			"wlanRxB": 60484,
+			"wlanTxB": 36448,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.14,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.913,
+			"pkgJ": 1281.792126,
+			"tailscaleRxB": 40684,
+			"tailscaleTxB": 14744,
+			"wlanRxB": 111010,
+			"wlanTxB": 59359,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.22,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.998,
+			"pkgJ": 1247.507934,
+			"tailscaleRxB": 117345,
+			"tailscaleTxB": 9982,
+			"wlanRxB": 187576,
+			"wlanTxB": 52467,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 6,
+				"html": 0,
+				"assets": 0,
+				"spool": 6
+			},
+			"load1": 0.21,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 3,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.991,
+			"pkgJ": 1321.603559,
+			"tailscaleRxB": 32871,
+			"tailscaleTxB": 55279,
+			"wlanRxB": 160799,
+			"wlanTxB": 149601,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.08,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.001,
+			"pkgJ": 1302.340395,
+			"tailscaleRxB": 40632,
+			"tailscaleTxB": 14744,
+			"wlanRxB": 148258,
+			"wlanTxB": 56328,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.09,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.999,
+			"pkgJ": 1266.29868,
+			"tailscaleRxB": 6306,
+			"tailscaleTxB": 6467,
+			"wlanRxB": 124704,
+			"wlanTxB": 35234,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.03,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 4,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.023,
+			"pkgJ": 1328.750696,
+			"tailscaleRxB": 32975,
+			"tailscaleTxB": 55279,
+			"wlanRxB": 223000,
+			"wlanTxB": 174905,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 4,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.889,
+			"pkgJ": 1238.253987,
+			"tailscaleRxB": 5518,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 66832,
+			"wlanTxB": 31797,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "spool",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 61.054,
+			"pkgJ": 1259.186515,
+			"tailscaleRxB": 6306,
+			"tailscaleTxB": 6467,
+			"wlanRxB": 69462,
+			"wlanTxB": 32443,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 240,
+			"swAnsweredPerView": [
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				4, 4, 4, 4
+			],
+			"swAnswered": 240,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "curl",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.945,
+			"pkgJ": 1309.489089,
+			"tailscaleRxB": 33155,
+			"tailscaleTxB": 55460,
+			"wlanRxB": 168412,
+			"wlanTxB": 151376,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.04,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 21735
+		},
+		{
+			"runtime": "workerd",
+			"arm": "idle",
+			"round": 5,
+			"views": 0,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.856,
+			"pkgJ": 1234.467151,
+			"tailscaleRxB": 5570,
+			"tailscaleTxB": 5955,
+			"wlanRxB": 54021,
+			"wlanTxB": 25865,
+			"originNet": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0.01,
+			"cdpRequests": 0,
+			"swAnsweredPerView": [],
+			"swAnswered": 0,
+			"networkRequests": 0,
+			"curlBytes": 0
+		},
+		{
+			"runtime": "workerd",
+			"arm": "network",
+			"round": 5,
+			"views": 60,
+			"errors": 0,
+			"discarded": null,
+			"windowS": 60.933,
+			"pkgJ": 1301.511337,
+			"tailscaleRxB": 40748,
+			"tailscaleTxB": 14808,
+			"wlanRxB": 132823,
+			"wlanTxB": 58432,
+			"originNet": {
+				"requests": 60,
+				"html": 60,
+				"assets": 0,
+				"spool": 0
+			},
+			"originSpool": {
+				"requests": 0,
+				"html": 0,
+				"assets": 0,
+				"spool": 0
+			},
+			"load1": 0,
+			"cdpRequests": 180,
+			"swAnsweredPerView": [
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0
+			],
+			"swAnswered": 0,
+			"networkRequests": 180,
+			"curlBytes": 0
+		}
+	]
+}

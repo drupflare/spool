@@ -30,6 +30,7 @@ import {
 	raplRun,
 	repeatBytesBySite,
 	repeatNavFigures,
+	runtimeRun,
 	saving,
 	serverYearMWh,
 	serversAfter,
@@ -501,6 +502,48 @@ export function buildFigures(readings: Readings): Figures {
 	v.radioDifference = fixed(saving(request, script), 2);
 	v.radioRounds = fixed(request.windows);
 	v.radioSeconds = fixed(request.secondsPerView);
+	// #endregion
+
+	// #region server runtimes
+	const runtimesReading = latest(readings, 'rapl', 'runtimes');
+	const runtimes = runtimeRun(runtimesReading.rows);
+	const perWindow = Number(runtimesReading.method['views per window']);
+	const ARMS: Array<[string, string]> = [
+		['network', 'Network view'],
+		['spool', 'Spool local view'],
+		['curl', 'Bare HTML request (curl)']
+	];
+	t.runtimes = table(
+		[
+			'runtime',
+			'arm',
+			'server J per view above idle',
+			'overlay bytes per view',
+			'wire bytes per view',
+			'origin requests per view',
+			'windows'
+		],
+		Object.entries(runtimes).flatMap(([runtime, arms]) =>
+			ARMS.filter(([k]) => arms[k]).map(([k, label]) => {
+				const a = arms[k] as (typeof arms)[string];
+				return [
+					runtime,
+					label,
+					range(a.joules),
+					fixed(a.overlayBytes.median),
+					fixed(a.wireBytes.median),
+					`${fixed(a.originRequests.median, 2)} (max ${fixed(a.originRequests.max, 2)})`,
+					fixed(a.windows)
+				];
+			})
+		),
+		[2, 3, 4, 5, 6]
+	);
+	const spoolArms = Object.values(runtimes).flatMap((arms) => (arms.spool ? [arms.spool] : []));
+	v.runtimeFlushRequests = fixed(
+		Math.max(...spoolArms.map((a) => a.originRequests.max * perWindow))
+	);
+	v.runtimeViews = fixed(perWindow);
 	// #endregion
 
 	// #region origin term
