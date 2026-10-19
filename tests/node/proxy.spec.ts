@@ -7,15 +7,20 @@ import {
 	cookieNames,
 	decline,
 	equalSecrets,
+	htmlCharset,
+	isUtf8,
 	pathTag,
 	readTags,
 	setsPrivateCookie,
 	spoolProxy,
 	stripTags,
+	TRIM_PATH,
 	type Candidate,
 	type ProxyOptions
 } from '../../src/proxy/index';
+import { memorySink } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
+import { buildTrimManifest } from '../../src/trim/index';
 import { closeServers, listen } from './exercise';
 
 const HOST = 'https://site.test';
@@ -23,7 +28,7 @@ const ORIGIN = 'https://origin.test';
 const HTML = 'text/html; charset=utf-8';
 const PAGE = '<!doctype html><html><head><title>t</title></head><body><p>body</p></body></html>';
 
-type Reply = { status?: number; headers?: Record<string, string>; body?: string };
+type Reply = { status?: number; headers?: Record<string, string>; body?: string | Uint8Array };
 
 /** an origin that never sees spool: replies by path, and keeps every request it got */
 function fakeOrigin() {
@@ -32,7 +37,7 @@ function fakeOrigin() {
 	const fetch = async (request: Request) => {
 		hits.push({ request, body: await request.clone().text() });
 		const reply = replies.get(new URL(request.url).pathname) ?? { status: 404, body: 'none' };
-		return new Response(reply.body ?? '', {
+		return new Response((reply.body ?? '') as BodyInit, {
 			status: reply.status ?? 200,
 			headers: reply.headers ?? { 'content-type': HTML }
 		});
@@ -438,6 +443,49 @@ describe('the pure verdict', () => {
 		});
 		expect(decline(candidate({ response: stored, principal: true }), gate)).toBe('no-store');
 	});
+
+	it('declines a page whose header names a charset other than UTF-8', () => {
+		const page = (type: string) =>
+			candidate({ response: new Response('x', { headers: { 'content-type': type } }) });
+		expect(decline(page('text/html; charset=windows-1252'), gate)).toBe('charset');
+		expect(decline(page('text/html; charset="ISO-8859-1"'), gate)).toBe('charset');
+		expect(decline(page('text/html; charset=UTF-8'), gate)).toBeNull();
+		expect(decline(page('text/html'), gate)).toBeNull();
+		expect(
+			decline(
+				candidate({
+					data: true,
+					response: new Response('x', {
+						headers: { 'content-type': 'application/json; charset=latin1' }
+					})
+				}),
+				gate
+			)
+		).toBeNull();
+	});
+
+	it('reads a charset from the header first, then a meta tag in the first 1024 bytes', () => {
+		const bytes = (text: string) => new TextEncoder().encode(text);
+		const none = new Headers({ 'content-type': 'text/html' });
+		expect(
+			htmlCharset(
+				new Headers({ 'content-type': 'text/html; charset=UTF-8' }),
+				bytes('<meta charset="iso-8859-1">')
+			)
+		).toBe('utf-8');
+		expect(htmlCharset(none, bytes('<meta charset="ISO-8859-1">'))).toBe('iso-8859-1');
+		expect(
+			htmlCharset(
+				none,
+				bytes('<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">')
+			)
+		).toBe('windows-1252');
+		expect(
+			htmlCharset(none, bytes(`${' '.repeat(1024)}<meta charset="iso-8859-1">`))
+		).toBeNull();
+		expect([null, 'utf-8', 'utf8'].map(isUtf8)).toEqual([true, true, true]);
+		expect(isUtf8('windows-1252')).toBe(false);
+	});
 });
 
 describe('tags', () => {
@@ -747,6 +795,168 @@ describe('purge', () => {
 		expect(await equalSecrets('a', 'b')).toBe(false);
 		expect(await equalSecrets('a', 'aa')).toBe(false);
 		expect(await equalSecrets('', '')).toBe(true);
+	});
+});
+
+describe('trimmed stylesheets', () => {
+	const CSS = '.ok{a:b}\n.gone{c:d}';
+	const LINK = '<link rel="stylesheet" href="/site.css">';
+	const html = (cls: string) =>
+		`<!doctype html><html><head>${LINK}</head><body class="${cls}"></body></html>`;
+	const css = { 'content-type': 'text/css', 'cache-control': 'public, max-age=31536000' };
+
+	async function trimSetup(over: Partial<ProxyOptions> = {}) {
+		const sink = memorySink();
+		const trim = await buildTrimManifest({
+			pages: [html('ok')],
+			scripts: [],
+			styles: [
+				{ url: '/site.css', text: CSS },
+				{ url: '/agg.css?delta=0&theme=t', text: CSS }
+			]
+		});
+		const s = setup({ spool: { store: memoryStore(), sink }, trim, ...over });
+		s.replies.set('/site.css', { body: CSS, headers: { ...css, etag: '"abc"' } });
+		s.replies.set('/agg.css', { body: CSS, headers: css });
+		s.replies.set('/ok', { body: html('ok') });
+		s.replies.set('/gone', { body: html('gone') });
+		return { ...s, sink, trim };
+	}
+
+	it('answers a stylesheet in the manifest with its trimmed text and keeps the caching headers', async () => {
+		const s = await trimSetup();
+		const response = await s.call('/site.css');
+		expect(await response.text()).toBe('.ok{a:b}');
+		expect(response.headers.get('cache-control')).toBe('public, max-age=31536000');
+		expect(response.headers.get('content-type')).toBe('text/css');
+		expect(response.headers.get('etag')).toBe('W/"abc"');
+		expect(response.headers.has('content-length')).toBe(false);
+		expect({ ...s.proxy.trim }).toEqual({ served: 1, mismatched: 0, guarded: 0 });
+	});
+
+	it('keys a stylesheet by path and query', async () => {
+		const s = await trimSetup();
+		expect(await (await s.call('/agg.css?delta=0&theme=t')).text()).toBe('.ok{a:b}');
+		expect(await (await s.call('/agg.css?delta=1&theme=t')).text()).toBe(CSS);
+		expect(await (await s.call('/agg.css')).text()).toBe(CSS);
+		expect(s.proxy.trim.served).toBe(1);
+	});
+
+	it('serves the origin file unchanged and counts it when its bytes no longer match', async () => {
+		const s = await trimSetup();
+		const changed = `${CSS}\n.new{e:f}`;
+		s.replies.set('/site.css', { body: changed, headers: css });
+		const response = await s.call('/site.css');
+		expect(await response.text()).toBe(changed);
+		expect(response.headers.get('cache-control')).toBe('public, max-age=31536000');
+		expect({ ...s.proxy.trim }).toEqual({ served: 0, mismatched: 1, guarded: 0 });
+		const [event] = s.sink.events;
+		expect(event?.path).toBe(TRIM_PATH);
+		expect(JSON.parse(event?.body as string)).toEqual({ kind: 'mismatch', file: '/site.css' });
+	});
+
+	it('serves the full file for spool-trim=0 and sends the origin the URL without it', async () => {
+		const s = await trimSetup();
+		const response = await s.call('/agg.css?delta=0&spool-trim=0&theme=t');
+		expect(await response.text()).toBe(CSS);
+		expect(s.hits.at(-1)?.request.url).toBe(`${ORIGIN}/agg.css?delta=0&theme=t`);
+		expect({ ...s.proxy.trim }).toEqual({ served: 0, mismatched: 0, guarded: 0 });
+	});
+
+	it('never trims a response with no manifest entry, a HEAD, or a non-CSS body', async () => {
+		const s = await trimSetup();
+		s.replies.set('/other.css', { body: CSS, headers: css });
+		expect(await (await s.call('/other.css')).text()).toBe(CSS);
+		expect(await (await s.call('/site.css', { method: 'HEAD' })).text()).toBe(CSS);
+		s.replies.set('/site.css', { body: CSS, headers: { 'content-type': 'text/plain' } });
+		expect(await (await s.call('/site.css')).text()).toBe(CSS);
+		s.replies.set('/site.css', { status: 404, body: 'none', headers: css });
+		expect((await s.call('/site.css')).status).toBe(404);
+		expect({ ...s.proxy.trim }).toEqual({ served: 0, mismatched: 0, guarded: 0 });
+	});
+
+	it('does nothing without a manifest', async () => {
+		const s = setup();
+		s.replies.set('/site.css', { body: CSS, headers: css });
+		expect(await (await s.call('/site.css')).text()).toBe(CSS);
+		expect({ ...s.proxy.trim }).toEqual({ served: 0, mismatched: 0, guarded: 0 });
+	});
+
+	it('leaves a page alone when none of its tokens is missing', async () => {
+		const s = await trimSetup();
+		const text = await (await s.call('/ok')).text();
+		expect(text).toContain(LINK);
+		expect(text).not.toContain('spool-trim');
+		expect(s.proxy.trim.guarded).toBe(0);
+	});
+
+	it('points a page that needs a removed rule at the full file, and records it', async () => {
+		const s = await trimSetup();
+		const response = await s.call('/gone');
+		const text = await response.text();
+		expect(text).toContain('<link rel="stylesheet" href="/site.css?spool-trim=0">');
+		expect(response.headers.has('content-length')).toBe(false);
+		expect(s.proxy.trim.guarded).toBe(1);
+		const [event] = s.sink.events;
+		expect(event?.path).toBe(TRIM_PATH);
+		expect(JSON.parse(event?.body as string)).toEqual({
+			kind: 'guard',
+			page: '/gone',
+			reason: 'token',
+			files: ['/site.css']
+		});
+	});
+
+	it('guards a page the proxy does not keep, such as one with a query string or a cookie', async () => {
+		const s = await trimSetup();
+		const query = await (await s.call('/gone?page=2')).text();
+		expect(query).toContain('href="/site.css?spool-trim=0"');
+		const cookie = await (await s.call('/gone', { headers: { cookie: 'SESS=1' } })).text();
+		expect(cookie).toContain('href="/site.css?spool-trim=0"');
+		expect(s.proxy.trim.guarded).toBe(2);
+	});
+
+	it('guards a page that loads a script the manifest was not built with', async () => {
+		const s = await trimSetup();
+		s.replies.set('/scripted', {
+			body: `<html><head>${LINK}<script src="/new.js"></script></head><body class="ok"></body></html>`
+		});
+		expect(await (await s.call('/scripted')).text()).toContain('href="/site.css?spool-trim=0"');
+		expect(JSON.parse(s.sink.events[0]?.body as string).reason).toBe('script');
+	});
+
+	it('rewrites a page in another charset byte for byte and does not keep it', async () => {
+		const s = await trimSetup();
+		const latin = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
+		const page = (link: string) =>
+			`<html><head><meta charset="windows-1252">${link}</head><body class="gone">café \u0093x\u0094</body></html>`;
+		s.replies.set('/latin', {
+			body: latin(page(LINK)),
+			headers: { 'content-type': 'text/html' }
+		});
+		const response = await s.call('/latin');
+		const got = new Uint8Array(await response.arrayBuffer());
+		expect([...got]).toEqual([
+			...latin(page('<link rel="stylesheet" href="/site.css?spool-trim=0">'))
+		]);
+		expect(s.proxy.trim.guarded).toBe(1);
+		const artifact = await s.call('/.spool/artifact?path=/latin&have=', {
+			headers: { accept: '*/*' }
+		});
+		expect(artifact.status).not.toBe(200);
+		expect(await artifact.text()).toContain('/latin is not kept (charset)');
+	});
+
+	it('builds the artifact shell from the guarded page', async () => {
+		const s = await trimSetup();
+		const response = await s.call('/.spool/artifact?path=/gone&have=', {
+			headers: { accept: '*/*' }
+		});
+		const artifact = parseArtifact(await response.json());
+		expect(artifact.strategy === 'assembly' && artifact.body.shell).toContain(
+			'href="/site.css?spool-trim=0"'
+		);
+		expect(s.proxy.trim.guarded).toBe(1);
 	});
 });
 

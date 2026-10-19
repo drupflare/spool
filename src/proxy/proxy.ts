@@ -12,7 +12,22 @@ import {
 } from '../protocol/route.js';
 import { artifactTag } from '../protocol/sync.js';
 import { createSpool, type Spool, type SpoolOptions } from '../server/spool.js';
-import { decline, setsPrivateCookie, type Decline, type Gate } from './eligible.js';
+import {
+	guardPage,
+	sourceHash,
+	stripTrimParam,
+	TRIM_PARAM,
+	trimKey,
+	type TrimManifest
+} from '../trim/index.js';
+import {
+	decline,
+	htmlCharset,
+	isUtf8,
+	setsPrivateCookie,
+	type Decline,
+	type Gate
+} from './eligible.js';
 import { PURGE_PATH, respondPurge } from './purge.js';
 import { pathTag, readTags, stripTags } from './tags.js';
 
@@ -67,18 +82,43 @@ export type ProxyOptions = {
 	purgeSecret?: string;
 	/** how requests reach the origin; default global `fetch`. A Workers service binding passes its `fetch` */
 	fetch?: (request: Request) => Promise<Response>;
+	/**
+	 * trimmed stylesheets from `buildTrimManifest`. A same-origin stylesheet in the manifest is
+	 * answered with its trimmed text when the origin's bytes still hash to the manifest's `source`,
+	 * and every HTML page is checked against the guard first. Without it nothing is trimmed.
+	 */
+	trim?: TrimManifest;
 };
+
+/** what the proxy counted since it started: trimmed answers, hash mismatches and guard firings */
+export type TrimStats = { served: number; mismatched: number; guarded: number };
+
+/** where the proxy writes a guard firing or a hash mismatch to the sink, as JSON `{ kind, ... }` */
+export const TRIM_PATH = '/.spool/trim';
 
 /** the Fetch handler `spoolProxy` returns, with the spool it built */
 export type SpoolProxy = {
 	(request: Request): Promise<Response>;
 	readonly spool: Spool;
+	/** live counters; all zero when `trim` is not set */
+	readonly trim: Readonly<TrimStats>;
 };
 
 type Page = { text: string; tags: string[] };
 
 const isHtml = (response: Response) =>
 	(response.headers.get('content-type') ?? '').toLowerCase().includes('text/html');
+
+/** one character per byte, so an ASCII edit leaves every other byte as it was */
+function fromBytes(bytes: Uint8Array): string {
+	let text = '';
+	for (let at = 0; at < bytes.length; at += 8192) {
+		text += String.fromCharCode(...bytes.subarray(at, at + 8192));
+	}
+	return text;
+}
+
+const toBytes = (text: string) => Uint8Array.from(text, (char) => char.charCodeAt(0));
 
 /**
  * A Fetch handler that sits in front of an origin that cannot load the library, such as PHP or a
@@ -120,6 +160,44 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 	}
 	const call = options.fetch ?? ((request: Request) => fetch(request));
 	const { store } = options.spool;
+	const { trim } = options;
+	const stats: TrimStats = { served: 0, mismatched: 0, guarded: 0 };
+
+	function note(kind: 'guard' | 'mismatch', detail: Record<string, unknown>): void {
+		if (!options.spool.sink) return;
+		try {
+			const written = options.spool.sink.write([
+				{
+					path: TRIM_PATH,
+					body: JSON.stringify({ kind, ...detail }),
+					contentType: 'application/json',
+					at: Date.now()
+				}
+			]);
+			Promise.resolve(written).catch(() => undefined);
+		} catch {
+			// a failing sink never breaks a page
+		}
+	}
+
+	/** the page with its trimmed stylesheets pointed at the full files when the guard fires */
+	function guarded(text: string, pageUrl: string): string {
+		if (!trim) return text;
+		const verdict = guardPage(text, trim, pageUrl);
+		if (!verdict.fired) return text;
+		stats.guarded++;
+		note('guard', {
+			page: new URL(pageUrl).pathname,
+			reason: verdict.reason,
+			files: verdict.files
+		});
+		return verdict.html;
+	}
+
+	function weaken(headers: Headers): void {
+		const etag = headers.get('etag');
+		if (etag && !etag.startsWith('W/')) headers.set('etag', `W/${etag}`);
+	}
 
 	// the page a request resolved to, so `depends` and `load` do not fetch it again
 	const pages = new WeakMap<Request, { path: string; page: Promise<Page> }>();
@@ -136,7 +214,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 
 	function forward(request: Request, url: URL): Request {
 		const read = request.method === 'GET' || request.method === 'HEAD';
-		return new Request(new URL(url.pathname + url.search, base), {
+		return new Request(new URL(url.pathname + stripTrimParam(url.search), base), {
 			method: request.method,
 			headers: originHeaders(request.headers, url),
 			redirect: 'manual',
@@ -219,7 +297,11 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			gate
 		);
 		if (why) throw new ProtocolError('bad-artifact', `${path} is not kept (${why})`);
-		const text = await response.text();
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		if (!data && !isUtf8(htmlCharset(response.headers, bytes))) {
+			throw new ProtocolError('bad-artifact', `${path} is not kept (charset)`);
+		}
+		const text = guarded(new TextDecoder().decode(bytes), ctx.url.href);
 		if (text.length > gate.maxBytes) {
 			throw new ProtocolError('bad-artifact', `${path} is not kept (size)`);
 		}
@@ -318,6 +400,48 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 				headers: { 'content-type': 'text/plain', 'cache-control': 'no-store' }
 			});
 		}
+		if (trim && request.method === 'GET') {
+			const key = trimKey(url.href);
+			const entry = trim.styles[key];
+			if (
+				entry &&
+				url.searchParams.get(TRIM_PARAM) !== '0' &&
+				upstream.status === 200 &&
+				(upstream.headers.get('content-type') ?? '').toLowerCase().includes('text/css')
+			) {
+				const bytes = new Uint8Array(await upstream.arrayBuffer());
+				const headers = new Headers(upstream.headers);
+				headers.delete('content-length');
+				const match = (await sourceHash(bytes)) === entry.source;
+				if (match) {
+					weaken(headers);
+					stats.served++;
+				} else {
+					stats.mismatched++;
+					note('mismatch', { file: key });
+				}
+				upstream = new Response(match ? entry.css : bytes, {
+					status: 200,
+					statusText: upstream.statusText,
+					headers
+				});
+			} else if (isHtml(upstream) && ![204, 205, 304].includes(upstream.status)) {
+				const bytes = new Uint8Array(await upstream.arrayBuffer());
+				// another charset is rewritten byte for byte; the guard inserts ASCII only
+				const utf8 = isUtf8(htmlCharset(upstream.headers, bytes));
+				const text = utf8 ? new TextDecoder().decode(bytes) : fromBytes(bytes);
+				const verdict = guarded(text, url.href);
+				const headers = new Headers(upstream.headers);
+				headers.delete('content-length');
+				if (verdict !== text) weaken(headers);
+				const body = verdict === text ? bytes : utf8 ? verdict : toBytes(verdict);
+				upstream = new Response(body, {
+					status: upstream.status,
+					statusText: upstream.statusText,
+					headers
+				});
+			}
+		}
 		const tags = readTags(upstream.headers);
 		const headers = tidy(upstream.headers, url);
 		const init = { status: upstream.status, statusText: upstream.statusText, headers };
@@ -346,7 +470,11 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		);
 		if (why) return unfit(new Response(upstream.body, init), url.pathname, why, page);
 
-		const text = await upstream.text();
+		const bytes = new Uint8Array(await upstream.arrayBuffer());
+		if (!data && !isUtf8(htmlCharset(upstream.headers, bytes))) {
+			return unfit(new Response(bytes, init), url.pathname, 'charset', page);
+		}
+		const text = new TextDecoder().decode(bytes);
 		headers.delete('content-length');
 		if (text.length > gate.maxBytes) {
 			return unfit(new Response(text, init), url.pathname, 'size', page);
@@ -360,5 +488,5 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		return spool.decorate(request, new Response(text, init));
 	}
 
-	return Object.assign(handle, { spool });
+	return Object.assign(handle, { spool, trim: stats });
 }

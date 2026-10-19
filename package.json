@@ -46,6 +46,10 @@
 			"types": "./dist/report/index.d.ts",
 			"default": "./dist/report/index.js"
 		},
+		"./trim": {
+			"types": "./dist/trim/index.d.ts",
+			"default": "./dist/trim/index.js"
+		},
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -78,7 +82,8 @@
 		"measure:rapl": "node scripts/measure/rapl.ts",
 		"measure:iphone": "bun scripts/measure/iphone.ts",
 		"measure:traces": "bun scripts/measure/traces.ts",
-		"measure:payload": "bun scripts/measure/payload.ts"
+		"measure:payload": "bun scripts/measure/payload.ts",
+		"measure:trim": "bun scripts/measure/trim.ts"
 	},
 	"devDependencies": {
 		"@azure/functions": "^4.16.5",

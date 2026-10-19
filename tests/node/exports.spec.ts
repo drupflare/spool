@@ -13,6 +13,7 @@ import * as reportModule from '../../src/report/index';
 import * as serverModule from '../../src/server/index';
 import * as storesModule from '../../src/stores/index';
 import * as swModule from '../../src/sw/index';
+import * as trimModule from '../../src/trim/index';
 import configSource from '../../vitest.config.ts?raw';
 
 const root = join(import.meta.dirname, '../..');
@@ -31,7 +32,8 @@ const SUBPATHS: Array<[string, string, Record<string, unknown>, string]> = [
 	['./stores', 'stores/index', storesModule, 'memoryStore'],
 	['./sw', 'sw/index', swModule, 'serve'],
 	['./client', 'client/index', clientModule, 'register'],
-	['./report', 'report/index', reportModule, 'fleetFor']
+	['./report', 'report/index', reportModule, 'fleetFor'],
+	['./trim', 'trim/index', trimModule, 'trimCss']
 ];
 
 describe('the package exports map', () => {
