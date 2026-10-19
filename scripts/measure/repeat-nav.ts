@@ -29,14 +29,110 @@ export const SITES = [
 	'https://www.mit.edu/'
 ];
 
+/** which browser cache answered a request */
+export type CacheKind = 'disk' | 'memory' | 'prefetch' | 'serviceWorker';
+
+/** a redirect the document went through: the status it answered with and the origin that sent it */
+export type RedirectHop = { status: number; origin: string };
+
 type Seen = {
 	url: string;
 	type: string;
 	bytes: number;
 	fromCache: boolean;
+	cache: CacheKind | null;
 	status: number;
 	headers?: { cc: string | null; etag: boolean };
+	responseHeaders?: Record<string, string>;
+	hops: RedirectHop[];
 };
+
+/** one request of a navigation as the rig keeps it: no query string, no cookie, no body */
+export type RequestRecord = {
+	url: string;
+	host: string;
+	sameOrigin: boolean;
+	type: string;
+	status: number;
+	bytes: number;
+	fromCache: boolean;
+	cache: CacheKind | null;
+	cacheControl: string | null;
+	etag: boolean;
+	lastModified: boolean;
+	expires: boolean;
+	age: string | null;
+	vary: string | null;
+	contentType: string | null;
+};
+
+/** path segments that look like tokens: a colon, a dotted quad or 80+ characters */
+const OPAQUE_SEGMENT = /:|\b\d{1,3}(?:\.\d{1,3}){3}\b|^.{80,}$/;
+
+/** `path` with each token-like segment replaced by `{opaque}` (challenge ids, signed paths) */
+export function redactPath(path: string): string {
+	return path
+		.split('/')
+		.map((segment) => (OPAQUE_SEGMENT.test(segment) ? '{opaque}' : segment))
+		.join('/');
+}
+
+/**
+ * `url` as origin plus path: the query and fragment can carry ids, so they are never stored, and
+ * a path segment that looks like a token is redacted.
+ */
+export function stripQuery(url: string): string {
+	try {
+		const u = new URL(url);
+		return u.origin === 'null' ? u.protocol : `${u.origin}${redactPath(u.pathname)}`;
+	} catch {
+		return '';
+	}
+}
+
+/** the origin of `url`, or an empty string when it has none */
+export function originOf(url: string): string {
+	try {
+		const { origin, protocol } = new URL(url);
+		return origin === 'null' ? protocol : origin;
+	} catch {
+		return '';
+	}
+}
+
+/** the per-request record for what the browser saw; `origin` is the page's own, after redirects */
+export function requestRecord(
+	seen: Pick<Seen, 'url' | 'type' | 'bytes' | 'status' | 'fromCache' | 'cache'> & {
+		responseHeaders?: Record<string, string>;
+	},
+	origin: string
+): RequestRecord {
+	const h: Record<string, string> = {};
+	for (const [k, v] of Object.entries(seen.responseHeaders ?? {})) h[k.toLowerCase()] = v;
+	let host = '';
+	try {
+		host = new URL(seen.url).hostname;
+	} catch {
+		host = '';
+	}
+	return {
+		url: stripQuery(seen.url),
+		host,
+		sameOrigin: sameOrigin(seen.url, origin),
+		type: seen.type,
+		status: seen.status,
+		bytes: seen.bytes,
+		fromCache: seen.fromCache,
+		cache: seen.cache,
+		cacheControl: h['cache-control'] ?? null,
+		etag: 'etag' in h,
+		lastModified: 'last-modified' in h,
+		expires: 'expires' in h,
+		age: h['age'] ?? null,
+		vary: h['vary'] ?? null,
+		contentType: h['content-type'] ?? null
+	};
+}
 
 /** what the browser reports for one navigation: counts, bytes and main-thread time */
 export type BrowserNav = {
@@ -58,6 +154,10 @@ export type BrowserNav = {
 	thirdPartyBytes: number;
 	docHeaders: { cc: string | null; etag: boolean } | null;
 	byType: Record<string, number>;
+	/** every request of the navigation; `walkSite` keeps it only where asked to */
+	requestList: RequestRecord[];
+	/** the redirects the document went through before it landed */
+	docRedirects: RedirectHop[];
 };
 
 /** the origin a navigation's own requests count against: the document's, after any redirect */
@@ -77,13 +177,29 @@ export function sameOrigin(url: string, origin: string): boolean {
 /** the browser's own count of one navigation, from CDP Network and Performance events */
 export async function measureNav(page: Page, cdp: CDPSession, url: string): Promise<BrowserNav> {
 	const seen = new Map<string, Seen>();
-	const onRequest = (e: { requestId: string; request: { url: string }; type?: string }) => {
+	const onRequest = (e: {
+		requestId: string;
+		request: { url: string };
+		type?: string;
+		redirectResponse?: { status: number; url: string };
+	}) => {
+		const hops = seen.get(e.requestId)?.hops ?? [];
 		seen.set(e.requestId, {
 			url: e.request.url,
 			type: e.type ?? 'Other',
 			bytes: 0,
 			fromCache: false,
-			status: 0
+			cache: null,
+			status: 0,
+			hops: e.redirectResponse
+				? [
+						...hops,
+						{
+							status: e.redirectResponse.status,
+							origin: originOf(e.redirectResponse.url)
+						}
+					]
+				: hops
 		});
 	};
 	const onResponse = (e: {
@@ -93,6 +209,7 @@ export async function measureNav(page: Page, cdp: CDPSession, url: string): Prom
 			status: number;
 			fromDiskCache?: boolean;
 			fromPrefetchCache?: boolean;
+			fromServiceWorker?: boolean;
 			headers: Record<string, string>;
 		};
 	}) => {
@@ -100,6 +217,16 @@ export async function measureNav(page: Page, cdp: CDPSession, url: string): Prom
 		if (!r) return;
 		r.status = e.response.status;
 		r.fromCache = r.fromCache || !!(e.response.fromDiskCache || e.response.fromPrefetchCache);
+		r.cache =
+			r.cache ??
+			(e.response.fromDiskCache
+				? 'disk'
+				: e.response.fromPrefetchCache
+					? 'prefetch'
+					: e.response.fromServiceWorker
+						? 'serviceWorker'
+						: null);
+		r.responseHeaders = e.response.headers;
 		if (e.type === 'Document') {
 			const h = e.response.headers;
 			r.headers = {
@@ -110,7 +237,10 @@ export async function measureNav(page: Page, cdp: CDPSession, url: string): Prom
 	};
 	const onCache = (e: { requestId: string }) => {
 		const r = seen.get(e.requestId);
-		if (r) r.fromCache = true;
+		if (r) {
+			r.fromCache = true;
+			r.cache = 'memory';
+		}
 	};
 	const onFinished = (e: { requestId: string; encodedDataLength: number }) => {
 		const r = seen.get(e.requestId);
@@ -169,7 +299,9 @@ export async function measureNav(page: Page, cdp: CDPSession, url: string): Prom
 			.filter((r) => !sameOrigin(r.url, origin))
 			.reduce((s, r) => s + r.bytes, 0),
 		docHeaders: doc?.headers ?? null,
-		byType
+		byType,
+		requestList: all.map((r) => requestRecord(r, origin)),
+		docRedirects: doc?.hops ?? []
 	};
 }
 
@@ -223,6 +355,8 @@ export async function walkSite(
 	site: string,
 	options: {
 		links?: number;
+		/** keep each request of the home-page repeat view, with the document's redirects */
+		requests?: boolean;
 		after?: (kind: string, nav: BrowserNav) => Promise<Record<string, unknown>>;
 	} = {}
 ): Promise<Record<string, unknown>> {
@@ -233,8 +367,15 @@ export async function walkSite(
 	const row: Record<string, unknown> = { site, navs: [] };
 	const navs = row.navs as Array<Record<string, unknown>>;
 	const record = async (kind: string, url: string) => {
-		const nav = await measureNav(page, cdp, url);
-		navs.push({ kind, ...nav, ...(await options.after?.(kind, nav)) });
+		const { requestList, docRedirects, ...nav } = await measureNav(page, cdp, url);
+		const kept =
+			options.requests && kind === 'warm-home-repeat' ? { requestList, docRedirects } : {};
+		navs.push({
+			kind,
+			...nav,
+			...kept,
+			...(await options.after?.(kind, { ...nav, requestList, docRedirects }))
+		});
 	};
 	try {
 		await record('cold-home', site);
@@ -294,7 +435,7 @@ if (isMain(import.meta.url)) {
 		const rows: Array<Record<string, unknown>> = [];
 		for (const site of args.sites) {
 			const context = await browser.newContext();
-			rows.push(await walkSite(context, site));
+			rows.push(await walkSite(context, site, { requests: true }));
 			await context.close();
 			console.error(site);
 		}
@@ -314,6 +455,8 @@ if (isMain(import.meta.url)) {
 				'views per site': 6,
 				order: 'cold home, up to 6 internal links, home repeat',
 				network: 'the local network, no emulation',
+				'request records':
+					'every request of the home repeat view, query strings dropped and token-like path segments (challenge ids, signed paths) replaced by {opaque}',
 				sites: args.sites.length
 			},
 			exclusions: [],
