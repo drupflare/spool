@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.wrangler/
+bun.lock
+.husky/
+typedoc/
+playwright-report/
+playwright-results/
+test-results/
+.remember/
+conservation.txt
+src/server/embedded.ts
