@@ -1,0 +1,31 @@
+# bun
+node_modules/
+package-lock.json
+
+# build output
+dist/
+
+# wrangler local state; `wrangler.jsonc` here is the vitest harness, not a deployable
+.wrangler
+.dev.vars
+.dev.vars.*
+
+# test and coverage output
+coverage/
+*.lcov
+.vitest-cache/
+playwright-report/
+playwright-results/
+test-results/
+
+# logs and scratch
+*.log
+/tmp-*
+.remember/
+
+# editor and OS
+.idea/
+.DS_Store
+
+# typedoc output
+typedoc/
