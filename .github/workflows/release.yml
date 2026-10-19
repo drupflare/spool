@@ -11,9 +11,105 @@ on:
         description: 'Suffix to append to the version'
         default: ''
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
-  release:
+  gate:
+    name: Gate Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Check the Embedded Bundles
+        run: bun scripts/build-sw.ts --check
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Run Vitest Suite
+        run: bun run test
+      - name: Check the Impact Document
+        run: bun run impact:check
+      - name: Build
+        run: bun run build
+
+  browser:
+    name: Browser Lane
+    uses: ./.github/workflows/browser.yml
+
+    permissions:
+      contents: read
+
+  cdn:
+    name: Publish the Release Build to the CDN
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [gate, browser]
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read the Version
+        env:
+          SUFFIX: ${{ github.event.inputs.suffix }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ]; then
+            echo "package.json has no version field." >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "SUFFIX=$SUFFIX" >> "$GITHUB_ENV"
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Build the Direct Files
+        run: bun run build:cdn
+      - name: Check the Credentials Are Present
+        if: env.SUFFIX == ''
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set under Settings, Secrets and variables, Actions." >&2
+            exit 1
+          fi
+      - name: Publish and Read Back
+        if: env.SUFFIX == ''
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bun run publish:cdn --release --verify --summary="$GITHUB_STEP_SUMMARY"
+      - name: Skip a Suffixed Release
+        if: env.SUFFIX != ''
+        run: echo "Suffix '${SUFFIX}' given; spool/${VERSION}/ is immutable and belongs to the unsuffixed release, so nothing was published to the CDN." >> "$GITHUB_STEP_SUMMARY"
+      - name: Hand the Build to the Release Job
+        uses: actions/upload-artifact@v7
+        with:
+          name: cdn-build
+          path: dist/cdn
+          retention-days: 1
+          if-no-files-found: error
+
+  release:
+    name: Create the GitHub Release
+    runs-on: ubuntu-latest
+    needs: cdn
 
     permissions:
       contents: write
@@ -31,14 +127,11 @@ jobs:
             exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Take the Published Build
+        uses: actions/download-artifact@v7
         with:
-          bun-version: 'latest'
-      - name: Install Dependencies
-        run: bun install --frozen-lockfile
-      - name: Build the Direct Files
-        run: bun run build:cdn
+          name: cdn-build
+          path: dist/cdn
       - name: Retrieve Latest Tag
         id: latest_tag
         run: |
@@ -52,12 +145,38 @@ jobs:
           mode: 'HYBRID'
           fromTag: '${{ env.LATEST_TAG }}'
           toTag: '${{ github.ref_name }}'
+      - name: Write the Release Notes
+        env:
+          CHANGELOG: ${{ steps.changelog.outputs.changelog || github.event.inputs.changelog }}
+          SUFFIX: ${{ github.event.inputs.suffix }}
+        run: |
+          printf '%s\n' "$CHANGELOG" > notes.md
+          if [ -z "$SUFFIX" ]; then
+            INTEGRITY=$(node -p "require('./dist/cdn/manifest.json').files['client.js'].integrity")
+            WORKER=$(node -p "require('./dist/cdn/manifest.json').files['spool-sw.js'].integrity")
+            {
+              echo
+              echo "## Page Runtime"
+              echo
+              echo "The page runtime for this release is served from \`https://cdn.drupflare.com/spool/${VERSION}/client.js\` with this integrity hash:"
+              echo
+              echo "\`${INTEGRITY}\`"
+              echo
+              echo "Pass it to \`createSpool\` as \`cdn: { integrity: '${INTEGRITY}' }\`."
+              echo
+              echo "## Direct Files"
+              echo
+              echo "A site with no spool server serves \`spool-sw.js\` and \`client.js\` as files, with a \`spool.json\` beside them. Both are attached to this release and published under \`https://cdn.drupflare.com/spool/${VERSION}/\`. The worker script has this integrity hash:"
+              echo
+              echo "\`${WORKER}\`"
+            } >> notes.md
+          fi
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.VERSION }}${{ github.event.inputs.suffix }}
           name: spool v${{ env.VERSION }}${{ github.event.inputs.suffix }}
-          body: ${{ steps.changelog.outputs.changelog || github.event.inputs.changelog }}
+          body_path: notes.md
           draft: false
           prerelease: ${{ github.ref_name != 'master' }}
           files: |

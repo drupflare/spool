@@ -37,6 +37,45 @@ jobs:
       - name: Build
         run: bun run build
 
+  cdn:
+    name: Publish the Branch Build to the CDN
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: gate
+    if: ${{ github.event_name == 'push' && !startsWith(github.ref_name, 'renovate/') }}
+
+    concurrency:
+      group: cdn-dev-${{ github.ref }}
+      cancel-in-progress: true
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Build the Direct Files
+        run: bun run build:cdn
+      - name: Check the Credentials Are Present
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set under Settings, Secrets and variables, Actions." >&2
+            exit 1
+          fi
+      - name: Publish and Read Back
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bun run publish:cdn --dev --branch="$GITHUB_REF_NAME" --verify --summary="$GITHUB_STEP_SUMMARY"
+
   nightly:
     name: Publish Nightly to GitHub Packages
     runs-on: ubuntu-latest
@@ -71,6 +110,22 @@ jobs:
           echo "NIGHTLY=$NIGHTLY" >> "$GITHUB_ENV"
           echo "PACKAGE=$PACKAGE" >> "$GITHUB_ENV"
           echo "Publishing nightly $NIGHTLY" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build the Direct Files
+        run: bun run build:cdn
+      - name: Check the Credentials Are Present
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set under Settings, Secrets and variables, Actions." >&2
+            exit 1
+          fi
+      - name: Publish the Commit Build to the CDN
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bun run publish:cdn --release --verify --summary="$GITHUB_STEP_SUMMARY"
       - name: Publish to GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
