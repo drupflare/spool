@@ -153,7 +153,8 @@ test('the per-site report names the origin that stops a view being zero-network'
 	for (const path of ['/third/1', '/third/2', '/third/1']) await page.goto(`${fx.origin}${path}`);
 	await page.goto(`${fx.origin}/p/1`);
 	await moment(page);
-	await expect.poll(() => beacons(page)).toBe(0);
+	// the last page's hide-time loads report can land after the flush and waits for the next one
+	await expect.poll(() => beacons(page)).toBeLessThanOrEqual(1);
 	await expect
 		.poll(() => thirdPartyReport(viewsOf(fx.sink.events)).rows.map((r) => r.origin))
 		.toContain(fx.other.origin);
