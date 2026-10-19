@@ -29,3 +29,4 @@ test-results/
 
 # typedoc output
 typedoc/
+.claude
