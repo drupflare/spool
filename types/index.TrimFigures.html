@@ -1,0 +1,162 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>TrimFigures | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/index.html">index</a></li>
+<li><a href="" aria-current="page">TrimFigures</a></li></ul>
+<h1>Type Alias TrimFigures</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>what the trimmed experiment measured, per site and pooled</p>
+</div></section>
+<div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">TrimFigures</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#cold">cold</a><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#files">files</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">br5</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">count</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">trimmed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">trimmedBr5</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#first">first</a><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#leaveoneout">leaveOneOut</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">falseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">guardFired</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">pagesWithFalseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">unguarded</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">unguardedRules</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#render">render</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">beyondControl</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">controlIdentical</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">errors</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">identical</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">maxControl</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">maxTrimmed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">trimmedOnly</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rules">rules</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">falseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">offenders</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">used</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sites">sites</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">cold</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">fileShare</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">first</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">site</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L65">src/report/trim.ts:65</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#cold" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>cold</span></a>
+<a href="#files" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>files</span></a>
+<a href="#first" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>first</span></a>
+<a href="#leaveoneout" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>leave<wbr/>One<wbr/>Out</span></a>
+<a href="#render" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>render</span></a>
+<a href="#rules" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rules</span></a>
+<a href="#sites" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>sites</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="cold"><span>cold</span><a href="#cold" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">cold</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a></div>
+<div class="tsd-comment tsd-typography"><p>the home page of each site, a cold view</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L74">src/report/trim.ts:74</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="files"><span>files</span><a href="#files" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">files</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">br5</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">count</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">trimmed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">trimmedBr5</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L77">src/report/trim.ts:77</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="first"><span>first</span><a href="#first" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">first</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a></div>
+<div class="tsd-comment tsd-typography"><p>each internal page, the first view of it in a visit</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L76">src/report/trim.ts:76</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="leaveoneout"><span>leave<wbr/>One<wbr/>Out</span><a href="#leaveoneout" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">leaveOneOut</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">falseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">guardFired</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">pagesWithFalseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">unguarded</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">unguardedRules</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-comment tsd-typography"><p>leave-one-out over the internal pages</p>
+</div>
+<div class="tsd-type-declaration">
+<h4>Type Declaration</h4>
+<ul class="tsd-parameters">
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">falseRemovals</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">guardFired</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">pagesWithFalseRemovals</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">unguarded</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>pages the guard let through that link a trimmed file, Oracle A on them</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">unguardedRules</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li></ul></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L96">src/report/trim.ts:96</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="render"><span>render</span><a href="#render" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">render</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">beyondControl</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">controlIdentical</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">errors</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">identical</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">maxControl</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">maxTrimmed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">trimmedOnly</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-comment tsd-typography"><p>Oracle B: pixels that differ from the original CSS, and the same page against itself</p>
+</div>
+<div class="tsd-type-declaration">
+<h4>Type Declaration</h4>
+<ul class="tsd-parameters">
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">beyondControl</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>pages where the trimmed arm differed by more pixels than the control did</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">controlIdentical</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>pages whose second screenshot of the original equals the first to the pixel</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">errors</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">identical</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>pages whose trimmed screenshot equals the original to the pixel</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">maxControl</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">maxTrimmed</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">trimmedOnly</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>pages where the trimmed arm differed and the control did not</p>
+</div></li></ul></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L81">src/report/trim.ts:81</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="rules"><span>rules</span><a href="#rules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">rules</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">falseRemovals</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">offenders</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">pages</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">used</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-comment tsd-typography"><p>Oracle A: used rules the trimmed text lost</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L79">src/report/trim.ts:79</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sites"><span>sites</span><a href="#sites" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">sites</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">cold</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">fileShare</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">first</span><span class="tsd-signature-symbol">:</span> <a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">site</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">[]</span></div>
+<div class="tsd-type-declaration">
+<h4>Type Declaration</h4>
+<ul class="tsd-parameters">
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">cold</span><span class="tsd-signature-symbol">: </span><a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">fileShare</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+<div class="tsd-comment tsd-typography"><p>the share of the site's stylesheet bytes (brotli 5) the trim removes</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">first</span><span class="tsd-signature-symbol">: </span><a href="index.TrimSaving.html" class="tsd-signature-type tsd-kind-type-alias">TrimSaving</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h5></li>
+<li class="tsd-parameter">
+<h5><span class="tsd-kind-property">site</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5></li></ul></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/report/trim.ts#L66">src/report/trim.ts:66</a></li></ul></aside></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
+<div><a href="#cold"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>cold</span></a><a href="#files"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>files</span></a><a href="#first"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>first</span></a><a href="#leaveoneout"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>leave<wbr/>One<wbr/>Out</span></a><a href="#render"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>render</span></a><a href="#rules"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rules</span></a><a href="#sites"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>sites</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

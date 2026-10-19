@@ -1,0 +1,1532 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>protocol | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">protocol</a></li></ul></div>
+<div class="tsd-panel tsd-typography"><h1 id="wire-protocol" class="tsd-anchor-link">Wire Protocol<a href="#wire-protocol" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>This page describes what the server half and the worker send each other: paths, headers, JSON bodies and limits. It is written for someone who writes an adapter or a second server. The reference implementation is <code>src/protocol</code> (types, parsers and codecs both halves share), <code>src/server</code> (<code>createSpool</code>) and <code>src/sw</code> (the worker). Each value below carries the name the source gives it and the file that holds it. <a href="security.html">security.md</a> covers the threat model and <a href="impact.html">impact.md</a> covers the energy figures.</p>
+<p><code>tests/node/docs.spec.ts</code> reads this page and fails when a header, a path, a <code>MAX_*</code> constant or a protocol constant in <code>src/protocol/index.ts</code> differs from the tables here.</p>
+<h2 id="conventions" class="tsd-anchor-link">Conventions<a href="#conventions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>Every JSON body carries <code>protocol</code>, an integer. <code>PROTOCOL_VERSION</code> is <code>1</code> (<code>src/protocol/artifact.ts</code>).</li>
+<li>Header names are case-insensitive. <code>HEADERS</code> holds them in lowercase and this page writes them in Title Case in prose.</li>
+<li>A header or query integer matches <code>^\d{1,15}$</code>: decimal digits only, 15 at most.</li>
+<li>Tags and artifact ids are opaque strings. An artifact id is the request path it answers, so it starts with <code>/</code>.</li>
+<li>A tag is a dependency name such as <code>node:1</code>. A tag's version is the vector cursor at its last change.</li>
+<li>Every JSON answer from the server half is <code>Content-Type: application/json</code> with <code>Cache-Control: no-store</code>. A principal artifact answers <code>private, no-store</code>.</li>
+<li>A refusal is <code>{&quot;error&quot;: &quot;&lt;message&gt;&quot;}</code>. A <code>ProtocolError</code> (<code>src/protocol/errors.ts</code>) answers <code>400</code> with its message. Any other exception answers <code>500</code> with <code>{&quot;error&quot;:&quot;internal error&quot;}</code> and no detail.</li>
+</ul>
+<h2 id="paths" class="tsd-anchor-link">Paths<a href="#paths" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>PATHS</code> (<code>src/protocol/config.ts</code>) names the four paths a server half owns.</p>
+<table>
+<thead>
+<tr>
+<th><code>PATHS</code> key</th>
+<th>Path</th>
+<th>Methods</th>
+<th>Answered by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync</code></td>
+<td><code>/.spool/sync</code></td>
+<td>GET, HEAD</td>
+<td><code>respondSync</code>, <code>src/server/sync.ts</code></td>
+</tr>
+<tr>
+<td><code>artifact</code></td>
+<td><code>/.spool/artifact</code></td>
+<td>GET, HEAD</td>
+<td><code>respondArtifact</code>, <code>src/server/spool.ts</code></td>
+</tr>
+<tr>
+<td><code>beacon</code></td>
+<td><code>/.spool/beacon</code></td>
+<td>POST</td>
+<td><code>respondBeacon</code>, <code>src/server/beacon.ts</code></td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td><code>/spool-sw.js</code></td>
+<td>GET</td>
+<td><code>spool.stub()</code>; <code>handle</code> routes it, an adapter does</td>
+</tr>
+</tbody>
+</table>
+<p>Two more paths are not in <code>PATHS</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Methods</th>
+<th>Answered by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/.spool/&lt;version&gt;/client.js</code></td>
+<td>GET, HEAD</td>
+<td><code>clientPath(VERSION)</code> in <code>src/protocol/config.ts</code>, answered in <code>answer()</code></td>
+</tr>
+<tr>
+<td><code>/.spool/purge</code></td>
+<td>POST</td>
+<td><code>PURGE_PATH</code> in <code>src/proxy/purge.ts</code>; proxy mode only</td>
+</tr>
+</tbody>
+</table>
+<p><code>SPOOL_PREFIX</code> is <code>/.spool/</code>. Every path under it belongs to spool. <code>createSpool</code> refuses a <code>beacons</code> or <code>logout</code> entry under it. A request under the prefix that no row above claims answers <code>404</code> with <code>{&quot;error&quot;:&quot;not found&quot;}</code>, and so does a method a row does not list. The exceptions are <code>/.spool/beacon</code> and, in proxy mode, <code>/.spool/purge</code>: both answer <code>405</code> with <code>Allow: POST</code>.</p>
+<h3 id="worker-script" class="tsd-anchor-link">Worker Script<a href="#worker-script" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>/spool-sw.js</code> answers <code>200</code> with <code>Content-Type: text/javascript; charset=utf-8</code>, <code>Cache-Control: max-age=86400</code> and <code>Service-Worker-Allowed: /</code> (<code>workerResponse</code>, <code>src/server/stub.ts</code>). The body is <code>self.__SPOOL_CONFIG__=&lt;SwConfig as JSON&gt;;</code>, a newline, then the worker core, or the site's own bundle when <code>createSpool</code> gets <code>worker</code>. <code>SwConfig</code> is in <code>src/protocol/config.ts</code>. The page registers the script with <code>updateViaCache: 'all'</code>, and the day-long <code>max-age</code> is what lets Chromium and Firefox skip the update check for a controlled navigation. A deploy changes the bytes and reaches a browser within that day.</p>
+<h3 id="page-runtime-script" class="tsd-anchor-link">Page Runtime Script<a href="#page-runtime-script" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>/.spool/&lt;version&gt;/client.js</code> answers <code>200</code> with the page runtime, <code>Content-Type: text/javascript; charset=utf-8</code> and <code>Cache-Control: public, max-age=31536000, immutable</code>. <code>&lt;version&gt;</code> is <code>VERSION</code> (<code>src/version.ts</code>) percent-encoded. A different version answers <code>404</code>. A server that serves the script from a CDN passes <code>cdn</code> to <code>createSpool</code>, and the tag then names that URL.</p>
+<h3 id="client-tag" class="tsd-anchor-link">Client Tag<a href="#client-tag" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>decorate</code> puts one script tag in each HTML page: <code>&lt;script src=&quot;&lt;url&gt;&quot; defer data-spool-client&gt;&lt;/script&gt;</code>, plus <code>integrity=&quot;&lt;hash&gt;&quot; crossorigin=&quot;anonymous&quot;</code> when <code>cdn</code> is set (<code>clientTag</code>, <code>src/protocol/tag.ts</code>). <code>SwConfig.clientTag</code> holds the exact string. <code>injectClientTag</code> puts it before <code>&lt;/head&gt;</code>, else before <code>&lt;/body&gt;</code>, else at the end, and leaves a page that already contains <code>data-spool-client</code> alone. The worker injects the same string into every page it renders, so a local render and a network render are equal after <code>normalise</code>. A second server must inject the identical string at the same place, or shadow mode reports a mismatch on every page.</p>
+<p><code>decorate</code> injects only into a <code>GET</code> answered <code>200</code> as <code>text/html</code> with no <code>Content-Encoding</code>. When it changes the body it deletes <code>Content-Length</code> and weakens a strong <code>ETag</code> to <code>W/&lt;etag&gt;</code>.</p>
+<h2 id="headers" class="tsd-anchor-link">Headers<a href="#headers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>HEADERS</code> is in <code>src/protocol/envelope.ts</code>. <code>encodeEnvelope</code>, <code>writeEnvelope</code> and <code>decodeEnvelope</code> are its codec.</p>
+<table>
+<thead>
+<tr>
+<th><code>HEADERS</code> key</th>
+<th>Header</th>
+<th>Sent by</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>protocol</code></td>
+<td><code>spool-protocol</code></td>
+<td>server, on every spool response</td>
+<td>integer, <code>1</code></td>
+</tr>
+<tr>
+<td><code>artifact</code></td>
+<td><code>spool-artifact</code></td>
+<td>server, on a response the worker may keep</td>
+<td><code>id=&lt;id&gt;; scope=&lt;scope&gt;; deps=&lt;tag&gt;,&lt;tag&gt;; v=&lt;cursor&gt;</code></td>
+</tr>
+<tr>
+<td><code>invalidate</code></td>
+<td><code>spool-invalidate</code></td>
+<td>server</td>
+<td><code>&lt;tag&gt;=&lt;version&gt;, &lt;tag&gt;=&lt;version&gt;</code></td>
+</tr>
+<tr>
+<td><code>clear</code></td>
+<td><code>spool-clear</code></td>
+<td>server</td>
+<td><code>*</code>, or partition ids separated by commas</td>
+</tr>
+<tr>
+<td><code>vector</code></td>
+<td><code>spool-vector</code></td>
+<td>server</td>
+<td>integer cursor</td>
+</tr>
+<tr>
+<td><code>partition</code></td>
+<td><code>spool-partition</code></td>
+<td>server, and on <code>/.spool/sync</code> with an identity</td>
+<td>token matching <code>^[A-Za-z0-9_-]{1,128}$</code></td>
+</tr>
+<tr>
+<td><code>vectorSeen</code></td>
+<td><code>spool-vector-seen</code></td>
+<td>worker on requests, server on responses</td>
+<td>integer cursor</td>
+</tr>
+<tr>
+<td><code>provision</code></td>
+<td><code>spool-provision</code></td>
+<td>server, on a <code>204</code> from <code>/.spool/artifact</code></td>
+<td><code>declined</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>Spool-Vector-Seen</code> is the one spool header a request carries. On a request it is the cursor the worker holds. On a response it echoes that value, which says the <code>Spool-Invalidate</code> beside it is the complete diff since that cursor. The worker sends it on a same-origin <code>GET</code> that is not a navigation, when it holds a cursor and has no manifest (<code>passthrough</code>, <code>src/sw/runtime.ts</code>). The proxy deletes every <code>spool-</code> request header before it forwards a request.</p>
+<p><code>Spool-Provision</code> is set by <code>respondArtifact</code> directly and is not part of the <code>Envelope</code> type.</p>
+<h3 id="field-grammar" class="tsd-anchor-link">Field Grammar<a href="#field-grammar" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Grammar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spool-artifact</code></td>
+<td>fields split on <code>;</code>, each <code>name=value</code> with a name at least one character long. <code>id</code> and <code>v</code> are required. <code>scope</code> is <code>public</code> or <code>principal</code>. <code>id</code> and each <code>deps</code> entry are percent-encoded. Unknown field names are ignored. <code>deps</code> is optional.</td>
+</tr>
+<tr>
+<td><code>spool-invalidate</code></td>
+<td>entries split on <code>,</code>. Each entry splits at its last <code>=</code>. The tag is percent-encoded and the version is an integer.</td>
+</tr>
+<tr>
+<td><code>spool-clear</code></td>
+<td>tokens split on <code>,</code>, each percent-encoded. <code>*</code> is <code>CLEAR_ALL</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>decodeEnvelope</code> treats an absent header as an absent field and throws <code>ProtocolError</code> with code <code>bad-header</code> on a malformed one. The worker reads a response through <code>decodeEnvelopeOrClear</code>. When <code>decodeEnvelope</code> throws, the worker ignores every spool header of that response except <code>Spool-Clear</code>, which it reads on its own. A valid <code>Spool-Clear</code> still applies, a malformed one counts as <code>*</code>, and a response whose <code>Spool-Protocol</code> names another version is ignored. <code>encodeEnvelope</code> refuses a <code>partition</code> that does not match the pattern.</p>
+<p>Examples from <code>encodeEnvelope</code>, the first for the artifact of <code>/node/3</code> at cursor 1 with the tag <code>node:3</code>, the second for a response to <code>Spool-Vector-Seen: 1</code> when the cursor is 2 and only <code>b</code> changed (<code>tests/unit/server.spec.ts</code>):</p>
+<pre><code class="text">Spool-Protocol: 1
+Spool-Artifact: id=%2Fnode%2F3; scope=public; deps=node%3A3; v=1
+</code><button type="button">Copy</button></pre>
+
+<pre><code class="text">Spool-Protocol: 1
+Spool-Invalidate: b=2
+Spool-Vector: 2
+Spool-Vector-Seen: 1
+Vary: Spool-Vector-Seen
+</code><button type="button">Copy</button></pre>
+
+<h3 id="other-headers" class="tsd-anchor-link">Other Headers<a href="#other-headers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Set by</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X-Spool-Route</code></td>
+<td><code>decorate</code>, on a routed <code>GET</code> or <code>HEAD</code> answered <code>200</code></td>
+<td>the route pattern that matched</td>
+</tr>
+<tr>
+<td><code>X-Spool-Mode</code></td>
+<td><code>decorate</code>, with <code>X-Spool-Route</code></td>
+<td><code>serve</code> or <code>shadow</code></td>
+</tr>
+<tr>
+<td><code>Vary: Spool-Vector-Seen</code></td>
+<td><code>decorate</code>, on a read that sent <code>Spool-Vector-Seen</code></td>
+<td>keeps a shared cache from replaying one diff to another cursor</td>
+</tr>
+<tr>
+<td><code>Clear-Site-Data: &quot;storage&quot;</code></td>
+<td><code>decorate</code>, when called with <code>hardReset: true</code></td>
+<td>the browser's own reset of everything the origin holds</td>
+</tr>
+<tr>
+<td><code>Service-Worker-Allowed: /</code></td>
+<td><code>workerResponse</code></td>
+<td>lets the worker control the whole origin</td>
+</tr>
+</tbody>
+</table>
+<h3 id="security-headers" class="tsd-anchor-link">Security Headers<a href="#security-headers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A page the worker renders from an artifact has no network response of its own, so the worker replays headers of the network responses it saw. <code>POLICY_HEADERS</code> (<code>src/sw/policy.ts</code>) is the list: <code>Content-Security-Policy</code>, <code>Content-Security-Policy-Report-Only</code>, <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code>, <code>Cross-Origin-Opener-Policy</code>, <code>Cross-Origin-Embedder-Policy</code> and <code>Cross-Origin-Resource-Policy</code>. A server half sends nothing new for this: the application's own headers are the source.</p>
+<ul>
+<li>The worker stores the set from a <code>200</code> HTML navigation to a route's path with no query string and from a <code>200</code> <code>data</code> read, under that path. Any <code>200</code> same-origin HTML navigation also replaces the site-wide set.</li>
+<li>A local render replays the path's own set, or the site-wide set when the path has none. With neither, the worker leaves the view to the network.</li>
+<li><code>static</code> routes replay all the headers they stored instead. The sets are persisted with the replica and removed with it.</li>
+</ul>
+<p><a href="security.html#content-security-policy">security.md</a> states the consequences.</p>
+<h2 id="the-envelope" class="tsd-anchor-link">The Envelope<a href="#the-envelope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>Envelope</code> (<code>src/protocol/envelope.ts</code>) is every spool header of a response, decoded.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Header</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>protocol</code></td>
+<td><code>spool-protocol</code></td>
+<td>integer</td>
+<td>the protocol version the sender speaks</td>
+</tr>
+<tr>
+<td><code>artifact</code></td>
+<td><code>spool-artifact</code></td>
+<td><code>{ id, scope, deps, version }</code></td>
+<td>this response is the artifact for <code>id</code> at cursor <code>version</code>, built from the tags in <code>deps</code></td>
+</tr>
+<tr>
+<td><code>invalidate</code></td>
+<td><code>spool-invalidate</code></td>
+<td>tag to version</td>
+<td>tags that changed, each with the cursor at its last change</td>
+</tr>
+<tr>
+<td><code>clear</code></td>
+<td><code>spool-clear</code></td>
+<td>list of strings</td>
+<td>partition ids to wipe, or <code>*</code> for everything</td>
+</tr>
+<tr>
+<td><code>vector</code></td>
+<td><code>spool-vector</code></td>
+<td>integer</td>
+<td>the server's cursor</td>
+</tr>
+<tr>
+<td><code>seen</code></td>
+<td><code>spool-vector-seen</code></td>
+<td>integer</td>
+<td>echo of the request's cursor; <code>invalidate</code> is the complete diff since it</td>
+</tr>
+<tr>
+<td><code>partition</code></td>
+<td><code>spool-partition</code></td>
+<td>string</td>
+<td>the partition the response belongs to</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-decorate-sends" class="tsd-anchor-link">What decorate Sends<a href="#what-decorate-sends" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>decorate</code> (<code>src/server/spool.ts</code>) adds these by case. <code>MAX_PIGGYBACK</code> is <code>32</code> and is described under <a href="#limits">Limits</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Headers added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>any response except status <code>101</code>, which is returned untouched</td>
+<td><code>Spool-Protocol: 1</code> and <code>Spool-Vector</code> with the cursor read before the application ran, unless a row below removes it</td>
+</tr>
+<tr>
+<td><code>GET</code> or <code>HEAD</code> with <code>Spool-Vector-Seen: n</code>, <code>n</code> at most the cursor, changes at most 32</td>
+<td><code>Spool-Invalidate</code> with every changed tag (omitted when none changed), <code>Spool-Vector</code> with the cursor, <code>Spool-Vector-Seen: n</code></td>
+</tr>
+<tr>
+<td>the same, with more than 32 changed tags</td>
+<td><code>Spool-Protocol</code> only. The worker takes nothing from it and asks <code>/.spool/sync</code> later</td>
+</tr>
+<tr>
+<td>the same, with <code>n</code> ahead of the cursor</td>
+<td><code>Spool-Clear: *</code>, <code>Spool-Vector</code> with the cursor, <code>Spool-Vector-Seen: n</code></td>
+</tr>
+<tr>
+<td>the same, with <code>n</code> not an integer</td>
+<td><code>Spool-Protocol</code> only</td>
+</tr>
+<tr>
+<td>any method but <code>GET</code> and <code>HEAD</code></td>
+<td><code>Spool-Vector</code> with the cursor after the write. The tags the write changed ride in <code>Spool-Invalidate</code>; more than 32 changed, or a vector that was reset, sends <code>Spool-Clear: *</code></td>
+</tr>
+<tr>
+<td><code>clear</code> option</td>
+<td><code>Spool-Clear</code> with those tokens, replacing any value the rows above set</td>
+</tr>
+<tr>
+<td>identity resolves and the response has no <code>Spool-Partition</code></td>
+<td><code>Spool-Partition</code> for that principal</td>
+</tr>
+<tr>
+<td>routed <code>GET</code> or <code>HEAD</code> answered <code>200</code>, HTML or a <code>static</code> or <code>data</code> route, public or identity resolves</td>
+<td><code>Spool-Artifact</code> with <code>version</code> set to the cursor read before the application ran</td>
+</tr>
+</tbody>
+</table>
+<p>The cursor is read before the application runs, so a write that races a render leaves the artifact looking older than the write, which makes the worker refetch it. <code>handle</code> reads the cursor first and passes it to <code>decorate</code>.</p>
+<p>A page the proxy declines can still tell the worker to drop its copy: the proxy writes <code>Spool-Invalidate</code> with the tag <code>spool:artifact:&lt;path&gt;</code> at a version one past the cursor. The version is not recorded in the vector.</p>
+<h3 id="how-the-worker-reads-an-envelope" class="tsd-anchor-link">How the Worker Reads an Envelope<a href="#how-the-worker-reads-an-envelope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The worker (<code>early</code> and <code>observe</code> in <code>src/sw/runtime.ts</code>, <code>applyEnvelope</code> in <code>src/sw/replica.ts</code>) applies a response's spool headers only when <code>Spool-Protocol</code> equals <code>PROTOCOL_VERSION</code>. Any other value, or none, makes the response an ordinary one.</p>
+<ul>
+<li><code>Spool-Clear</code> with <code>*</code> empties the replica and sets the cursor to <code>Spool-Vector</code> when present.</li>
+<li><code>Spool-Invalidate</code> raises tag versions. It always applies.</li>
+<li>The cursor and the sync clock advance only when the response carries <code>Spool-Vector-Seen</code> equal to the value the worker sent, carries <code>Spool-Vector</code>, and has no <code>Age</code> header. A copy a shared cache replays cannot extend freshness.</li>
+<li><code>Spool-Artifact</code> on a navigation (or on a <code>data</code> route read) makes the worker fetch <code>/.spool/artifact?path=&lt;id&gt;</code> when it holds no artifact for <code>id</code>, has not been told to leave that path to the network (a <code>204</code> declined), the route matches, the strategy is not <code>static</code> and the scope matches. For a <code>static</code> route the worker keeps the response itself, bytes and headers, when the advertised id equals the path and the scope is <code>public</code>.</li>
+<li>A principal artifact is fetched only when the response's <code>Spool-Partition</code> equals the partition the worker holds.</li>
+<li>A <code>/.spool/sync</code> answer is read the same way before the worker uses it (<code>fetchSync</code>, <code>src/sw/runtime.ts</code>). A <code>Spool-Partition</code> that differs from the held partition swaps the store, and an answer with none wipes the principal store as a session that ended. A sync answer therefore ends a sign-in or sign-out the worker never saw.</li>
+<li>A response's security headers are not part of the envelope, and the worker keeps them as well. See <a href="#security-headers">Security Headers</a>.</li>
+</ul>
+<h2 id="version-vector" class="tsd-anchor-link">Version Vector<a href="#version-vector" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The version vector is the server's record of change (<code>VersionVector</code>, <code>src/protocol/vector.ts</code>). A store behind it implements <code>VersionStore</code> (<code>src/stores/version-store.ts</code>): <code>bump(tags)</code>, <code>cursor()</code> and <code>diff(from)</code>.</p>
+<ul>
+<li>The cursor starts at <code>0</code> and only moves forward. <code>bump</code> moves it by exactly one, whatever the number of tags, and stamps each tag with the new value. <code>bump([])</code> changes nothing.</li>
+<li>A tag's version is the cursor at its last change, and <code>0</code> when it never changed.</li>
+<li><code>diff(from)</code> is every tag whose version is above <code>from</code>, with the current cursor. When <code>from</code> is above the cursor, the holder has lost its server (a restart that forgot state, a different deployment), and the diff has <code>reset: true</code> and every tag. The holder wipes what it holds.</li>
+<li>A store must keep the cursor monotonic across restarts. <code>memoryStore</code> begins at <code>0</code> on every start unless it is given a snapshot, so after a restart every worker holding a higher cursor is told to reset. <code>SpoolVersions</code> (<code>src/stores/durable-object.ts</code>) keeps one SQLite row per tag and one cursor row.</li>
+<li>An artifact's <code>vector</code> is the cursor read before the artifact was built. The worker keeps an artifact while no tag in its <code>deps</code> has a version above that <code>vector</code> (<code>isCurrent</code>, <code>src/sw/freshness.ts</code>).</li>
+<li>The worker's copy only moves forward. A tag version is raised only by a higher value, the cursor takes the maximum, and a copy built before a change it already knows of is refused at <code>put</code>.</li>
+<li>An artifact can be dropped by id. <code>spool.invalidate(tags, { drop })</code> bumps the tag <code>spool:artifact:&lt;id&gt;</code> (<code>ARTIFACT_TAG_PREFIX</code>, <code>artifactTag</code>, <code>src/protocol/sync.ts</code>). The sync answer lists such ids in <code>dropped</code> and does not list the tag in <code>changed</code>.</li>
+</ul>
+<p><code>VersionVector.from(snapshot)</code> accepts a cursor that is a non-negative safe integer and tag versions from <code>1</code> to the cursor.</p>
+<p>Example, from <code>tests/unit/wire.spec.ts</code>. After <code>bump(['node:1', artifactTag('/page')])</code>, <code>toSyncResponse(diff(0))</code> is:</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;cursor&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;changed&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;node:1&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;dropped&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;/page&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;reset&quot;</span><span class="hl-1">: </span><span class="hl-10">false</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h2 id="sync" class="tsd-anchor-link">Sync<a href="#sync" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>GET /.spool/sync</code> answers what changed. Two forms exist, <code>from</code> and <code>need</code>. <code>need</code> wins when both are present.</p>
+<h3 id="sync-by-cursor" class="tsd-anchor-link">Sync by Cursor<a href="#sync-by-cursor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>?from=&lt;n&gt;</code> takes the worker's cursor. Any other value, or none, answers <code>400</code> with <code>from must be a non-negative integer</code>. The answer is a <code>SyncResponse</code> (<code>src/protocol/sync.ts</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>protocol</code></td>
+<td><code>1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>cursor</code></td>
+<td>integer</td>
+<td>the server's cursor; the holder takes it</td>
+</tr>
+<tr>
+<td><code>changed</code></td>
+<td>tag to integer</td>
+<td>every tag whose version is above <code>from</code>, without the <code>spool:artifact:</code> tags</td>
+</tr>
+<tr>
+<td><code>dropped</code></td>
+<td>list of strings</td>
+<td>artifact ids the server dropped after <code>from</code></td>
+</tr>
+<tr>
+<td><code>reset</code></td>
+<td>boolean</td>
+<td><code>from</code> is ahead of the cursor: wipe everything held, then take <code>cursor</code></td>
+</tr>
+<tr>
+<td><code>partial</code></td>
+<td>boolean</td>
+<td>present and <code>true</code> only in a <code>need</code> answer</td>
+</tr>
+</tbody>
+</table>
+<p>The headers are <code>Spool-Protocol: 1</code> and <code>Spool-Vector: &lt;cursor&gt;</code>. When <code>createSpool</code> has an <code>identity</code> option, the answer also carries <code>Spool-Partition</code> for the identity the request's cookies resolve to, and carries none when they resolve to nobody. The worker applies it as it does on a navigation, and a server without an <code>identity</code> option sends none. Example, from <code>tests/unit/server.spec.ts</code>, after <code>invalidate(['node:1', 'menu'])</code> and <code>invalidate(['node:2'], { drop: ['/page/x'] })</code>, for <code>GET /.spool/sync?from=1</code>:</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;cursor&quot;</span><span class="hl-1">: </span><span class="hl-15">2</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;changed&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;node:2&quot;</span><span class="hl-1">: </span><span class="hl-15">2</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;dropped&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;/page/x&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;reset&quot;</span><span class="hl-1">: </span><span class="hl-10">false</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="sync-by-need" class="tsd-anchor-link">Sync by Need<a href="#sync-by-need" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>?need=&lt;held&gt;</code> asks only about the ids the next page reads. <code>&lt;held&gt;</code> is <code>id@version</code> pairs joined by commas, with each id percent-encoded (<code>encodeHeld</code>, <code>parseHeld</code>, <code>src/protocol/sync.ts</code>). The worker sends every tag an artifact depends on, and the artifact's own <code>spool:artifact:&lt;id&gt;</code> tag, each at the artifact's <code>vector</code>. Parsing splits on <code>,</code>, ignores empty parts, takes the version after the last <code>@</code> and requires it to be an integer. More than <code>MAX_NEED</code> entries, or a malformed one, answers <code>400</code>. A worker whose artifact depends on more than <code>MAX_NEED</code> tags falls back to a full sync. The <code>need</code> of a principal page also names the tags of the catalogue entries held and unopened (see <a href="#principal-entries">Principal Entries</a>), and the same fallback applies to the union.</p>
+<p>The answer has <code>partial: true</code>. <code>changed</code> holds only the asked-about tags whose version is above the version asked with. <code>dropped</code> holds the artifact ids whose drop tag passed it. The <code>cursor</code> in a partial answer is not the holder's to take, because the answer covers only part of the diff, and <code>applySync</code> leaves the cursor and the sync clock alone. <code>reset</code> is <code>true</code> when the highest version asked about is above the server's cursor, and <code>changed</code> is then empty. An empty <code>need=</code> answers the cursor alone, with <code>partial: true</code>.</p>
+<p>Example, from <code>tests/unit/server.spec.ts</code>. After <code>invalidate(['a', 'b'])</code>, <code>invalidate(['c'], { drop: ['/page/x'] })</code> and <code>invalidate(['a'])</code>, the request carries this <code>need</code> before it is percent-encoded as a query value:</p>
+<pre><code class="text">a@1,b@1,c@3,d@0,spool%3Aartifact%3A%2Fpage%2Fx@1
+</code><button type="button">Copy</button></pre>
+
+<p>The answer is <code>Spool-Vector: 3</code> and:</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;cursor&quot;</span><span class="hl-1">: </span><span class="hl-15">3</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;changed&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;a&quot;</span><span class="hl-1">: </span><span class="hl-15">3</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;dropped&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;/page/x&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;reset&quot;</span><span class="hl-1">: </span><span class="hl-10">false</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;partial&quot;</span><span class="hl-1">: </span><span class="hl-10">true</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>b</code> and <code>d</code> are absent because neither moved past the version asked, and <code>c</code> is absent because it was asked at <code>3</code>.</p>
+<h2 id="artifact" class="tsd-anchor-link">Artifact<a href="#artifact" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>GET /.spool/artifact?path=&lt;path&gt;[&amp;have=&lt;held&gt;]</code> answers the artifact for a path. The request carries the visitor's cookies, so <code>identity.resolve</code> sees the visitor.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>a pathname that starts with <code>/</code>. Anything else answers <code>400</code> with <code>path must start with &quot;/&quot;</code>. The server matches it as given, so send no query string.</td>
+</tr>
+<tr>
+<td><code>have</code></td>
+<td><code>id@version</code> pairs, in the format of <code>need</code>, for the records and projections the worker holds. More than <code>MAX_HAVE</code> entries, or a malformed one, answers <code>400</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The server picks the first route whose pattern matches. It reads the cursor, runs <code>depends</code> and <code>load</code>, collects the records and projections the load registered, validates the result with <code>parseArtifact</code>, and drops from <code>records</code> and <code>projections</code> whatever <code>have</code> already covers at a version no change has passed. When the holder claims a version from the future the server sends everything.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Body or headers</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>200</code></td>
+<td>an <code>Artifact</code>; <code>Spool-Protocol: 1</code></td>
+<td>the route is public, or principal and the identity resolves</td>
+</tr>
+<tr>
+<td><code>200</code></td>
+<td>as above, plus <code>Spool-Partition</code> and <code>Cache-Control: private, no-store</code></td>
+<td>a principal route</td>
+</tr>
+<tr>
+<td><code>204</code></td>
+<td><code>Spool-Provision: declined</code>, <code>Cache-Control: no-store</code></td>
+<td>the public artifact costs more than its expected reuse repays; see <a href="#provisioning">Provisioning</a></td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>{&quot;error&quot;: &lt;message&gt;}</code></td>
+<td>bad <code>path</code> or <code>have</code>; a <code>$record</code> or <code>$projection</code> reference the load did not register; a built artifact that fails <code>parseArtifact</code></td>
+</tr>
+<tr>
+<td><code>401</code></td>
+<td><code>{&quot;error&quot;:&quot;sign in&quot;}</code></td>
+<td>a principal route and no identity</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>{&quot;error&quot;:&quot;no route&quot;}</code></td>
+<td>no pattern matches</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>{&quot;error&quot;:&quot;a static route is not provisioned&quot;}</code></td>
+<td>the route's strategy is <code>static</code></td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td><code>{&quot;error&quot;:&quot;internal error&quot;}</code></td>
+<td><code>load</code> threw something other than a <code>ProtocolError</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-artifact-body" class="tsd-anchor-link">The Artifact Body<a href="#the-artifact-body" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>Artifact</code> (<code>src/protocol/artifact.ts</code>) is <code>protocol</code>, <code>id</code>, <code>scope</code>, <code>deps</code>, <code>vector</code>, optional <code>records</code> and <code>projections</code>, <code>strategy</code> and <code>body</code>. <code>parseArtifact</code> is what the worker calls before it stores anything.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>protocol</code></td>
+<td>must equal <code>PROTOCOL_VERSION</code></td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>a string that starts with <code>/</code></td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td><code>public</code> or <code>principal</code></td>
+</tr>
+<tr>
+<td><code>deps</code></td>
+<td>a list of strings: the route's <code>depends</code> result, plus every record id and every projection dependency</td>
+</tr>
+<tr>
+<td><code>vector</code></td>
+<td>a non-negative safe integer: the cursor read before the artifact was built</td>
+</tr>
+<tr>
+<td><code>strategy</code></td>
+<td><code>template</code>, <code>projection</code>, <code>data</code> or <code>assembly</code></td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td>for <code>template</code>, <code>projection</code> and <code>data</code>, <code>{ &quot;data&quot;: &lt;any JSON&gt; }</code>. For <code>assembly</code>, <code>{ &quot;shell&quot;: &lt;string&gt;, &quot;fragments&quot;?: &lt;object&gt;, &quot;slots&quot;?: &lt;object&gt; }</code></td>
+</tr>
+<tr>
+<td><code>records</code></td>
+<td>optional list of <code>{ id, version, data }</code>, each <code>id</code> a non-empty string and <code>version</code> a non-negative integer</td>
+</tr>
+<tr>
+<td><code>projections</code></td>
+<td>optional list of <code>{ id, version, deps, data }</code>, each <code>deps</code> a list of strings</td>
+</tr>
+</tbody>
+</table>
+<p><code>parseArtifact</code> refuses a <code>static</code> artifact and any other strategy with <code>bad-artifact</code>. A static artifact exists only inside the worker, which builds it from a response it fetched, and <code>/.spool/artifact</code> answers <code>404</code> for a static route.</p>
+<p>A page's data refers to a record with <code>{&quot;$record&quot;: &quot;&lt;id&gt;&quot;}</code> and to a projection with <code>{&quot;$projection&quot;: &quot;&lt;id&gt;&quot;}</code>. A reference is an object with that one key. The worker replaces each reference with the stored value when it renders, and refuses to render a page whose reference has nothing behind it. A projection that reaches itself is refused. An assembly <code>fragments</code> or <code>slots</code> value is either a string or a reference.</p>
+<p>An assembly shell holds a hole as <code>&lt;span data-spool-placeholder=&quot;&lt;id&gt;&quot;&gt;&lt;/span&gt;</code> (<code>placeholder</code>) and a named value as <code>{{spool-slot:&lt;name&gt;}}</code> (<code>slot</code>, names match <code>[A-Za-z0-9_.-]+</code>), both in <code>src/protocol/assembly.ts</code>. The worker refuses to render a shell with an unfilled hole or slot.</p>
+<p>Example for a template route, built from the format <code>parseArtifact</code> accepts (the key order is the server's):</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;id&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/c/101&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;scope&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;public&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;deps&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;course:101&quot;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;vector&quot;</span><span class="hl-1">: </span><span class="hl-15">0</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;records&quot;</span><span class="hl-1">: [{ </span><span class="hl-16">&quot;id&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;course:101&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-15">0</span><span class="hl-1">, </span><span class="hl-16">&quot;data&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;Intro&quot;</span><span class="hl-1"> }],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;template&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;body&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;data&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;title&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;$record&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;course:101&quot;</span><span class="hl-1"> } } }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The artifact answer for <code>/node/7</code> in <code>tests/unit/server.spec.ts</code> is the same shape without <code>records</code>: <code>deps</code> is <code>[&quot;node:7&quot;]</code> and <code>body</code> is <code>{ &quot;data&quot;: { &quot;id&quot;: &quot;7&quot; } }</code>.</p>
+<h2 id="beacon" class="tsd-anchor-link">Beacon<a href="#beacon" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>POST /.spool/beacon</code> takes the events the worker held, in one body, and answers with artifacts when the worker asked for some.</p>
+<h3 id="the-batch" class="tsd-anchor-link">The Batch<a href="#the-batch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>BeaconBatch</code> (<code>src/protocol/beacon.ts</code>) is <code>{ protocol, events, want? }</code>. <code>parseBeaconBatch</code> validates it.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>events</code></td>
+<td>a list of at most <code>MAX_BEACON_EVENTS</code> events</td>
+</tr>
+<tr>
+<td><code>want</code></td>
+<td>optional list of at most <code>MAX_WANT</code> strings, each starting with <code>/</code>; artifact paths to answer</td>
+</tr>
+<tr>
+<td><code>catalogue</code></td>
+<td>optional <code>{ path, sweep? }</code>: <code>path</code> starts with <code>/</code> and has at most <code>MAX_CATALOGUE_PATH</code> characters, and <code>sweep</code> is <code>true</code> or absent; see <a href="#catalogue">Catalogue</a></td>
+</tr>
+</tbody>
+</table>
+<p><code>BeaconEvent</code> fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>a string that starts with <code>/</code></td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td>a string</td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>a string</td>
+</tr>
+<tr>
+<td><code>at</code></td>
+<td>a finite number: epoch milliseconds on the device</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>optional string: the original query string with its <code>?</code></td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>optional, only <code>GET</code>; absent means <code>POST</code></td>
+</tr>
+<tr>
+<td><code>origin</code></td>
+<td>optional string: the origin of a held cross-origin request</td>
+</tr>
+<tr>
+<td><code>vendor</code></td>
+<td>optional string: the collector entry that matched</td>
+</tr>
+<tr>
+<td><code>deliver</code></td>
+<td>optional, only <code>sink</code>: the worker did not replay the event, so the server half forwards it</td>
+</tr>
+</tbody>
+</table>
+<p>The worker also keeps an <code>until</code> field on a held event, the time after which it drops the event. It removes <code>until</code> before it sends a batch, and <code>parseBeaconBatch</code> does not read it.</p>
+<p>Example, from <code>tests/unit/server.spec.ts</code>. The server hands the events to the <code>sink</code> and answers <code>204</code> with <code>Cache-Control: no-store</code>:</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;events&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">    { </span><span class="hl-16">&quot;path&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/cdn-cgi/rum&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;body&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;{</span><span class="hl-18">\&quot;</span><span class="hl-2">a</span><span class="hl-18">\&quot;</span><span class="hl-2">:1}&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;contentType&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;application/json&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;at&quot;</span><span class="hl-1">: </span><span class="hl-15">5</span><span class="hl-1"> }</span><br/><span class="hl-1">  ]</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="what-travels-in-a-batch" class="tsd-anchor-link">What Travels in a Batch<a href="#what-travels-in-a-batch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>OWN_PREFIX</code> is <code>/.spool/</code>. An event whose path is under it, and an event with <code>deliver: &quot;sink&quot;</code>, travel in the batch. The worker replays every other held request to the URL the page meant, with its method, content type, query and body, and does not put it in a batch. Three paths under the prefix are events and not endpoints:</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Path</th>
+<th>Body</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VIEW_PATH</code></td>
+<td><code>/.spool/view</code></td>
+<td>a <code>ViewEvent</code>, JSON; see <a href="#view-events">View Events</a></td>
+</tr>
+<tr>
+<td><code>LOADS_PATH</code></td>
+<td><code>/.spool/loads</code></td>
+<td><code>{ view, count, origins? }</code>, JSON; the page's report of cross-origin loads for view <code>view</code></td>
+</tr>
+<tr>
+<td><code>DROPPED_PATH</code></td>
+<td><code>/.spool/dropped</code></td>
+<td><code>{ vendor, count }</code>, JSON; events the worker dropped past a vendor's age cap</td>
+</tr>
+</tbody>
+</table>
+<p>A loads report is valid when <code>view</code> is a non-empty string of at most 64 characters, <code>count</code> is a non-negative safe integer, <code>origins</code> has at most <code>MAX_LOAD_ORIGINS</code> entries, each name is at most 253 characters and each count is a safe integer of at least <code>1</code> (<code>loadsFromBeacon</code>, <code>src/protocol/view.ts</code>). The last report for a view wins.</p>
+<h3 id="the-answer" class="tsd-anchor-link">The Answer<a href="#the-answer" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The server refuses a request body longer than <code>MAX_BEACON_BODY</code> characters with <code>413</code>, a body that is not JSON or a batch that does not validate with <code>400</code>, and any method but <code>POST</code> with <code>405</code> and <code>Allow: POST</code>. It writes the batch's events to the <code>sink</code>. A batch with <code>want</code> answers <code>200</code> with <code>{&quot;protocol&quot;:1,&quot;artifacts&quot;:[&lt;Artifact&gt;,...]}</code>: the public artifacts the server can build for those paths, in the order asked. A path that is principal, static, unrouted, declined by the provisioning rule or fails to build is left out. A batch with <code>catalogue</code> adds a <code>catalogue</code> list of artifacts to the answer when the server chose any; see <a href="#catalogue">Catalogue</a>. A batch with neither, or one whose catalogue came out empty and that asked for nothing else, answers <code>204</code>.</p>
+<p><code>MAX_BEACON_BYTES</code> bounds one event's body on the worker. A request body over it, or one whose content type is <code>octet-stream</code>, <code>multipart</code> or an <code>image/</code> type, goes to the network at once and is not held. <code>MAX_BEACON_BODY</code> bounds the whole request on the server. The first counts UTF-8 bytes and the second counts characters.</p>
+<h3 id="when-a-flush-happens" class="tsd-anchor-link">When a Flush Happens<a href="#when-a-flush-happens" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The worker flushes on a request that happens anyway (a &quot;network moment&quot;) when a site's own beacon is held, artifacts are wanted, a catalogue ask is due, the oldest held event is an hour old, or 20 views are held. Held events alone leave on their own at most once every 24 hours, when the oldest is a day old. One request carries at most <code>FLUSH_CHUNK</code> events, and <code>want</code> and <code>catalogue</code> ride the first chunk only. A due ask counts only at a network moment with something held to carry it: a local view never flushes, and a moment with nothing held makes no request. The ask is due again <code>CATALOGUE_REASK_MS</code> after it was answered, so one page's catalogue costs one <code>POST /.spool/beacon</code> a day on a device. The constants are under <a href="#limits">Limits</a>. The server must accept a flush at any time and tolerate a batch of zero events.</p>
+<h3 id="view-events" class="tsd-anchor-link">View Events<a href="#view-events" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A view event is the JSON body of a <code>/.spool/view</code> event (<code>ViewEvent</code>, <code>src/protocol/view.ts</code>). <code>viewFromBeacon</code> accepts it only when every field validates.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type or values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string of 1 to 64 characters</td>
+</tr>
+<tr>
+<td><code>tier</code></td>
+<td><code>local</code>, <code>local-revalidate</code>, <code>network</code>, <code>fallback</code> or <code>shadow</code></td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>one of the reasons below</td>
+</tr>
+<tr>
+<td><code>staleSec</code></td>
+<td>number, or <code>null</code> when nothing was stored</td>
+</tr>
+<tr>
+<td><code>engine</code></td>
+<td><code>chromium</code>, <code>firefox</code>, <code>webkit</code> or <code>other</code></td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td><code>public</code> or <code>principal</code></td>
+</tr>
+<tr>
+<td><code>strategy</code></td>
+<td><code>assembly</code>, <code>template</code>, <code>static</code>, <code>projection</code> or <code>data</code></td>
+</tr>
+<tr>
+<td><code>route</code></td>
+<td>the matched route pattern, at most <code>MAX_ROUTE_CHARS</code> characters</td>
+</tr>
+<tr>
+<td><code>mismatch</code></td>
+<td>boolean, or <code>null</code> when no local render was made</td>
+</tr>
+<tr>
+<td><code>swAgeMs</code></td>
+<td>finite number: milliseconds since this worker instance started</td>
+</tr>
+<tr>
+<td><code>gapMs</code></td>
+<td>number, or <code>null</code> for the worker's first view</td>
+</tr>
+<tr>
+<td><code>from</code></td>
+<td>optional: the referring route pattern, or <code>external</code></td>
+</tr>
+<tr>
+<td><code>crossOriginLoads</code></td>
+<td>non-negative integer, or <code>null</code> until the page reports</td>
+</tr>
+</tbody>
+</table>
+<p>A view carries the route pattern and never the path, so a pattern such as <code>/node/:id</code> leaves the parameter out.</p>
+<p><code>from</code> follows the same rule. The worker sets it from the navigation request's referrer: the pattern of the declared route that a same-origin referrer matches, or <code>external</code> (<code>FROM_EXTERNAL</code>) for another origin. It is omitted when there is no referrer, the referrer is not an http(s) URL, or a same-origin referrer matches no route. A raw URL, a query string or an unmatched path is never written. <code>viewFromBeacon</code> drops a <code>from</code> that is not a string of 1 to <code>MAX_ROUTE_CHARS</code> characters and still accepts the view. Shadow views carry it too. <code>transitions</code> and <code>nextShare</code> (<code>src/report/traffic.ts</code>) count route-to-route moves from the views, so a server can estimate the chance of a visitor viewing a route next with no extra request. <code>REASON_TIER</code> maps each reason to the tier a serving worker gives it. A shadow view keeps the reason and takes the tier <code>shadow</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Tier</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cold</code></td>
+<td><code>network</code></td>
+<td>nothing stored</td>
+</tr>
+<tr>
+<td><code>principal</code></td>
+<td><code>network</code></td>
+<td>a principal route the worker cannot serve (it has no partition store)</td>
+</tr>
+<tr>
+<td><code>fresh</code></td>
+<td><code>local</code></td>
+<td>within the bound</td>
+</tr>
+<tr>
+<td><code>catalogue</code></td>
+<td><code>local</code></td>
+<td>first open of a catalogue entry, shown with no request</td>
+</tr>
+<tr>
+<td><code>soft-deferred</code></td>
+<td><code>local</code></td>
+<td>past a soft bound, with the sync left for a network moment</td>
+</tr>
+<tr>
+<td><code>soft-sync</code></td>
+<td><code>local-revalidate</code></td>
+<td>past a soft bound, with the sync sent now</td>
+</tr>
+<tr>
+<td><code>hard-sync</code></td>
+<td><code>local-revalidate</code></td>
+<td>past a hard bound, synced first</td>
+</tr>
+<tr>
+<td><code>offline-stale</code></td>
+<td><code>local-revalidate</code></td>
+<td>past a hard bound with the network down, shown anyway</td>
+</tr>
+<tr>
+<td><code>invalidated</code></td>
+<td><code>fallback</code></td>
+<td>a change outdated the stored copy</td>
+</tr>
+<tr>
+<td><code>stale-after-sync</code></td>
+<td><code>fallback</code></td>
+<td>the sync made the stored copy stale</td>
+</tr>
+<tr>
+<td><code>hard-refused</code></td>
+<td><code>fallback</code></td>
+<td>a hard route offline with <code>offline: 'refuse'</code></td>
+</tr>
+<tr>
+<td><code>refused</code></td>
+<td><code>fallback</code></td>
+<td>the worker declined to render the stored copy</td>
+</tr>
+</tbody>
+</table>
+<h2 id="partitions-and-clearing" class="tsd-anchor-link">Partitions and Clearing<a href="#partitions-and-clearing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A route with <code>scope: 'principal'</code> is stored per partition. The server tells the worker which partition a response belongs to with <code>Spool-Partition</code>, and the worker keeps each partition in its own store.</p>
+<ul>
+<li><code>Spool-Partition</code> is an opaque token matching <code>^[A-Za-z0-9_-]{1,128}$</code>. <code>partitionId</code> (<code>src/server/identity.ts</code>) is the reference derivation: HMAC-SHA-256 under the server secret over <code>spool-partition:1</code>, a NUL byte and the principal, base64url without padding, which is 43 characters. The worker never recomputes it and compares tokens for equality.</li>
+<li>A response whose <code>Spool-Partition</code> differs from the one the worker holds replaces the store. The old partition is destroyed first.</li>
+<li>A navigation whose response carries spool headers and no <code>Spool-Partition</code> ends the session when the worker holds a principal partition: it wipes the principal store (<code>session-ended</code>). A response with no spool headers at all changes nothing.</li>
+<li><code>Spool-Clear: *</code> wipes the principal store and the public replica. <code>Spool-Clear: &lt;partition id&gt;</code> wipes that partition when it is the one held, and leaves the public replica alone.</li>
+<li><code>SwConfig.logout</code> lists patterns (the <a href="#route-patterns">route pattern language</a>). A same-origin request whose path matches one, with any method, wipes the principal store when it reaches the worker, before the request is sent and after the worker has sent the held same-origin beacons or dropped them. The answer to that request cannot bring a partition back, even though it still names one.</li>
+<li>Each wipe broadcasts <code>{ &quot;type&quot;: &quot;spool:cleared&quot;, &quot;reason&quot;: &quot;&lt;reason&gt;&quot; }</code> to every page of the origin. Reasons are <code>clear</code>, <code>partition</code>, <code>logout</code> and <code>session-ended</code>. The page runtime turns it into a <code>spool:cleared</code> event on <code>window</code>.</li>
+<li><code>Clear-Site-Data: &quot;storage&quot;</code> is a browser feature and not part of the worker's logic. The server sends it when <code>decorate</code> is called with <code>hardReset: true</code>.</li>
+</ul>
+<p>An application that logs a visitor in or switches accounts sets <code>Spool-Partition</code> on its own response with <code>spool.partition(principal)</code>. The request that response answers still carries the previous identity, so <code>decorate</code> alone would name the previous partition. <a href="security.html">security.md</a> covers the window this leaves open when the application does not.</p>
+<h2 id="provisioning" class="tsd-anchor-link">Provisioning<a href="#provisioning" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The server decides whether a public artifact is worth sending, and answers <code>204</code> with <code>Spool-Provision: declined</code> when it is not. The worker then leaves that path to the network until it restarts. The rule is <code>benefit</code> in <code>src/protocol/provision.ts</code>:</p>
+<pre><code class="text">reuse * futureViews * avoided - provision - maintain
+</code><button type="button">Copy</button></pre>
+
+<p>Each term is in bytes, with a request counted as <code>requestBytes</code>. An artifact is sent when the result is positive. A <code>data</code> route weighs against its own size. Principal artifacts are not weighed.</p>
+<p><code>DEFAULT_PRIOR</code> (<code>src/protocol/provision.ts</code>) holds the scenario priors the worker and the server use until telemetry replaces them. Every one is an assumption. <code>ProvisionConfig</code> in <code>src/protocol/config.ts</code> overrides them, and a route's <code>provision</code> field overrides <code>reuse</code> and <code>futureViews</code> for that route.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reuse</code></td>
+<td><code>0.5</code></td>
+<td>the chance a provisioned artifact serves a later view</td>
+</tr>
+<tr>
+<td><code>futureViews</code></td>
+<td><code>2</code></td>
+<td>later views one provisioned artifact serves</td>
+</tr>
+<tr>
+<td><code>requestBytes</code></td>
+<td><code>2000</code></td>
+<td>what one request weighs in bytes</td>
+</tr>
+<tr>
+<td><code>artifactBytes</code></td>
+<td><code>20000</code></td>
+<td>size of one artifact before the worker has fetched any</td>
+</tr>
+<tr>
+<td><code>avoidedBytes</code></td>
+<td><code>17054</code></td>
+<td>bytes one local view keeps off the wire</td>
+</tr>
+<tr>
+<td><code>changesPerDay</code></td>
+<td><code>1</code></td>
+<td>how often one dependency tag changes, per day, before any is seen</td>
+</tr>
+</tbody>
+</table>
+<p>A flush that carries <code>want</code> also provisions: the worker asks for visited shadow-mode routes and for the <code>hot</code> list, best benefit first, at most <code>MAX_WANT</code> paths.</p>
+<h2 id="catalogue" class="tsd-anchor-link">Catalogue<a href="#catalogue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A catalogue sends the data of pages a visitor may open next, so that opening one makes no request. An entry is the artifact <code>/.spool/artifact</code> would build for a <code>template</code>, <code>projection</code> or <code>data</code> route, never HTML: the device already holds the template or the renderer. A whole page costs about as much to send as it saves, and a diff of markup needs most of a page's bytes as well, so neither is an entry.</p>
+<p>An entry repays its transfer when the share of devices that open it, <code>p</code>, reaches <code>entryBreakEven</code> (<code>src/protocol/provision.ts</code>):</p>
+<pre><code class="text">p &gt;= k * E / (k * D + o)
+</code><button type="button">Copy</button></pre>
+
+<p><code>E</code> is the entry's compressed bytes and <code>D</code> the bytes of the document it replaces, <code>k</code> is <code>JOULES_PER_BYTE</code> and <code>o</code> is <code>ORIGIN_JOULES</code>. Both come from the energy model (<a href="impact.html">impact.md</a>): <code>k</code> is SWD v4's 0.194 kWh/GB over decimal gigabytes (L2), and <code>o</code> is the modelled origin request (L1). <code>chooseEntries</code> keeps the candidates at or above their own break-even, best expected net joules first (<code>p * (k * D + o) - k * E</code>), while their entry bytes fit under the cap. A candidate that does not fit is skipped and a smaller one may still go.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Where it is set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>candidates and their <code>p</code></td>
+<td>the route's <code>catalogue(ctx)</code>, for the page the visitor is on: <code>{ path, p }</code> pairs from the site's own <code>nextShare</code>, link position or a fixed prior</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>the entry route's <code>documentBytes</code>; the <code>avoidedBytes</code> prior when it has none; a <code>data</code> route's own entry size when it has none</td>
+</tr>
+<tr>
+<td><code>E</code></td>
+<td>the entry as JSON, measured by <code>catalogueSize</code> (Brotli through <code>CompressionStream</code>, gzip where the runtime has no Brotli stream)</td>
+</tr>
+<tr>
+<td>the cap</td>
+<td><code>catalogueBytes</code>, the most compressed bytes of entries in one bundle; <code>DEFAULT_CATALOGUE_BYTES</code> when absent</td>
+</tr>
+<tr>
+<td>the most pages built</td>
+<td><code>MAX_CATALOGUE_BUILD</code> candidates, best <code>p</code> first, whatever the route returns</td>
+</tr>
+</tbody>
+</table>
+<p>A candidate is skipped when its path has a query string or a fragment, sits under <code>/.spool/</code>, is the page asked about, matches no route, matches a <code>static</code> or <code>assembly</code> route, or has a <code>p</code> outside 0 to 1. A route whose <code>catalogue</code> throws, or whose entries fail to build, sends nothing and the flush still answers as it would without it.</p>
+<h3 id="asking-and-delivery" class="tsd-anchor-link">Asking and Delivery<a href="#asking-and-delivery" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The worker asks through the beacon batch it already sends. <code>BeaconBatch.catalogue</code> is <code>{ path, sweep: true }</code> for the last page whose route declares a catalogue (<code>SerializedRoute.catalogue</code>), at most once every <code>CATALOGUE_REASK_MS</code> for each path. The worker stores when it last asked for each of its <code>MAX_CATALOGUE_ASKED</code> latest paths beside its flush clocks, so a worker restart does not ask again. It rides the first chunk of a flush, and a due ask makes the next network moment flush when a spool event is held (see <a href="#when-a-flush-happens">When a Flush Happens</a>). A flush that holds only a site's own beacons and wants no artifact sends no batch, so the ask waits for a view. The server answers with the entries in <code>catalogue</code>, an array of artifacts, in the order chosen. The worker stores each one like a provisioned artifact, with its records and projections stored once in the graph, and marks it unopened. An entry for a route whose strategy or scope differs from the entry's is dropped, and so is one the device already holds.</p>
+<p>A request with <code>Save-Data: on</code> is sent no catalogue, but is still answered for <code>want</code>. The check reads the header of the beacon request, which the browser sets.</p>
+<h3 id="principal-entries" class="tsd-anchor-link">Principal Entries<a href="#principal-entries" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A principal route may be an entry only when the batch says <code>sweep: true</code>. The server builds it with the identity of the beacon request and sets <code>Spool-Partition</code> on the answer, with <code>Cache-Control: private, no-store</code>. The worker keeps a principal entry only when that header equals the partition it holds. A request that resolves to nobody gets no principal entry, and a principal page's catalogue is not built for it.</p>
+<p>The sweep is the worker's half of revocation. Every sync of a principal page, not only the first, also names the dependency tags and the drop tag of every entry held in that partition that no page has opened (<code>Replica.sweep</code>), each at the vector its entry was built at, so a tag that moved drops the entry at the first required sync. When the union of those ids and the page's own is over <code>MAX_NEED</code>, the worker makes a full sync by cursor instead.</p>
+<h3 id="reason-and-ledger" class="tsd-anchor-link">Reason and Ledger<a href="#reason-and-ledger" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The first open of an entry that the worker shows with no request is a view with the reason <code>catalogue</code> and the tier <code>local</code>. Opening the entry clears its mark, so later views of the page are ordinary. An entry older than its route's bound, which the worker syncs before or after it shows, keeps the reason of that sync and is still opened. The worker's ledger charges each entry's JSON bytes to <code>catalogueBytes</code> and counts the first open in <code>catalogueViews</code>. <code>catalogueFigures</code> (<code>src/report/traffic.ts</code>) reads the views and the ledger: entries sent, entries used, hit share, and bytes sent against bytes saved. The saving it prints is a scenario figure until shadow views measure <code>p</code>.</p>
+<h2 id="protocol-version-skew" class="tsd-anchor-link">Protocol Version Skew<a href="#protocol-version-skew" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Both halves speak <code>PROTOCOL_VERSION</code>, now <code>1</code>. The rule has four parts.</p>
+<ul>
+<li>The worker ignores the spool headers of a response whose <code>Spool-Protocol</code> differs from its own, and of a response that has none. The response is then an ordinary one.</li>
+<li><code>parseArtifact</code>, <code>parseSyncResponse</code> and <code>parseBeaconBatch</code> refuse a body whose <code>protocol</code> differs. The server answers a refused batch with <code>400</code>. The worker counts a refused sync or artifact as a failed request, which a hard route with <code>offline: 'refuse'</code> answers by going to the network.</li>
+<li>A page's <code>spool:hello</code> message carries its protocol, and the worker answers <code>{ type, protocol, version, compatible }</code> with <code>compatible</code> false when they differ. <code>register</code> returns that answer as <code>hello</code>.</li>
+<li><code>SwConfig.version</code> is the package version. When the version a replica stored differs from the running worker's, <code>load</code> empties what the old one stored, and asset caches from older versions are deleted on activation.</li>
+</ul>
+<p>The protocol has no negotiation step. The two halves agree on the version or the worker treats the server as a plain origin.</p>
+<h2 id="route-patterns" class="tsd-anchor-link">Route Patterns<a href="#route-patterns" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>checkPattern</code>, <code>matchPattern</code> and <code>fillPattern</code> are in <code>src/protocol/pattern.ts</code>. The same language is used by routes, <code>logout</code> entries and manifest routes.</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/a/b</code></td>
+<td>literal segments, compared exactly and case-sensitively against the raw path segment</td>
+</tr>
+<tr>
+<td><code>:name</code></td>
+<td>captures one whole segment. The value is percent-decoded. An undecodable value makes the route not match</td>
+</tr>
+<tr>
+<td><code>**</code></td>
+<td>only as the last segment. Matches zero or more segments after the prefix and captures nothing</td>
+</tr>
+</tbody>
+</table>
+<p>The rules:</p>
+<ul>
+<li>A pattern starts with <code>/</code>.</li>
+<li>A trailing slash is ignored on the pattern and on the path, so <code>/a/</code> matches <code>/a</code>. The root is <code>/</code>.</li>
+<li>An empty segment (<code>//</code>) is refused.</li>
+<li>A parameter name matches <code>^[A-Za-z_][A-Za-z0-9_]*$</code> and appears once in a pattern.</li>
+<li><code>/docs/**</code> matches <code>/docs</code> and <code>/docs/a/b</code>. <code>/**</code> matches every path, including <code>/</code>.</li>
+<li>Matching runs against the pathname. A query string and a fragment are not part of it.</li>
+<li>The first route in declaration order that matches wins.</li>
+<li><code>fillPattern</code> is the inverse of <code>matchPattern</code> and refuses a pattern with <code>**</code>.</li>
+</ul>
+<p>A bad pattern throws <code>ProtocolError</code> with code <code>bad-pattern</code>.</p>
+<p>Examples from <code>matchPattern</code>: <code>/a/:b</code> matches <code>/a/x%20y</code> with <code>{ &quot;b&quot;: &quot;x y&quot; }</code>, and does not match <code>/a/</code>. <code>/a//b</code>, <code>/**/a</code> and <code>/a/:b/:b</code> fail <code>checkPattern</code>.</p>
+<h2 id="query-strings" class="tsd-anchor-link">Query Strings<a href="#query-strings" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>An artifact is keyed by path alone, so the worker never answers a navigation or a <code>data</code> read that has a query string (<code>classify</code>, <code>src/sw/router.ts</code>). A navigation with a query goes to the network. A <code>data</code> read with a query is handled as an ordinary subresource. A <code>static</code> route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: <code>/app.js?v=2</code> is a different file from <code>/app.js</code>, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose <code>Spool-Artifact</code> id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's <code>version</code> like any other. The proxy treats a request with a query string as ineligible and forwards it untouched.</p>
+<h2 id="freshness" class="tsd-anchor-link">Freshness<a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each route declares a <code>Freshness</code> (<code>src/protocol/route.ts</code>): <code>maxStale</code> in seconds and a mode.</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th><code>maxStale</code></th>
+<th>Mode</th>
+<th>Default <code>offline</code></th>
+<th>Defaults in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public</code></td>
+<td><code>900</code></td>
+<td><code>soft</code></td>
+<td><code>serve</code></td>
+<td><code>DEFAULT_FRESHNESS</code></td>
+</tr>
+<tr>
+<td><code>principal</code></td>
+<td><code>300</code></td>
+<td><code>hard</code></td>
+<td><code>refuse</code></td>
+<td><code>DEFAULT_FRESHNESS</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>verdict</code> (<code>src/sw/freshness.ts</code>) compares the time since the artifact was last known good with <code>maxStale</code>. An artifact is last known good at its own fetch, at the last sync that covered it, or when <code>validate</code> recorded a confirming sync, whichever is latest. A clock that moved backwards counts as past the bound.</p>
+<table>
+<thead>
+<tr>
+<th>Age</th>
+<th>Mode</th>
+<th>The worker does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>at most <code>maxStale</code></td>
+<td>either</td>
+<td>shows the stored page, no request (<code>fresh</code>)</td>
+</tr>
+<tr>
+<td>past <code>maxStale</code></td>
+<td><code>hard</code></td>
+<td>syncs first and shows the page only if it is still current. A failed sync with <code>offline: 'refuse'</code> goes to the network, and with <code>offline: 'serve'</code> shows the page (<code>offline-stale</code>)</td>
+</tr>
+<tr>
+<td>past <code>maxStale</code></td>
+<td><code>soft</code></td>
+<td>shows the stored page at once and syncs once afterwards. A soft route with <code>sync: 'deferred'</code> queues the sync for the next network moment, and only when its expected benefit is positive</td>
+</tr>
+</tbody>
+</table>
+<p>A soft bound is a stale-while-revalidate window and promises nothing about how fresh the shown page is. A hard bound keeps a page from showing past <code>maxStale</code> unless a sync found it current, with one exception: a hard route whose <code>offline</code> is <code>serve</code> shows the stored page when the sync fails. A principal route syncs with <code>need</code> whatever its <code>sync</code> rule.</p>
+<h2 id="static-manifest" class="tsd-anchor-link">Static Manifest<a href="#static-manifest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A site with no server half serves a <code>spool.json</code> beside <code>spool-sw.js</code>. <code>parseManifest</code> (<code>src/protocol/manifest.ts</code>) validates it, and the worker takes its routes from it. The worker makes no request to <code>/.spool/*</code> in this mode and sends no <code>Spool-Vector-Seen</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schema</code></td>
+<td>must equal <code>MANIFEST_SCHEMA</code>, which is <code>1</code></td>
+</tr>
+<tr>
+<td><code>routes</code></td>
+<td>a list; a pattern declared twice is refused</td>
+</tr>
+<tr>
+<td><code>routes[].pattern</code></td>
+<td>a <a href="#route-patterns">route pattern</a></td>
+</tr>
+<tr>
+<td><code>routes[].strategy</code></td>
+<td>must be <code>static</code></td>
+</tr>
+<tr>
+<td><code>routes[].version</code></td>
+<td>a string of 1 to <code>MAX_VERSION_CHARS</code> characters: <code>sha256-</code>, <code>sha384-</code> or <code>sha512-</code> plus a base64 digest, an entity tag, or a label</td>
+</tr>
+<tr>
+<td><code>routes[].freshness</code></td>
+<td>optional <code>{ maxStale, mode }</code>; <code>maxStale</code> a positive number, <code>mode</code> <code>hard</code> or <code>soft</code></td>
+</tr>
+<tr>
+<td><code>routes[].offline</code></td>
+<td>optional, <code>serve</code> or <code>refuse</code></td>
+</tr>
+<tr>
+<td><code>routes[].sync</code></td>
+<td>optional, <code>background</code> or <code>deferred</code></td>
+</tr>
+</tbody>
+</table>
+<p>A digest version is checked against the bytes fetched, and a mismatch keeps nothing. An entity tag is checked against the response's <code>ETag</code>, ignoring a weak prefix. Any other string is a label the site chose and nothing checks it. The worker fetches the manifest with <code>cache: 'no-store'</code> and <code>credentials: 'same-origin'</code>, and a file whose version changed, or whose route left the manifest, is dropped. <a href="../">README</a> shows a manifest and the cap on file size.</p>
+<h2 id="page-and-worker-messages" class="tsd-anchor-link">Page and Worker Messages<a href="#page-and-worker-messages" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The page runtime and the worker talk over <code>postMessage</code> with a <code>MessageChannel</code> for replies (<code>createRuntime</code>, <code>src/sw/runtime.ts</code>; <code>register</code>, <code>src/client/register.ts</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Fields</th>
+<th>Reply</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spool:hello</code></td>
+<td><code>protocol</code></td>
+<td><code>{ type, protocol, version, compatible }</code></td>
+</tr>
+<tr>
+<td><code>spool:status</code></td>
+<td></td>
+<td><code>{ type, cursor, syncedAt, artifacts, beacons }</code></td>
+</tr>
+<tr>
+<td><code>spool:view</code></td>
+<td><code>path</code></td>
+<td><code>{ type, id }</code>: the id of the latest view of that path, or <code>null</code></td>
+</tr>
+<tr>
+<td><code>spool:loads</code></td>
+<td><code>view</code>, <code>count</code>, <code>origins?</code></td>
+<td>none; the worker queues a <code>/.spool/loads</code> event</td>
+</tr>
+<tr>
+<td><code>spool:graph</code></td>
+<td></td>
+<td><code>{ type, records, projections }</code>: ids held</td>
+</tr>
+<tr>
+<td><code>spool:ledger</code></td>
+<td></td>
+<td><code>{ type, entries, totals }</code>: bytes and requests spent provisioning, against views served, with the catalogue's bytes and views counted apart</td>
+</tr>
+<tr>
+<td><code>spool:partition</code></td>
+<td></td>
+<td><code>{ type, partition, artifacts, records, projections }</code>: ids held for the current partition</td>
+</tr>
+<tr>
+<td><code>spool:assets</code></td>
+<td></td>
+<td><code>{ type, mode, routed }</code></td>
+</tr>
+<tr>
+<td><code>spool:held</code></td>
+<td></td>
+<td><code>{ type, dropped, third }</code>: drops by vendor, and third-party URLs held</td>
+</tr>
+</tbody>
+</table>
+<p>The worker also posts <code>spool:cleared</code> to every page, as above. The replies list ids and counts, never stored content.</p>
+<h2 id="proxy-additions" class="tsd-anchor-link">Proxy Additions<a href="#proxy-additions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>spoolProxy</code> (<code>src/proxy/proxy.ts</code>) answers the paths above and forwards everything else to an origin. It adds four things to the wire.</p>
+<p><strong>Tag headers.</strong> The origin names a page's dependencies in <code>Cache-Tag</code> (commas), <code>Surrogate-Key</code> and <code>X-Drupal-Cache-Tags</code> (spaces) or <code>xkey</code> (spaces or commas). <code>readTags</code> merges the four in first-seen order without repeats. The proxy removes them from the response unless <code>exposeTags</code> is set. A page with no tags depends on <code>proxy:path:&lt;path&gt;</code>.</p>
+<p><strong>Forwarded requests.</strong> The proxy sets <code>X-Forwarded-Host</code> and <code>X-Forwarded-Proto</code>, removes the hop-by-hop headers (<code>connection</code>, <code>keep-alive</code>, <code>proxy-authenticate</code>, <code>proxy-authorization</code>, <code>te</code>, <code>trailer</code>, <code>transfer-encoding</code>, <code>upgrade</code>, <code>host</code>) and every <code>spool-</code> header, sends redirects on with <code>redirect: 'manual'</code>, and answers <code>502</code> with <code>bad gateway</code> when the origin cannot be reached.</p>
+<p><strong>Purge.</strong> <code>POST /.spool/purge</code> bumps tags. It needs <code>Authorization: Bearer &lt;purgeSecret&gt;</code> and a JSON body <code>{&quot;tags&quot;: [...]}</code> of 1 to 1000 distinct non-empty strings of at most 1024 characters, in a body of at most 65,536 characters. It answers <code>200</code> with <code>{&quot;vector&quot;: &lt;cursor&gt;, &quot;tags&quot;: &lt;count&gt;}</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>200</code></td>
+<td>the tags were bumped; <code>tags</code> is the count after de-duplication</td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td>the body is not JSON, has no <code>tags</code> list, has no tags or more than 1000, or has a tag that is empty, not a string or longer than 1024</td>
+</tr>
+<tr>
+<td><code>401</code></td>
+<td>no <code>Bearer</code> credential, or the wrong one; <code>WWW-Authenticate: Bearer</code></td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td>no <code>purgeSecret</code> is configured; every call is refused</td>
+</tr>
+<tr>
+<td><code>405</code></td>
+<td>any method but <code>POST</code>; <code>Allow: POST</code></td>
+</tr>
+<tr>
+<td><code>413</code></td>
+<td><code>Content-Length</code> or the body is over 65,536 characters</td>
+</tr>
+</tbody>
+</table>
+<p>The proxy also forgets the remembered body of every page that carries a purged tag, so the next fetch records the page afresh and one edit bumps the vector once.</p>
+<p><strong>Trimmed stylesheets.</strong> With <code>trim: &lt;manifest&gt;</code> the proxy answers some stylesheets with fewer rules. The manifest is JSON from <code>buildTrimManifest</code> (<code>@drupflare/spool/trim</code>): <code>{ schema: 1, styles }</code>, where <code>styles</code> maps a site-relative key (<code>pathname</code> plus the query string, as the page links it) to <code>{ source, css, missing, scripts }</code>. Three rules apply.</p>
+<ul>
+<li><strong>Serving.</strong> A <code>GET</code> for a key in the manifest that the origin answers <code>200</code> with a <code>text/css</code> body is hashed over the decoded bytes. When <code>sha256-&lt;base64&gt;</code> equals <code>source</code>, the answer is <code>css</code> with the origin's headers, no <code>Content-Length</code> and a weak <code>ETag</code> (<code>W/</code> added, the way <code>decorate</code> does). When it differs, the origin's bytes go out unchanged and the proxy counts a mismatch. A response with no entry, any other method or status, and a body that is not <code>text/css</code> are never touched.</li>
+<li><strong><code>spool-trim=0</code>.</strong> A request whose query carries <code>spool-trim=0</code> gets the full file. The proxy removes that parameter and no other before it forwards the request, so the origin sees the URL the page named, and it does not look the file up in the manifest.</li>
+<li><strong>Guard.</strong> Every HTML response to a <code>GET</code> is checked, kept or not, whatever its status. The guard fires when the page's tokens (<code>pageTokens</code>) include a token in the <code>missing</code> list of a trimmed stylesheet it links, or when the page loads a same-origin script whose key is not in that entry's <code>scripts</code>. Then the proxy rewrites the <code>href</code> of each trimmed stylesheet link to carry <code>spool-trim=0</code> (<code>&amp;amp;spool-trim=0</code> after an existing query), before the body is decorated or becomes an artifact shell, and a rewritten page's <code>ETag</code> becomes weak. Other links are left alone.</li>
+</ul>
+<p>The proxy counts <code>served</code>, <code>mismatched</code> and <code>guarded</code> in <code>proxy.trim</code>, and writes each mismatch and each guard firing to the <code>sink</code> as an event at <code>TRIM_PATH</code> (<code>/.spool/trim</code>) whose body is JSON: <code>{&quot;kind&quot;:&quot;mismatch&quot;,&quot;file&quot;:&lt;key&gt;}</code> or <code>{&quot;kind&quot;:&quot;guard&quot;,&quot;page&quot;:&lt;path&gt;,&quot;reason&quot;:&quot;token&quot;|&quot;script&quot;,&quot;files&quot;:[&lt;keys&gt;]}</code>. A URL that carries <code>spool-trim=0</code> is a different URL for the browser's cache, which is why a guarded page pays the full file once.</p>
+<h2 id="limits" class="tsd-anchor-link">Limits<a href="#limits" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Every constant exported from <code>src/protocol/index.ts</code> whose name begins <code>MAX_</code> is in the first table. <code>tests/node/docs.spec.ts</code> compares the value column with the source.</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Defined in</th>
+<th>What it bounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAX_NEED</code></td>
+<td>64</td>
+<td><code>src/protocol/sync.ts</code></td>
+<td>ids in one <code>need</code> request</td>
+</tr>
+<tr>
+<td><code>MAX_HAVE</code></td>
+<td>256</td>
+<td><code>src/protocol/sync.ts</code></td>
+<td>ids in one <code>have</code> list</td>
+</tr>
+<tr>
+<td><code>MAX_BEACON_BYTES</code></td>
+<td>65,536</td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>UTF-8 bytes in one held event body</td>
+</tr>
+<tr>
+<td><code>MAX_BEACON_EVENTS</code></td>
+<td>500</td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>events in one batch</td>
+</tr>
+<tr>
+<td><code>MAX_WANT</code></td>
+<td>8</td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>artifact paths one flush may ask for</td>
+</tr>
+<tr>
+<td><code>MAX_CATALOGUE_PATH</code></td>
+<td>2048</td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>characters in the page path of a catalogue request</td>
+</tr>
+<tr>
+<td><code>MAX_VERSION_CHARS</code></td>
+<td>256</td>
+<td><code>src/protocol/manifest.ts</code></td>
+<td>characters in a manifest route's <code>version</code></td>
+</tr>
+<tr>
+<td><code>MAX_ROUTE_CHARS</code></td>
+<td>256</td>
+<td><code>src/protocol/view.ts</code></td>
+<td>characters in the route pattern of a view</td>
+</tr>
+<tr>
+<td><code>MAX_LOAD_ORIGINS</code></td>
+<td>32</td>
+<td><code>src/protocol/view.ts</code></td>
+<td>origins one loads report names</td>
+</tr>
+</tbody>
+</table>
+<p>The other protocol constants:</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Defined in</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROTOCOL_VERSION</code></td>
+<td>1</td>
+<td><code>src/protocol/artifact.ts</code></td>
+<td>the protocol version both halves speak</td>
+</tr>
+<tr>
+<td><code>MANIFEST_SCHEMA</code></td>
+<td>1</td>
+<td><code>src/protocol/manifest.ts</code></td>
+<td>the schema number of a <code>spool.json</code></td>
+</tr>
+<tr>
+<td><code>SPOOL_PREFIX</code></td>
+<td><code>/.spool/</code></td>
+<td><code>src/protocol/config.ts</code></td>
+<td>every path under it is spool's</td>
+</tr>
+<tr>
+<td><code>OWN_PREFIX</code></td>
+<td><code>/.spool/</code></td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>event paths under it always travel in a batch</td>
+</tr>
+<tr>
+<td><code>VIEW_PATH</code></td>
+<td><code>/.spool/view</code></td>
+<td><code>src/protocol/view.ts</code></td>
+<td>the path of a view event</td>
+</tr>
+<tr>
+<td><code>LOADS_PATH</code></td>
+<td><code>/.spool/loads</code></td>
+<td><code>src/protocol/view.ts</code></td>
+<td>the path of a loads report</td>
+</tr>
+<tr>
+<td><code>DROPPED_PATH</code></td>
+<td><code>/.spool/dropped</code></td>
+<td><code>src/protocol/beacon.ts</code></td>
+<td>the path of a drop count</td>
+</tr>
+<tr>
+<td><code>ARTIFACT_TAG_PREFIX</code></td>
+<td><code>spool:artifact:</code></td>
+<td><code>src/protocol/sync.ts</code></td>
+<td>prefix of the tag that drops an artifact by id</td>
+</tr>
+<tr>
+<td><code>CLEAR_ALL</code></td>
+<td><code>*</code></td>
+<td><code>src/protocol/envelope.ts</code></td>
+<td>the <code>Spool-Clear</code> token that wipes everything</td>
+</tr>
+<tr>
+<td><code>CLIENT_TAG_ATTR</code></td>
+<td><code>data-spool-client</code></td>
+<td><code>src/protocol/tag.ts</code></td>
+<td>the attribute that marks the page runtime tag</td>
+</tr>
+<tr>
+<td><code>GA4_RECOMMENDED_MS</code></td>
+<td>172,800,000</td>
+<td><code>src/protocol/collector.ts</code></td>
+<td>the 48-hour attribution window of the GA4 Measurement Protocol</td>
+</tr>
+<tr>
+<td><code>GA4_HARD_MS</code></td>
+<td>259,200,000</td>
+<td><code>src/protocol/collector.ts</code></td>
+<td>the 72-hour backdating limit; a <code>ga4</code> collector may not exceed it</td>
+</tr>
+<tr>
+<td><code>JOULES_PER_BYTE</code></td>
+<td>0.0006984</td>
+<td><code>src/protocol/provision.ts</code></td>
+<td>joules to move one byte, <code>k</code> in the catalogue break-even (L2)</td>
+</tr>
+<tr>
+<td><code>ORIGIN_JOULES</code></td>
+<td>0.455</td>
+<td><code>src/protocol/provision.ts</code></td>
+<td>joules of the origin request a local view avoids, <code>o</code> (L1)</td>
+</tr>
+<tr>
+<td><code>DEFAULT_CATALOGUE_BYTES</code></td>
+<td>32,768</td>
+<td><code>src/protocol/provision.ts</code></td>
+<td>the cap on one catalogue bundle when <code>catalogueBytes</code> is absent</td>
+</tr>
+</tbody>
+</table>
+<p>Limits that live in the server and the worker and are not exported from the protocol module:</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Defined in</th>
+<th>What it bounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAX_PIGGYBACK</code></td>
+<td>32</td>
+<td><code>src/server/spool.ts</code></td>
+<td>changed tags a response carries in <code>Spool-Invalidate</code> before the worker is left to ask <code>/.spool/sync</code></td>
+</tr>
+<tr>
+<td><code>MAX_CATALOGUE_BUILD</code></td>
+<td>32</td>
+<td><code>src/server/spool.ts</code></td>
+<td>pages one catalogue request makes the server build, best <code>p</code> first</td>
+</tr>
+<tr>
+<td><code>MAX_BEACON_BODY</code></td>
+<td>262,144</td>
+<td><code>src/server/beacon.ts</code></td>
+<td>characters in one flush request the server reads</td>
+</tr>
+<tr>
+<td><code>MAX_STATIC_BYTES</code></td>
+<td>4,194,304</td>
+<td><code>src/sw/static.ts</code></td>
+<td>bytes of one static file the worker keeps (4 MiB)</td>
+</tr>
+<tr>
+<td><code>MAX_HOLD_MS</code></td>
+<td>86,400,000</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>age at which held events leave on their own flush, at most once per such window</td>
+</tr>
+<tr>
+<td><code>VIEW_BATCH</code></td>
+<td>20</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>held views that make a network moment worth a flush</td>
+</tr>
+<tr>
+<td><code>VIEW_HOLD_MS</code></td>
+<td>3,600,000</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>age of the oldest held event that makes a network moment worth a flush</td>
+</tr>
+<tr>
+<td><code>FLUSH_CHUNK</code></td>
+<td>100</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>events in one flush request</td>
+</tr>
+<tr>
+<td><code>CATALOGUE_REASK_MS</code></td>
+<td>86,400,000</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>time before the worker asks for the same page's catalogue again</td>
+</tr>
+<tr>
+<td><code>MAX_CATALOGUE_ASKED</code></td>
+<td>256</td>
+<td><code>src/sw/analytics.ts</code></td>
+<td>page paths whose last catalogue ask the worker keeps</td>
+</tr>
+</tbody>
+</table>
+<p>Proxy defaults (<code>src/proxy/proxy.ts</code>, <code>src/proxy/purge.ts</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Option or constant</th>
+<th>Default</th>
+<th>What it bounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>maxTags</code></td>
+<td>512</td>
+<td>tags one response may name before it is not kept</td>
+</tr>
+<tr>
+<td><code>maxBytes</code></td>
+<td>2,097,152</td>
+<td>bytes of a page the proxy keeps (2 MiB)</td>
+</tr>
+<tr>
+<td><code>maxRemembered</code></td>
+<td>10,000</td>
+<td>pages whose last body hash is remembered, the oldest going first</td>
+</tr>
+<tr>
+<td><code>MAX_BODY</code></td>
+<td>65,536</td>
+<td>characters in a purge request body</td>
+</tr>
+<tr>
+<td><code>MAX_TAGS</code></td>
+<td>1000</td>
+<td>tags in one purge request</td>
+</tr>
+<tr>
+<td><code>MAX_TAG_LENGTH</code></td>
+<td>1024</td>
+<td>characters in one purge tag</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details"><a href="#wire-protocol"><span>Wire <wbr/>Protocol</span></a>
+<ul>
+<li><a href="#conventions"><span>Conventions</span></a></li>
+<li><a href="#paths"><span>Paths</span></a></li>
+<li>
+<ul>
+<li><a href="#worker-script"><span>Worker <wbr/>Script</span></a></li>
+<li><a href="#page-runtime-script"><span>Page <wbr/>Runtime <wbr/>Script</span></a></li>
+<li><a href="#client-tag"><span>Client <wbr/>Tag</span></a></li></ul></li>
+<li><a href="#headers"><span>Headers</span></a></li>
+<li>
+<ul>
+<li><a href="#field-grammar"><span>Field <wbr/>Grammar</span></a></li>
+<li><a href="#other-headers"><span>Other <wbr/>Headers</span></a></li>
+<li><a href="#security-headers"><span>Security <wbr/>Headers</span></a></li></ul></li>
+<li><a href="#the-envelope"><span>The <wbr/>Envelope</span></a></li>
+<li>
+<ul>
+<li><a href="#what-decorate-sends"><span>What decorate <wbr/>Sends</span></a></li>
+<li><a href="#how-the-worker-reads-an-envelope"><span>How the <wbr/>Worker <wbr/>Reads an <wbr/>Envelope</span></a></li></ul></li>
+<li><a href="#version-vector"><span>Version <wbr/>Vector</span></a></li>
+<li><a href="#sync"><span>Sync</span></a></li>
+<li>
+<ul>
+<li><a href="#sync-by-cursor"><span>Sync by <wbr/>Cursor</span></a></li>
+<li><a href="#sync-by-need"><span>Sync by <wbr/>Need</span></a></li></ul></li>
+<li><a href="#artifact"><span>Artifact</span></a></li>
+<li>
+<ul>
+<li><a href="#the-artifact-body"><span>The <wbr/>Artifact <wbr/>Body</span></a></li></ul></li>
+<li><a href="#beacon"><span>Beacon</span></a></li>
+<li>
+<ul>
+<li><a href="#the-batch"><span>The <wbr/>Batch</span></a></li>
+<li><a href="#what-travels-in-a-batch"><span>What <wbr/>Travels in a <wbr/>Batch</span></a></li>
+<li><a href="#the-answer"><span>The <wbr/>Answer</span></a></li>
+<li><a href="#when-a-flush-happens"><span>When a <wbr/>Flush <wbr/>Happens</span></a></li>
+<li><a href="#view-events"><span>View <wbr/>Events</span></a></li></ul></li>
+<li><a href="#partitions-and-clearing"><span>Partitions and <wbr/>Clearing</span></a></li>
+<li><a href="#provisioning"><span>Provisioning</span></a></li>
+<li><a href="#catalogue"><span>Catalogue</span></a></li>
+<li>
+<ul>
+<li><a href="#asking-and-delivery"><span>Asking and <wbr/>Delivery</span></a></li>
+<li><a href="#principal-entries"><span>Principal <wbr/>Entries</span></a></li>
+<li><a href="#reason-and-ledger"><span>Reason and <wbr/>Ledger</span></a></li></ul></li>
+<li><a href="#protocol-version-skew"><span>Protocol <wbr/>Version <wbr/>Skew</span></a></li>
+<li><a href="#route-patterns"><span>Route <wbr/>Patterns</span></a></li>
+<li><a href="#query-strings"><span>Query <wbr/>Strings</span></a></li>
+<li><a href="#freshness"><span>Freshness</span></a></li>
+<li><a href="#static-manifest"><span>Static <wbr/>Manifest</span></a></li>
+<li><a href="#page-and-worker-messages"><span>Page and <wbr/>Worker <wbr/>Messages</span></a></li>
+<li><a href="#proxy-additions"><span>Proxy <wbr/>Additions</span></a></li>
+<li><a href="#limits"><span>Limits</span></a></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

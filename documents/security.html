@@ -1,0 +1,471 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>security | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">security</a></li></ul></div>
+<div class="tsd-panel tsd-typography"><h1 id="security-model" class="tsd-anchor-link">Security Model<a href="#security-model" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>This page is the threat model for a security reviewer. Each claim names the file and function that make it true, and says whether a test covers it. A claim read from the code with no test says so. The wire formats are in <a href="protocol.html">protocol.md</a>.</p>
+<h2 id="scope" class="tsd-anchor-link">Scope<a href="#scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The page covers these parties and places:</p>
+<ul>
+<li>a second person who uses the same browser profile after the first one signs out</li>
+<li>a signed-out visitor</li>
+<li>a network observer</li>
+<li>script running on the site's origin</li>
+<li>the CDN host that serves the page runtime</li>
+<li>a caller of the <code>/.spool/*</code> endpoints, who needs no credentials</li>
+<li>a holder of the purge secret</li>
+<li>the operator of an analytics sink</li>
+</ul>
+<p>It does not cover a compromised server, a compromised browser, or malware that reads the device's disk.</p>
+<h2 id="what-the-device-holds" class="tsd-anchor-link">What the Device Holds<a href="#what-the-device-holds" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The worker keeps these stores. Sealed means AES-GCM ciphertext at rest, described under <a href="#sealed-stores">Sealed Stores</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Where</th>
+<th>Holds</th>
+<th>Sealed</th>
+<th>Removed by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public replica</td>
+<td>IndexedDB <code>spool</code>: <code>artifacts</code>, <code>records</code>, <code>projections</code>, <code>meta</code></td>
+<td>public artifacts, records, projections, tag versions, the cursor, the site's security headers</td>
+<td>no</td>
+<td><code>Spool-Clear: *</code>, a <code>reset</code> sync, a runtime version change</td>
+</tr>
+<tr>
+<td>Principal partition</td>
+<td>IndexedDB <code>spool-p-&lt;partition id&gt;</code></td>
+<td>principal artifacts, records, projections, replica meta (with the security headers of principal paths)</td>
+<td>yes</td>
+<td>a <code>logout</code> path, <code>Spool-Clear</code>, a change of partition, <code>session-ended</code></td>
+</tr>
+<tr>
+<td>Persistent keys</td>
+<td>IndexedDB <code>spool-keys</code>, store <code>keys</code></td>
+<td>one non-extractable key per partition with <code>persistent</code> retention</td>
+<td>n/a</td>
+<td>with its partition</td>
+</tr>
+<tr>
+<td>Current partition</td>
+<td>IndexedDB <code>spool-keys</code>, store <code>meta</code></td>
+<td>the id of the partition in use</td>
+<td>no</td>
+<td>with its partition</td>
+</tr>
+<tr>
+<td>Session keys</td>
+<td>worker memory</td>
+<td>one key per partition with <code>session</code> retention</td>
+<td>n/a</td>
+<td>with its partition; also lost when the browser stops the worker</td>
+</tr>
+<tr>
+<td>Beacon queue</td>
+<td>IndexedDB <code>spool</code>, store <code>beacons</code></td>
+<td>held analytics requests, view events, loads reports, flush clocks</td>
+<td>no</td>
+<td>a flush, or the age cap. A logout sends or drops the same-origin ones</td>
+</tr>
+<tr>
+<td>Cache storage</td>
+<td><code>spool-static-&lt;version&gt;</code>, <code>spool-assets-&lt;version&gt;</code>, <code>spool-third</code></td>
+<td>static files and the manifest, immutable same-origin assets, allowed third-party files</td>
+<td>no</td>
+<td>caches of older versions on activation. Not by a logout</td>
+</tr>
+</tbody>
+</table>
+<p>The device holds only what the server already sent that principal. The worker has four sources of artifact content: <code>/.spool/artifact</code>, the <code>artifacts</code> list in a beacon answer, the <code>catalogue</code> list in a beacon answer, and a response it fetched itself for a <code>static</code> route. The <code>artifacts</code> list is built without an identity, so it holds public artifacts only, and <code>accept</code> (<code>src/sw/runtime.ts</code>) discards any artifact whose scope is not <code>public</code>. The <code>catalogue</code> list is built with the identity of the beacon request, and <code>acceptCatalogue</code> keeps a principal entry only when the answer's <code>Spool-Partition</code> equals the partition the worker holds. A principal artifact from <code>/.spool/artifact</code> is stored only when the response's <code>Spool-Partition</code> equals the partition the worker holds (<code>provision</code>, <code>src/sw/runtime.ts</code>). <code>tests/node/partitions.spec.ts</code> covers an artifact answered for another partition, and <code>tests/node/catalogue.spec.ts</code> covers a catalogue answered for another one.</p>
+<p>A route with <code>persist: false</code> keeps its artifact in worker memory and writes nothing to IndexedDB.</p>
+<h2 id="authorisation" class="tsd-anchor-link">Authorisation<a href="#authorisation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Authorisation runs on the server. <code>buildArtifact</code> (<code>src/server/spool.ts</code>) resolves the identity from the request, answers <code>401</code> for a principal route with no identity before it runs <code>depends</code> or <code>load</code>, and passes <code>ctx.identity</code> to <code>load</code>. Only what <code>load</code> returns reaches the device. <code>decorate</code> writes <code>Spool-Artifact</code> for a principal route only when the identity resolves. <code>tests/unit/server.spec.ts</code> covers the <code>401</code> and the header rule.</p>
+<p>The worker authorises nothing. It decides whether to show a stored page from the partition it holds and the route's freshness bound. It cannot show a visitor data the server never sent that partition. It can show a page the server sent earlier after the server's view of the visitor's permissions has changed, for as long as <a href="#revocation">Revocation</a> describes.</p>
+<h3 id="endpoints-that-need-no-credentials" class="tsd-anchor-link">Endpoints That Need No Credentials<a href="#endpoints-that-need-no-credentials" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Four paths answer anyone.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>What a caller learns or can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/spool-sw.js</code></td>
+<td>the full worker config: every route's pattern, scope, freshness and retention, the compiled templates, beacon and logout paths, collector entries, the third-party allowlist, provisioning priors and the client tag</td>
+</tr>
+<tr>
+<td><code>/.spool/sync</code></td>
+<td>with <code>from=0</code>, every tag that has changed since the vector began, each with its version. Tag names and the write rate are public. With an <code>identity</code> option the answer also carries the caller's own partition id in <code>Spool-Partition</code></td>
+</tr>
+<tr>
+<td><code>/.spool/artifact?path=...</code></td>
+<td>the artifact of any public route. Each call runs <code>depends</code> and <code>load</code>, and the answer is <code>no-store</code></td>
+</tr>
+<tr>
+<td><code>/.spool/beacon</code></td>
+<td>accepts a batch from anyone. <code>parseBeaconBatch</code> checks structure, never truth, so a sink receives forged events. A batch's <code>want</code> makes the server build up to 8 public artifacts per request, and its <code>catalogue</code> makes the server run the named route's <code>catalogue</code> function and build up to 32 pages (<code>MAX_CATALOGUE_BUILD</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>A template is code that ships to every visitor, so it must hold nothing private. Page data is what carries private values, and it travels only in an authorised artifact.</p>
+<p>The server sets no CORS headers on <code>/.spool/*</code>, so a page on another origin cannot read these answers. It can still cause the requests. <code>respondBeacon</code> reads the body as text and does not check <code>Content-Type</code>, so another site can post a batch with a request that needs no preflight. Nothing rate-limits any of these paths. Treat sink data as untrusted input, and put a rate limit in front of the paths if build cost or forged events matter.</p>
+<p>The error text of a <code>ProtocolError</code> that route code throws reaches the caller in a <code>400</code> (<code>answer</code>, <code>src/server/spool.ts</code>). Any other error answers <code>internal error</code>, and <code>tests/unit/server.spec.ts</code> checks that a thrown message does not leak.</p>
+<h2 id="partitions-and-the-hmac" class="tsd-anchor-link">Partitions and the HMAC<a href="#partitions-and-the-hmac" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A route with <code>scope: 'principal'</code> is stored in a partition per principal. The partition id is an HMAC-SHA-256 under the server secret over <code>spool-partition:1</code>, a NUL byte and the principal, encoded as 43 base64url characters (<code>partitionId</code>, <code>src/server/identity.ts</code>). The browser can tell partitions apart and learns nothing about the principal from the id. A different secret gives a different id for the same principal, and <code>tests/unit/server.spec.ts</code> checks that 500 principals get 500 ids.</p>
+<ul>
+<li>The same principal gets the same id on every device and in every session, so anyone who reads ids from two devices can tell they belong to one principal. They cannot tell which.</li>
+<li>The id is the IndexedDB database name <code>spool-p-&lt;id&gt;</code> and is stored in clear in <code>spool-keys</code>. A reader of the profile sees that a partition exists. Testing a guessed principal against an id needs the secret.</li>
+<li><code>secret</code> is a string or a <code>Uint8Array</code>, and the code enforces no minimum length. Use a long random value and keep it out of the client.</li>
+<li>Rotating the secret changes every id. On a device's next decorated response the worker sees a different partition, switches, and destroys the old one, so a rotation wipes every device's local principal data.</li>
+<li>The worker believes any same-origin response that carries spool headers. It cannot tell a header the server meant from one an attacker who controls a response injected, so protecting the origin's responses is outside what partitions give.</li>
+</ul>
+<p>The worker swaps the principal store under a lock (<code>serial</code>, <code>src/sw/runtime.ts</code>), so two responses never swap it at once. <code>SealedStorage.kill</code> turns writes into no-ops and reads into empty answers once a partition is shut, so a request that outlives a wipe cannot bring the store back. <code>tests/node/partitions.spec.ts</code> covers a write after the store is shut and a request that outlives a logout.</p>
+<h2 id="sealed-stores" class="tsd-anchor-link">Sealed Stores<a href="#sealed-stores" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>sealedStorage</code> (<code>src/sw/seal.ts</code>) wraps a partition's storage.</p>
+<ul>
+<li>The cipher is AES-GCM with a 256-bit key from <code>crypto.subtle.generateKey</code> with <code>extractable: false</code>, a fresh random 12-byte IV for each value, and additional data of <code>&lt;partition&gt;</code>, a NUL byte, <code>&lt;kind&gt;</code>, a NUL byte and <code>&lt;id&gt;</code>. The kinds are <code>artifact</code>, <code>record</code>, <code>projection</code> and <code>meta</code>.</li>
+<li>What is sealed: the whole stored artifact (its body and its dependency tags), each record, each projection and the replica meta (cursor, tag versions, sync clock, version).</li>
+<li>What stays readable: artifact ids, which are request paths, record and projection ids and their versions, because IndexedDB uses them as keys, and the partition id. <code>tests/node/partitions.spec.ts</code> reads the rows and checks that each holds only its key fields and ciphertext.</li>
+<li>The additional data binds a value to its partition, kind and id. A row copied to another partition, another id or another kind does not decrypt. The test covers the first two.</li>
+<li>The additional data holds no version or counter. A ciphertext recorded earlier for the same slot still decrypts, so the seal detects relocation and does not detect rollback. A party who can write to the profile's IndexedDB can replace a row with an older one.</li>
+</ul>
+<p><code>retention</code> picks the key. The default is <code>session</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Retention</th>
+<th>Key</th>
+<th>After a worker restart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>persistent</code></td>
+<td>a non-extractable <code>CryptoKey</code> in IndexedDB <code>spool-keys</code>, per partition (<code>idbVault</code>, <code>src/sw/partition.ts</code>)</td>
+<td>readable. Survives a worker restart and a browser restart</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>a <code>CryptoKey</code> in a <code>Map</code> in worker memory</td>
+<td>lost. The sealed rows read as absent, and <code>getArtifact</code> deletes a row it cannot open</td>
+</tr>
+</tbody>
+</table>
+<p>An artifact takes the retention of its route. Records, projections and the meta belong to no one route and use <code>persistent</code> when any principal route is <code>persistent</code>, and <code>session</code> otherwise. <code>tests/node/partitions.spec.ts</code> covers a restart with one route of each kind.</p>
+<p>Deleting a key makes what it sealed unreadable. That is crypto-shredding, and <code>destroy</code> runs it in this order: shut the store, delete the keys, delete the database (<code>idbPartitions</code>, <code>src/sw/partition.ts</code>).</p>
+<p>The seal is not a defence against these:</p>
+<ul>
+<li><strong>Script on the origin.</strong> See <a href="#script-on-the-origin">Script on the Origin</a>.</li>
+<li><strong>A reader of the whole browser profile, with <code>persistent</code> retention.</strong> The key and the ciphertext live in the same profile. <code>extractable: false</code> stops script from exporting the key. Whether a browser writes the raw key bytes into its profile files is the browser's choice, and spool has not tested it. Do not rely on <code>persistent</code> against disk forensics.</li>
+<li><strong>Anything while the worker runs.</strong> A <code>session</code> key sits in worker memory and the data is readable by the worker.</li>
+<li><strong>Rollback of a row.</strong> See above.</li>
+</ul>
+<p>The public replica, the beacon queue and Cache storage are not sealed.</p>
+<h2 id="script-on-the-origin" class="tsd-anchor-link">Script on the Origin<a href="#script-on-the-origin" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Any script that runs on the site's origin can use whatever the page can. Four ways, read from the code and not covered by a test:</p>
+<ul>
+<li>It can load a same-origin frame at a principal route when the site's headers allow framing. The worker answers a navigation from the sealed store (<code>navigate</code>, <code>src/sw/runtime.ts</code>) with the frame and content-security headers the network answer carried, so <code>X-Frame-Options</code> and <code>frame-ancestors</code> apply to it as they do to a network view (see <a href="#content-security-policy">Content Security Policy</a>).</li>
+<li>It can <code>fetch</code> a principal <code>data</code> route. <code>dataFile</code> answers any <code>GET</code> for such a route from the stored value.</li>
+<li>It can call the server with the visitor's cookies, as it can on any site.</li>
+<li>It can send <code>spool:partition</code>, <code>spool:graph</code> and <code>spool:status</code> to the worker and read the ids it holds. The replies list ids and counts, never content (<code>message</code>, <code>src/sw/runtime.ts</code>).</li>
+</ul>
+<p>Escaping is part of rendering. The template interpreter HTML-escapes every <code>{{field}}</code>. <code>{{{field}}}</code> prints raw, and <code>defineRoute</code> refuses it for a field not listed in <code>trusted</code> (<code>compileTemplate</code>, <code>src/protocol/template/compile.ts</code>). Assembly fragments and slots are inserted by string replacement with no escaping, because they are markup from the server (<code>assemble</code>, <code>src/protocol/assembly.ts</code>), so a slot built from visitor input must be escaped in <code>load</code>. A <code>projection</code> route renders through the site's own function, and escaping there is that function's job.</p>
+<h2 id="logout-and-the-wipe-order" class="tsd-anchor-link">Logout and the Wipe Order<a href="#logout-and-the-wipe-order" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>SwConfig.logout</code> lists patterns. A same-origin request whose path matches one, with any method, takes the worker through <code>sendSameOrigin</code> and then <code>wipePartition('logout')</code> before the request is sent (<code>run</code>, <code>src/sw/runtime.ts</code>). The sequence:</p>
+<ol>
+<li>Send the held same-origin beacons, described below.</li>
+<li>Wait for earlier partition changes (<code>serial</code>).</li>
+<li>Set the in-use partition to none, so no later view reads it.</li>
+<li>Clear the stored partition id.</li>
+<li><code>destroy</code>: shut the store (<code>kill</code>), delete the keys (<code>shred</code>), delete the IndexedDB database.</li>
+<li>Broadcast <code>{ type: 'spool:cleared', reason: 'logout' }</code> to every page of the origin.</li>
+<li>Send the logout request.</li>
+</ol>
+<p>Step 1 is the only step that uses the network. A held same-origin beacon is replayed with the browser's cookies (<code>credentials: 'same-origin'</code>), so one held from the user who is signing out would reach the server under whoever signs in next. <code>sendSameOrigin</code> (<code>src/sw/analytics.ts</code>) takes the held same-origin requests that are not spool's own events out of the queue and replays them while the old session is still the browser's. A request that fails, or that takes longer than <code>LOGOUT_SEND_MS</code> (3 seconds), is dropped and counted under the vendor <code>same-origin</code> in the <code>/.spool/dropped</code> record, and after the first thrown error the rest are dropped without a try. Nothing is replayed under another session. Held cross-origin events carry no cookies and keep their ordinary flush. The wipe itself does not wait for the network, so it completes with the network down, and <code>tests/node/partitions.spec.ts</code> checks the logout offline and with the network up.</p>
+<p>Only a logout path takes this step. A change of partition or a <code>Spool-Clear</code> arrives in a response, after the browser already holds the new session's cookies, so a same-origin beacon held before it can still replay under the new session. One worker serves every tab, so one wipe empties the principal store for all of them. Each page receives the broadcast and the page runtime raises a <code>spool:cleared</code> event on <code>window</code>. A page has to blank what it shows, because spool does not touch the DOM.</p>
+<p>A <code>Spool-Clear</code> header, or a navigation answered without <code>Spool-Partition</code>, takes the same path (<code>early</code>, <code>src/sw/runtime.ts</code>). It runs before the response is handed back, and a logout answer, which still names the identity it answered, cannot bring the partition back. <code>tests/node/partitions.spec.ts</code> covers both.</p>
+<p>The worker reads <code>Spool-Clear</code> on its own (<code>decodeEnvelopeOrClear</code>, <code>src/protocol/envelope.ts</code>). When another spool header on the response is malformed, the worker drops every other field and still applies a valid <code>Spool-Clear</code>. A <code>Spool-Clear</code> that is itself malformed counts as <code>*</code>, so a bad value wipes and never keeps data. A response that names another protocol version is left alone. <code>tests/unit/envelope.spec.ts</code> and <code>tests/node/partitions.spec.ts</code> cover both cases.</p>
+<p>Left in place by a logout:</p>
+<ul>
+<li>the public replica</li>
+<li>the beacon queue, apart from the same-origin requests sent or dropped above. Its bodies are whatever the page posted to its analytics endpoints</li>
+<li>every Cache entry</li>
+<li>what the page already rendered, and the browser's own HTTP cache</li>
+</ul>
+<p>A <code>logout</code> pattern matches on the path alone. A <code>GET</code> to it, such as a link or a cross-site top-level navigation to that URL, wipes the local copy of the principal store. It leaves the server session alone unless the application's own logout handler ends it on <code>GET</code>.</p>
+<p>A sign-out the worker never sees, such as a session that expires on the server or a sign-out in another browser, leaves the store in place. See <a href="#revocation">Revocation</a> and <a href="#the-open-window">The Open Window</a>.</p>
+<h2 id="revocation" class="tsd-anchor-link">Revocation<a href="#revocation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Spool has no model of permissions. The application tags a page with the permission it needs, for example <code>perm:&lt;principal&gt;</code>, and calls <code>spool.invalidate</code> when the permission goes. <code>tests/node/partitions.spec.ts</code> covers the result on a fake clock:</p>
+<ul>
+<li>Within the route's <code>maxStale</code>, the page shows with no request, even though the permission is gone. The default for a principal route is 300 seconds.</li>
+<li>Past <code>maxStale</code>, a hard route runs a required sync with <code>need</code>, which names the page's tags. The tag moved, the artifact is dropped, and the network answers. That is the first required sync.</li>
+</ul>
+<p>The consequences, each read from <code>decide</code> in <code>src/sw/runtime.ts</code>:</p>
+<ul>
+<li>The exposure after a revocation is up to <code>maxStale</code> from the page's last validation, plus any time the visitor does not view the page. Nothing pushes to a device. A device that never returns holds its data until it does, or until it is wiped.</li>
+<li>A page whose tags omit the permission is not revoked by invalidating the permission.</li>
+<li>With <code>offline: 'serve'</code> on a hard principal route, a device that is offline past the bound shows the stored page. The default <code>refuse</code> sends the view to the network, which fails.</li>
+<li>A <code>soft</code> principal route shows the stored page first and syncs after, so it shows one stale view past the bound.</li>
+<li>A sync that fails counts as offline.</li>
+</ul>
+<h2 id="catalogue-entries" class="tsd-anchor-link">Catalogue Entries<a href="#catalogue-entries" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A catalogue puts the data of pages the visitor has not opened on the device (<a href="protocol.html#catalogue">protocol.md</a>). The entry is data the server would send on a visit, built by the route's <code>load</code> with the identity of the beacon request, so it holds nothing the visitor may not see. Five things follow from the visitor never having asked for it.</p>
+<ul>
+<li><strong>It sits on the device unopened.</strong> A public entry is in the public replica, which is not sealed, so anyone who reads the profile reads it. A principal entry is in the sealed partition store. Script on the origin can list the ids of both through <code>spool:graph</code> and <code>spool:partition</code>, and can <code>fetch</code> a principal <code>data</code> entry once the route serves it.</li>
+<li><strong>A revoked entry nobody opens is dropped by the sweep.</strong> Revocation reaches a stored page through a required sync that names its tags (<a href="#revocation">Revocation</a>), and no page names an entry the visitor never opens. So every sync of a principal page also names the dependency tags and drop tag of the unopened catalogue entries in that partition (<code>Replica.sweep</code>), and the first one after a tag moves drops the entry. When those ids and the page's own are more than <code>MAX_NEED</code>, the worker makes a full sync by cursor. <code>tests/node/catalogue.spec.ts</code> covers the drop, the full sync, and the control where nothing was revoked.</li>
+<li><strong>The exposure is the one a stored page has.</strong> Opening an entry goes through the route's <code>maxStale</code> check like any page, so a permission revoked within the bound still shows it. A device that makes no required principal sync keeps the entry until the visitor returns or the partition is wiped, as <a href="#revocation">Revocation</a> says of any page.</li>
+<li><strong>A server only sends principal entries to a worker that sweeps.</strong> The batch says <code>sweep: true</code>, and <code>createSpool</code> skips principal routes when it does not. A second worker implementation that does not sweep must not send it. A request that resolves to nobody gets none, and the worker keeps a principal entry only for the partition it holds.</li>
+<li><strong>Save-Data sends nothing.</strong> The server reads <code>Save-Data: on</code> from the beacon request. A proxy that strips the header, or a server that never sees it, sends a catalogue to a visitor who asked the browser to save data.</li>
+</ul>
+<p>The catalogue request names the path of the page the visitor is on. A page the worker showed locally made no request and <code>spool.view</code> never carries a path, so this request is the one place the server learns the path of a page it did not serve. The worker sends it only for routes that declare <code>catalogue</code>, once per path while it runs, with a flush that leaves anyway. A site that does not want the server to learn local views leaves <code>catalogue</code> off.</p>
+<p>A catalogue request costs the server a call to the route's <code>catalogue</code> and up to <code>MAX_CATALOGUE_BUILD</code> page builds, with no credentials and no rate limit. The route's <code>catalogue</code> receives a context whose request is a <code>GET</code> carrying the headers of the beacon request, cookies included. Sweep tags go in the <code>need</code> query like any other tag name, so use opaque ids for anything sensitive (<a href="#sync-tag-names">Sync Tag Names</a>).</p>
+<h2 id="the-open-window" class="tsd-anchor-link">The Open Window<a href="#the-open-window" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The worker learns who is signed in only from <code>Spool-Partition</code> on a response that reaches it. A local view makes no request, so it learns nothing. Between a sign-in and the first response that names the new partition, a local view of a principal route reads the store of the previous partition.</p>
+<p>It happens in two cases:</p>
+<ul>
+<li>The sign-in response carries no spool headers. The sign-in completes in a handler outside <code>spool.handle</code> and <code>decorate</code>, or on another origin.</li>
+<li>The sign-in response carries the previous partition. <code>decorate</code> resolves the identity from the request, and the request that signs a visitor in, or switches accounts, still carries the identity from before.</li>
+</ul>
+<h3 id="the-required-sync-closes-it" class="tsd-anchor-link">The Required Sync Closes It<a href="#the-required-sync-closes-it" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>/.spool/sync</code> names the identity it sees. When <code>createSpool</code> has an <code>identity</code> option, <code>answer</code> (<code>src/server/spool.ts</code>) resolves the request's identity and <code>respondSync</code> (<code>src/server/sync.ts</code>) sends <code>Spool-Partition</code> for it, or no partition when the request resolves to nobody. <code>fetchSync</code> (<code>src/sw/runtime.ts</code>) reads the answer's headers through <code>early</code> before it uses the sync result. A different partition swaps the principal store and destroys the previous one, and no partition wipes the principal store (<code>session-ended</code>), the same as on a navigation. A hard principal route runs a required sync once its page is past <code>maxStale</code>, so the previous visitor's page is not shown after that sync: the swap or the wipe happens first, the page is gone from the store, and the view goes to the network.</p>
+<p>The window therefore ends no later than the route's <code>maxStale</code> after the page was last validated, plus the next view of a principal page. The default for a principal route is 300 seconds. Inside <code>maxStale</code> the stored page still shows, and a sign-in elsewhere shows the previous visitor's page until the bound passes. Two cases reach the sync later. A <code>soft</code> principal route shows the stored page for the view that finds the bound passed and syncs after it, so that one view shows the previous visitor's page, and with <code>sync: 'deferred'</code> the sync waits for a network moment. A sync that fails counts as offline, and <code>offline: 'serve'</code> then shows the stored page. <code>tests/node/partitions.spec.ts</code> covers a sign-in and a sign-out the worker never saw, on a fake clock. The sync carries a partition only when the server has the <code>identity</code> option, and a worker holds a principal partition only from such a server.</p>
+<p>The application can close the window sooner. The sign-in and account-switch handlers set the new value on their own response:</p>
+<pre><code class="ts"><span class="hl-9">headers</span><span class="hl-1">.</span><span class="hl-0">set</span><span class="hl-1">(</span><span class="hl-2">&#39;spool-partition&#39;</span><span class="hl-1">, </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-9">spool</span><span class="hl-1">.</span><span class="hl-0">partition</span><span class="hl-1">(</span><span class="hl-9">user</span><span class="hl-1">));</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>early</code> applies a differing <code>Spool-Partition</code> before it returns the response, and <code>switchTo</code> destroys the previous partition before then (<code>src/sw/runtime.ts</code>). A navigation answered with spool headers and no partition, such as a sign-out, wipes the store for the same reason. The mitigation does not cover a sign-in that never passes through the handler, and the required sync is what ends the window for one.</p>
+<h2 id="cookies-in-proxy-mode" class="tsd-anchor-link">Cookies in Proxy Mode<a href="#cookies-in-proxy-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The proxy cannot read the application's session, so it reads cookies (<code>decline</code> and <code>setsPrivateCookie</code>, <code>src/proxy/eligible.ts</code>; <code>handle</code>, <code>src/proxy/proxy.ts</code>).</p>
+<ul>
+<li>A request with a cookie whose name is not in <code>publicCookies</code>, or with an <code>Authorization</code> header, is ineligible on a public route. The proxy forwards it untouched. When the answer is a <code>200</code> page it also adds <code>Spool-Invalidate</code> for <code>spool:artifact:&lt;path&gt;</code>, so the worker drops its copy of that path. A query-string request is forwarded with no drop.</li>
+<li>A response that sets a cookie whose name is not in <code>publicCookies</code> carries <code>Spool-Clear: *</code>, whatever the method or status. That wipes the principal store and the public replica on the device that receives it. The check reads the cookie name only, so a <code>Set-Cookie</code> that deletes a cookie counts too, which makes a logout clear. <code>tests/node/proxy.spec.ts</code> covers the clear and the allowlist.</li>
+<li><code>publicCookies</code> is a statement that a cookie carries no identity, such as a bot-check or load-balancer cookie. Listing a session or login cookie there removes the protection. A login no longer clears, and a signed-in request is no longer ineligible.</li>
+<li>A principal route in proxy mode keeps the clear rule. An origin that rolls a session cookie on every response clears the device on every response unless the cookie is listed, and listing it disables the login clear. The proxy cannot tell a rolling session cookie from a login, so that trade is the operator's to make.</li>
+<li>A cookie set without passing through the proxy, by script or by another host, produces no clear. The device can show a stored copy of a public page, which is the signed-out variant, to a visitor who has since signed in. It shows it until a cookie-bearing request for that path drops the copy, or a sync invalidates it. The copy holds public data only.</li>
+</ul>
+<p><code>createSpool</code> does not inspect <code>Set-Cookie</code>.</p>
+<h2 id="sync-tag-names" class="tsd-anchor-link">Sync Tag Names<a href="#sync-tag-names" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Tag names are readable. A tag appears unsealed in the <code>need</code> query of a sync request, in the <code>changed</code> map of a full sync, in <code>Spool-Artifact</code> and <code>Spool-Invalidate</code> headers, in the <code>deps</code> of an artifact and in the <code>have</code> query of an artifact request. <code>GET /.spool/sync?from=0</code> returns every tag that ever changed to any caller. A tag such as <code>grades:alice</code> or <code>perm:alice</code> tells an observer that the principal exists and when their data changes. The sealed store protects tags at rest and does nothing for them on the wire or on the server.</p>
+<p>Use opaque ids for anything sensitive, for example a random id or an HMAC of the principal. Record and projection ids are IndexedDB keys, so they sit in clear at rest too. A principal route syncs with <code>need</code>, which names only the tags that page reads and not the whole diff. The cursor also shows the site's global write rate.</p>
+<h2 id="script-delivery" class="tsd-anchor-link">Script Delivery<a href="#script-delivery" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>By default the server serves the page runtime itself at <code>/.spool/&lt;version&gt;/client.js</code> with <code>Cache-Control: public, max-age=31536000, immutable</code>. That path suits <code>script-src 'self'</code> and trusts no host beyond the site's own (<code>tests/unit/server.spec.ts</code>).</p>
+<p>With <code>cdn: { integrity }</code> the injected tag is <code>&lt;script src=&quot;https://cdn.drupflare.com/spool/&lt;version&gt;/client.js&quot; integrity=&quot;sha384-...&quot; crossorigin=&quot;anonymous&quot; defer data-spool-client&gt;</code>. The browser refuses a file whose sha384 differs. The hash is in the release notes and in <code>dist/cdn/manifest.json</code>, schema 2 (<code>scripts/cdn-manifest.ts</code>).</p>
+<ul>
+<li>A cross-origin SRI load needs <code>Access-Control-Allow-Origin</code> on the file. The repo does not set it. <code>verifyRemote</code> (<code>scripts/publish-cdn.ts</code>) reads the file back after a publish with an <code>Origin</code> header, fails unless the header is <code>*</code> or the probe's origin, and <code>tests/node/cdn.spec.ts</code> covers that check.</li>
+<li>A release key is immutable. <code>publish</code> refuses to overwrite one (<code>remoteExists</code>, <code>tests/node/cdn.spec.ts</code>). Dev keys under <code>spool/dev-&lt;branch&gt;</code> are overwritten and cached for five minutes (<code>DEV_CACHE</code>). Never pin a dev URL.</li>
+<li>A script that fails to load, or fails the hash, leaves the page working as it did before. No worker registers.</li>
+<li>SRI covers the page runtime only. The worker script has to be same-origin, and the server or the site's own file serves it. The one-line form <code>importScripts('https://cdn.drupflare.com/spool/&lt;version&gt;/spool-sw.js')</code> has no integrity check. It trusts the CDN host with the worker, and a worker can answer any request of the origin, which is more than a page script can do. Serve <code>spool-sw.js</code> from the site's own storage to avoid that trust.</li>
+<li><code>src/server/embedded.ts</code> holds the worker core and page runtime as generated text. <code>tests/node/embedded.spec.ts</code> fails when it drifts from the source.</li>
+</ul>
+<h2 id="content-security-policy" class="tsd-anchor-link">Content Security Policy<a href="#content-security-policy" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Spool writes no <code>Content-Security-Policy</code> and configures none. <code>decorate</code> adds no policy. The worker reads the security headers of network answers and replays them on local renders, described below.</p>
+<ul>
+<li>The injected tag carries no <code>nonce</code>. A policy that allows only nonce or hash scripts blocks the tag. The page then works as it did before, with no worker. The default same-origin path needs <code>'self'</code>, and the CDN form needs the CDN origin in <code>script-src</code>.</li>
+<li>A page the worker renders from an artifact (template, assembly, projection and <code>data</code> routes) is answered with the site's security headers and a <code>Content-Type</code> of the worker's own (<code>navigate</code> and <code>dataFile</code>, <code>src/sw/runtime.ts</code>). The headers are <code>Content-Security-Policy</code>, <code>Content-Security-Policy-Report-Only</code>, <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code>, <code>Cross-Origin-Opener-Policy</code>, <code>Cross-Origin-Embedder-Policy</code> and <code>Cross-Origin-Resource-Policy</code> (<code>POLICY_HEADERS</code>, <code>src/sw/policy.ts</code>). No other header of the network answer is replayed, <code>Cache-Control</code> and <code>Set-Cookie</code> included.</li>
+<li>The worker keeps a set of those headers from a <code>200</code> HTML navigation to a route's path, with no query string and no redirect, and from a <code>200</code> <code>data</code> read of its path (<code>keepPolicy</code>, <code>src/sw/runtime.ts</code>). Any <code>200</code> same-origin HTML navigation also replaces the site-wide set. A local render replays the path's own set, and a path with none of its own takes the site-wide set, which is the latest one seen. A set can be empty: a site that sends none is rendered locally with none.</li>
+<li>A path with no set of its own and no site-wide set is not answered locally. <code>decide</code> returns the reason <code>refused</code> and the view goes to the network, which stores the sets for the next one. The worker never serves a page without the policy the site sent with it. A view in shadow mode is not affected.</li>
+<li>The sets live in the replica meta (<code>keepPolicy</code>, <code>src/sw/replica.ts</code>): the site-wide set and the sets of public paths in the public replica, and the set of a principal path in the sealed meta of its partition. Each replica keeps the sets of its 128 most recent paths (<code>MAX_POLICY_PATHS</code>). They go when the store does: <code>Spool-Clear: *</code>, a <code>reset</code> sync and a runtime version change empty the public replica, and a partition's sets go with its partition. A worker restart keeps them.</li>
+<li><code>tests/node/strategies.spec.ts</code> covers the capture, the fallback, the refusal, a restart and the wipe, <code>tests/node/partitions.spec.ts</code> covers a principal page, and <code>tests/browser/security.pw.ts</code> checks in Chromium, Firefox and WebKit that a local view carries <code>X-Frame-Options: DENY</code> and a policy that forbids inline script, and that an inline script does not run. A <code>&lt;meta&gt;</code> policy is no longer needed for a local view.</li>
+<li>A policy that carries a nonce chosen for each response replays an old nonce. Markup the worker renders from a template holds none that matches, so inline scripts that rely on the nonce fail on a local view. Read from the code, no test covers it. Use <code>'self'</code> or hashes.</li>
+<li>A <code>static</code> route replays the headers of the response it stored, minus the transfer headers (<code>replayHeaders</code>, <code>src/sw/static.ts</code>), so a stored file keeps its <code>Content-Security-Policy</code>. <code>tests/node/static.spec.ts</code> checks it.</li>
+<li>A view in shadow mode serves the network answer, so it has the application's headers.</li>
+<li>A policy has to allow the worker script the browser registers. Spool does not test a restrictive <code>worker-src</code> or <code>child-src</code>.</li>
+</ul>
+<h2 id="clear-site-data" class="tsd-anchor-link">Clear-Site-Data<a href="#clear-site-data" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>decorate(request, response, { hardReset: true })</code> adds <code>Clear-Site-Data: &quot;storage&quot;</code>. It asks the browser to reset everything the origin holds, the service worker included. Safari's support is unverified, so rely on the worker's own wipe. The worker wipes before the logout request leaves. The header acts only after a response arrives, so it needs the network. After the header lands, the next views are plain network views until the page registers the worker again.</p>
+<h2 id="trimmed-stylesheets" class="tsd-anchor-link">Trimmed Stylesheets<a href="#trimmed-stylesheets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A trimmed stylesheet is a correctness risk and not a confidentiality one. The proxy only removes rules from a file that every visitor already receives, and the manifest holds public stylesheets and the words of public pages and scripts. Nothing a visitor sends goes into it. A wrong trim shows a page with a rule missing. It leaks nothing and it changes no access decision.</p>
+<p>Two checks stand between a stale or incomplete manifest and a visitor (<code>src/proxy/proxy.ts</code>, <code>src/trim/manifest.ts</code>).</p>
+<ul>
+<li><strong>The hash.</strong> A stylesheet is served trimmed only when the sha256 of the origin's decoded bytes equals the manifest's <code>source</code>. A deploy that changes the file makes the manifest wrong for it, so the proxy serves the origin's bytes and counts a mismatch until the manifest is rebuilt.</li>
+<li><strong>The guard.</strong> Every HTML response is read before it leaves. A page that has a token the trim removed a rule for, or loads a same-origin script the manifest was not built with, links the full file through <code>spool-trim=0</code>. This covers pages the crawl never saw, including pages the proxy does not keep, such as a query string or a signed-in page.</li>
+</ul>
+<p><code>tests/node/proxy.spec.ts</code> and <code>tests/browser/trim.pw.ts</code> cover both. What the guard cannot see:</p>
+<ul>
+<li>A class that a script from another origin adds after load. <code>buildTrimManifest</code> reads the words of the foreign scripts the crawl loaded, so it covers what they did on the day of the crawl. The guard never reads those URLs, so a vendor that ships a new class later is not caught until the manifest is rebuilt.</li>
+<li>Markup injected after load from an endpoint the crawl did not request, and a class built at runtime from parts, such as <code>'btn-' + kind</code>, where no whole class name appears in the HTML or a script.</li>
+<li>A page served in a charset other than UTF-8. The guard reads the body as UTF-8, and a page it rewrites is sent as UTF-8.</li>
+<li>A stylesheet reached through <code>@import</code> inside another stylesheet. It is not linked from the page, so the guard cannot send it a <code>spool-trim=0</code>, and a manifest built from linked files holds no entry for it.</li>
+</ul>
+<p>A site that cannot accept these limits should not pass <code>trim</code>. The same saving is available from a build step that purges with a safelist, which puts the same decision in the site's hands.</p>
+<h2 id="purge-endpoint" class="tsd-anchor-link">Purge Endpoint<a href="#purge-endpoint" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>POST /.spool/purge</code> exists in proxy mode only (<code>respondPurge</code>, <code>src/proxy/purge.ts</code>).</p>
+<ul>
+<li>With no <code>purgeSecret</code>, every call answers <code>403</code>, so a proxy that never configured purges cannot be made to bump its vector. <code>tests/node/proxy.spec.ts</code> covers it.</li>
+<li>The credential is <code>Authorization: Bearer &lt;secret&gt;</code>. <code>equalSecrets</code> runs both values through HMAC-SHA-256 under a random key made once per isolate, then XORs the two 32-byte digests over their whole length with no early exit. The secret's value and its length do not change the work. JavaScript offers no timing guarantee, and spool has not audited an engine for one, so the claim is limited to the removal of the data-dependent exit.</li>
+<li>Nothing rate-limits the endpoint, locks it out after failures or protects a request from replay. Any holder of the secret can bump any tags, up to 1000 per call. The effect is that every device refetches. That is load on the origin, and no data leaves.</li>
+<li>A purge needs a bearer header and not a cookie, so a cross-site page cannot trigger one by browser request.</li>
+<li>The secret has no minimum length. Set it with <code>wrangler secret put PURGE_SECRET</code> on Workers, and call the endpoint over HTTPS only.</li>
+</ul>
+<h2 id="analytics-and-third-parties" class="tsd-anchor-link">Analytics and Third Parties<a href="#analytics-and-third-parties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A request listed in <code>beacons</code> or matched by a <code>collectors</code> entry is held in IndexedDB, in clear, until a network moment. The page gets an answer at once, <code>204</code> for a <code>POST</code> and a one-pixel GIF for a <code>GET</code> (<code>collectorAnswer</code>, <code>src/sw/collect.ts</code>), so the page is told the request succeeded before it has been sent. An event older than the collector's <code>maxAgeMs</code> is dropped, counted and reported as <code>/.spool/dropped</code>, and it is never sent late.</p>
+<ul>
+<li>A same-origin replay carries cookies (<code>credentials: 'same-origin'</code>). A cross-origin replay sends none (<code>credentials: 'omit'</code>), so identity has to be in the payload (<code>replay</code>, <code>src/sw/runtime.ts</code>).</li>
+<li>The held body is whatever the page posted. It is not sealed and a logout does not remove it.</li>
+<li>Spool holds an event whether or not the visitor consented. Gate the analytics tag itself and ask counsel whether holding an event in IndexedDB needs consent where you operate.</li>
+<li>A <code>spool.view</code> event names the route the visitor came from (<code>from</code>): the route pattern of a same-origin referrer, such as <code>/node/:id</code>, or <code>external</code> for another origin. It reveals which kind of page preceded this one and nothing else. It never holds the referrer's URL, path, query string or the external site's name, and a same-origin path that matches no declared route is left out. Set <code>views: false</code> to stop the event.</li>
+<li><code>thirdParty.allow</code> lets the worker keep a <code>GET</code> response from a listed origin, for a readable (CORS) answer at a URL that looks versioned or that the origin marks immutable (<code>versionClass</code>, <code>src/sw/thirdparty.ts</code>). <code>allowOpaque</code> is off. The worker checks no hash of the file. A file kept as <code>immutable</code> is never checked again, so one bad answer at a hashed-looking URL stays until the entry is evicted (<code>maxEntries</code>, oldest first). A <code>revalidate</code> file is checked at a network moment once it is a day old.</li>
+</ul>
+<h2 id="what-spool-never-does" class="tsd-anchor-link">What Spool Never Does<a href="#what-spool-never-does" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><strong>Authorise on the client.</strong> The device holds only what the server already sent that principal. The worker has no access rule and no way to grant one.</li>
+<li><strong>Fabricate analytics.</strong> The events spool writes itself are its own records: <code>spool.view</code>, <code>spool.loads</code> and the drop counts, which go to the <code>sink</code>. A vendor receives the body the page sent. Spool creates no vendor event. The page's immediate answer to a held request is the one thing it makes up, and it is stated above.</li>
+<li><strong>Replay programmatic ads.</strong> The worker ignores every cross-origin request that matches no <code>collectors</code> entry and no <code>thirdParty.allow</code> origin (<code>classify</code>, <code>src/sw/router.ts</code>), and the browser handles those as it always did. Spool has no ad-specific code and no check against an operator listing an ad host.</li>
+<li><strong>Write.</strong> The application owns every write. <code>spool.invalidate</code> announces one.</li>
+<li><strong>Infer dependencies from opaque HTML.</strong> A route names its tags, or the origin names them in cache tag headers.</li>
+</ul>
+<h2 id="open-limitations" class="tsd-anchor-link">Open Limitations<a href="#open-limitations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each limitation is stated in the section it belongs to. This table lists them in one place.</p>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A sign-in whose response the worker sees without the new <code>Spool-Partition</code> leaves the previous partition readable until the first required sync, which is no later than <code>maxStale</code> plus the next view</td>
+<td><a href="#the-open-window">The Open Window</a></td>
+</tr>
+<tr>
+<td>A revoked permission shows for up to <code>maxStale</code>, nothing pushes a revocation, and <code>offline: 'serve'</code> shows a page past the bound</td>
+<td><a href="#revocation">Revocation</a></td>
+</tr>
+<tr>
+<td>Tag names and the write rate are readable by anyone through <code>/.spool/sync</code></td>
+<td><a href="#sync-tag-names">Sync Tag Names</a></td>
+</tr>
+<tr>
+<td>A sealed row is bound to its place and not to a version, so a row can be rolled back</td>
+<td><a href="#sealed-stores">Sealed Stores</a></td>
+</tr>
+<tr>
+<td><code>persistent</code> retention keeps the key in the same profile as the ciphertext</td>
+<td><a href="#sealed-stores">Sealed Stores</a></td>
+</tr>
+<tr>
+<td>The seal gives no protection against script on the origin</td>
+<td><a href="#script-on-the-origin">Script on the Origin</a></td>
+</tr>
+<tr>
+<td>A policy with a nonce chosen for each response does not match markup the worker renders, so its inline scripts fail on a local view</td>
+<td><a href="#content-security-policy">Content Security Policy</a></td>
+</tr>
+<tr>
+<td>Assembly slots and fragments are not escaped</td>
+<td><a href="#script-on-the-origin">Script on the Origin</a></td>
+</tr>
+<tr>
+<td>A logout leaves the public replica, held cross-origin and spool events and Cache entries in place</td>
+<td><a href="#logout-and-the-wipe-order">Logout and the Wipe Order</a></td>
+</tr>
+<tr>
+<td>A change of partition or a <code>Spool-Clear</code> that is not a logout path does not send or drop held same-origin beacons, which replay under the new session</td>
+<td><a href="#logout-and-the-wipe-order">Logout and the Wipe Order</a></td>
+</tr>
+<tr>
+<td>A <code>logout</code> pattern matches any method, so a <code>GET</code> wipes the local principal store</td>
+<td><a href="#logout-and-the-wipe-order">Logout and the Wipe Order</a></td>
+</tr>
+<tr>
+<td>Proxy mode cannot tell a rolling session cookie from a login, and a cookie set outside the proxy produces no clear</td>
+<td><a href="#cookies-in-proxy-mode">Cookies in Proxy Mode</a></td>
+</tr>
+<tr>
+<td><code>/.spool/beacon</code>, <code>/.spool/sync</code> and <code>/.spool/artifact</code> need no credentials and have no rate limit, and a flush can ask the server to build 8 artifacts and a catalogue of up to 32 pages</td>
+<td></td>
+</tr>
+<tr>
+<td>A catalogue request names the path of the page the visitor is on, including a page the worker showed locally, which no other request or view event carries</td>
+<td><a href="#catalogue-entries">Catalogue Entries</a></td>
+</tr>
+<tr>
+<td>An unopened principal catalogue entry stays on the device until a required principal sync names its tags, the visitor returns, or the partition is wiped</td>
+<td><a href="#catalogue-entries">Catalogue Entries</a></td>
+</tr>
+<tr>
+<td>A trimmed stylesheet can lose a rule for a class that a later vendor script, late-injected markup or a runtime-built class name needs, which the guard cannot see</td>
+<td><a href="#trimmed-stylesheets">Trimmed Stylesheets</a></td>
+</tr>
+<tr>
+<td>The purge endpoint has no rate limit or lockout, and any holder of the secret can bump any tag</td>
+<td><a href="#purge-endpoint">Purge Endpoint</a></td>
+</tr>
+<tr>
+<td>The <code>importScripts</code> form of the worker has no integrity check</td>
+<td><a href="#script-delivery">Script Delivery</a></td>
+</tr>
+<tr>
+<td><code>Clear-Site-Data</code> support in Safari is unverified</td>
+<td><a href="#clear-site-data">Clear-Site-Data</a></td>
+</tr>
+<tr>
+<td>The secrets, the partition secret and the purge secret, have no enforced minimum length</td>
+<td><a href="#partitions-and-the-hmac">Partitions and the HMAC</a>, <a href="#purge-endpoint">Purge Endpoint</a></td>
+</tr>
+</tbody>
+</table>
+</div></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details"><a href="#security-model"><span>Security <wbr/>Model</span></a>
+<ul>
+<li><a href="#scope"><span>Scope</span></a></li>
+<li><a href="#what-the-device-holds"><span>What the <wbr/>Device <wbr/>Holds</span></a></li>
+<li><a href="#authorisation"><span>Authorisation</span></a></li>
+<li>
+<ul>
+<li><a href="#endpoints-that-need-no-credentials"><span>Endpoints <wbr/>That <wbr/>Need <wbr/>No <wbr/>Credentials</span></a></li></ul></li>
+<li><a href="#partitions-and-the-hmac"><span>Partitions and the <wbr/>HMAC</span></a></li>
+<li><a href="#sealed-stores"><span>Sealed <wbr/>Stores</span></a></li>
+<li><a href="#script-on-the-origin"><span>Script on the <wbr/>Origin</span></a></li>
+<li><a href="#logout-and-the-wipe-order"><span>Logout and the <wbr/>Wipe <wbr/>Order</span></a></li>
+<li><a href="#revocation"><span>Revocation</span></a></li>
+<li><a href="#catalogue-entries"><span>Catalogue <wbr/>Entries</span></a></li>
+<li><a href="#the-open-window"><span>The <wbr/>Open <wbr/>Window</span></a></li>
+<li>
+<ul>
+<li><a href="#the-required-sync-closes-it"><span>The <wbr/>Required <wbr/>Sync <wbr/>Closes <wbr/>It</span></a></li></ul></li>
+<li><a href="#cookies-in-proxy-mode"><span>Cookies in <wbr/>Proxy <wbr/>Mode</span></a></li>
+<li><a href="#sync-tag-names"><span>Sync <wbr/>Tag <wbr/>Names</span></a></li>
+<li><a href="#script-delivery"><span>Script <wbr/>Delivery</span></a></li>
+<li><a href="#content-security-policy"><span>Content <wbr/>Security <wbr/>Policy</span></a></li>
+<li><a href="#clear-site-data"><span>Clear-<wbr/>Site-<wbr/>Data</span></a></li>
+<li><a href="#trimmed-stylesheets"><span>Trimmed <wbr/>Stylesheets</span></a></li>
+<li><a href="#purge-endpoint"><span>Purge <wbr/>Endpoint</span></a></li>
+<li><a href="#analytics-and-third-parties"><span>Analytics and <wbr/>Third <wbr/>Parties</span></a></li>
+<li><a href="#what-spool-never-does"><span>What <wbr/>Spool <wbr/>Never <wbr/>Does</span></a></li>
+<li><a href="#open-limitations"><span>Open <wbr/>Limitations</span></a></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

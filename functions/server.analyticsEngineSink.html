@@ -1,0 +1,82 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>analyticsEngineSink | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/server.html">server</a></li>
+<li><a href="" aria-current="page">analyticsEngineSink</a></li></ul>
+<h1>Function analyticsEngineSink</h1></div>
+<section class="tsd-panel">
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="analyticsenginesink"><span class="tsd-kind-call-signature">analyticsEngineSink</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">dataset</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/server.AnalyticsEngineLike.html" class="tsd-signature-type tsd-kind-interface">AnalyticsEngineLike</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/server.Sink.html" class="tsd-signature-type tsd-kind-interface">Sink</a><a href="#analyticsenginesink" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>A sink for a Workers Analytics Engine dataset, one data point per event.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>views</th>
+<th>other requests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>index1</td>
+<td>route pattern</td>
+<td>path</td>
+</tr>
+<tr>
+<td>blob1</td>
+<td><code>view</code></td>
+<td><code>beacon</code></td>
+</tr>
+<tr>
+<td>blob2 to blob9</td>
+<td>tier, reason, engine, scope, strategy, route, id, from</td>
+<td>content type, body slice, vendor</td>
+</tr>
+<tr>
+<td>double1 to double6</td>
+<td>at, staleSec, swAgeMs, gapMs, mismatch, crossOriginLoads</td>
+<td>at, slice number from 0, slice count</td>
+</tr>
+</tbody>
+</table>
+<p><code>staleSec</code>, <code>gapMs</code> and <code>crossOriginLoads</code> are -1 when unknown; <code>mismatch</code> is -1 when nothing was
+compared, 0 for a match and 1 for a mismatch. A page's loads report is a row with <code>blob1</code> of
+<code>loads</code>, the view id as <code>blob2</code> and <code>at</code> and the count as <code>double1</code> and <code>double2</code>. Analytics
+Engine caps an index at 96 bytes and a row at 16 KB, so a body longer than <a href="../variables/server.MAX_BEACON_BLOB.html" class="tsd-kind-variable">MAX_BEACON_BLOB</a>
+bytes is written as several points, one per slice, with the same index, content type, vendor and
+<code>at</code>; join the slices by those and <code>double2</code> (the slice number) to rebuild it. Nothing is cut off.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">dataset</span>: <a href="../interfaces/server.AnalyticsEngineLike.html" class="tsd-signature-type tsd-kind-interface">AnalyticsEngineLike</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/server.Sink.html" class="tsd-signature-type tsd-kind-interface">Sink</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/a798e1426c15707fbe747bba0e2317df44753cac/src/server/sink.ts#L107">src/server/sink.ts:107</a></li></ul></aside></div></li></ul></section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

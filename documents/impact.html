@@ -1,0 +1,2265 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>impact | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">impact</a></li></ul></div>
+<div class="tsd-panel tsd-typography"><h1 id="impact-notice" class="tsd-anchor-link">Impact Notice<a href="#impact-notice" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>Spool lets a visitor's browser answer a page view it has already seen, without asking the site. A local view removes the document request, the transaction that carries it and the server work behind it. The page's own API calls and every third-party request still leave the browser unless the site declares <code>data</code> routes or turns on the third-party cache.</p>
+<p>This page says what that saves, how sure each number is and what it means in money. Every figure carries a label: L0 published by someone else, L1 measured here, L2 derived from L0 and L1, L3 a scenario. The sections after the notice show the readings and the arithmetic.</p>
+<h2 id="what-spool-saves" class="tsd-anchor-link">What Spool Saves<a href="#what-spool-saves" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The headline is 12.4 joules per local view (L2). It applies the Sustainable Web Design v4 intensities for the network, the data centre and the device to the 17,054 bytes of the document a local view replaces, then adds the origin's energy for one request. No meter read it.</p>
+<p>Meters read less, because they leave out the network and every data centre between the two ends. Three readings sit beside the headline:</p>
+<table>
+<thead>
+<tr>
+<th>where</th>
+<th>figure per view</th>
+<th>label</th>
+<th>what it covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Desktop</td>
+<td>saves 0.80 J</td>
+<td>L1</td>
+<td>package energy of the browser, the origin and the service worker, against optimized HTTP caching</td>
+</tr>
+<tr>
+<td>iPhone 14 Pro</td>
+<td>saves 0.088 J</td>
+<td>L1</td>
+<td>the whole phone with the screen on, over Wi-Fi, against a network view</td>
+</tr>
+<tr>
+<td>Server, 4 runtimes</td>
+<td>a network view costs 0.61 to 0.98 J</td>
+<td>L1</td>
+<td>package energy of the server, which a local view does not spend</td>
+</tr>
+</tbody>
+</table>
+<p>On the server, a local view sent nothing in all but one window per runtime, and its measured energy (0.32 J at most, as a median) sits inside the idle drift. The ranges and the method are under Measured Readings.</p>
+<p>Spool does not claim that the headline is a meter reading, a saving in radio wakes, a capacity saving without evidence that equipment was removed, or a figure for paced or cellular phone use. The full list is under What This Does Not Claim.</p>
+<h3 id="a-worked-example" class="tsd-anchor-link">A Worked Example<a href="#a-worked-example" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Take an institution with 100 million views a year, a scale chosen for the example that names no institution (L3). Spool's tiers name the share of those views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy those local views avoid at each of the three per-view figures.</p>
+<table>
+<thead>
+<tr>
+<th>tier</th>
+<th style="text-align:right">Z_annual</th>
+<th style="text-align:right">attributional, 12 J</th>
+<th style="text-align:right">measured desktop, 0.80 J</th>
+<th style="text-align:right">measured phone, 0.088 J</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meaningful</td>
+<td style="text-align:right">30%</td>
+<td style="text-align:right">0.103 MWh</td>
+<td style="text-align:right">0.00668 MWh</td>
+<td style="text-align:right">0.000731 MWh</td>
+</tr>
+<tr>
+<td>Major</td>
+<td style="text-align:right">65%</td>
+<td style="text-align:right">0.223 MWh</td>
+<td style="text-align:right">0.0145 MWh</td>
+<td style="text-align:right">0.00158 MWh</td>
+</tr>
+<tr>
+<td>Transformative</td>
+<td style="text-align:right">90%</td>
+<td style="text-align:right">0.309 MWh</td>
+<td style="text-align:right">0.0200 MWh</td>
+<td style="text-align:right">0.00219 MWh</td>
+</tr>
+</tbody>
+</table>
+<p>The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a view count and a tier share. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with. Multiply a row by your own yearly views over 100 million.</p>
+<h2 id="bandwidth-and-request-costs" class="tsd-anchor-link">Bandwidth and Request Costs<a href="#bandwidth-and-request-costs" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A local view moves no document, so a host that bills traffic bills less. The bytes saved per local view are the document's median size, 17,054 B or 17.1 KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to 17.1 GB and one million requests.</p>
+<p>Prices are each vendor's published list prices, read from the vendor's own page on 2026-10-19. Every input is L0 unless the table says L2, and every input's source is in <code>src/report/inputs.ts</code>. A price that could not be read from the vendor's page is left out.</p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+<th>tier the price is taken from</th>
+<th>egress price</th>
+<th>free egress a month</th>
+<th>request price</th>
+<th>label</th>
+<th>vendor page, read 2026-10-19</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloudflare Workers (Standard plan)</td>
+<td>Standard plan, requests past the included 10 million a month</td>
+<td>$0 per GB</td>
+<td>no egress charge</td>
+<td>$0.30 per million</td>
+<td>L0, requests L0</td>
+<td><a href="http://developers.cloudflare.com/workers/platform/pricing">developers.cloudflare.com/workers/platform/pricing</a></td>
+</tr>
+<tr>
+<td>AWS CloudFront (pay as you go)</td>
+<td>United States, Mexico and Canada; the next 9 TB after the first free 1 TB</td>
+<td>$0.085 per GB</td>
+<td>1,000 GB</td>
+<td>$1.00 per million</td>
+<td>L0, requests L2</td>
+<td><a href="http://aws.amazon.com/cloudfront/pricing/pay-as-you-go">aws.amazon.com/cloudfront/pricing/pay-as-you-go</a></td>
+</tr>
+<tr>
+<td>Microsoft Azure</td>
+<td>default routing from North America or Europe; the next 10 TB after the first free 100 GB</td>
+<td>$0.087 per GB</td>
+<td>100 GB</td>
+<td>not read</td>
+<td>L0</td>
+<td><a href="http://azure.microsoft.com/en-us/pricing/details/bandwidth">azure.microsoft.com/en-us/pricing/details/bandwidth</a></td>
+</tr>
+<tr>
+<td>Google Cloud (Premium Tier)</td>
+<td>to North America, 1 to 1,024 GiB a month, per GiB</td>
+<td>$0.12 per GiB</td>
+<td>1 GiB</td>
+<td>not read</td>
+<td>L0</td>
+<td><a href="http://cloud.google.com/vpc/network-pricing">cloud.google.com/vpc/network-pricing</a></td>
+</tr>
+</tbody>
+</table>
+<p>Egress is priced at the first paid tier of each host. A free allowance is used up by everything the site serves, not by the bytes spool removes, so for a site whose total traffic is past the allowance the saving comes off at the paid rate. A site large enough to reach a host's later tiers pays a lower rate per GB there, so for it these figures are the high end. A site that serves less than its allowance in total saves nothing in dollars. A GiB is 2^30 bytes and a GB is 10^9.</p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+<th style="text-align:right">bytes no longer moved</th>
+<th style="text-align:right">egress</th>
+<th style="text-align:right">requests</th>
+<th style="text-align:right">total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloudflare Workers (Standard plan)</td>
+<td style="text-align:right">17.1 GB</td>
+<td style="text-align:right">$0</td>
+<td style="text-align:right">$0.30</td>
+<td style="text-align:right">$0.30</td>
+</tr>
+<tr>
+<td>AWS CloudFront (pay as you go)</td>
+<td style="text-align:right">17.1 GB</td>
+<td style="text-align:right">$1.45</td>
+<td style="text-align:right">$1.00</td>
+<td style="text-align:right">$2.45</td>
+</tr>
+<tr>
+<td>Microsoft Azure</td>
+<td style="text-align:right">17.1 GB</td>
+<td style="text-align:right">$1.48</td>
+<td style="text-align:right">not read</td>
+<td style="text-align:right">$1.48</td>
+</tr>
+<tr>
+<td>Google Cloud (Premium Tier)</td>
+<td style="text-align:right">15.9 GiB</td>
+<td style="text-align:right">$1.91</td>
+<td style="text-align:right">not read</td>
+<td style="text-align:right">$1.91</td>
+</tr>
+</tbody>
+</table>
+<p>The dollar figure is small. A million local views save between $0.30 and $2.45 at these list prices. Scaled to the institution above:</p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+<th style="text-align:right">Meaningful, 30M local views</th>
+<th style="text-align:right">Major, 65M local views</th>
+<th style="text-align:right">Transformative, 90M local views</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloudflare Workers (Standard plan)</td>
+<td style="text-align:right">$9.00 a year</td>
+<td style="text-align:right">$20 a year</td>
+<td style="text-align:right">$27 a year</td>
+</tr>
+<tr>
+<td>AWS CloudFront (pay as you go)</td>
+<td style="text-align:right">$73 a year</td>
+<td style="text-align:right">$159 a year</td>
+<td style="text-align:right">$220 a year</td>
+</tr>
+<tr>
+<td>Microsoft Azure</td>
+<td style="text-align:right">$45 a year</td>
+<td style="text-align:right">$96 a year</td>
+<td style="text-align:right">$134 a year</td>
+</tr>
+<tr>
+<td>Google Cloud (Premium Tier)</td>
+<td style="text-align:right">$57 a year</td>
+<td style="text-align:right">$124 a year</td>
+<td style="text-align:right">$172 a year</td>
+</tr>
+</tbody>
+</table>
+<p>At the Transformative tier that is $27 to $220 a year across these hosts. The bytes and requests behind it, a month at a time:</p>
+<table>
+<thead>
+<tr>
+<th>tier</th>
+<th style="text-align:right">local views a year</th>
+<th style="text-align:right">local views a month, requests no longer sent</th>
+<th style="text-align:right">bytes no longer moved, GB a month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meaningful</td>
+<td style="text-align:right">30 million</td>
+<td style="text-align:right">2.5 million</td>
+<td style="text-align:right">43</td>
+</tr>
+<tr>
+<td>Major</td>
+<td style="text-align:right">65 million</td>
+<td style="text-align:right">5.4 million</td>
+<td style="text-align:right">92</td>
+</tr>
+<tr>
+<td>Transformative</td>
+<td style="text-align:right">90 million</td>
+<td style="text-align:right">7.5 million</td>
+<td style="text-align:right">128</td>
+</tr>
+</tbody>
+</table>
+<p>The same rule holds for requests. Cloudflare Workers and CloudFront each include 10 million requests a month, and that allowance is used by all of the site's requests. Past it, each request spool removes saves the request price in the table.</p>
+<p>Two more hosts publish traffic terms that this page cannot turn into dollars. Pantheon bills overage at $40 for each 10,000 unique visits, counting an IP address and user agent once over 24 hours; the page carries a notice that the automated overage program is paused. A visit is a different unit from a view, and no reading here says how many visits spool removes, so no Pantheon figure is derived. Acquia's pricing page lists no traffic or bandwidth price, so Acquia is left out.</p>
+<p>The money above does not include:</p>
+<ul>
+<li>staff time spent on the site or on the migration;</li>
+<li>plan tiers that do not scale with traffic, such as a flat hosting plan, which gets cheaper only when traffic falls under a tier boundary;</li>
+<li>request fees at hosts where none was read (Azure and Google Cloud above);</li>
+<li>the origin's compute and the servers behind it, which the Capacity section treats;</li>
+<li>the requests spool sends itself. The table counts one request avoided per local view and does not subtract spool's syncs and flushes.</li>
+</ul>
+<p>Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.</p>
+<h2 id="asset-trimming" class="tsd-anchor-link">Asset Trimming<a href="#asset-trimming" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The proxy can serve a site's stylesheets with the rules that no page of the site can match removed. This is a separate channel from the 12.4 J headline. The headline is what a local view saves, and a local view fetches no stylesheet. Trimming applies to a network view of a page the visitor has not seen. A repeat view saves nothing from it, since an optimized HTTP cache already keeps the file. The two do not add, and nothing in this section is part of the headline.</p>
+<p>The saving has to happen where the file is served. A service worker cannot save bytes by trimming a file it already fetched. The proxy trims each file against every page and script of the site and never against one page, so the file keeps its URL and one cached copy, and only rules that match nothing in the crawl go. A build step that runs PurgeCSS with a safelist reaches the same saving. The proxy reaches it without a change to the origin.</p>
+<p>JavaScript stays as it is. Coverage at load cannot see what a click or a scroll will need. Over 85 pages the used share of same-origin JavaScript rose from 36% at load to 40% after one scroll (L1), and no load-time measure can say which of the rest a visitor will run. CSS coverage stayed at 9% after the same scroll.</p>
+<table>
+<thead>
+<tr>
+<th>same-origin files</th>
+<th style="text-align:right">used at load, median (quartiles)</th>
+<th style="text-align:right">used after one scroll, median (quartiles)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CSS</td>
+<td style="text-align:right">9% (5% to 17%)</td>
+<td style="text-align:right">9% (5% to 17%)</td>
+</tr>
+<tr>
+<td>JavaScript</td>
+<td style="text-align:right">36% (26% to 47%)</td>
+<td style="text-align:right">40% (31% to 54%)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-the-trim-removes-and-whether-it-is-safe" class="tsd-anchor-link">What the Trim Removes and Whether It Is Safe<a href="#what-the-trim-removes-and-whether-it-is-safe" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The run crawled 85 pages on 10 Drupal sites, built one manifest per site from all its pages and the scripts they load, and fetched 303 stylesheets, of which the trim removed rules from 233 (L1). Four checks decide whether the trimmed files are safe to serve.</p>
+<table>
+<thead>
+<tr>
+<th>check</th>
+<th>what it counts</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oracle A, false removals</td>
+<td>rules CDP marked used at load or after a scroll, over 85 pages, that the trimmed text lost</td>
+<td>0 of 26,571 rule uses</td>
+</tr>
+<tr>
+<td>Oracle B, render</td>
+<td>full-page screenshots of 85 pages (0 failed): the trimmed CSS against the original, and the original against itself as a control</td>
+<td>identical to the pixel on 62 pages, and 65 for the control; most differing pixels 934,285 trimmed and 838,405 control; trimmed differs and control does not on 4</td>
+</tr>
+<tr>
+<td>Leave-one-out, guard</td>
+<td>internal pages, each against a manifest built without it, where the guard fired</td>
+<td>33 of 75</td>
+</tr>
+<tr>
+<td>Leave-one-out, Oracle A</td>
+<td>rules used on the 13 pages the guard let through, that the trimmed text lost</td>
+<td>0 of 3,643, on 0 pages</td>
+</tr>
+</tbody>
+</table>
+<p>Oracle A reads CDP rule usage on the original CSS, at load and after one scroll, and counts the used rules the trimmed text lost. Oracle B screenshots each page at full height with the original CSS and again with the trimmed CSS, and counts the pixels that differ. The control is the original page screenshotted twice, so the pixels it differs by come from the page and not from the CSS. One screenshot of each arm is a small sample, and a page that differs in the trimmed arm and not in the control is not proof of a CSS difference. Leave-one-out rebuilds the manifest without the page, which is how a page the crawl missed would meet it.</p>
+<h3 id="bytes-and-joules-saved" class="tsd-anchor-link">Bytes and Joules Saved<a href="#bytes-and-joules-saved" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Each figure is the brotli-5 size of a stylesheet before and after the trim, summed over the files that were new to the visit, with the home page first. A first view of an internal page therefore counts only the files that a visit starting at the home page had not fetched. The home page row is the cold case. The proxy sends a decoded body and a host's edge compresses it, so the bytes are an estimate of transfer (L2). Joules apply the attributional 0.194 kWh/GB to those bytes (L2). A trimmed file is the same request, so there is no origin term.</p>
+<table>
+<thead>
+<tr>
+<th>site</th>
+<th style="text-align:right">home page, cold: bytes saved</th>
+<th style="text-align:right">home page, cold: joules</th>
+<th style="text-align:right">internal pages</th>
+<th style="text-align:right">first view: bytes saved, median (quartiles)</th>
+<th style="text-align:right">first view: joules, median (quartiles)</th>
+<th style="text-align:right">stylesheet bytes removed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://demo.drupflare.com">demo.drupflare.com</a></td>
+<td style="text-align:right">6.8 KB</td>
+<td style="text-align:right">4.73</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0.0 KB (0.0 KB to 1.7 KB)</td>
+<td style="text-align:right">0 (0 to 1.16)</td>
+<td style="text-align:right">21%</td>
+</tr>
+<tr>
+<td><a href="http://www.asu.edu">www.asu.edu</a></td>
+<td style="text-align:right">27.6 KB</td>
+<td style="text-align:right">19.3</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">27.6 KB (20.7 KB to 27.6 KB)</td>
+<td style="text-align:right">19.3 (14.4 to 19.3)</td>
+<td style="text-align:right">40%</td>
+</tr>
+<tr>
+<td><a href="http://www.yale.edu">www.yale.edu</a></td>
+<td style="text-align:right">41.3 KB</td>
+<td style="text-align:right">28.8</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">36.2 KB (27.2 KB to 36.4 KB)</td>
+<td style="text-align:right">25.3 (19.0 to 25.4)</td>
+<td style="text-align:right">48%</td>
+</tr>
+<tr>
+<td><a href="http://www.colorado.edu">www.colorado.edu</a></td>
+<td style="text-align:right">39.1 KB</td>
+<td style="text-align:right">27.3</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">19.1 KB (0.0 KB to 38.3 KB)</td>
+<td style="text-align:right">13.4 (0 to 26.8)</td>
+<td style="text-align:right">63%</td>
+</tr>
+<tr>
+<td><a href="http://www.uiowa.edu">www.uiowa.edu</a></td>
+<td style="text-align:right">32.9 KB</td>
+<td style="text-align:right">23.0</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">32.9 KB (32.5 KB to 33.5 KB)</td>
+<td style="text-align:right">23.0 (22.7 to 23.4)</td>
+<td style="text-align:right">50%</td>
+</tr>
+<tr>
+<td><a href="http://www.tufts.edu">www.tufts.edu</a></td>
+<td style="text-align:right">13.5 KB</td>
+<td style="text-align:right">9.42</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">10.3 KB (7.7 KB to 11.4 KB)</td>
+<td style="text-align:right">7.22 (5.39 to 7.94)</td>
+<td style="text-align:right">28%</td>
+</tr>
+<tr>
+<td><a href="http://www.unl.edu">www.unl.edu</a></td>
+<td style="text-align:right">3.2 KB</td>
+<td style="text-align:right">2.22</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">3.2 KB (3.1 KB to 3.5 KB)</td>
+<td style="text-align:right">2.20 (2.19 to 2.43)</td>
+<td style="text-align:right">49%</td>
+</tr>
+<tr>
+<td><a href="http://www.ucdavis.edu">www.ucdavis.edu</a></td>
+<td style="text-align:right">53.5 KB</td>
+<td style="text-align:right">37.4</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">53.5 KB (0.0 KB to 53.5 KB)</td>
+<td style="text-align:right">37.4 (0 to 37.4)</td>
+<td style="text-align:right">61%</td>
+</tr>
+<tr>
+<td><a href="http://www.rutgers.edu">www.rutgers.edu</a></td>
+<td style="text-align:right">106.9 KB</td>
+<td style="text-align:right">74.7</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">0.0 KB (0.0 KB to 0.0 KB)</td>
+<td style="text-align:right">0 (0 to 0)</td>
+<td style="text-align:right">40%</td>
+</tr>
+<tr>
+<td><a href="http://www.mit.edu">www.mit.edu</a></td>
+<td style="text-align:right">49.9 KB</td>
+<td style="text-align:right">34.9</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">0.0 KB (0.0 KB to 0.0 KB)</td>
+<td style="text-align:right">0 (0 to 0)</td>
+<td style="text-align:right">67%</td>
+</tr>
+<tr>
+<td><strong>Pooled</strong></td>
+<td style="text-align:right">36.0 KB (17.0 KB to 47.8 KB)</td>
+<td style="text-align:right">25.2 (11.9 to 33.4)</td>
+<td style="text-align:right">75</td>
+<td style="text-align:right">3.2 KB (0.0 KB to 32.9 KB)</td>
+<td style="text-align:right">2.21 (0 to 23.0)</td>
+<td style="text-align:right">48%</td>
+</tr>
+</tbody>
+</table>
+<p>The typical first view of an internal page saves 3.2 KB and 2.21 J, and the mean is 15.2 KB and 10.6 J. The mean is the figure to multiply by a view count, since a few pages with large unused files carry the total.</p>
+<h3 id="per-million-views" class="tsd-anchor-link">Per Million Views<a href="#per-million-views" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The share of views that are network views of a page the visitor has not seen is an L3 input. It runs from 45% to 75%, and <code>src/report/inputs.ts</code> gives the source of each value and the one in between. A view counted here is a network view of an unseen page.</p>
+<table>
+<thead>
+<tr>
+<th>views counted</th>
+<th style="text-align:right">bytes saved per view (mean)</th>
+<th style="text-align:right">joules per view (mean)</th>
+<th style="text-align:right">joules per million views</th>
+<th style="text-align:right">kWh per million views</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cold view of a home page, over the network</td>
+<td style="text-align:right">37.5 KB</td>
+<td style="text-align:right">26.2</td>
+<td style="text-align:right">26.2 million</td>
+<td style="text-align:right">7.27</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>first view of an unseen internal page, over the network</td>
+<td style="text-align:right">15.2 KB</td>
+<td style="text-align:right">10.6</td>
+<td style="text-align:right">10.6 million</td>
+<td style="text-align:right">2.95</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>all views, 45% of them first views of an unseen internal page (low)</td>
+<td style="text-align:right">6.8 KB</td>
+<td style="text-align:right">4.78</td>
+<td style="text-align:right">4.78 million</td>
+<td style="text-align:right">1.33</td>
+<td>L3</td>
+</tr>
+<tr>
+<td>all views, 60% of them first views of an unseen internal page (central)</td>
+<td style="text-align:right">9.1 KB</td>
+<td style="text-align:right">6.36</td>
+<td style="text-align:right">6.36 million</td>
+<td style="text-align:right">1.77</td>
+<td>L3</td>
+</tr>
+<tr>
+<td>all views, 75% of them first views of an unseen internal page (high)</td>
+<td style="text-align:right">11.4 KB</td>
+<td style="text-align:right">7.95</td>
+<td style="text-align:right">7.95 million</td>
+<td style="text-align:right">2.21</td>
+<td>L3</td>
+</tr>
+</tbody>
+</table>
+<p>Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at each host's first paid tier, which is the high end for a site large enough to reach a later tier. A free allowance is used up by everything the site serves, so a site under its allowance saves no dollars. Cloudflare Workers bills no egress and its row is $0.</p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+<th style="text-align:right">egress price</th>
+<th style="text-align:right">per million first views</th>
+<th style="text-align:right">per million views, 45% first views (low)</th>
+<th style="text-align:right">per million views, 60% first views (central)</th>
+<th style="text-align:right">per million views, 75% first views (high)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloudflare Workers (Standard plan)</td>
+<td style="text-align:right">$0 per GB</td>
+<td style="text-align:right">$0</td>
+<td style="text-align:right">$0</td>
+<td style="text-align:right">$0</td>
+<td style="text-align:right">$0</td>
+</tr>
+<tr>
+<td>AWS CloudFront (pay as you go)</td>
+<td style="text-align:right">$0.085 per GB</td>
+<td style="text-align:right">$1.29</td>
+<td style="text-align:right">$0.58</td>
+<td style="text-align:right">$0.77</td>
+<td style="text-align:right">$0.97</td>
+</tr>
+<tr>
+<td>Microsoft Azure</td>
+<td style="text-align:right">$0.087 per GB</td>
+<td style="text-align:right">$1.32</td>
+<td style="text-align:right">$0.60</td>
+<td style="text-align:right">$0.79</td>
+<td style="text-align:right">$0.99</td>
+</tr>
+<tr>
+<td>Google Cloud (Premium Tier)</td>
+<td style="text-align:right">$0.12 per GiB</td>
+<td style="text-align:right">$1.70</td>
+<td style="text-align:right">$0.77</td>
+<td style="text-align:right">$1.02</td>
+<td style="text-align:right">$1.27</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-the-figures-are-made" class="tsd-anchor-link">How the Figures Are Made<a href="#how-the-figures-are-made" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Every number on this page comes from a reading in <a href="../media/README.md"><code>measurements/</code></a> or from an input in <code>src/report/inputs.ts</code>. <code>bun run impact</code> regenerates the page from those, and <code>bun run impact:check</code> fails when the committed page differs from what the readings produce. Edit <code>docs/impact.src.md</code>, never <code>docs/impact.md</code>.</p>
+<p>Two channels carry the energy numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at 3.80 MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.</p>
+<p>Tiers on this page are relative to an institution's own views. The tables use 100 million views a year as a scale, an L3 choice that names no institution.</p>
+<h3 id="measurement-labels" class="tsd-anchor-link">Measurement Labels<a href="#measurement-labels" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Each figure carries one label, and a derived figure keeps its label wherever it travels.</p>
+<table>
+<thead>
+<tr>
+<th>label</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>published by someone else, with its source named</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>measured here, on the hardware the reading's file describes</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>derived: arithmetic over L0 and L1 figures</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>a scenario: an assumption, or a what-if no reading backs</td>
+</tr>
+</tbody>
+</table>
+<p>A figure that mixes an L2 product with an L3 term is L3 as a whole. The 12.4 J headline is L2, and the table that builds it says so.</p>
+<h3 id="accounting-quantities" class="tsd-anchor-link">Accounting Quantities<a href="#accounting-quantities" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Spool counts five quantities and never assumes they move together.</p>
+<ol>
+<li><strong>Browser resource operations.</strong> What the browser's network stack reports for a navigation: requests, cache hits and 304s.</li>
+<li><strong>On-wire requests.</strong> Requests that reach an origin, counted by a proxy between the browser and the origin.</li>
+<li><strong>Worker invocations.</strong> Requests a Worker runs. A request answered by a static asset or by the browser does not count.</li>
+<li><strong>Encoded bytes.</strong> Bytes transferred, as sent.</li>
+<li><strong>Network-active intervals.</strong> The stretches a device's radio stays awake. One avoided request is not one avoided radio wake.</li>
+</ol>
+<p>Where a rig reads device or server energy, joules are a sixth quantity beside these.</p>
+<p>The browser's count and the proxy's count differ, and the difference is the reason for counting both.</p>
+<table>
+<thead>
+<tr>
+<th>navigation</th>
+<th style="text-align:right">navigations</th>
+<th style="text-align:right">browser network requests</th>
+<th style="text-align:right">proxy requests</th>
+<th>equal counts</th>
+<th style="text-align:right">browser bytes</th>
+<th style="text-align:right">proxy response bytes</th>
+<th style="text-align:right">proxy requests to other hosts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cold home page</td>
+<td style="text-align:right">16</td>
+<td style="text-align:right">81.5</td>
+<td style="text-align:right">83.5</td>
+<td>5 of 16</td>
+<td style="text-align:right">4,777,004</td>
+<td style="text-align:right">8,278,496</td>
+<td style="text-align:right">63%</td>
+</tr>
+<tr>
+<td>Warm internal page</td>
+<td style="text-align:right">82</td>
+<td style="text-align:right">24.0</td>
+<td style="text-align:right">28.5</td>
+<td>0 of 82</td>
+<td style="text-align:right">976,383</td>
+<td style="text-align:right">1,131,257</td>
+<td style="text-align:right">63%</td>
+</tr>
+<tr>
+<td>Home page again</td>
+<td style="text-align:right">16</td>
+<td style="text-align:right">46.5</td>
+<td style="text-align:right">52.0</td>
+<td>1 of 16</td>
+<td style="text-align:right">1,155,129</td>
+<td style="text-align:right">4,360,757</td>
+<td style="text-align:right">73%</td>
+</tr>
+</tbody>
+</table>
+<p>The two counts differ in both directions. The browser's network count leaves out requests it answered from its memory or disk cache, and the proxy sees requests the browser's counter does not attribute to the network. This reading does not explain every difference. The byte columns differ too: on repeat views the proxy saw several times the bytes the browser reports, and the gap is not explained here either. Both counts are printed because neither alone is the wire.</p>
+<h3 id="traffic-measures" class="tsd-anchor-link">Traffic Measures<a href="#traffic-measures" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Three measures feed three different benefits.</p>
+<table>
+<thead>
+<tr>
+<th>measure</th>
+<th>definition</th>
+<th>drives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Z_annual</code></td>
+<td>strict zero-network local views over all views, per year</td>
+<td>the views channel</td>
+</tr>
+<tr>
+<td><code>Z_daily</code></td>
+<td>the same per day, net of the sync and flush requests spool itself sends</td>
+<td>the Workers free-tier ceiling</td>
+</tr>
+<tr>
+<td><code>Z_peak_work</code></td>
+<td>origin work avoided over origin work without spool in the busiest intervals, by CPU time</td>
+<td>whether fewer servers meet the same throughput and SLO</td>
+</tr>
+</tbody>
+</table>
+<p>The code is in <code>src/report/traffic.ts</code>. <code>Z_annual</code> names the tiers: Meaningful at 30%, Major at 65% and Transformative at 90%. <code>scripts/measure/traces.ts</code> turns an institution's server-work trace into the intervals <code>Z_peak_work</code> reads.</p>
+<h3 id="views-channel" class="tsd-anchor-link">Views Channel<a href="#views-channel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The channel's energy is <code>E_views = V x Z_annual x J_view</code>, where <code>V</code> is the institution's yearly views and <code>J_view</code> is the joules one local view avoids. Two <code>J_view</code> figures exist, and the page always prints both. Both are floors: they count what a meter or a published model attributes to a view today, and the work is to raise them.</p>
+<h4 id="attributional-headline" class="tsd-anchor-link">Attributional Headline<a href="#attributional-headline" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<p>12.4 J per local revisit view is the attributional figure. It applies the Sustainable Web Design v4 intensities (network, data centre and device, 0.194 kWh/GB together) to the bytes of the document request a local view replaces, then adds an origin request. The radio-wake term is 0 J until a phone reading attributes a wake to a network view (see the cellular reading under Measured Readings).</p>
+<table>
+<thead>
+<tr>
+<th>term</th>
+<th>basis</th>
+<th style="text-align:right">joules</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network</td>
+<td>SWD v4 0.059 kWh/GB over 17,054 B</td>
+<td style="text-align:right">3.6</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Data centre</td>
+<td>SWD v4 0.055 kWh/GB over the same bytes</td>
+<td style="text-align:right">3.4</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Device</td>
+<td>SWD v4 0.08 kWh/GB over the same bytes</td>
+<td style="text-align:right">4.9</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Origin request</td>
+<td>a conventional origin, drupflare/worker docs/impact.md, RAPL mix @40 views/s, regular host, idle subtracted</td>
+<td style="text-align:right">0.455</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>Radio wake</td>
+<td>0 J on 43% of views (phones), until a phone reading attributes a wake; 5 J was the earlier scenario value</td>
+<td style="text-align:right">0.00</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>Total</td>
+<td>the sum of the rows</td>
+<td style="text-align:right">12.4</td>
+<td>L2</td>
+</tr>
+</tbody>
+</table>
+<p>Every term counts as energy that goes away when the view makes no request, the same sense drupflare's own impact page uses. The figure is an allocation of a published model over measured bytes. No meter read it.</p>
+<p>A default local view replaces one request, the page's document. The model prices that request: 17,054 B, the median repeat-view document over every repeat-navigation reading (59 views from 4 readings). The rest of a repeat view is left out. An optimized HTTP cache already keeps a site's static files, so those bytes are the baseline fix's saving and not spool's. The page's own API calls and every third-party request still leave the browser during a local view, unless the site declares <code>data</code> routes or turns on the third-party cache. For scale, the whole repeat view's median is 66,343 B, and the latest reading's median is 32 network requests over 15 sites. Every site read so far is under Per-Site Figures.</p>
+<h3 id="counting-rules" class="tsd-anchor-link">Counting Rules<a href="#counting-rules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ol>
+<li>The attributional headline already holds a data-centre term (SWD v4's 3.4 J of the bytes term). Where a workload's origin joules were measured, they replace that term and the modelled origin request. They never add to the headline.</li>
+<li>The meter-visible figure is the part of the headline spool controls directly. The origin-term figures break the headline down. They do not add to it.</li>
+<li>Origin-term and power-state joules on a node that is later retired sit inside that node's retired 3.80 MWh. Subtract them from the views and retained-node figures for that node.</li>
+<li>A projection view reports server joules removed, device joules added and provisioning bytes, per device class. Only the net is credited.</li>
+<li>Network hardware stays out of the measured savings. The 12.4 J headline still carries SWD's network term (3.6 J of the bytes term), and that term is attributional: a published per-byte intensity applied to measured bytes. It is not a measurement of any router, and network energy is not proportional to data volume (Mytton, Lunden and Malmodin 2024, abstract only). One institution's traffic is a small share of any operator node's load, so no causal tie to an operator's power state can be shown from it.</li>
+<li>Every figure keeps its label. Hyperscale per-request figures are never printed as spool savings.</li>
+<li>Embodied energy is a separate kgCO2e line.</li>
+</ol>
+<h3 id="evidence-behind-the-design" class="tsd-anchor-link">Evidence Behind the Design<a href="#evidence-behind-the-design" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Each finding forced a mechanism in code. Labels give what was read: full text, abstract only, or a web page.</p>
+<table>
+<thead>
+<tr>
+<th>finding</th>
+<th>source (label)</th>
+<th>mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A page rendered from cache with no network used 6.8% to 40.5% of the networked load's energy; one analytics request erased the saving on 15 of 25 sites</td>
+<td>Thiagarajan et al., WWW 2012 (full text)</td>
+<td>batched analytics in <code>src/sw/analytics.ts</code>; zero requests per view as the target</td>
+</tr>
+<tr>
+<td>92% of HTML tags were identical across loads 12 hours apart, 75% across a week</td>
+<td>Mardani et al., Fawkes, NSDI 2020 (full text)</td>
+<td>dependency-level sync and hard and soft freshness (<code>src/sw/freshness.ts</code>)</td>
+</tr>
+<tr>
+<td>Safari deletes script-writable storage after 7 days without interaction</td>
+<td>WebKit blog 10218 (full text)</td>
+<td>a re-provision path and <code>P_warm</code> reported per engine</td>
+</tr>
+<tr>
+<td>Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB</td>
+<td>Sustainable Web Design v4 (web page)</td>
+<td>the attributional headline in <code>src/report/inputs.ts</code></td>
+</tr>
+<tr>
+<td>43% of higher-education sessions are on phones, 2.3 pages per session</td>
+<td>OHO 2023 benchmarks, 2022 data (web page)</td>
+<td>the mobile share and the session-entry view</td>
+</tr>
+<tr>
+<td>A controlled navigation reaches the origin zero times in Chromium and Firefox with <code>updateViaCache: 'all'</code> and a one-day script lifetime</td>
+<td>the zero-network reading (L1)</td>
+<td>the registration in <code>src/client/register.ts</code>; the worker script served with <code>max-age=86400</code></td>
+</tr>
+<tr>
+<td>Cloudflare's analytics script posts to <code>/cdn-cgi/rum</code> about twice per navigation</td>
+<td>the views reading (L1)</td>
+<td>beacon queueing in the worker</td>
+</tr>
+<tr>
+<td>Firefox does not route <code>fetch</code> with <code>keepalive</code> through a service worker</td>
+<td>a probe in the browser lane (L1)</td>
+<td>a limit of the beacon queue in <code>src/sw/analytics.ts</code>: a keepalive post bypasses it</td>
+</tr>
+<tr>
+<td>WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker</td>
+<td>a probe in the browser lane (L1)</td>
+<td>the worker's asset cache and the per-engine zero-network tests</td>
+</tr>
+<tr>
+<td>Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests</td>
+<td>the repeat-navigation and on-wire readings (L1)</td>
+<td>the target is the transaction, so <code>Z_annual</code> counts views that make no request</td>
+</tr>
+<tr>
+<td>A server cache already removes recompute, and a projection relocates work</td>
+<td>the compute readings (L1)</td>
+<td>the strategies <code>assembly</code> and <code>template</code> first, and the projection net-of-relocation rule</td>
+</tr>
+<tr>
+<td>Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead</td>
+<td>Elsworth et al., arXiv 2508.15734 (full text, L0)</td>
+<td>such figures are never printed as spool savings</td>
+</tr>
+</tbody>
+</table>
+<h3 id="baselines" class="tsd-anchor-link">Baselines<a href="#baselines" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Spool's saving is credited against an optimized HTTP baseline: immutable hashed assets, ETag revalidation and compression. Fixing a site's own asset caching comes first and is not spool's credit. Other baselines it is compared with:</p>
+<ul>
+<li><strong>Compression Dictionary Transport (RFC 9842).</strong> Shrinks bytes for repeat loads, but every view still makes a request.</li>
+<li><strong>Back-forward cache and Speculation Rules.</strong> Make some navigations instant. A bfcache restore needs no request, and it covers only back and forward navigations in one session.</li>
+<li><strong>The Drupal PWA module.</strong> Caches the shell, with no story for authenticated pages.</li>
+<li><strong>Fawkes-style patching.</strong> Sends a patch against a stored template on each load, so it still makes one request per view.</li>
+</ul>
+<h2 id="measured-readings" class="tsd-anchor-link">Measured Readings<a href="#measured-readings" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="desktop-and-phone" class="tsd-anchor-link">Desktop and Phone<a href="#desktop-and-phone" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The meter-visible part is smaller than the headline. These readings are the floor the engineering work has to raise.</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">J per navigation above idle</th>
+<th style="text-align:right">ms per navigation</th>
+<th style="text-align:right">origin requests per navigation</th>
+<th style="text-align:right">origin CPU ms per navigation</th>
+<th style="text-align:right">rounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Optimized HTTP caching</td>
+<td style="text-align:right">1.45 (1.36 to 1.51)</td>
+<td style="text-align:right">49.9</td>
+<td style="text-align:right">3.00</td>
+<td style="text-align:right">0.33</td>
+<td style="text-align:right">8</td>
+</tr>
+<tr>
+<td>Spool local view</td>
+<td style="text-align:right">0.652 (0.593 to 0.693)</td>
+<td style="text-align:right">10.8</td>
+<td style="text-align:right">0.00</td>
+<td style="text-align:right">0.00</td>
+<td style="text-align:right">8</td>
+</tr>
+<tr>
+<td>Demo shipping headers</td>
+<td style="text-align:right">5.02 (4.86 to 5.09)</td>
+<td style="text-align:right">252.4</td>
+<td style="text-align:right">30.75</td>
+<td style="text-align:right">2.11</td>
+<td style="text-align:right">8</td>
+</tr>
+<tr>
+<td>Idle package draw (W)</td>
+<td style="text-align:right">18.77 (18.37 to 19.29)</td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right">8</td>
+</tr>
+</tbody>
+</table>
+<p>Against a page served with optimized HTTP caching, a local view saves 0.80 J on this desktop (the difference of the arm medians over 8 rounds each). Against the demo's shipping headers, where every asset revalidates, the saving is 4.37 J. The second figure belongs to the baseline fix, not to spool. drupflare has since shipped that fix (a one-year cache lifetime on static assets through <code>assets/_headers</code>) and measured it: a repeat navigation of a deployed free-plan drupflare site costs 1.31 J (1.23 to 1.41) on the same desktop over a real network, one request a navigation (drupflare/worker <code>docs/impact.md</code>, L1). That is the baseline spool is measured against on drupflare; a matched spool arm on a deployed site waits for the drupflare adapter.</p>
+<p>The desktop figure includes the package energy of the browser, the co-located origin and the service worker. It excludes the display, the network interface, the radio and every router and data centre between the two ends.</p>
+<p>On the phone:</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">J per view above idle</th>
+<th style="text-align:right">views per window</th>
+<th style="text-align:right">seconds per view</th>
+<th style="text-align:right">rounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network</td>
+<td style="text-align:right">0.243 (0.223 to 0.248)</td>
+<td style="text-align:right">1,666</td>
+<td style="text-align:right">0.072</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>Spool local view</td>
+<td style="text-align:right">0.150 (0.137 to 0.165)</td>
+<td style="text-align:right">3,208</td>
+<td style="text-align:right">0.038</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>Idle window (J)</td>
+<td style="text-align:right">130.5 (124.0 to 135.9)</td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right">4</td>
+</tr>
+</tbody>
+</table>
+<p>A local view saves 0.093 J on an iPhone 14 Pro, back to back over Wi-Fi in this reading (4 rounds, the difference of the arm medians). The same page pair in the projection reading below gives 0.088 J (3 rounds), the figure the rest of this page uses. The counter is the whole phone with the screen on, so the figure includes the display's share while navigating and the Wi-Fi radio. It excludes the cellular radio, its tail state and the network. Back-to-back navigation keeps the radio awake, which understates what a network view costs between idle periods.</p>
+<p>Views paced at one every 15 seconds could not be resolved. Idle windows of 180 seconds varied by 5.2 J, more than the 1.1 J that 12 views would add at the back-to-back saving, so no paced figure is claimed over Wi-Fi.</p>
+<p>Over cellular, with the Wi-Fi switched off, the idle windows were steadier and both pacings resolved:</p>
+<table>
+<thead>
+<tr>
+<th>reading</th>
+<th>arm</th>
+<th style="text-align:right">J per view above idle</th>
+<th style="text-align:right">views per window</th>
+<th style="text-align:right">rounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Back to back</td>
+<td>Network</td>
+<td style="text-align:right">0.265 (0.253 to 0.279)</td>
+<td style="text-align:right">1,482</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>Back to back</td>
+<td>Spool local view</td>
+<td style="text-align:right">0.164 (0.160 to 0.188)</td>
+<td style="text-align:right">3,493</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>One view every 20 s</td>
+<td>Network</td>
+<td style="text-align:right">2.98 (2.00 to 3.16)</td>
+<td style="text-align:right">9</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>One view every 20 s</td>
+<td>Spool local view</td>
+<td style="text-align:right">2.88 (1.99 to 6.34)</td>
+<td style="text-align:right">9</td>
+<td style="text-align:right">4</td>
+</tr>
+</tbody>
+</table>
+<p>Back to back, a local view saves 0.101 J over cellular, about what it saves over Wi-Fi. At one view every 20 seconds, each view costs 11 to 18 times its back-to-back cost (most likely the cost of waking the phone from idle for one view; not measured separately), and the network view and the local view cost about the same (0.10 J apart, inside the spread across rounds). A second reading isolates the request. The phone ran the same WebDriver script every 20 s over 6 rounds, once with a <code>fetch</code> to a Worker that answers 204 with no body and once without it. Above idle, a call with the request cost 1.38 (1.10 to 2.68) J and a call without it 0.791 (-0.0452 to 2.59) J: the medians are 0.59 J apart and the ranges overlap. No radio wake can be attributed to the request at this resolution, so the headline carries 0 J for it. The earlier scenario value of 5 J per phone view stays out until a reading attributes one.</p>
+<h3 id="server-runtimes" class="tsd-anchor-link">Server Runtimes<a href="#server-runtimes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The same small site ran under spool 0.1 in four server runtimes on paisley-park, one container at a time, with Chromium on another machine reaching it over Tailscale. Each window was 60 views. The server's package energy and its interface byte counters were read per window, less the idle window of the same round. The overlay interface carries the HTTP traffic; the physical interface adds the relay's framing, since this path went through a Tailscale relay in every round.</p>
+<table>
+<thead>
+<tr>
+<th>runtime</th>
+<th>arm</th>
+<th style="text-align:right">server J per view above idle</th>
+<th style="text-align:right">overlay bytes per view</th>
+<th style="text-align:right">wire bytes per view</th>
+<th style="text-align:right">origin requests per view</th>
+<th style="text-align:right">windows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>node</td>
+<td>Network view</td>
+<td style="text-align:right">0.643 (0.117 to 1.01)</td>
+<td style="text-align:right">794</td>
+<td style="text-align:right">1,580</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>node</td>
+<td>Spool local view</td>
+<td style="text-align:right">0.126 (-0.568 to 0.405)</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">302</td>
+<td style="text-align:right">0.00 (max 0.08)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>node</td>
+<td>Bare HTML request (curl)</td>
+<td style="text-align:right">1.08 (0.745 to 1.33)</td>
+<td style="text-align:right">1,290</td>
+<td style="text-align:right">3,932</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">5</td>
+</tr>
+<tr>
+<td>bun</td>
+<td>Network view</td>
+<td style="text-align:right">0.620 (0.345 to 0.931)</td>
+<td style="text-align:right">745</td>
+<td style="text-align:right">1,616</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>bun</td>
+<td>Spool local view</td>
+<td style="text-align:right">0.259 (-0.0124 to 0.950)</td>
+<td style="text-align:right">39</td>
+<td style="text-align:right">556</td>
+<td style="text-align:right">0.00 (max 0.10)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>bun</td>
+<td>Bare HTML request (curl)</td>
+<td style="text-align:right">1.20 (0.794 to 1.62)</td>
+<td style="text-align:right">1,141</td>
+<td style="text-align:right">3,500</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>hono</td>
+<td>Network view</td>
+<td style="text-align:right">0.608 (0.405 to 0.750)</td>
+<td style="text-align:right">791</td>
+<td style="text-align:right">1,566</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>hono</td>
+<td>Spool local view</td>
+<td style="text-align:right">0.188 (-0.0730 to 0.261)</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">109</td>
+<td style="text-align:right">0.00 (max 0.10)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>hono</td>
+<td>Bare HTML request (curl)</td>
+<td style="text-align:right">1.10 (0.776 to 1.35)</td>
+<td style="text-align:right">1,188</td>
+<td style="text-align:right">3,313</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>workerd</td>
+<td>Network view</td>
+<td style="text-align:right">0.977 (0.577 to 1.49)</td>
+<td style="text-align:right">732</td>
+<td style="text-align:right">1,703</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>workerd</td>
+<td>Spool local view</td>
+<td style="text-align:right">0.324 (-0.0238 to 0.430)</td>
+<td style="text-align:right">21</td>
+<td style="text-align:right">554</td>
+<td style="text-align:right">0.00 (max 0.10)</td>
+<td style="text-align:right">6</td>
+</tr>
+<tr>
+<td>workerd</td>
+<td>Bare HTML request (curl)</td>
+<td style="text-align:right">1.35 (1.21 to 1.71)</td>
+<td style="text-align:right">1,278</td>
+<td style="text-align:right">4,103</td>
+<td style="text-align:right">1.00 (max 1.00)</td>
+<td style="text-align:right">6</td>
+</tr>
+</tbody>
+</table>
+<p>A spool local view sent nothing to the origin in every window but one per runtime, and its server energy is inside the idle drift. The exception is the fourth spool window, which made up to 6 requests to <code>/.spool/*</code> in every runtime. It ended about 15 minutes after the worker was primed, which is when the public routes' default soft bound expires: the timing matches one sync with the held view telemetry flushed on the same network moment (the rig counted <code>/.spool/*</code> requests, not their paths). That is spool's own overhead. The medians above leave it out, since it is one window in six; the measured per-view figure P8 reports nets syncs and flushes against the saving. A bare HTML request from curl costs the server more than a browser view, most likely because curl opens a new connection through the relay for each request while the browser reuses one.</p>
+<p>One request per view is also what breaks the saving. A page that posts to an analytics endpoint on every view makes each view a network view again, with that request's bytes and origin work. On a 2012 3G phone that post also woke the radio (Thiagarajan et al.); this phone showed no wake for an isolated request. Spool queues those posts in the service worker and sends them on a network moment that happens anyway.</p>
+<h3 id="origin-term-by-workload" class="tsd-anchor-link">Origin Term by Workload<a href="#origin-term-by-workload" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The headline's origin term is modelled. For a view the origin would otherwise render, such as an authenticated view or a cache miss (a meaningful share of views), the measured origin joules for that workload replace SWD's data-centre term and the modelled origin request. They never add to the headline. Where a cache would have answered, the term is the cost of a cache hit, a fraction of a millijoule.</p>
+<table>
+<thead>
+<tr>
+<th>workload</th>
+<th style="text-align:right">origin J per request</th>
+<th>label</th>
+<th style="text-align:right">J per local view</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modelled origin request (the headline)</td>
+<td style="text-align:right">0.455</td>
+<td>L1, modelled</td>
+<td style="text-align:right">12.4 (headline)</td>
+</tr>
+<tr>
+<td>Cache hit</td>
+<td style="text-align:right">0.000717</td>
+<td>L1</td>
+<td style="text-align:right">8.5</td>
+</tr>
+<tr>
+<td>CMS render</td>
+<td style="text-align:right">0.0151</td>
+<td>L1</td>
+<td style="text-align:right">8.5</td>
+</tr>
+<tr>
+<td>Analytics page</td>
+<td style="text-align:right">10.9</td>
+<td>L1</td>
+<td style="text-align:right">19.4</td>
+</tr>
+<tr>
+<td>Local 8B model request</td>
+<td style="text-align:right">286</td>
+<td>L1, GPU sampled</td>
+<td style="text-align:right">294.5</td>
+</tr>
+</tbody>
+</table>
+<p>Each origin figure is package energy above idle on paisley-park (L1, 8 rounds unless noted) against a synthetic CMS and enrollment database that each file describes. The per-view figure is L2 over the L3 radio term. A real origin's joules replace the origin column when they are measured.</p>
+<h4 id="per-request-cost" class="tsd-anchor-link">Per-Request Cost<a href="#per-request-cost" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">J per request above idle</th>
+<th style="text-align:right">server CPU ms</th>
+<th style="text-align:right">client CPU ms</th>
+<th style="text-align:right">server-attributed J (L2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Null route (204)</td>
+<td style="text-align:right">0.000528 (0.000514 to 0.000583)</td>
+<td style="text-align:right">0.00699</td>
+<td style="text-align:right">0.0124</td>
+<td style="text-align:right">0.000191 (0.000184 to 0.000212)</td>
+</tr>
+<tr>
+<td>CMS recompute, 200</td>
+<td style="text-align:right">0.0151 (0.0144 to 0.0156)</td>
+<td style="text-align:right">0.523</td>
+<td style="text-align:right">0.0238</td>
+<td style="text-align:right">0.0144 (0.0137 to 0.0148)</td>
+</tr>
+<tr>
+<td>CMS recompute, conditional 304</td>
+<td style="text-align:right">0.0147 (0.0141 to 0.0156)</td>
+<td style="text-align:right">0.520</td>
+<td style="text-align:right">0.0194</td>
+<td style="text-align:right">0.0141 (0.0136 to 0.0150)</td>
+</tr>
+<tr>
+<td>CMS server cache, 200</td>
+<td style="text-align:right">0.000717 (0.000692 to 0.000733)</td>
+<td style="text-align:right">0.00897</td>
+<td style="text-align:right">0.0159</td>
+<td style="text-align:right">0.000251 (0.000240 to 0.000263)</td>
+</tr>
+<tr>
+<td>CMS server cache, conditional 304</td>
+<td style="text-align:right">0.000572 (0.000553 to 0.000581)</td>
+<td style="text-align:right">0.00763</td>
+<td style="text-align:right">0.0130</td>
+<td style="text-align:right">0.000212 (0.000204 to 0.000216)</td>
+</tr>
+<tr>
+<td>Analytics recompute, 200</td>
+<td style="text-align:right">10.9 (10.7 to 11.1)</td>
+<td style="text-align:right">393</td>
+<td style="text-align:right">0.260</td>
+<td style="text-align:right">10.9 (10.7 to 11.1)</td>
+</tr>
+<tr>
+<td>Analytics recompute, conditional 304</td>
+<td style="text-align:right">11.0 (10.6 to 11.3)</td>
+<td style="text-align:right">395</td>
+<td style="text-align:right">0.245</td>
+<td style="text-align:right">11.0 (10.6 to 11.2)</td>
+</tr>
+<tr>
+<td>Analytics server cache, 200</td>
+<td style="text-align:right">0.000655 (0.000644 to 0.000673)</td>
+<td style="text-align:right">0.00851</td>
+<td style="text-align:right">0.0149</td>
+<td style="text-align:right">0.000238 (0.000234 to 0.000246)</td>
+</tr>
+<tr>
+<td>Analytics server cache, conditional 304</td>
+<td style="text-align:right">0.000569 (0.000550 to 0.000593)</td>
+<td style="text-align:right">0.00766</td>
+<td style="text-align:right">0.0131</td>
+<td style="text-align:right">0.000211 (0.000204 to 0.000220)</td>
+</tr>
+</tbody>
+</table>
+<p>The null route is the transaction floor: loopback HTTP, keep-alive, no body. A cache hit costs about as much as the floor. A CMS render costs 21 times a cache hit and the analytics page about 16.6 thousand times. Across the two recompute rows the rule of thumb is 27.7 to 28.8 mJ of package energy per busy CPU millisecond, for one boosted core in a closed loop. A shared and loaded server amortises idle power differently.</p>
+<h4 id="against-a-server-cache" class="tsd-anchor-link">Against a Server Cache<a href="#against-a-server-cache" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<p>Chromium navigations with 40 ms of emulated latency, J per navigation above idle:</p>
+<table>
+<thead>
+<tr>
+<th>page</th>
+<th style="text-align:right">recompute (a)</th>
+<th style="text-align:right">optimized server cache (b)</th>
+<th style="text-align:right">spool local view (c)</th>
+<th style="text-align:right">(a) less (c)</th>
+<th style="text-align:right">(b) less (c)</th>
+<th style="text-align:right">origin CPU ms per navigation, recompute</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CMS render</td>
+<td style="text-align:right">1.58 (1.57 to 1.64)</td>
+<td style="text-align:right">1.52 (1.47 to 1.56)</td>
+<td style="text-align:right">0.694 (0.635 to 0.727)</td>
+<td style="text-align:right">0.886</td>
+<td style="text-align:right">0.823</td>
+<td style="text-align:right">1.5</td>
+</tr>
+<tr>
+<td>Analytics page</td>
+<td style="text-align:right">13.1 (12.8 to 13.4)</td>
+<td style="text-align:right">1.65 (1.58 to 1.68)</td>
+<td style="text-align:right">0.665 (0.634 to 0.771)</td>
+<td style="text-align:right">12.4</td>
+<td style="text-align:right">0.984</td>
+<td style="text-align:right">401.6</td>
+</tr>
+</tbody>
+</table>
+<p>Against an optimized server cache, spool's increment is the transaction only: 0.82 J for the CMS page and 0.98 J for the analytics page, whatever the page costs to compute. Against recompute on every request the saving grows with the computation. The origin term above is the part of that saving the origin accounts for.</p>
+<h4 id="projection" class="tsd-anchor-link">Projection<a href="#projection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<p>The <code>projection</code> strategy sends records once and lets the page compute the result. It relocates work. Per view, on the desktop:</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">J per navigation above idle</th>
+<th style="text-align:right">ms per navigation</th>
+<th style="text-align:right">origin requests per navigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server computes every navigation</td>
+<td style="text-align:right">5.09 (4.96 to 5.17)</td>
+<td style="text-align:right">176.8</td>
+<td style="text-align:right">3.01</td>
+</tr>
+<tr>
+<td>Server cache, same page</td>
+<td style="text-align:right">1.52 (1.47 to 1.54)</td>
+<td style="text-align:right">50.4</td>
+<td style="text-align:right">3.00</td>
+</tr>
+<tr>
+<td>Projection, records from the HTTP cache, page over the network</td>
+<td style="text-align:right">2.05 (1.99 to 2.19)</td>
+<td style="text-align:right">51.5</td>
+<td style="text-align:right">3.00</td>
+</tr>
+<tr>
+<td>Projection, service worker serves page and records</td>
+<td style="text-align:right">0.868 (0.750 to 0.880)</td>
+<td style="text-align:right">14.5</td>
+<td style="text-align:right">0.01</td>
+</tr>
+<tr>
+<td>Static local page, no computation</td>
+<td style="text-align:right">0.679 (0.623 to 0.743)</td>
+<td style="text-align:right">12.4</td>
+<td style="text-align:right">0.01</td>
+</tr>
+</tbody>
+</table>
+<p>A local projection costs 0.19 J more than a static local view when the records come from CacheStorage, and 0.53 J more than the cached server page when the network serves the page. The experiment does not explain the difference between those two. It removes 3.57 J of server work per view above a server cache. The records are a one-time transfer of 1.73 MB, which the per-view saving repays after about 340 views against the attributional bytes term (L2).</p>
+<p>On the phone, back to back over Wi-Fi:</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">J per view above idle</th>
+<th style="text-align:right">views per window</th>
+<th style="text-align:right">rounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network fetch of the computed page</td>
+<td style="text-align:right">0.228 (0.209 to 0.241)</td>
+<td style="text-align:right">1,457</td>
+<td style="text-align:right">3</td>
+</tr>
+<tr>
+<td>Local render of the same page</td>
+<td style="text-align:right">0.140 (0.138 to 0.155)</td>
+<td style="text-align:right">2,882</td>
+<td style="text-align:right">3</td>
+</tr>
+<tr>
+<td>Local render plus on-device aggregation</td>
+<td style="text-align:right">0.245 (0.221 to 0.248)</td>
+<td style="text-align:right">1,783</td>
+<td style="text-align:right">3</td>
+</tr>
+<tr>
+<td>Network page plus aggregation</td>
+<td style="text-align:right">0.321 (0.304 to 0.322)</td>
+<td style="text-align:right">1,191</td>
+<td style="text-align:right">3</td>
+</tr>
+</tbody>
+</table>
+<p>A local projection costs 0.105 J more than a static local view and lands within the range of a network fetch of the computed page. The aggregation of 97,000 rows costs more than the radio-awake fetch it replaces. The server never ran, but the device-side saving of a projection view is about zero in this configuration. The records are synthetic and one size.</p>
+<p>Report a projection as server joules removed, less device joules added, with the provisioning bytes beside both. Credit the net.</p>
+<h4 id="inference" class="tsd-anchor-link">Inference<a href="#inference" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<p>A local 8B model behind the origin, against a cached copy of the same response (5 rounds, 120 output tokens per request, CPU package and a sampled GPU board):</p>
+<table>
+<thead>
+<tr>
+<th>quantity</th>
+<th style="text-align:right">median (range)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU package J per request</td>
+<td style="text-align:right">44.0 (43.8 to 45.4)</td>
+</tr>
+<tr>
+<td>GPU board J per request (L1-sampled)</td>
+<td style="text-align:right">241 (240 to 242)</td>
+</tr>
+<tr>
+<td>Total J per request</td>
+<td style="text-align:right">286 (284 to 286)</td>
+</tr>
+<tr>
+<td>Latency per request (s)</td>
+<td style="text-align:right">1.52 (1.51 to 1.54)</td>
+</tr>
+<tr>
+<td>Ollama container CPU per request (ms)</td>
+<td style="text-align:right">1,563</td>
+</tr>
+<tr>
+<td>Origin CPU per request (ms)</td>
+<td style="text-align:right">1.85</td>
+</tr>
+<tr>
+<td>Resident model, CPU package (W)</td>
+<td style="text-align:right">1.29 (0.71 to 1.70)</td>
+</tr>
+<tr>
+<td>Resident model, GPU board (W)</td>
+<td style="text-align:right">8.57 (8.30 to 9.02)</td>
+</tr>
+<tr>
+<td>Cached copy of the response, J per hit</td>
+<td style="text-align:right">0.000905 (0.000876 to 0.000912)</td>
+</tr>
+</tbody>
+</table>
+<p>The GPU term is sampled power, labelled L1-sampled. The card's stated accuracy is +-5 W and it has no energy counter. A resident model also draws 9.9 W while idle, which a cache hit does not save unless the model gets unloaded because of it.</p>
+<p>Published per-request figures for hyperscale serving (0.24 Wh median for a Gemini text prompt, L0, and modelled estimates of 0.31 and 3.91 Wh) include host machines, provisioned idle capacity and facility overhead. They describe an attributional stack. They are never printed here as spool savings.</p>
+<h4 id="reach-of-the-origin-term" class="tsd-anchor-link">Reach of the Origin Term<a href="#reach-of-the-origin-term" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4>
+<table>
+<thead>
+<tr>
+<th>avoided operation</th>
+<th style="text-align:right">J per operation (L1)</th>
+<th style="text-align:right">kWh per million operations (L2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A CMS render</td>
+<td style="text-align:right">0.0151</td>
+<td style="text-align:right">0.00</td>
+</tr>
+<tr>
+<td>An analytics page</td>
+<td style="text-align:right">10.9</td>
+<td style="text-align:right">3.02</td>
+</tr>
+<tr>
+<td>A local 8B model request</td>
+<td style="text-align:right">286</td>
+<td style="text-align:right">79</td>
+</tr>
+<tr>
+<td>The transaction alone, against a server cache (CMS page, desktop)</td>
+<td style="text-align:right">0.82</td>
+<td style="text-align:right">0.23</td>
+</tr>
+</tbody>
+</table>
+<p>The first column is the energy one avoided operation saves on this machine. The second is that energy for a million avoided operations, in kWh, an L2 product.</p>
+<ul>
+<li>If every one of 100 million views a year were an uncached analytics read, the origin term would add up to 0.302 MWh (L3).</li>
+<li>At a CMS render's cost, 100 million avoided renders save 0.419 kWh.</li>
+<li>Model inference is the one class whose per-operation joules are large, and it counts only for model-derived results that repeat for identical authorised inputs. Free-form prompts rarely repeat.</li>
+</ul>
+<p>The origin term is measured per workload against the origin's real baseline. It is close to zero where a server cache exists and it is net of device work a projection relocates.</p>
+<h3 id="third-party-requests" class="tsd-anchor-link">Third-Party Requests<a href="#third-party-requests" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A view is strict zero-network only when it makes no request at all, and the service worker can answer only same-origin requests. Most requests that leave the browser on the 16 sites of the on-wire reading go to hosts other than the page's own.</p>
+<table>
+<thead>
+<tr>
+<th>navigation</th>
+<th style="text-align:right">median proxy requests to other hosts</th>
+<th style="text-align:right">share of proxy requests</th>
+<th style="text-align:right">median bytes from other origins (direct run)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cold home page</td>
+<td style="text-align:right">46.5</td>
+<td style="text-align:right">63%</td>
+<td style="text-align:right">1,777,317</td>
+</tr>
+<tr>
+<td>Warm internal page</td>
+<td style="text-align:right">17.0</td>
+<td style="text-align:right">63%</td>
+<td style="text-align:right">15,936</td>
+</tr>
+<tr>
+<td>Home page again</td>
+<td style="text-align:right">26.0</td>
+<td style="text-align:right">73%</td>
+<td style="text-align:right">10,229</td>
+</tr>
+</tbody>
+</table>
+<p>Spool's page runtime counts cross-origin loads per view (<code>crossOriginLoads</code>) and a view with any is not strict zero-network. WebKit also re-checks the worker script on some navigations, which <code>updateViaCache: 'all'</code> with a 24-hour script lifetime removes in Chromium and Firefox:</p>
+<table>
+<thead>
+<tr>
+<th>registration</th>
+<th>engine</th>
+<th style="text-align:right">navigations</th>
+<th style="text-align:right">reached the origin</th>
+<th>paths that did</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default registration</td>
+<td>chromium</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">1</td>
+<td><code>/sw.js</code> x 1</td>
+</tr>
+<tr>
+<td>default registration</td>
+<td>firefox</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">4</td>
+<td><code>/sw.js</code> x 4</td>
+</tr>
+<tr>
+<td>default registration</td>
+<td>webkit</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">3</td>
+<td><code>/sw.js</code> x 3</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>chromium</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">0</td>
+<td>none</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>firefox</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">0</td>
+<td>none</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>webkit</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">5</td>
+<td><code>/sw.js</code> x 5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="free-tier-ceiling" class="tsd-anchor-link">Free-Tier Ceiling<a href="#free-tier-ceiling" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The Workers free plan carries 3,040,000 views a month at one request per view. A local view makes no request, and the protocol syncs when it has something to learn. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.</p>
+<table>
+<thead>
+<tr>
+<th>tier</th>
+<th style="text-align:right">Z_annual</th>
+<th style="text-align:right">views a month on the free plan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meaningful</td>
+<td style="text-align:right">30%</td>
+<td style="text-align:right">4.25M (from 3.04M)</td>
+</tr>
+<tr>
+<td>Major</td>
+<td style="text-align:right">65%</td>
+<td style="text-align:right">7.95M (from 3.04M)</td>
+</tr>
+<tr>
+<td>Transformative</td>
+<td style="text-align:right">90%</td>
+<td style="text-align:right">20.97M (from 3.04M)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="per-site-figures" class="tsd-anchor-link">Per-Site Figures<a href="#per-site-figures" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The saving grows with the size of a site's document. Where the browser's own cache answered the document (a long <code>max-age</code> on the HTML), a local view has no request to replace and saves nothing. The headline is the typical site; an institution's own figure comes from its own pages and traffic. Every site read so far, lightest document first, with the attributional joules a local view of that page avoids. Sites that answered the rig with an error page instead of their home page are left out (<a href="http://www.ox.ac.uk">www.ox.ac.uk</a>).</p>
+<table>
+<thead>
+<tr>
+<th>site</th>
+<th style="text-align:right">document bytes, 2026-10-18</th>
+<th style="text-align:right">document bytes, 2026-10-19</th>
+<th style="text-align:right">document bytes, 2026-10-19-document</th>
+<th style="text-align:right">document bytes, 2026-10-19-requests</th>
+<th style="text-align:right">whole view bytes, latest reading</th>
+<th style="text-align:right">J per local view</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://www.mass.gov">www.mass.gov</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">327,401</td>
+<td style="text-align:right">0.0</td>
+</tr>
+<tr>
+<td><a href="http://www.harvard.edu">www.harvard.edu</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">3,856</td>
+<td style="text-align:right">0.0</td>
+</tr>
+<tr>
+<td><a href="http://www.mit.edu">www.mit.edu</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.0</td>
+</tr>
+<tr>
+<td><a href="http://www.unl.edu">www.unl.edu</a></td>
+<td style="text-align:right">415</td>
+<td style="text-align:right">413</td>
+<td style="text-align:right">414</td>
+<td style="text-align:right">414</td>
+<td style="text-align:right">142,115</td>
+<td style="text-align:right">0.7</td>
+</tr>
+<tr>
+<td><a href="http://www.uiowa.edu">www.uiowa.edu</a></td>
+<td style="text-align:right">515</td>
+<td style="text-align:right">515</td>
+<td style="text-align:right">516</td>
+<td style="text-align:right">513</td>
+<td style="text-align:right">18,163</td>
+<td style="text-align:right">0.8</td>
+</tr>
+<tr>
+<td><a href="http://demo.drupflare.com">demo.drupflare.com</a></td>
+<td style="text-align:right">5,227</td>
+<td style="text-align:right">5,259</td>
+<td style="text-align:right">5,265</td>
+<td style="text-align:right">5,253</td>
+<td style="text-align:right">35,906</td>
+<td style="text-align:right">4.1</td>
+</tr>
+<tr>
+<td><a href="http://www.berkeley.edu">www.berkeley.edu</a></td>
+<td style="text-align:right">16,264</td>
+<td style="text-align:right">16,265</td>
+<td style="text-align:right">16,265</td>
+<td style="text-align:right">16,264</td>
+<td style="text-align:right">17,014</td>
+<td style="text-align:right">11.8</td>
+</tr>
+<tr>
+<td><a href="http://www.asu.edu">www.asu.edu</a></td>
+<td style="text-align:right">17,076</td>
+<td style="text-align:right">17,054</td>
+<td style="text-align:right">16,746</td>
+<td style="text-align:right">17,477</td>
+<td style="text-align:right">27,374</td>
+<td style="text-align:right">12.7</td>
+</tr>
+<tr>
+<td><a href="http://www.colorado.edu">www.colorado.edu</a></td>
+<td style="text-align:right">18,355</td>
+<td style="text-align:right">18,337</td>
+<td style="text-align:right">18,364</td>
+<td style="text-align:right">18,361</td>
+<td style="text-align:right">109,609</td>
+<td style="text-align:right">13.3</td>
+</tr>
+<tr>
+<td><a href="http://www.cornell.edu">www.cornell.edu</a></td>
+<td style="text-align:right">18,924</td>
+<td style="text-align:right">18,934</td>
+<td style="text-align:right">18,934</td>
+<td style="text-align:right">18,925</td>
+<td style="text-align:right">6,873,140</td>
+<td style="text-align:right">13.7</td>
+</tr>
+<tr>
+<td><a href="http://www.yale.edu">www.yale.edu</a></td>
+<td style="text-align:right">31,945</td>
+<td style="text-align:right">31,946</td>
+<td style="text-align:right">31,969</td>
+<td style="text-align:right">31,845</td>
+<td style="text-align:right">33,392</td>
+<td style="text-align:right">22.7</td>
+</tr>
+<tr>
+<td><a href="http://www.tufts.edu">www.tufts.edu</a></td>
+<td style="text-align:right">43,166</td>
+<td style="text-align:right">43,165</td>
+<td style="text-align:right">43,128</td>
+<td style="text-align:right">43,134</td>
+<td style="text-align:right">121,180</td>
+<td style="text-align:right">30.6</td>
+</tr>
+<tr>
+<td><a href="http://www.georgetown.edu">www.georgetown.edu</a></td>
+<td style="text-align:right">56,089</td>
+<td style="text-align:right">56,098</td>
+<td style="text-align:right">56,093</td>
+<td style="text-align:right">56,114</td>
+<td style="text-align:right">66,343</td>
+<td style="text-align:right">39.6</td>
+</tr>
+<tr>
+<td><a href="http://www.rutgers.edu">www.rutgers.edu</a></td>
+<td style="text-align:right">193,748</td>
+<td style="text-align:right">193,745</td>
+<td style="text-align:right">193,742</td>
+<td style="text-align:right">193,747</td>
+<td style="text-align:right">14,562,969</td>
+<td style="text-align:right">135.8</td>
+</tr>
+<tr>
+<td><a href="http://www.ucdavis.edu">www.ucdavis.edu</a></td>
+<td style="text-align:right">not read</td>
+<td style="text-align:right">957,863</td>
+<td style="text-align:right">957,877</td>
+<td style="text-align:right">957,868</td>
+<td style="text-align:right">1,068,391</td>
+<td style="text-align:right">669.4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-a-repeat-view-moves" class="tsd-anchor-link">What a Repeat View Moves<a href="#what-a-repeat-view-moves" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The <code>requests</code> run of the repeat-navigation rig kept every request of each site's home-page repeat view: its URL without the query string, whether it was same-origin (an exact origin match), its type, bytes, which cache answered it, and its cache headers. The document is the first Document request. Same-origin static is Script, Stylesheet, Font, Image and Media. Same-origin dynamic is every other same-origin request (XHR, Fetch, Ping, EventSource, Other and further documents). Third-party is any other origin, including an institution's own subdomains and media hosts, which is why one university's video host shows up there. Requests the browser cache answered carry no bytes and are left out. 15 of 16 sites loaded their home page (<a href="http://www.ox.ac.uk">www.ox.ac.uk</a> answered with a block page); the blocked page is listed and left out of every share.</p>
+<table>
+<thead>
+<tr>
+<th>site</th>
+<th style="text-align:right">document B</th>
+<th style="text-align:right">same-origin static B</th>
+<th style="text-align:right">same-origin dynamic B</th>
+<th style="text-align:right">third-party B</th>
+<th style="text-align:right">whole view B</th>
+<th style="text-align:right">J a local view removes, document only (headline basis)</th>
+<th style="text-align:right">J a local view removes on the site as it ships today, including the cache-header fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://demo.drupflare.com">demo.drupflare.com</a></td>
+<td style="text-align:right">5,253</td>
+<td style="text-align:right">29,617</td>
+<td style="text-align:right">1,036</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">35,906</td>
+<td style="text-align:right">4.1</td>
+<td style="text-align:right">24.8</td>
+</tr>
+<tr>
+<td><a href="http://www.asu.edu">www.asu.edu</a></td>
+<td style="text-align:right">17,477</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">60</td>
+<td style="text-align:right">9,837</td>
+<td style="text-align:right">27,374</td>
+<td style="text-align:right">12.7</td>
+<td style="text-align:right">12.7</td>
+</tr>
+<tr>
+<td><a href="http://www.yale.edu">www.yale.edu</a></td>
+<td style="text-align:right">31,845</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1,547</td>
+<td style="text-align:right">33,392</td>
+<td style="text-align:right">22.7</td>
+<td style="text-align:right">22.7</td>
+</tr>
+<tr>
+<td><a href="http://www.colorado.edu">www.colorado.edu</a></td>
+<td style="text-align:right">18,361</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">76,556</td>
+<td style="text-align:right">14,692</td>
+<td style="text-align:right">109,609</td>
+<td style="text-align:right">13.3</td>
+<td style="text-align:right">13.3</td>
+</tr>
+<tr>
+<td><a href="http://www.ox.ac.uk">www.ox.ac.uk</a></td>
+<td style="text-align:right">blocked, HTTP 403</td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td><a href="http://www.berkeley.edu">www.berkeley.edu</a></td>
+<td style="text-align:right">16,264</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">750</td>
+<td style="text-align:right">17,014</td>
+<td style="text-align:right">11.8</td>
+<td style="text-align:right">11.8</td>
+</tr>
+<tr>
+<td><a href="http://www.cornell.edu">www.cornell.edu</a></td>
+<td style="text-align:right">18,925</td>
+<td style="text-align:right">105,578</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">6,748,637</td>
+<td style="text-align:right">6,873,140</td>
+<td style="text-align:right">13.7</td>
+<td style="text-align:right">87.4</td>
+</tr>
+<tr>
+<td><a href="http://www.uiowa.edu">www.uiowa.edu</a></td>
+<td style="text-align:right">513</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">17,650</td>
+<td style="text-align:right">18,163</td>
+<td style="text-align:right">0.8</td>
+<td style="text-align:right">0.8</td>
+</tr>
+<tr>
+<td><a href="http://www.tufts.edu">www.tufts.edu</a></td>
+<td style="text-align:right">43,134</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">78,046</td>
+<td style="text-align:right">121,180</td>
+<td style="text-align:right">30.6</td>
+<td style="text-align:right">30.6</td>
+</tr>
+<tr>
+<td><a href="http://www.unl.edu">www.unl.edu</a></td>
+<td style="text-align:right">414</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">141,701</td>
+<td style="text-align:right">142,115</td>
+<td style="text-align:right">0.7</td>
+<td style="text-align:right">0.7</td>
+</tr>
+<tr>
+<td><a href="http://www.georgetown.edu">www.georgetown.edu</a></td>
+<td style="text-align:right">56,114</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">10,229</td>
+<td style="text-align:right">66,343</td>
+<td style="text-align:right">39.6</td>
+<td style="text-align:right">39.6</td>
+</tr>
+<tr>
+<td><a href="http://www.mass.gov">www.mass.gov</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">322,073</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">5,328</td>
+<td style="text-align:right">327,401</td>
+<td style="text-align:right">0.0</td>
+<td style="text-align:right">225.4</td>
+</tr>
+<tr>
+<td><a href="http://www.ucdavis.edu">www.ucdavis.edu</a></td>
+<td style="text-align:right">957,868</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">110,523</td>
+<td style="text-align:right">1,068,391</td>
+<td style="text-align:right">669.4</td>
+<td style="text-align:right">669.4</td>
+</tr>
+<tr>
+<td><a href="http://www.rutgers.edu">www.rutgers.edu</a></td>
+<td style="text-align:right">193,747</td>
+<td style="text-align:right">14,353,583</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">15,639</td>
+<td style="text-align:right">14,562,969</td>
+<td style="text-align:right">135.8</td>
+<td style="text-align:right">10,160.3</td>
+</tr>
+<tr>
+<td><a href="http://www.harvard.edu">www.harvard.edu</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">3,856</td>
+<td style="text-align:right">3,856</td>
+<td style="text-align:right">0.0</td>
+<td style="text-align:right">0.0</td>
+</tr>
+<tr>
+<td><a href="http://www.mit.edu">www.mit.edu</a></td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.0</td>
+<td style="text-align:right">0.0</td>
+</tr>
+</tbody>
+</table>
+<p>The last column is a second figure per site and it is not spool's credit. A site that ships today with short cache lifetimes on its static files re-downloads them on every repeat view, and a local view would remove those bytes along with the document. The saving that comes from fixing the cache headers is the baseline fix's, not spool's against an optimized HTTP cache, so the headline stays on the document only. The column prices document plus same-origin static bytes at the same SWD v4 rate and a single origin request, so it is L2 over an L3 simplification: it does not count the origin work of each static request. Its median over the 15 sites is 22.7 J, against 12.4 J for the document alone. Most of that gap sits at a few sites (the largest figure is 10,160.3 J), since a median site's same-origin static share of its repeat view is 0.0%.</p>
+<table>
+<thead>
+<tr>
+<th>class</th>
+<th style="text-align:right">bytes over all sites</th>
+<th style="text-align:right">pooled share of bytes</th>
+<th style="text-align:right">median share of a site</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Document</td>
+<td style="text-align:right">1,359,915</td>
+<td style="text-align:right">5.8%</td>
+<td style="text-align:right">15.7%</td>
+</tr>
+<tr>
+<td>Same-origin static (Script, Stylesheet, Font, Image, Media)</td>
+<td style="text-align:right">14,810,851</td>
+<td style="text-align:right">63.3%</td>
+<td style="text-align:right">0.0%</td>
+</tr>
+<tr>
+<td>Same-origin dynamic (XHR, Fetch, Ping, Other and the rest)</td>
+<td style="text-align:right">77,652</td>
+<td style="text-align:right">0.3%</td>
+<td style="text-align:right">0.0%</td>
+</tr>
+<tr>
+<td>Third-party</td>
+<td style="text-align:right">7,158,435</td>
+<td style="text-align:right">30.6%</td>
+<td style="text-align:right">14.4%</td>
+</tr>
+<tr>
+<td>Whole repeat view</td>
+<td style="text-align:right">23,406,853</td>
+<td style="text-align:right">100.0%</td>
+<td style="text-align:right">100.0%</td>
+</tr>
+</tbody>
+</table>
+<p>Pooled over all sites, the shares are 5.8% document, 63.3% same-origin static, 0.3% same-origin dynamic and 30.6% third-party, out of 23,406,853 B. The two heaviest sites carry 91.6% of the pooled bytes, so the pooled static and third-party shares describe them more than a typical page. The median site's share is the better read of a typical page.</p>
+<table>
+<thead>
+<tr>
+<th>class</th>
+<th style="text-align:right">total bytes</th>
+<th style="text-align:right">median bytes per site</th>
+<th style="text-align:right">sites with any</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unknown</td>
+<td style="text-align:right">7,119,616</td>
+<td style="text-align:right">9,299</td>
+<td style="text-align:right">13</td>
+</tr>
+<tr>
+<td>ads</td>
+<td style="text-align:right">36,470</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">5</td>
+</tr>
+<tr>
+<td>video</td>
+<td style="text-align:right">2,126</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>analytics</td>
+<td style="text-align:right">183</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>social</td>
+<td style="text-align:right">40</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1</td>
+</tr>
+</tbody>
+</table>
+<p>99.5% of the third-party bytes come from hosts the table in <code>src/report/thirdparty.ts</code> does not know. The largest hosts, by bytes over all sites:</p>
+<table>
+<thead>
+<tr>
+<th>host</th>
+<th>class</th>
+<th style="text-align:right">bytes over all sites</th>
+<th style="text-align:right">sites</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://cdnsecakmi.kaltura.com">cdnsecakmi.kaltura.com</a></td>
+<td>unknown</td>
+<td style="text-align:right">3,415,557</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td><a href="http://media.univcomm.cornell.edu">media.univcomm.cornell.edu</a></td>
+<td>unknown</td>
+<td style="text-align:right">3,208,074</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://cdn.universityrelations.cornell.edu">cdn.universityrelations.cornell.edu</a></td>
+<td>unknown</td>
+<td style="text-align:right">124,661</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://ucommchat.unl.edu">ucommchat.unl.edu</a></td>
+<td>unknown</td>
+<td style="text-align:right">89,721</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://story.tagboard.com">story.tagboard.com</a></td>
+<td>unknown</td>
+<td style="text-align:right">83,654</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://api.curator.io">api.curator.io</a></td>
+<td>unknown</td>
+<td style="text-align:right">56,961</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://googleads.g.doubleclick.net">googleads.g.doubleclick.net</a></td>
+<td>ads</td>
+<td style="text-align:right">34,262</td>
+<td style="text-align:right">5</td>
+</tr>
+<tr>
+<td><a href="http://mediahub.unl.edu">mediahub.unl.edu</a></td>
+<td>unknown</td>
+<td style="text-align:right">17,084</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://events.unl.edu">events.unl.edu</a></td>
+<td>unknown</td>
+<td style="text-align:right">8,553</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><a href="http://www.juicer.io">www.juicer.io</a></td>
+<td>unknown</td>
+<td style="text-align:right">8,540</td>
+<td style="text-align:right">1</td>
+</tr>
+</tbody>
+</table>
+<p>The classified origins move little: ad calls total 36,470 B at 5 sites and analytics endpoints 183 B. The third-party report names what blocks zero-network by host; this table says what those hosts cost in bytes. Bytes are not the cost that matters for zero-network, which a single request of any size breaks.</p>
+<table>
+<thead>
+<tr>
+<th>navigation</th>
+<th style="text-align:right">navigations</th>
+<th style="text-align:right">sites</th>
+<th style="text-align:right">median bytes</th>
+<th style="text-align:right">mean bytes</th>
+<th style="text-align:right">75th percentile bytes</th>
+<th style="text-align:right">median network requests</th>
+<th style="text-align:right">median document bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cold home page</td>
+<td style="text-align:right">15</td>
+<td style="text-align:right">15</td>
+<td style="text-align:right">4,992,892</td>
+<td style="text-align:right">7,318,189</td>
+<td style="text-align:right">8,472,860</td>
+<td style="text-align:right">85.0</td>
+<td style="text-align:right">29,561</td>
+</tr>
+<tr>
+<td>Warm internal page</td>
+<td style="text-align:right">82</td>
+<td style="text-align:right">14</td>
+<td style="text-align:right">971,161</td>
+<td style="text-align:right">3,609,705</td>
+<td style="text-align:right">2,283,212</td>
+<td style="text-align:right">23.5</td>
+<td style="text-align:right">23,254</td>
+</tr>
+<tr>
+<td>Home page again</td>
+<td style="text-align:right">15</td>
+<td style="text-align:right">15</td>
+<td style="text-align:right">66,343</td>
+<td style="text-align:right">1,560,457</td>
+<td style="text-align:right">234,758</td>
+<td style="text-align:right">32.0</td>
+<td style="text-align:right">17,477</td>
+</tr>
+</tbody>
+</table>
+<p>Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.</p>
+<h2 id="capacity" class="tsd-anchor-link">Capacity<a href="#capacity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>This channel is the ceiling. It counts infrastructure an institution can stop running because spool lowers peak work, and an institution reaches it when it acts on the numbers and removes servers. It assigns no energy to an individual request. It is conditional and discontinuous: a fleet sized by peak throughput shrinks only when peak work falls far enough to retire a whole node, and the channel counts only when equipment is actually removed.</p>
+<p>Spool reports it as three separate results, and any of them can read zero.</p>
+<ol>
+<li><strong>Potential.</strong> The capacity reduction computed from real peak traces and the latency SLO.</li>
+<li><strong>Financial.</strong> A smaller hosting plan or fewer billed instances, from invoices.</li>
+<li><strong>Physical.</strong> Electricity, counted only when equipment is removed or the provider's energy is measured. A retired server-year is 3.80 MWh (282 W at a PUE of 1.54, L2).</li>
+</ol>
+<p>&quot;No physical capacity saving demonstrated&quot; is a valid report beside a large drop in requests.</p>
+<p>The table is a sensitivity model, not an institutional one. It keeps <code>max(2, ceil(N x (1 - Z x 0.9)))</code> servers of <code>N</code> throughput-sized ones, where 0.9 is the share of load that is reads (L3).</p>
+<table>
+<thead>
+<tr>
+<th>tier</th>
+<th style="text-align:right">peak work cut</th>
+<th style="text-align:right">10 servers sized by throughput</th>
+<th style="text-align:right">20 servers sized by throughput</th>
+<th style="text-align:right">50 servers sized by throughput</th>
+<th style="text-align:right">100 servers sized by throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meaningful</td>
+<td style="text-align:right">27%</td>
+<td style="text-align:right">2 retired, 7.61 MWh</td>
+<td style="text-align:right">5 retired, 19.0 MWh</td>
+<td style="text-align:right">13 retired, 49.5 MWh</td>
+<td style="text-align:right">27 retired, 103 MWh</td>
+</tr>
+<tr>
+<td>Major</td>
+<td style="text-align:right">59%</td>
+<td style="text-align:right">5 retired, 19.0 MWh</td>
+<td style="text-align:right">11 retired, 41.8 MWh</td>
+<td style="text-align:right">29 retired, 110 MWh</td>
+<td style="text-align:right">58 retired, 221 MWh</td>
+</tr>
+<tr>
+<td>Transformative</td>
+<td style="text-align:right">81%</td>
+<td style="text-align:right">8 retired, 30.4 MWh</td>
+<td style="text-align:right">16 retired, 60.9 MWh</td>
+<td style="text-align:right">40 retired, 152 MWh</td>
+<td style="text-align:right">81 retired, 308 MWh</td>
+</tr>
+</tbody>
+</table>
+<p>Peak traces and SLOs replace this rule in a real report. Spool generates one per institution from its telemetry and the institution's own traces (<code>src/report/</code>).</p>
+<h3 id="retained-nodes" class="tsd-anchor-link">Retained Nodes<a href="#retained-nodes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A node that stays in service can still draw less. Removing a request from a sparse stream can save more than the request's own work, because the package stays out of its deeper idle states.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">requests per second</th>
+<th style="text-align:right">steady W above idle</th>
+<th style="text-align:right">steady mJ per request</th>
+<th style="text-align:right">bursty W above idle</th>
+<th style="text-align:right">bursty mJ per request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:right">0.21 (-0.11 to 1.09)</td>
+<td style="text-align:right">41.8 (-20.8 to 215.9)</td>
+<td style="text-align:right">0.24 (-0.85 to 1.42)</td>
+<td style="text-align:right">48.3 (-170.2 to 283.7)</td>
+</tr>
+<tr>
+<td style="text-align:right">20</td>
+<td style="text-align:right">1.53 (0.81 to 2.17)</td>
+<td style="text-align:right">76.5 (40.3 to 108.6)</td>
+<td style="text-align:right">0.03 (-0.18 to 0.78)</td>
+<td style="text-align:right">1.3 (-8.9 to 39.1)</td>
+</tr>
+<tr>
+<td style="text-align:right">50</td>
+<td style="text-align:right">2.78 (1.57 to 3.39)</td>
+<td style="text-align:right">55.5 (31.4 to 67.7)</td>
+<td style="text-align:right">0.61 (-0.04 to 1.25)</td>
+<td style="text-align:right">12.1 (-0.8 to 25.1)</td>
+</tr>
+<tr>
+<td style="text-align:right">100</td>
+<td style="text-align:right">5.11 (4.71 to 5.65)</td>
+<td style="text-align:right">51.1 (47.1 to 56.5)</td>
+<td style="text-align:right">1.41 (0.90 to 2.32)</td>
+<td style="text-align:right">14.1 (9.0 to 23.2)</td>
+</tr>
+<tr>
+<td style="text-align:right">200</td>
+<td style="text-align:right">10.36 (9.44 to 11.43)</td>
+<td style="text-align:right">51.8 (47.2 to 57.1)</td>
+<td style="text-align:right">3.07 (2.41 to 3.41)</td>
+<td style="text-align:right">15.4 (12.1 to 17.1)</td>
+</tr>
+<tr>
+<td style="text-align:right">500</td>
+<td style="text-align:right">19.80 (19.72 to 20.25)</td>
+<td style="text-align:right">39.6 (39.4 to 40.5)</td>
+<td style="text-align:right">7.48 (6.60 to 8.11)</td>
+<td style="text-align:right">15.0 (13.2 to 16.2)</td>
+</tr>
+<tr>
+<td style="text-align:right">1,000</td>
+<td style="text-align:right">25.07 (24.63 to 25.68)</td>
+<td style="text-align:right">25.1 (24.6 to 25.7)</td>
+<td style="text-align:right">14.71 (14.43 to 15.62)</td>
+<td style="text-align:right">14.7 (14.4 to 15.6)</td>
+</tr>
+</tbody>
+</table>
+<p>Across the sweep a steady stream below 200 requests per second fits 0.21 W plus 50.6 mJ per request (R2 0.971), while a bursty stream fits -0.01 W plus 14.9 mJ per request (R2 0.987), which is the closed-loop work cost. A generator that only fires its timer costs 13.8 mJ per tick at 50 per second, so an isolated request carries about one wake. That brackets the saving of one sparse isolated request at 29 to 56 mJ against 15.1 mJ of work. Batched arrivals save the work and nothing more, and above about 500 requests per second the marginal cost falls below the work cost.</p>
+<p>The effect is bounded by the node's whole above-idle energy. At three origin requests per network view it comes to 0.0046 MWh a year per 100 million views (L2 over an L3 request count). It is the retained-node part of this channel. A node is either retired, and counted once at its full retired energy, or retained, and counted once here, never both. The scheduler batches beacons and syncs for this reason as well as for the radio.</p>
+<h3 id="embodied-energy" class="tsd-anchor-link">Embodied Energy<a href="#embodied-energy" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Embodied energy is a separate line in kgCO2e, L3 until a retirement ledger exists. It covers a server or instance-year not bought because a measured drop in peak work let a refresh slip. It stays outside the MWh figures so one retired server is never counted twice.</p>
+<h3 id="shared-responsibility" class="tsd-anchor-link">Shared Responsibility<a href="#shared-responsibility" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>drupflare removes fixed idle capacity: a site that ran on a provisioned server runs on Workers, and the capacity it kept idle goes away. Spool removes throughput work: requests and renders that never reach the origin. A provider sized by throughput downsizes when demand falls, so spool lowers demand and drupflare lowers the floor. The two counts do not overlap, and a capacity saving already realised by migration is not spool's. On drupflare the immediate benefit is Worker requests and execution avoided. Cloud-hosted origins show a smaller bill, and the provider's electricity is not established.</p>
+<h2 id="what-this-does-not-claim" class="tsd-anchor-link">What This Does Not Claim<a href="#what-this-does-not-claim" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Spool does not claim:</p>
+<ul>
+<li>that 12.4 J is a meter reading. It is an attributional allocation, and the meters read 0.80 J on a desktop and 0.088 J on a phone;</li>
+<li>a marginal kWh per GB;</li>
+<li>that one avoided request is one avoided radio wake;</li>
+<li>a capacity saving without evidence that equipment was removed, since a cloud-hosted origin shows a bill and the provider's electricity is not established;</li>
+<li>savings from a projection without its relocated device work and its provisioning bytes;</li>
+<li>that trimming adds to the headline. It saves bytes on a network view of an unseen page and nothing on a local or repeat view;</li>
+<li>that one institution's traffic moves a network operator's power state;</li>
+<li>a paced or cellular phone figure, which neither run has resolved;</li>
+<li>a dollar saving beyond the list-price arithmetic in Bandwidth and Request Costs, which leaves out free allowances, contract prices, staff time and plan tiers that do not scale with traffic.</li>
+</ul>
+<h2 id="reproducing" class="tsd-anchor-link">Reproducing<a href="#reproducing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each reading is one JSON file written by one script under <code>scripts/measure/</code>. Run a script with <code>--dry-run</code> first: it prints the resolved plan and the file it would write, and touches nothing.</p>
+<pre><code class="sh"><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">measure:repeat-nav</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">measure:on-wire</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">measure:zero-network</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">measure:device-cpu</span><br/><span class="hl-9">UDID</span><span class="hl-1">=&lt;</span><span class="hl-2">device</span><span class="hl-1"> </span><span class="hl-0">id</span><span class="hl-1">&gt; </span><span class="hl-2">bun</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/iphone.ts</span><span class="hl-1"> </span><span class="hl-10">--experiment</span><span class="hl-1"> </span><span class="hl-2">burst</span><span class="hl-1"> </span><span class="hl-10">--net</span><span class="hl-1"> &lt;</span><span class="hl-2">origi</span><span class="hl-1">n&gt; </span><span class="hl-10">--sw</span><span class="hl-1"> &lt;</span><span class="hl-2">origi</span><span class="hl-1">n&gt;</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">impact</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The RAPL runs happen on a Linux host with the package counter readable, inside the Playwright container, with the counter and the cgroup tree mounted read-only. <code>scripts/measure/rapl.ts run &lt;experiment&gt;</code> writes raw lines and <code>publish</code> turns them into the reading, strips container ids and integrates a GPU trace sampled on the host.</p>
+<pre><code class="sh"><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">compute-server</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/compute-server.jsonl</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">publish</span><span class="hl-1"> </span><span class="hl-2">compute-server</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/compute-server.jsonl</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The vendor prices are inputs in <code>src/report/inputs.ts</code> with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.</p>
+<p><code>bun run impact:check</code> runs in CI and fails on any difference between the committed page and the readings.</p>
+</div></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details"><a href="#impact-notice"><span>Impact <wbr/>Notice</span></a>
+<ul>
+<li><a href="#what-spool-saves"><span>What <wbr/>Spool <wbr/>Saves</span></a></li>
+<li>
+<ul>
+<li><a href="#a-worked-example"><span>A <wbr/>Worked <wbr/>Example</span></a></li></ul></li>
+<li><a href="#bandwidth-and-request-costs"><span>Bandwidth and <wbr/>Request <wbr/>Costs</span></a></li>
+<li><a href="#asset-trimming"><span>Asset <wbr/>Trimming</span></a></li>
+<li>
+<ul>
+<li><a href="#what-the-trim-removes-and-whether-it-is-safe"><span>What the <wbr/>Trim <wbr/>Removes and <wbr/>Whether <wbr/>It <wbr/>Is <wbr/>Safe</span></a></li>
+<li><a href="#bytes-and-joules-saved"><span>Bytes and <wbr/>Joules <wbr/>Saved</span></a></li>
+<li><a href="#per-million-views"><span>Per <wbr/>Million <wbr/>Views</span></a></li></ul></li>
+<li><a href="#how-the-figures-are-made"><span>How the <wbr/>Figures <wbr/>Are <wbr/>Made</span></a></li>
+<li>
+<ul>
+<li><a href="#measurement-labels"><span>Measurement <wbr/>Labels</span></a></li>
+<li><a href="#accounting-quantities"><span>Accounting <wbr/>Quantities</span></a></li>
+<li><a href="#traffic-measures"><span>Traffic <wbr/>Measures</span></a></li>
+<li><a href="#views-channel"><span>Views <wbr/>Channel</span></a></li>
+<li>
+<ul>
+<li><a href="#attributional-headline"><span>Attributional <wbr/>Headline</span></a></li></ul></li>
+<li><a href="#counting-rules"><span>Counting <wbr/>Rules</span></a></li>
+<li><a href="#evidence-behind-the-design"><span>Evidence <wbr/>Behind the <wbr/>Design</span></a></li>
+<li><a href="#baselines"><span>Baselines</span></a></li></ul></li>
+<li><a href="#measured-readings"><span>Measured <wbr/>Readings</span></a></li>
+<li>
+<ul>
+<li><a href="#desktop-and-phone"><span>Desktop and <wbr/>Phone</span></a></li>
+<li><a href="#server-runtimes"><span>Server <wbr/>Runtimes</span></a></li>
+<li><a href="#origin-term-by-workload"><span>Origin <wbr/>Term by <wbr/>Workload</span></a></li>
+<li>
+<ul>
+<li><a href="#per-request-cost"><span>Per-<wbr/>Request <wbr/>Cost</span></a></li>
+<li><a href="#against-a-server-cache"><span>Against a <wbr/>Server <wbr/>Cache</span></a></li>
+<li><a href="#projection"><span>Projection</span></a></li>
+<li><a href="#inference"><span>Inference</span></a></li>
+<li><a href="#reach-of-the-origin-term"><span>Reach of the <wbr/>Origin <wbr/>Term</span></a></li></ul></li>
+<li><a href="#third-party-requests"><span>Third-<wbr/>Party <wbr/>Requests</span></a></li>
+<li><a href="#free-tier-ceiling"><span>Free-<wbr/>Tier <wbr/>Ceiling</span></a></li></ul></li>
+<li><a href="#per-site-figures"><span>Per-<wbr/>Site <wbr/>Figures</span></a></li>
+<li>
+<ul>
+<li><a href="#what-a-repeat-view-moves"><span>What a <wbr/>Repeat <wbr/>View <wbr/>Moves</span></a></li></ul></li>
+<li><a href="#capacity"><span>Capacity</span></a></li>
+<li>
+<ul>
+<li><a href="#retained-nodes"><span>Retained <wbr/>Nodes</span></a></li>
+<li><a href="#embodied-energy"><span>Embodied <wbr/>Energy</span></a></li>
+<li><a href="#shared-responsibility"><span>Shared <wbr/>Responsibility</span></a></li></ul></li>
+<li><a href="#what-this-does-not-claim"><span>What <wbr/>This <wbr/>Does <wbr/>Not <wbr/>Claim</span></a></li>
+<li><a href="#reproducing"><span>Reproducing</span></a></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>
