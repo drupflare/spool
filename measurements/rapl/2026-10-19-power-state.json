@@ -1,0 +1,3876 @@
+{
+	"schema": 1,
+	"rig": "rapl",
+	"date": "2026-10-19",
+	"layer": "L1",
+	"question": "package watts and C-state activity against request rate, steady and bursty, with a timer-only control",
+	"instrument": "RAPL package-0 energy counter (intel-rapl sysfs, read-only bind into the container); C-state time and usage from /sys/devices/system/cpu/cpu*/cpuidle summed over all CPUs, /proc/stat busy fraction, scaling_cur_freq every 2 s",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X",
+		"os": "Ubuntu 24.04",
+		"governor": "powersave",
+		"cpuidle": "acpi_idle, menu",
+		"pstate": "amd-pstate-epp, EPP performance",
+		"cpus": 24
+	},
+	"software": {
+		"origin": "Node http server and a separate open-loop Node generator in the same container",
+		"container": "container mcr.microsoft.com/playwright:v1.62.1-noble, --cpus 8 --memory 6g, Node 24.18.1, node:sqlite 3.53.1"
+	},
+	"method": {
+		"window s": 20,
+		"settle s": 4,
+		"rounds": 4,
+		"burst period s": 5,
+		"frequency sample ms": 2000,
+		"conditions": [
+			"idle",
+			"idle-nofreq",
+			"cms-steady-5",
+			"cms-steady-20",
+			"cms-steady-50",
+			"cms-steady-100",
+			"cms-steady-200",
+			"cms-steady-500",
+			"cms-steady-1000",
+			"ana-steady-0.4",
+			"ana-steady-2",
+			"null-steady-50",
+			"null-steady-1000",
+			"cms-bursty-5",
+			"cms-bursty-20",
+			"cms-bursty-50",
+			"cms-bursty-100",
+			"cms-bursty-200",
+			"cms-bursty-500",
+			"cms-bursty-1000",
+			"ana-bursty-0.4",
+			"ana-bursty-2",
+			"null-bursty-50",
+			"null-bursty-1000"
+		],
+		"order": "shuffled per round with an idle window at the start, middle and end",
+		"steady": "one request every 1/rate seconds",
+		"bursty": "the same count issued back to back once per period",
+		"timer set": "a generator that fires its timer with no network and no origin (and a null route), at 50, 200 and 1000 per second, steady and bursty",
+		"data": "synthetic: enroll.sqlite (60 departments, 24 terms, 6,000 courses, 60,000 sections, 120,000 students, 1.8M enrollments, seeded) and cms.sqlite (5,000 nodes)"
+	},
+	"exclusions": ["windows where other containers used more than 100 ms of CPU per second"],
+	"rows": [
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 0,
+			"elapsedS": 20.001716153,
+			"pkgJ": 371.053733,
+			"pkgW": 18.551094824148212,
+			"reqs": 0,
+			"serverCpuMs": 3.287,
+			"load0": 0.36,
+			"load1": 0.26,
+			"residency": [
+				2.7368484907959323e-5, 0.0005681699966677855, 0.0073999171138356004,
+				0.9886346030046742
+			],
+			"wakeups": [
+				27.497640492088827, 131.1387472922709, 510.1562246932262, 443.3119604424575
+			],
+			"busyFrac": 0.0009376758142151654,
+			"freqMeanKHz": 822369.1833333333,
+			"freqMaxKHz": 5611584,
+			"freqSamples": 10,
+			"otherCpuMs": 277.96
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "bursty",
+			"round": 0,
+			"order": 1,
+			"elapsedS": 20.002427823,
+			"pkgJ": 372.724194,
+			"pkgW": 18.633947703659214,
+			"reqs": 400,
+			"serverCpuMs": 264.231,
+			"load0": 0.24,
+			"load1": 0.17,
+			"residency": [
+				3.293975140569615e-5, 0.0004002972407909319, 0.006832320616743165,
+				0.9901686439562828
+			],
+			"wakeups": [
+				31.29620091817991, 254.26913397741697, 479.69176966443484, 434.3972680160786
+			],
+			"busyFrac": 0.0015418915258475195,
+			"freqMeanKHz": 962376.7874999999,
+			"freqMaxKHz": 5615601,
+			"freqSamples": 10,
+			"otherCpuMs": 262.501
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "steady",
+			"round": 0,
+			"order": 2,
+			"elapsedS": 20.000785481,
+			"pkgJ": 822.986721,
+			"pkgW": 41.14772001238684,
+			"reqs": 41,
+			"serverCpuMs": 15916.854,
+			"load0": 0.24,
+			"load1": 0.42,
+			"residency": [
+				2.5169844811589712e-5, 0.0007040119339334394, 0.007829165433631968,
+				0.9562725745530933
+			],
+			"wakeups": [
+				30.04881986114633, 199.39216906198263, 560.8279740141071, 458.88197784625794
+			],
+			"busyFrac": 0.034152948530943944,
+			"freqMeanKHz": 1039990.1291666668,
+			"freqMaxKHz": 5355475,
+			"freqSamples": 10,
+			"otherCpuMs": 296.47
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "steady",
+			"round": 0,
+			"order": 3,
+			"elapsedS": 20.000258661,
+			"pkgJ": 396.101983,
+			"pkgW": 19.804843012975073,
+			"reqs": 401,
+			"serverCpuMs": 519.626,
+			"load0": 0.42,
+			"load1": 0.27,
+			"residency": [
+				3.541204201429003e-5, 0.0006764725011473191, 0.008646963168392996,
+				0.9883575571056294
+			],
+			"wakeups": [34.3995551088338, 160.4979242723205, 601.9422150512356, 548.9928998473766],
+			"busyFrac": 0.002687891984247703,
+			"freqMeanKHz": 1082935.5125,
+			"freqMaxKHz": 5603756,
+			"freqSamples": 10,
+			"otherCpuMs": 312.366
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "bursty",
+			"round": 0,
+			"order": 4,
+			"elapsedS": 20.0020744,
+			"pkgJ": 449.525901,
+			"pkgW": 22.473964050448686,
+			"reqs": 8,
+			"serverCpuMs": 3145.072,
+			"load0": 0.25,
+			"load1": 0.18,
+			"residency": [
+				2.9224052214637626e-5, 0.0005636102923404784, 0.008033448020771284,
+				0.9884451493024475
+			],
+			"wakeups": [
+				27.447153181272036, 135.38595776846026, 546.4933177130868, 410.45742735563465
+			],
+			"busyFrac": 0.007542923820636773,
+			"freqMeanKHz": 993348.9833333334,
+			"freqMaxKHz": 5627073,
+			"freqSamples": 10,
+			"otherCpuMs": 314.246
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "steady",
+			"round": 0,
+			"order": 5,
+			"elapsedS": 20.000034684,
+			"pkgJ": 465.360975,
+			"pkgW": 23.268008398619838,
+			"reqs": 8,
+			"serverCpuMs": 3127.209,
+			"load0": 0.16,
+			"load1": 0.12,
+			"residency": [
+				3.3374942121175374e-5, 0.0006448363817247468, 0.00882380553108978,
+				0.9944443462679481
+			],
+			"wakeups": [
+				34.54994008349391, 142.29975322376796, 598.6989617362606, 515.5991058480306
+			],
+			"busyFrac": 0.007544181393797932,
+			"freqMeanKHz": 978706.0958333334,
+			"freqMaxKHz": 5622846,
+			"freqSamples": 10,
+			"otherCpuMs": 319.109
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "bursty",
+			"round": 0,
+			"order": 6,
+			"elapsedS": 20.002509898,
+			"pkgJ": 517.582853,
+			"pkgW": 25.87589535709975,
+			"reqs": 10000,
+			"serverCpuMs": 5294.392,
+			"load0": 0.11,
+			"load1": 0.08,
+			"residency": [
+				4.0696976070391075e-5, 0.0004480958495894987, 0.009996903772894044,
+				0.9570478891208596
+			],
+			"wakeups": [48.3939268089945, 358.555003175732, 706.7613050606975, 1043.8689997642616],
+			"busyFrac": 0.012794598762216341,
+			"freqMeanKHz": 1182364.0958333334,
+			"freqMaxKHz": 5558904,
+			"freqSamples": 10,
+			"otherCpuMs": 255.308
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 0,
+			"order": 7,
+			"elapsedS": 19.999319551,
+			"pkgJ": 390.32564,
+			"pkgW": 19.516946014319927,
+			"reqs": 1000,
+			"serverCpuMs": 191.032,
+			"load0": 0.07,
+			"load1": 0.05,
+			"residency": [
+				2.4221657413461597e-5, 0.0004211018269158512, 0.007005319588135422,
+				0.9738120064702995
+			],
+			"wakeups": [
+				24.15082167012273, 116.10395014083848, 498.1169471589289, 586.3199480411163
+			],
+			"busyFrac": 0.001979826608869623,
+			"freqMeanKHz": 861548.2041666668,
+			"freqMaxKHz": 5603215,
+			"freqSamples": 10,
+			"otherCpuMs": 265.112
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "steady",
+			"round": 0,
+			"order": 8,
+			"elapsedS": 19.999792612,
+			"pkgJ": 407.55865,
+			"pkgW": 20.378143809124413,
+			"reqs": 1001,
+			"serverCpuMs": 1236.87,
+			"load0": 0.13,
+			"load1": 0.09,
+			"residency": [
+				2.194606090081724e-5, 0.0003733184544217146, 0.0068680108004845275,
+				0.9878163451461427
+			],
+			"wakeups": [25.550264940917277, 107.501114722059, 474.1549167019932, 581.9560345349045],
+			"busyFrac": 0.0037317322325765632,
+			"freqMeanKHz": 1000384.4249999998,
+			"freqMaxKHz": 5625015,
+			"freqSamples": 10,
+			"otherCpuMs": 250.789
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "bursty",
+			"round": 0,
+			"order": 9,
+			"elapsedS": 20.000990108,
+			"pkgJ": 811.389878,
+			"pkgW": 40.56748559039885,
+			"reqs": 40,
+			"serverCpuMs": 15852.549,
+			"load0": 0.16,
+			"load1": 0.4,
+			"residency": [
+				3.126511887445074e-5, 0.0005266885094079997, 0.008580506468595069,
+				0.9570044564449152
+			],
+			"wakeups": [
+				37.94812136307267, 249.98762426266583, 593.8206026735364, 443.5280429668217
+			],
+			"busyFrac": 0.03396328631258725,
+			"freqMeanKHz": 1114929.5375,
+			"freqMaxKHz": 5592073,
+			"freqSamples": 10,
+			"otherCpuMs": 295.399
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "steady",
+			"round": 0,
+			"order": 10,
+			"elapsedS": 19.999929688,
+			"pkgJ": 575.839651,
+			"pkgW": 28.792083771449704,
+			"reqs": 4001,
+			"serverCpuMs": 4473.88,
+			"load0": 0.37,
+			"load1": 0.39,
+			"residency": [
+				3.599387654007236e-5, 0.0006476168600951666, 0.011620342935810957,
+				0.9805147345976009
+			],
+			"wakeups": [
+				41.60014624947415, 272.90095941061287, 761.5526773145923, 1290.3045361946274
+			],
+			"busyFrac": 0.012381448671182908,
+			"freqMeanKHz": 1406573.5708333333,
+			"freqMaxKHz": 5595924,
+			"freqSamples": 10,
+			"otherCpuMs": 296.37
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "bursty",
+			"round": 0,
+			"order": 11,
+			"elapsedS": 20.001992092,
+			"pkgJ": 395.800576,
+			"pkgW": 19.78805781841622,
+			"reqs": 2000,
+			"serverCpuMs": 1052.135,
+			"load0": 0.44,
+			"load1": 0.76,
+			"residency": [
+				3.326751973533711e-5, 0.0005728575240887895, 0.008678570991074528,
+				0.9880751081740804
+			],
+			"wakeups": [42.89572738823179, 212.8787962926468, 606.3396057861015, 555.2946900945111],
+			"busyFrac": 0.003521200125013022,
+			"freqMeanKHz": 842425.8583333334,
+			"freqMaxKHz": 5578713,
+			"freqSamples": 10,
+			"otherCpuMs": 303.33
+		},
+		{
+			"set": "sweep",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 12,
+			"elapsedS": 20.001008758,
+			"pkgJ": 368.01736,
+			"pkgW": 18.399939945669015,
+			"reqs": 0,
+			"serverCpuMs": 0.943,
+			"load0": 0.76,
+			"load1": 0.5,
+			"residency": [
+				3.2223374720648174e-5, 0.0006885902689528735, 0.008412352781924953,
+				1.0001042776737863
+			],
+			"wakeups": [
+				39.49800780343221, 179.84092920119704, 570.7212140204794, 455.8770065211328
+			],
+			"busyFrac": 0.0011043507251208534,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 327.136
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 0,
+			"order": 13,
+			"elapsedS": 20.001027071,
+			"pkgJ": 664.777312,
+			"pkgW": 33.23715875390608,
+			"reqs": 20000,
+			"serverCpuMs": 10269.347,
+			"load0": 0.5,
+			"load1": 0.39,
+			"residency": [
+				4.518726280697341e-5, 0.0006211660175865243, 0.011839183682555465,
+				0.9752394867402557
+			],
+			"wakeups": [
+				65.99661083974541, 407.5290719354279, 903.1536198554251, 1638.5158563940429
+			],
+			"busyFrac": 0.02332610689568915,
+			"freqMeanKHz": 1251914.9291666665,
+			"freqMaxKHz": 5439681,
+			"freqSamples": 10,
+			"otherCpuMs": 253.178
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "steady",
+			"round": 0,
+			"order": 14,
+			"elapsedS": 19.999996816,
+			"pkgJ": 374.007026,
+			"pkgW": 18.7003542770964,
+			"reqs": 101,
+			"serverCpuMs": 114.936,
+			"load0": 0.36,
+			"load1": 0.26,
+			"residency": [
+				2.3981253817815608e-5, 0.00037384589284959947, 0.007317892831675206,
+				0.9954846543144903
+			],
+			"wakeups": [25.60000407552065, 94.5000150444024, 479.6500763602922, 452.10007197433146],
+			"busyFrac": 0.0011045578642435864,
+			"freqMeanKHz": 1088014.933333333,
+			"freqMaxKHz": 5624100,
+			"freqSamples": 10,
+			"otherCpuMs": 277.918
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "steady",
+			"round": 0,
+			"order": 15,
+			"elapsedS": 20.000019757,
+			"pkgJ": 473.191257,
+			"pkgW": 23.659539477923925,
+			"reqs": 2001,
+			"serverCpuMs": 2380.937,
+			"load0": 0.24,
+			"load1": 0.17,
+			"residency": [
+				2.8614555066445112e-5, 0.000568872354706111, 0.009589940526577252,
+				0.9866631315748255
+			],
+			"wakeups": [
+				34.69996572163886, 145.24985651492923, 633.6493740494658, 846.3491639339784
+			],
+			"busyFrac": 0.007419139713237746,
+			"freqMeanKHz": 1094187.1375,
+			"freqMaxKHz": 5619631,
+			"freqSamples": 10,
+			"otherCpuMs": 286.784
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "bursty",
+			"round": 0,
+			"order": 16,
+			"elapsedS": 20.002705186,
+			"pkgJ": 359.14613,
+			"pkgW": 17.95487793577882,
+			"reqs": 100,
+			"serverCpuMs": 58.917,
+			"load0": 0.16,
+			"load1": 0.11,
+			"residency": [
+				2.4809144332503986e-5, 0.0005574662641700015, 0.007593518739304118,
+				0.9880951196957766
+			],
+			"wakeups": [
+				25.09660545071436, 192.62394581992515, 538.9271050970135, 380.7485002243836
+			],
+			"busyFrac": 0.0010209822265747088,
+			"freqMeanKHz": 947021.7291666666,
+			"freqMaxKHz": 5617989,
+			"freqSamples": 10,
+			"otherCpuMs": 303.827
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 0,
+			"order": 17,
+			"elapsedS": 20.000525895,
+			"pkgJ": 875.670246,
+			"pkgW": 43.78236105376168,
+			"reqs": 20003,
+			"serverCpuMs": 10873.829,
+			"load0": 0.1,
+			"load1": 0.29,
+			"residency": [
+				0.00010079318300178459, 0.0012564627949582558, 0.04438869739363254,
+				0.9347859096215363
+			],
+			"wakeups": [98.2974152940392, 379.0900319223831, 2927.1230320316536, 2272.490245437119],
+			"busyFrac": 0.02475082363734935,
+			"freqMeanKHz": 1217558.7916666667,
+			"freqMaxKHz": 5488796,
+			"freqSamples": 10,
+			"otherCpuMs": 288.599
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "steady",
+			"round": 0,
+			"order": 18,
+			"elapsedS": 20.000160278,
+			"pkgJ": 781.173865,
+			"pkgW": 39.058380240046596,
+			"reqs": 10002,
+			"serverCpuMs": 7702.271,
+			"load0": 0.35,
+			"load1": 0.33,
+			"residency": [
+				5.20662494129505e-5, 0.0006752508386073044, 0.027082878793850965, 0.9550100403950373
+			],
+			"wakeups": [
+				58.59953038922342, 213.94828543983533, 1553.8375477012764, 1903.8847424580624
+			],
+			"busyFrac": 0.0178125,
+			"freqMeanKHz": 1192596.129166667,
+			"freqMaxKHz": 5554571,
+			"freqSamples": 10,
+			"otherCpuMs": 255.421
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "bursty",
+			"round": 0,
+			"order": 19,
+			"elapsedS": 20.001067265,
+			"pkgJ": 433.545283,
+			"pkgW": 21.67610744245952,
+			"reqs": 4000,
+			"serverCpuMs": 1998.423,
+			"load0": 0.3,
+			"load1": 0.21,
+			"residency": [
+				3.871668395191511e-5, 0.0005970514727263314, 0.009867631764432581,
+				0.9807724357119867
+			],
+			"wakeups": [48.79739601235725, 190.63982683926042, 683.1635441730015, 698.862706414682],
+			"busyFrac": 0.005293320829425862,
+			"freqMeanKHz": 925311.8541666667,
+			"freqMaxKHz": 5615013,
+			"freqSamples": 10,
+			"otherCpuMs": 306.567
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 0,
+			"order": 20,
+			"elapsedS": 20.002036253,
+			"pkgJ": 370.515553,
+			"pkgW": 18.52389168349939,
+			"reqs": 20000,
+			"serverCpuMs": 137.549,
+			"load0": 0.2,
+			"load1": 0.14,
+			"residency": [
+				4.585366485020272e-5, 0.0005780244831289412, 0.00641248671106819, 0.9782015108786101
+			],
+			"wakeups": [
+				298.1196476486558, 835.8648983796539, 467.65238707119346, 417.2075229964838
+			],
+			"busyFrac": 0.002042007001166861,
+			"freqMeanKHz": 1101203.0500000003,
+			"freqMaxKHz": 5636453,
+			"freqSamples": 10,
+			"otherCpuMs": 255.337
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 0,
+			"order": 21,
+			"elapsedS": 20.000034193,
+			"pkgJ": 774.030131,
+			"pkgW": 38.701440384082446,
+			"reqs": 20002,
+			"serverCpuMs": 215.55,
+			"load0": 0.13,
+			"load1": 0.08,
+			"residency": [
+				9.423317222759044e-5, 0.0005453115677080783, 0.04386741666873776, 0.9303865656146081
+			],
+			"wakeups": [
+				82.94985818477495, 1428.6975574272208, 3180.694562125542, 1545.9973568856187
+			],
+			"busyFrac": 0.0012512251579671761,
+			"freqMeanKHz": 1137394.3958333333,
+			"freqMaxKHz": 5600267,
+			"freqSamples": 10,
+			"otherCpuMs": 158.604
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 0,
+			"order": 22,
+			"elapsedS": 20.00214278,
+			"pkgJ": 362.300417,
+			"pkgW": 18.113080232696948,
+			"reqs": 1000,
+			"serverCpuMs": 9.75,
+			"load0": 0.08,
+			"load1": 0.05,
+			"residency": [
+				2.753871619615213e-5, 0.0005861038720839154, 0.008478806172518815,
+				0.9790042854598601
+			],
+			"wakeups": [
+				51.14452042722595, 144.4845200730039, 557.9402228424649, 441.50269784245586
+			],
+			"busyFrac": 0.0010210247754787356,
+			"freqMeanKHz": 814249.0624999999,
+			"freqMaxKHz": 5575020,
+			"freqSamples": 10,
+			"otherCpuMs": 309.424
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 0,
+			"order": 23,
+			"elapsedS": 20.002102666,
+			"pkgJ": 378.618588,
+			"pkgW": 18.92893933814188,
+			"reqs": 1000,
+			"serverCpuMs": 509.02,
+			"load0": 0.05,
+			"load1": 0.04,
+			"residency": [
+				3.131337458826207e-5, 0.0005191433374144313, 0.008177621509664538,
+				0.9758572653220344
+			],
+			"wakeups": [35.0963102090899, 290.06950403581135, 553.6417938111987, 500.3473968270252],
+			"busyFrac": 0.002146235752536934,
+			"freqMeanKHz": 872364.1875,
+			"freqMaxKHz": 5581550,
+			"freqSamples": 10,
+			"otherCpuMs": 326.201
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 24,
+			"elapsedS": 20.001955968,
+			"pkgJ": 381.239561,
+			"pkgW": 19.06011400134685,
+			"reqs": 0,
+			"serverCpuMs": 0.945,
+			"load0": 0.03,
+			"load1": 0.02,
+			"residency": [
+				3.754007864037309e-5, 0.0006895179829111667, 0.009911047382090376,
+				0.9889602416873661
+			],
+			"wakeups": [
+				35.34654316463297, 188.28158636210432, 642.0872048987004, 542.8969055512721
+			],
+			"busyFrac": 0.001396211473940859,
+			"freqMeanKHz": 867686.8208333334,
+			"freqMaxKHz": 5602073,
+			"freqSamples": 10,
+			"otherCpuMs": 309.907
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 0,
+			"elapsedS": 20.002310597,
+			"pkgJ": 368.382759,
+			"pkgW": 18.417010235570036,
+			"reqs": 0,
+			"serverCpuMs": 0.966,
+			"load0": 0.02,
+			"load1": 0.01,
+			"residency": [
+				3.735401782925662e-5, 0.0006043572620295047, 0.007859114954294864,
+				0.9889497530333745
+			],
+			"wakeups": [
+				38.245581493706865, 237.72253595107995, 544.587083935881, 447.5482948126325
+			],
+			"busyFrac": 0.0010210247754787356,
+			"freqMeanKHz": 910657.7041666668,
+			"freqMaxKHz": 5623814,
+			"freqSamples": 10,
+			"otherCpuMs": 296.242
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "steady",
+			"round": 1,
+			"order": 1,
+			"elapsedS": 19.99959294,
+			"pkgJ": 470.347914,
+			"pkgW": 23.517874359296837,
+			"reqs": 2001,
+			"serverCpuMs": 2308.926,
+			"load0": 0.01,
+			"load1": 0.01,
+			"residency": [
+				3.455903671340756e-5, 0.0005199751663878949, 0.008294652154388632,
+				0.9699468809122005
+			],
+			"wakeups": [35.150715422511, 577.0617449376947, 560.8114141947132, 903.9183974511434],
+			"busyFrac": 0.007191695155507379,
+			"freqMeanKHz": 1316490.9458333335,
+			"freqMaxKHz": 5550602,
+			"freqSamples": 10,
+			"otherCpuMs": 269.389
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "steady",
+			"round": 1,
+			"order": 2,
+			"elapsedS": 20.001190549,
+			"pkgJ": 451.014854,
+			"pkgW": 22.549400391695652,
+			"reqs": 8,
+			"serverCpuMs": 3133.987,
+			"load0": 0.01,
+			"load1": 0.07,
+			"residency": [
+				2.117373958127576e-5, 0.0004172314132779076, 0.006702557263857604,
+				0.9867702663323095
+			],
+			"wakeups": [
+				21.198738093178093, 114.44318748887892, 468.2221279306907, 391.4766963905294
+			],
+			"busyFrac": 0.007397066177696283,
+			"freqMeanKHz": 958535.5083333334,
+			"freqMaxKHz": 5532045,
+			"freqSamples": 10,
+			"otherCpuMs": 262.819
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "steady",
+			"round": 1,
+			"order": 3,
+			"elapsedS": 19.999704728,
+			"pkgJ": 828.822875,
+			"pkgW": 41.44175557950267,
+			"reqs": 40,
+			"serverCpuMs": 15882.571,
+			"load0": 0.06,
+			"load1": 0.12,
+			"residency": [
+				3.17754691203159e-5, 0.000512297146683488, 0.007734649607939618, 0.9591771275741072
+			],
+			"wakeups": [
+				30.250446605493504, 4944.422997483365, 525.2077539571962, 538.8579554833116
+			],
+			"busyFrac": 0.03409256673682456,
+			"freqMeanKHz": 996370.5125000002,
+			"freqMaxKHz": 5375759,
+			"freqSamples": 10,
+			"otherCpuMs": 289.854
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "bursty",
+			"round": 1,
+			"order": 4,
+			"elapsedS": 20.002271888,
+			"pkgJ": 424.438057,
+			"pkgW": 21.2194924344886,
+			"reqs": 4000,
+			"serverCpuMs": 1834.326,
+			"load0": 0.11,
+			"load1": 0.08,
+			"residency": [
+				3.523558076867726e-5, 0.0005735702622968632, 0.008929035711545769,
+				0.9825277840958823
+			],
+			"wakeups": [
+				45.244860437225555, 229.52392736718508, 607.6809708447255, 637.577574757942
+			],
+			"busyFrac": 0.004939043451078462,
+			"freqMeanKHz": 1505370.4625,
+			"freqMaxKHz": 5518627,
+			"freqSamples": 10,
+			"otherCpuMs": 298.153
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "bursty",
+			"round": 1,
+			"order": 5,
+			"elapsedS": 20.003319387,
+			"pkgJ": 459.854698,
+			"pkgW": 22.988919443982677,
+			"reqs": 8,
+			"serverCpuMs": 3119.939,
+			"load0": 0.15,
+			"load1": 0.36,
+			"residency": [
+				2.612899672073144e-5, 0.0005947492065274463, 0.008395950279589465,
+				0.9922485359054573
+			],
+			"wakeups": [
+				26.345627433339544, 129.02858520958134, 560.9069066452936, 453.52472879555285
+			],
+			"busyFrac": 0.007521616835086988,
+			"freqMeanKHz": 826456.1416666668,
+			"freqMaxKHz": 5612688,
+			"freqSamples": 10,
+			"otherCpuMs": 291.921
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 1,
+			"order": 6,
+			"elapsedS": 19.999806,
+			"pkgJ": 868.701001,
+			"pkgW": 43.43547137407233,
+			"reqs": 20002,
+			"serverCpuMs": 9695.507,
+			"load0": 0.36,
+			"load1": 0.52,
+			"residency": [
+				9.551759318732058e-5, 0.0011119795362015013, 0.04447337514173888, 0.9234625138363842
+			],
+			"wakeups": [
+				87.80085166826119, 659.7563996370765, 2890.5780386069746, 2445.473721095095
+			],
+			"busyFrac": 0.022145299858203352,
+			"freqMeanKHz": 1317427.4916666667,
+			"freqMaxKHz": 5470823,
+			"freqSamples": 10,
+			"otherCpuMs": 251.133
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "steady",
+			"round": 1,
+			"order": 7,
+			"elapsedS": 20.000577872,
+			"pkgJ": 376.538359,
+			"pkgW": 18.826373988280533,
+			"reqs": 101,
+			"serverCpuMs": 118.843,
+			"load0": 0.52,
+			"load1": 0.34,
+			"residency": [
+				2.4843032195364958e-5, 0.0005506549229302521, 0.008407013341119327,
+				0.9894292222444908
+			],
+			"wakeups": [
+				26.199243009552177, 137.44602868942545, 542.434327119526, 466.8365114125738
+			],
+			"busyFrac": 0.001333583380217124,
+			"freqMeanKHz": 1048340.7791666666,
+			"freqMaxKHz": 5619791,
+			"freqSamples": 10,
+			"otherCpuMs": 301.69
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 1,
+			"order": 8,
+			"elapsedS": 20.001324088,
+			"pkgJ": 667.374346,
+			"pkgW": 33.36650829033854,
+			"reqs": 20000,
+			"serverCpuMs": 9946.079,
+			"load0": 0.32,
+			"load1": 0.39,
+			"residency": [
+				4.460329706547976e-5, 0.0006925416506955407, 0.013469256192641988,
+				0.9775320893245455
+			],
+			"wakeups": [63.09582277891042, 582.3614451099434, 951.6869941335656, 1654.490465451429],
+			"busyFrac": 0.022700742099558077,
+			"freqMeanKHz": 1235941.7416666667,
+			"freqMaxKHz": 5384856,
+			"freqSamples": 10,
+			"otherCpuMs": 259.331
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "steady",
+			"round": 1,
+			"order": 9,
+			"elapsedS": 19.999678045,
+			"pkgJ": 773.597399,
+			"pkgW": 38.680492618900054,
+			"reqs": 10001,
+			"serverCpuMs": 7197.931,
+			"load0": 0.36,
+			"load1": 0.32,
+			"residency": [
+				5.614465380260075e-5, 0.0005488255015223838, 0.024642513355686037,
+				0.9579842630578372
+			],
+			"wakeups": [
+				57.20092080612291, 279.20449456415236, 1415.3227835123382, 1900.880599900677
+			],
+			"busyFrac": 0.016751395949662472,
+			"freqMeanKHz": 1153097.7375,
+			"freqMaxKHz": 5565882,
+			"freqSamples": 10,
+			"otherCpuMs": 196.531
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "bursty",
+			"round": 1,
+			"order": 10,
+			"elapsedS": 20.000461104,
+			"pkgJ": 822.449716,
+			"pkgW": 41.12153773472322,
+			"reqs": 41,
+			"serverCpuMs": 15923.062,
+			"load0": 0.37,
+			"load1": 0.55,
+			"residency": [
+				7.0119216720768e-5, 0.0006160628798804252, 0.008641450769624217, 0.9536233661059031
+			],
+			"wakeups": [63.29854063948585, 886.529560883668, 572.1868081187015, 507.4383009084849],
+			"busyFrac": 0.03404946967013274,
+			"freqMeanKHz": 1054609.433333333,
+			"freqMaxKHz": 5434863,
+			"freqSamples": 10,
+			"otherCpuMs": 273.816
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "steady",
+			"round": 1,
+			"order": 11,
+			"elapsedS": 20.000159624,
+			"pkgJ": 428.610724,
+			"pkgW": 21.430365159969586,
+			"reqs": 1001,
+			"serverCpuMs": 1235.567,
+			"load0": 0.51,
+			"load1": 0.36,
+			"residency": [
+				2.851227243785122e-5, 0.0006735133745550551, 0.008664257932157927,
+				0.9906890326960257
+			],
+			"wakeups": [
+				36.749706693240945, 149.1488096135207, 592.2452731720258, 716.7442795205563
+			],
+			"busyFrac": 0.004397390742554655,
+			"freqMeanKHz": 1037930.2791666666,
+			"freqMaxKHz": 5608717,
+			"freqSamples": 10,
+			"otherCpuMs": 310.024
+		},
+		{
+			"set": "sweep",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 12,
+			"elapsedS": 20.007893292,
+			"pkgJ": 358.784348,
+			"pkgW": 17.932140219053306,
+			"reqs": 0,
+			"serverCpuMs": 1.09,
+			"load0": 0.33,
+			"load1": 0.24,
+			"residency": [
+				2.6306284507414066e-5, 0.0006419466463835837, 0.008003353859550363,
+				0.9904021983125639
+			],
+			"wakeups": [29.53834226196652, 139.49494628282326, 541.936116999159, 423.732767676738],
+			"busyFrac": 0.0009790646807624206,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 329.096
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "bursty",
+			"round": 1,
+			"order": 13,
+			"elapsedS": 20.000306253,
+			"pkgJ": 376.233992,
+			"pkgW": 18.811411547438965,
+			"reqs": 100,
+			"serverCpuMs": 58.833,
+			"load0": 0.22,
+			"load1": 0.16,
+			"residency": [
+				2.7559994650114586e-5, 0.0006376339861339422, 0.00905835712588109,
+				0.9918241521272302
+			],
+			"wakeups": [
+				33.44948779970064, 139.94785702744707, 582.3910820491974, 505.9422526833644
+			],
+			"busyFrac": 0.0012087362454151385,
+			"freqMeanKHz": 950592.8791666667,
+			"freqMaxKHz": 5631679,
+			"freqSamples": 10,
+			"otherCpuMs": 316.482
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "bursty",
+			"round": 1,
+			"order": 14,
+			"elapsedS": 20.001593587,
+			"pkgJ": 508.174968,
+			"pkgW": 25.406724008745353,
+			"reqs": 10000,
+			"serverCpuMs": 5009.966,
+			"load0": 0.46,
+			"load1": 0.57,
+			"residency": [
+				3.8711498826269335e-5, 0.0007101559152382752, 0.010988634849384482,
+				1.0083387728886632
+			],
+			"wakeups": [
+				56.14552636095416, 743.4407631232309, 772.5384446388812, 1053.0160963619023
+			],
+			"busyFrac": 0.012108959796586148,
+			"freqMeanKHz": 1184391.7875,
+			"freqMaxKHz": 5561496,
+			"freqSamples": 10,
+			"otherCpuMs": 291.838
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "bursty",
+			"round": 1,
+			"order": 15,
+			"elapsedS": 20.001191006,
+			"pkgJ": 394.179245,
+			"pkgW": 19.707788645273837,
+			"reqs": 2000,
+			"serverCpuMs": 1015.275,
+			"load0": 0.57,
+			"load1": 0.45,
+			"residency": [
+				3.3016783840617254e-5, 0.0004946038795239265, 0.008439559921674797,
+				0.9937752745509347
+			],
+			"wakeups": [37.09779081542761, 201.33801026108756, 552.317109350443, 570.8660047581569],
+			"busyFrac": 0.0031672605280156697,
+			"freqMeanKHz": 984446.9291666668,
+			"freqMaxKHz": 5629275,
+			"freqSamples": 10,
+			"otherCpuMs": 266.109
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 1,
+			"order": 16,
+			"elapsedS": 19.999229802,
+			"pkgJ": 783.736431,
+			"pkgW": 39.18833068869599,
+			"reqs": 20001,
+			"serverCpuMs": 213.195,
+			"load0": 0.45,
+			"load1": 0.3,
+			"residency": [
+				9.63162091275819e-5, 0.0005477231760980726, 0.04348459542075453, 0.9357088382204558
+			],
+			"wakeups": [
+				86.65333701134298, 479.8184777615968, 3204.5734078014775, 1454.5060128811056
+			],
+			"busyFrac": 0.0020211701950325054,
+			"freqMeanKHz": 1373647.5958333332,
+			"freqMaxKHz": 5599148,
+			"freqSamples": 10,
+			"otherCpuMs": 161.115
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "bursty",
+			"round": 1,
+			"order": 17,
+			"elapsedS": 20.002042089,
+			"pkgJ": 372.587116,
+			"pkgW": 18.62745385406933,
+			"reqs": 400,
+			"serverCpuMs": 215.012,
+			"load0": 0.27,
+			"load1": 0.2,
+			"residency": [
+				3.2532094994999856e-5, 0.0006002032999055083, 0.00789814981375725,
+				0.9918810557803341
+			],
+			"wakeups": [34.54647265141049, 252.17425188670694, 549.1439299610605, 445.85447627392],
+			"busyFrac": 0.0014585460379638697,
+			"freqMeanKHz": 893372.4166666667,
+			"freqMaxKHz": 5619254,
+			"freqSamples": 10,
+			"otherCpuMs": 315.889
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 1,
+			"order": 18,
+			"elapsedS": 19.999816978,
+			"pkgJ": 373.811891,
+			"pkgW": 18.690765591065002,
+			"reqs": 1000,
+			"serverCpuMs": 10.099,
+			"load0": 0.18,
+			"load1": 0.13,
+			"residency": [
+				3.568574323047154e-5, 0.0006194056682432107, 0.008710263041821457,
+				0.9981854719950728
+			],
+			"wakeups": [
+				49.00044840800343, 160.50146876499082, 579.6553044836569, 464.2542484370529
+			],
+			"busyFrac": 0.0011669827244878822,
+			"freqMeanKHz": 949884.3583333334,
+			"freqMaxKHz": 5611364,
+			"freqSamples": 10,
+			"otherCpuMs": 316.61
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 1,
+			"order": 19,
+			"elapsedS": 19.999197202,
+			"pkgJ": 391.564407,
+			"pkgW": 19.579006249352947,
+			"reqs": 1000,
+			"serverCpuMs": 171.381,
+			"load0": 0.12,
+			"load1": 0.08,
+			"residency": [
+				2.9086584199247763e-5, 0.0005819233583454116, 0.00860258489023057,
+				0.9917997482427146
+			],
+			"wakeups": [30.05120625241385, 176.8570990262692, 576.7731516166285, 611.224534491692],
+			"busyFrac": 0.002084114876411988,
+			"freqMeanKHz": 925446.4416666667,
+			"freqMaxKHz": 5607846,
+			"freqSamples": 10,
+			"otherCpuMs": 297.458
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 1,
+			"order": 20,
+			"elapsedS": 20.001158818,
+			"pkgJ": 382.386932,
+			"pkgW": 19.118238872033338,
+			"reqs": 20000,
+			"serverCpuMs": 138.343,
+			"load0": 0.08,
+			"load1": 0.05,
+			"residency": [
+				5.1563679020696896e-5, 0.0007843608034291246, 0.009361940894052186,
+				0.9865239607471761
+			],
+			"wakeups": [
+				220.6872131842496, 898.0979633957127, 596.3154489462041, 494.87132670994623
+			],
+			"busyFrac": 0.0021046928398766357,
+			"freqMeanKHz": 1035171.2833333334,
+			"freqMaxKHz": 5617458,
+			"freqSamples": 10,
+			"otherCpuMs": 312.259
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "steady",
+			"round": 1,
+			"order": 21,
+			"elapsedS": 19.999737926,
+			"pkgJ": 564.883813,
+			"pkgW": 28.244560758250806,
+			"reqs": 4001,
+			"serverCpuMs": 4445.458,
+			"load0": 0.05,
+			"load1": 0.03,
+			"residency": [
+				2.021901494390612e-5, 0.0004451620832703905, 0.010127505624462116,
+				0.9844919609039747
+			],
+			"wakeups": [20.950274526112306, 112.051468288825, 594.5077902517311, 1272.966680573492],
+			"busyFrac": 0.011535011785319455,
+			"freqMeanKHz": 1079055.1083333334,
+			"freqMaxKHz": 5625910,
+			"freqSamples": 10,
+			"otherCpuMs": 240.109
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "steady",
+			"round": 1,
+			"order": 22,
+			"elapsedS": 20.000049525,
+			"pkgJ": 392.280556,
+			"pkgW": 19.613979230883928,
+			"reqs": 401,
+			"serverCpuMs": 489.245,
+			"load0": 0.03,
+			"load1": 0.02,
+			"residency": [
+				2.6839516871979677e-5, 0.0004062677439794989, 0.007145546889172848,
+				0.9973332407702291
+			],
+			"wakeups": [26.64993400810091, 92.29977144269095, 516.0487221343518, 510.1987366203784],
+			"busyFrac": 0.0020840280093364456,
+			"freqMeanKHz": 940074.0166666666,
+			"freqMaxKHz": 5582282,
+			"freqSamples": 10,
+			"otherCpuMs": 253.357
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 1,
+			"order": 23,
+			"elapsedS": 20.002950313,
+			"pkgJ": 375.375089,
+			"pkgW": 18.76598617335175,
+			"reqs": 1000,
+			"serverCpuMs": 461.245,
+			"load0": 0.02,
+			"load1": 0.01,
+			"residency": [
+				2.5675379146422887e-5, 0.0004541996651078385, 0.006839836850354459,
+				0.9689929375436396
+			],
+			"wakeups": [
+				25.496238905745265, 114.33313407341063, 489.62777224091985, 455.93274278509176
+			],
+			"busyFrac": 0.0019376211013188325,
+			"freqMeanKHz": 977243.9583333334,
+			"freqMaxKHz": 5617060,
+			"freqSamples": 10,
+			"otherCpuMs": 259.349
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 24,
+			"elapsedS": 20.001592912,
+			"pkgJ": 360.861282,
+			"pkgW": 18.041627163779566,
+			"reqs": 0,
+			"serverCpuMs": 1.315,
+			"load0": 0.01,
+			"load1": 0.01,
+			"residency": [
+				2.5335482140323644e-5, 0.0005898092742864639, 0.008106591845628501,
+				0.9885956877032954
+			],
+			"wakeups": [
+				27.197833812207328, 136.53912525944523, 543.456716063775, 392.76871769981756
+			],
+			"busyFrac": 0.0009376758142151654,
+			"freqMeanKHz": 1217667.5583333333,
+			"freqMaxKHz": 5649285,
+			"freqSamples": 10,
+			"otherCpuMs": 303.696
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 0,
+			"elapsedS": 20.002304899,
+			"pkgJ": 362.478385,
+			"pkgW": 18.121830800515486,
+			"reqs": 0,
+			"serverCpuMs": 0.895,
+			"load0": 0.01,
+			"load1": 0,
+			"residency": [
+				3.2652486965772256e-5, 0.000674857642731373, 0.00822615822680646, 0.990622208709755
+			],
+			"wakeups": [
+				36.545788282456684, 159.78158597911292, 575.4336841738391, 424.651061109695
+			],
+			"busyFrac": 0.0010001875351628431,
+			"freqMeanKHz": 774907.7125,
+			"freqMaxKHz": 5626706,
+			"freqSamples": 10,
+			"otherCpuMs": 323.864
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "steady",
+			"round": 2,
+			"order": 1,
+			"elapsedS": 20.001298942,
+			"pkgJ": 454.355379,
+			"pkgW": 22.716293592608416,
+			"reqs": 8,
+			"serverCpuMs": 3110.001,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				2.6271210427735898e-5, 0.0005954217457510032, 0.007462317427457141,
+				0.9888923055625415
+			],
+			"wakeups": [
+				30.19803872495913, 119.24225556130385, 508.76695706156306, 431.4219803934972
+			],
+			"busyFrac": 0.007543709754725238,
+			"freqMeanKHz": 871769.5208333333,
+			"freqMaxKHz": 5611528,
+			"freqSamples": 10,
+			"otherCpuMs": 317.304
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "steady",
+			"round": 2,
+			"order": 2,
+			"elapsedS": 20.000359607,
+			"pkgJ": 835.870164,
+			"pkgW": 41.79275675160614,
+			"reqs": 40,
+			"serverCpuMs": 15816.934,
+			"load0": 0.08,
+			"load1": 0.34,
+			"residency": [
+				4.2320072403619485e-5, 0.0008121478972965549, 0.011400338767918834,
+				0.9894920440033933
+			],
+			"wakeups": [
+				42.94922775785268, 184.44668358407282, 724.5869716726439, 639.2385062679239
+			],
+			"busyFrac": 0.034405151395169524,
+			"freqMeanKHz": 1066045.6083333332,
+			"freqMaxKHz": 5389007,
+			"freqSamples": 10,
+			"otherCpuMs": 300.814
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "steady",
+			"round": 2,
+			"order": 3,
+			"elapsedS": 20.00068239,
+			"pkgJ": 384.072774,
+			"pkgW": 19.20298350380434,
+			"reqs": 100,
+			"serverCpuMs": 114.053,
+			"load0": 0.32,
+			"load1": 0.22,
+			"residency": [
+				2.98239824206318e-5, 0.00048156273598689615, 0.007615977646650685,
+				0.9920977563706014
+			],
+			"wakeups": [
+				28.74901909784289, 107.64632716114042, 527.9319872245619, 495.33309948231215
+			],
+			"busyFrac": 0.0012503907471084713,
+			"freqMeanKHz": 933215.3,
+			"freqMaxKHz": 5609484,
+			"freqSamples": 10,
+			"otherCpuMs": 264.147
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "bursty",
+			"round": 2,
+			"order": 4,
+			"elapsedS": 20.002398045,
+			"pkgJ": 533.98122,
+			"pkgW": 26.69586010630757,
+			"reqs": 10000,
+			"serverCpuMs": 4730.927,
+			"load0": 0.21,
+			"load1": 0.15,
+			"residency": [
+				4.254281568734442e-5, 0.0004824942311894017, 0.012010934861885456,
+				0.9616014247422369
+			],
+			"wakeups": [
+				58.692962581727286, 193.72677172418503, 819.2017758638699, 1149.9121229491561
+			],
+			"busyFrac": 0.011609003751563152,
+			"freqMeanKHz": 1136111.2416666667,
+			"freqMaxKHz": 5614846,
+			"freqSamples": 10,
+			"otherCpuMs": 253.146
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "steady",
+			"round": 2,
+			"order": 5,
+			"elapsedS": 20.000699146,
+			"pkgJ": 434.778052,
+			"pkgW": 21.738142693224432,
+			"reqs": 1001,
+			"serverCpuMs": 1171.415,
+			"load0": 0.14,
+			"load1": 0.1,
+			"residency": [
+				3.9127798864463425e-5, 0.0006395338936218206, 0.010212872152230981,
+				0.9839623325002208
+			],
+			"wakeups": [
+				43.498479410605704, 139.69511663589924, 664.0267874163843, 750.9737479853995
+			],
+			"busyFrac": 0.004667639091477391,
+			"freqMeanKHz": 1126114.3125,
+			"freqMaxKHz": 5606706,
+			"freqSamples": 10,
+			"otherCpuMs": 303.603
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "bursty",
+			"round": 2,
+			"order": 6,
+			"elapsedS": 20.001993495,
+			"pkgJ": 380.643905,
+			"pkgW": 19.03029840976358,
+			"reqs": 400,
+			"serverCpuMs": 208.715,
+			"load0": 0.09,
+			"load1": 0.06,
+			"residency": [
+				3.326543427615488e-5, 0.0006476271145959261, 0.00967797285047562, 1.0019280934844306
+			],
+			"wakeups": [35.546456915793534, 143.385708065395, 624.687734406245, 517.3984284409947],
+			"busyFrac": 0.0015628581549938527,
+			"freqMeanKHz": 906497.5125,
+			"freqMaxKHz": 5604455,
+			"freqSamples": 10,
+			"otherCpuMs": 322.591
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 2,
+			"order": 7,
+			"elapsedS": 20.001969891,
+			"pkgJ": 389.473008,
+			"pkgW": 19.471732540465705,
+			"reqs": 20000,
+			"serverCpuMs": 140.023,
+			"load0": 0.06,
+			"load1": 0.04,
+			"residency": [
+				5.8519236174166676e-5, 0.000886468937640898, 0.009985568559251595,
+				0.9880290928524459
+			],
+			"wakeups": [
+				230.12733371182333, 916.9596844685101, 635.1374424234203, 543.1964981053575
+			],
+			"busyFrac": 0.002188138206977035,
+			"freqMeanKHz": 1579217.7750000001,
+			"freqMaxKHz": 5620245,
+			"freqSamples": 10,
+			"otherCpuMs": 312.369
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 2,
+			"order": 8,
+			"elapsedS": 19.999719122,
+			"pkgJ": 889.734154,
+			"pkgW": 44.48733247564856,
+			"reqs": 20002,
+			"serverCpuMs": 10645.563,
+			"load0": 0.04,
+			"load1": 0.1,
+			"residency": [
+				0.00011702456014788695, 0.0011616100635355713, 0.04473016360261129,
+				0.9319357775962005
+			],
+			"wakeups": [
+				111.25156240581728, 457.0064181524359, 2918.390985591163, 2281.982047927683
+			],
+			"busyFrac": 0.023490632953644595,
+			"freqMeanKHz": 1323684.5958333334,
+			"freqMaxKHz": 5528124,
+			"freqSamples": 10,
+			"otherCpuMs": 249.188
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "bursty",
+			"round": 2,
+			"order": 9,
+			"elapsedS": 20.001682559,
+			"pkgJ": 404.509873,
+			"pkgW": 20.22379226381562,
+			"reqs": 100,
+			"serverCpuMs": 57.875,
+			"load0": 0.1,
+			"load1": 0.06,
+			"residency": [
+				4.0850729978497574e-5, 0.0006838966318450176, 0.011378249021235255,
+				0.9900919055976706
+			],
+			"wakeups": [41.89647533541781, 153.18711268224362, 702.440905086659, 640.146145817052],
+			"busyFrac": 0.001375401158671279,
+			"freqMeanKHz": 909795.2875,
+			"freqMaxKHz": 5616428,
+			"freqSamples": 10,
+			"otherCpuMs": 318.764
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "steady",
+			"round": 2,
+			"order": 10,
+			"elapsedS": 19.999939421,
+			"pkgJ": 590.802576,
+			"pkgW": 29.540218275844147,
+			"reqs": 4001,
+			"serverCpuMs": 4366.535,
+			"load0": 0.06,
+			"load1": 0.04,
+			"residency": [
+				3.1764679546959444e-5, 0.0004414763372097516, 0.012035073953637251,
+				0.9782149400474759
+			],
+			"wakeups": [
+				36.25010979977008, 124.65037755976111, 742.9522503652187, 1329.954028364254
+			],
+			"busyFrac": 0.011637607408025361,
+			"freqMeanKHz": 1019794.3875,
+			"freqMaxKHz": 5599518,
+			"freqSamples": 10,
+			"otherCpuMs": 244.473
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 2,
+			"order": 11,
+			"elapsedS": 19.999784252,
+			"pkgJ": 789.389643,
+			"pkgW": 39.46990792768477,
+			"reqs": 20001,
+			"serverCpuMs": 202.163,
+			"load0": 0.04,
+			"load1": 0.03,
+			"residency": [
+				0.0001190887846583556, 0.0005929334795439505, 0.04505469852305484,
+				0.9417557695128546
+			],
+			"wakeups": [
+				104.3011251379573, 729.7578721900704, 3237.7849272811245, 1599.117250317426
+			],
+			"busyFrac": 0.0012721319680507185,
+			"freqMeanKHz": 1141991.5375,
+			"freqMaxKHz": 5594769,
+			"freqSamples": 10,
+			"otherCpuMs": 181.747
+		},
+		{
+			"set": "sweep",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 12,
+			"elapsedS": 20.005456476,
+			"pkgJ": 382.174144,
+			"pkgW": 19.10349531181575,
+			"reqs": 0,
+			"serverCpuMs": 0.959,
+			"load0": 0.02,
+			"load1": 0.02,
+			"residency": [
+				3.256194965849209e-5, 0.0006167150787820227, 0.01006904042612859, 0.9964796428872049
+			],
+			"wakeups": [
+				35.29037194662211, 142.46113321228472, 638.0759177034437, 508.21134784887676
+			],
+			"busyFrac": 0.0014166371533926377,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 294.211
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "steady",
+			"round": 2,
+			"order": 13,
+			"elapsedS": 20.000583307,
+			"pkgJ": 770.613651,
+			"pkgW": 38.529558821931616,
+			"reqs": 10000,
+			"serverCpuMs": 7379.994,
+			"load0": 0.09,
+			"load1": 0.21,
+			"residency": [
+				6.790426954821213e-5, 0.0007206102331503366, 0.02754010928307372, 0.9556892769877454
+			],
+			"wakeups": [
+				73.99784182704387, 214.8937325490774, 1704.5502861943105, 1827.1967091684583
+			],
+			"busyFrac": 0.0165527018012008,
+			"freqMeanKHz": 1243390.3750000002,
+			"freqMaxKHz": 5573500,
+			"freqSamples": 10,
+			"otherCpuMs": 232.956
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "steady",
+			"round": 2,
+			"order": 14,
+			"elapsedS": 19.999307209,
+			"pkgJ": 419.526522,
+			"pkgW": 20.977052735667087,
+			"reqs": 400,
+			"serverCpuMs": 500.871,
+			"load0": 0.19,
+			"load1": 0.34,
+			"residency": [
+				3.947011722709919e-5, 0.0006876529866566806, 0.010269128634661463,
+				0.9842232076323452
+			],
+			"wakeups": [
+				40.90141680667254, 155.40538317254067, 671.5732629956221, 684.1236977370339
+			],
+			"busyFrac": 0.0025428321313935554,
+			"freqMeanKHz": 1043606.4125,
+			"freqMaxKHz": 5623078,
+			"freqSamples": 10,
+			"otherCpuMs": 323.196
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "bursty",
+			"round": 2,
+			"order": 15,
+			"elapsedS": 20.001078804,
+			"pkgJ": 441.589666,
+			"pkgW": 22.078292392492692,
+			"reqs": 4000,
+			"serverCpuMs": 2027.247,
+			"load0": 0.31,
+			"load1": 0.22,
+			"residency": [
+				3.77958779494509e-5, 0.0006369573090620244, 0.011030467514376183, 0.9801588800339793
+			],
+			"wakeups": [46.7474784316639, 173.4406445769434, 725.2608792831194, 791.057330209397],
+			"busyFrac": 0.005772877894254215,
+			"freqMeanKHz": 1081680.8291666666,
+			"freqMaxKHz": 5616139,
+			"freqSamples": 10,
+			"otherCpuMs": 302.481
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 2,
+			"order": 16,
+			"elapsedS": 20.000136157,
+			"pkgJ": 416.165764,
+			"pkgW": 20.80814654125957,
+			"reqs": 1001,
+			"serverCpuMs": 166.825,
+			"load0": 0.2,
+			"load1": 0.14,
+			"residency": [
+				3.2845609725349164e-5, 0.0004807279772760399, 0.00945219815085282,
+				0.9858798528611771
+			],
+			"wakeups": [
+				34.449765471164135, 119.29918782902413, 621.7457672480784, 729.8450313245035
+			],
+			"busyFrac": 0.0021048682894298097,
+			"freqMeanKHz": 1033126.9083333334,
+			"freqMaxKHz": 5624268,
+			"freqSamples": 10,
+			"otherCpuMs": 272.175
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "bursty",
+			"round": 2,
+			"order": 17,
+			"elapsedS": 20.001034245,
+			"pkgJ": 820.485416,
+			"pkgW": 41.02214945235198,
+			"reqs": 39,
+			"serverCpuMs": 15829.999,
+			"load0": 0.21,
+			"load1": 0.44,
+			"residency": [
+				2.931515071426414e-5, 0.0005255957369285197, 0.009377785886925102,
+				0.9644534842736412
+			],
+			"wakeups": [
+				32.74830651138661, 112.69417233078688, 606.7686226292944, 553.0713994335247
+			],
+			"busyFrac": 0.0342133227762382,
+			"freqMeanKHz": 1141466.8666666667,
+			"freqMaxKHz": 5645027,
+			"freqSamples": 10,
+			"otherCpuMs": 235.157
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "bursty",
+			"round": 2,
+			"order": 18,
+			"elapsedS": 20.001812315,
+			"pkgJ": 471.596171,
+			"pkgW": 23.577672041564703,
+			"reqs": 8,
+			"serverCpuMs": 3141.205,
+			"load0": 0.48,
+			"load1": 0.64,
+			"residency": [
+				3.07347149507537e-5, 0.00043607923435311967, 0.008585726164650961,
+				0.9827646064647785
+			],
+			"wakeups": [
+				31.397154923258764, 110.7899606846201, 581.0473479587793, 541.2509541388525
+			],
+			"busyFrac": 0.007563918234669001,
+			"freqMeanKHz": 987609.0166666668,
+			"freqMaxKHz": 5625827,
+			"freqSamples": 10,
+			"otherCpuMs": 244.378
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 2,
+			"order": 19,
+			"elapsedS": 20.002656021,
+			"pkgJ": 381.317179,
+			"pkgW": 19.063327320115395,
+			"reqs": 1000,
+			"serverCpuMs": 9.587,
+			"load0": 0.64,
+			"load1": 0.42,
+			"residency": [
+				4.100080505003851e-5, 0.000636530051474141, 0.009631881292717517, 0.9901513276973563
+			],
+			"wakeups": [63.791528418044976, 202.07316447158135, 621.017528220184, 523.080534355803],
+			"busyFrac": 0.0012293971786376612,
+			"freqMeanKHz": 1122156.2541666667,
+			"freqMaxKHz": 5640330,
+			"freqSamples": 10,
+			"otherCpuMs": 303.722
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "bursty",
+			"round": 2,
+			"order": 20,
+			"elapsedS": 20.002439432,
+			"pkgJ": 412.977529,
+			"pkgW": 20.646358180658535,
+			"reqs": 2000,
+			"serverCpuMs": 1001.289,
+			"load0": 0.42,
+			"load1": 0.28,
+			"residency": [
+				3.719129705132591e-5, 0.0006398490399221757, 0.009402669807985915,
+				0.9940733825290156
+			],
+			"wakeups": [
+				38.44531076393363, 151.43152965403766, 637.4222525879762, 637.3722586858125
+			],
+			"busyFrac": 0.0036051430595786358,
+			"freqMeanKHz": 1014737.4541666668,
+			"freqMaxKHz": 5622082,
+			"freqSamples": 10,
+			"otherCpuMs": 320.122
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 2,
+			"order": 21,
+			"elapsedS": 20.000552499,
+			"pkgJ": 673.375424,
+			"pkgW": 33.66784112757224,
+			"reqs": 20000,
+			"serverCpuMs": 10039.107,
+			"load0": 0.25,
+			"load1": 0.18,
+			"residency": [
+				5.175065372411173e-5, 0.0007937280733016615, 0.013926300703306051,
+				0.9631165106212165
+			],
+			"wakeups": [
+				65.74818370971242, 372.38971275280466, 1012.2220374168274, 1717.7025485529812
+			],
+			"busyFrac": 0.02303475016155594,
+			"freqMeanKHz": 1281366.9791666665,
+			"freqMaxKHz": 5624729,
+			"freqSamples": 10,
+			"otherCpuMs": 306.246
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "steady",
+			"round": 2,
+			"order": 22,
+			"elapsedS": 20.000176485,
+			"pkgJ": 483.527546,
+			"pkgW": 24.17616396348514,
+			"reqs": 2001,
+			"serverCpuMs": 2395.379,
+			"load0": 0.17,
+			"load1": 0.2,
+			"residency": [
+				3.892257320415007e-5, 0.0006286527859439869, 0.010465345151178048,
+				0.9890251142618021
+			],
+			"wakeups": [40.69964085619417, 167.9985175390816, 670.2440855986276, 947.2416413029467],
+			"busyFrac": 0.007421304982280592,
+			"freqMeanKHz": 1059426.1999999997,
+			"freqMaxKHz": 5625230,
+			"freqSamples": 10,
+			"otherCpuMs": 280.225
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 2,
+			"order": 23,
+			"elapsedS": 20.002559473,
+			"pkgJ": 397.948247,
+			"pkgW": 19.894866331339315,
+			"reqs": 1000,
+			"serverCpuMs": 515.778,
+			"load0": 0.18,
+			"load1": 0.13,
+			"residency": [
+				3.368527250605949e-5, 0.0005193460373919819, 0.009703920653854614,
+				0.9791580602357713
+			],
+			"wakeups": [
+				32.64582219497645, 128.63353829659175, 601.6730017098647, 591.4243132719319
+			],
+			"busyFrac": 0.0021046489820583884,
+			"freqMeanKHz": 1100285.6125,
+			"freqMaxKHz": 5624339,
+			"freqSamples": 10,
+			"otherCpuMs": 267.579
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 24,
+			"elapsedS": 20.002759538,
+			"pkgJ": 386.657479,
+			"pkgW": 19.330206827985517,
+			"reqs": 0,
+			"serverCpuMs": 0.845,
+			"load0": 0.12,
+			"load1": 0.08,
+			"residency": [
+				3.456814706089646e-5, 0.00046751049435127197, 0.008749476107743362,
+				0.9923487017190845
+			],
+			"wakeups": [32.29554396096045, 142.23037549370355, 575.2706259423715, 528.577068574667],
+			"busyFrac": 0.0010002292191960659,
+			"freqMeanKHz": 808970.4625000001,
+			"freqMaxKHz": 5613459,
+			"freqSamples": 10,
+			"otherCpuMs": 255.355
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 0,
+			"elapsedS": 20.002217197,
+			"pkgJ": 389.391285,
+			"pkgW": 19.467406096280275,
+			"reqs": 0,
+			"serverCpuMs": 0.905,
+			"load0": 0.08,
+			"load1": 0.06,
+			"residency": [
+				3.9010258661909614e-5, 0.0006191834407499692, 0.009763465540341383,
+				1.0045634988245382
+			],
+			"wakeups": [44.54506174113714, 138.1846808670068, 641.6288691198137, 560.8378256027794],
+			"busyFrac": 0.0015418272736743412,
+			"freqMeanKHz": 1212891.7416666667,
+			"freqMaxKHz": 5630598,
+			"freqSamples": 10,
+			"otherCpuMs": 321.79
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "bursty",
+			"round": 3,
+			"order": 1,
+			"elapsedS": 20.001993668,
+			"pkgJ": 538.445254,
+			"pkgW": 26.919579264812313,
+			"reqs": 10000,
+			"serverCpuMs": 4978.325,
+			"load0": 0.13,
+			"load1": 0.38,
+			"residency": [
+				4.8332682033923734e-5, 0.0007974788379313402, 0.012947213544400035,
+				0.9736755990391239
+			],
+			"wakeups": [
+				54.64455284518091, 436.95644269614013, 892.5110314658459, 1206.479733998084
+			],
+			"busyFrac": 0.012130307009316575,
+			"freqMeanKHz": 1202547.1125,
+			"freqMaxKHz": 5552563,
+			"freqSamples": 10,
+			"otherCpuMs": 310.07
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "bursty",
+			"round": 3,
+			"order": 2,
+			"elapsedS": 20.000983433,
+			"pkgJ": 422.561735,
+			"pkgW": 21.12704789819522,
+			"reqs": 2000,
+			"serverCpuMs": 1005.133,
+			"load0": 0.35,
+			"load1": 0.25,
+			"residency": [
+				5.263491185453652e-5, 0.000672871080485402, 0.01092398159980017, 0.9679044357085208
+			],
+			"wakeups": [
+				52.447421073767565, 232.23858044580584, 713.3649226697003, 706.215274229711
+			],
+			"busyFrac": 0.003667507137052241,
+			"freqMeanKHz": 1192304.4625,
+			"freqMaxKHz": 5619507,
+			"freqSamples": 10,
+			"otherCpuMs": 288.999
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "bursty",
+			"round": 3,
+			"order": 3,
+			"elapsedS": 20.000952198,
+			"pkgJ": 834.78555,
+			"pkgW": 41.737290391778174,
+			"reqs": 39,
+			"serverCpuMs": 15896.753,
+			"load0": 0.31,
+			"load1": 0.46,
+			"residency": [
+				5.762850631257731e-5, 0.0007314714247186163, 0.011896475276668393,
+				0.9580429918356296
+			],
+			"wakeups": [60.94709831474395, 560.8232992588046, 739.4147965354784, 663.8183956725638],
+			"busyFrac": 0.03428226075358453,
+			"freqMeanKHz": 1441653.2166666668,
+			"freqMaxKHz": 5590592,
+			"freqSamples": 10,
+			"otherCpuMs": 299.057
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-100",
+			"route": "cms",
+			"rate": 100,
+			"mode": "steady",
+			"round": 3,
+			"order": 4,
+			"elapsedS": 19.999695911,
+			"pkgJ": 489.133701,
+			"pkgW": 24.457056906098874,
+			"reqs": 2000,
+			"serverCpuMs": 2346.038,
+			"load0": 0.46,
+			"load1": 0.37,
+			"residency": [
+				4.5173603506462506e-5, 0.0006661601285983673, 0.011554100673745989,
+				0.9864690612195179
+			],
+			"wakeups": [
+				47.050715380249464, 226.20343929888264, 723.3109975458966, 1027.1156167280387
+			],
+			"busyFrac": 0.0076883008646734035,
+			"freqMeanKHz": 1125146.1166666667,
+			"freqMaxKHz": 5607205,
+			"freqSamples": 10,
+			"otherCpuMs": 289.516
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "bursty",
+			"round": 3,
+			"order": 5,
+			"elapsedS": 20.002156183,
+			"pkgJ": 391.787875,
+			"pkgW": 19.58728206177011,
+			"reqs": 400,
+			"serverCpuMs": 205.732,
+			"load0": 0.37,
+			"load1": 0.24,
+			"residency": [
+				5.0898679323312696e-5, 0.0006245055892499193, 0.00907400715566812,
+				0.9821457448687362
+			],
+			"wakeups": [
+				46.09503053393891, 338.11354826575797, 578.9875798411567, 580.7873858056056
+			],
+			"busyFrac": 0.0015420200462606013,
+			"freqMeanKHz": 921062.6333333332,
+			"freqMaxKHz": 5596239,
+			"freqSamples": 10,
+			"otherCpuMs": 277.296
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-20",
+			"route": "cms",
+			"rate": 20,
+			"mode": "steady",
+			"round": 3,
+			"order": 6,
+			"elapsedS": 20.000174188,
+			"pkgJ": 417.499741,
+			"pkgW": 20.874805242971217,
+			"reqs": 401,
+			"serverCpuMs": 477.844,
+			"load0": 0.22,
+			"load1": 0.16,
+			"residency": [
+				4.148297204153664e-5, 0.000551651445446901, 0.009436496980439866, 0.9783526603853397
+			],
+			"wakeups": [
+				40.19964988516929, 113.84900844344587, 589.6448645470167, 728.6436539509604
+			],
+			"busyFrac": 0.002521621340002084,
+			"freqMeanKHz": 1404398.4874999998,
+			"freqMaxKHz": 5667255,
+			"freqSamples": 10,
+			"otherCpuMs": 263.749
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "steady",
+			"round": 3,
+			"order": 7,
+			"elapsedS": 20.001069473,
+			"pkgJ": 486.618847,
+			"pkgW": 24.32964135527354,
+			"reqs": 8,
+			"serverCpuMs": 3134.349,
+			"load0": 0.14,
+			"load1": 0.1,
+			"residency": [
+				4.0143686703880816e-5, 0.0005897892951469908, 0.011171550533083503,
+				0.9735739290318032
+			],
+			"wakeups": [
+				40.74782106527809, 143.34233496215003, 693.9128939447787, 637.6159043502963
+			],
+			"busyFrac": 0.008044180473064499,
+			"freqMeanKHz": 892517.3875,
+			"freqMaxKHz": 5639863,
+			"freqSamples": 10,
+			"otherCpuMs": 298.262
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "steady",
+			"round": 3,
+			"order": 8,
+			"elapsedS": 20.00068528,
+			"pkgJ": 397.935277,
+			"pkgW": 19.896082130641876,
+			"reqs": 101,
+			"serverCpuMs": 119.135,
+			"load0": 0.09,
+			"load1": 0.07,
+			"residency": [
+				4.148399525905311e-5, 0.0007654487726632534, 0.011366391791951641,
+				0.9687017979849273
+			],
+			"wakeups": [
+				39.99862948695926, 154.84469440139105, 708.3257299271899, 623.1286491199666
+			],
+			"busyFrac": 0.0016254740966115118,
+			"freqMeanKHz": 1059447.1416666664,
+			"freqMaxKHz": 5561065,
+			"freqSamples": 10,
+			"otherCpuMs": 312.759
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 3,
+			"order": 9,
+			"elapsedS": 20.002181838,
+			"pkgJ": 387.398087,
+			"pkgW": 19.367791480828554,
+			"reqs": 1000,
+			"serverCpuMs": 9.693,
+			"load0": 0.06,
+			"load1": 0.04,
+			"residency": [
+				5.581057818465241e-5, 0.0006617548912349143, 0.010423837843724337,
+				0.9876241477885653
+			],
+			"wakeups": [
+				73.34199898198126, 331.96378543991517, 663.1276581438306, 562.6886152298563
+			],
+			"busyFrac": 0.0014169323414806943,
+			"freqMeanKHz": 1776829.004166667,
+			"freqMaxKHz": 5621907,
+			"freqSamples": 10,
+			"otherCpuMs": 315.588
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "steady",
+			"round": 3,
+			"order": 10,
+			"elapsedS": 20.000794305,
+			"pkgJ": 604.775396,
+			"pkgW": 30.237568907391452,
+			"reqs": 4001,
+			"serverCpuMs": 4577.065,
+			"load0": 0.12,
+			"load1": 0.08,
+			"residency": [
+				4.443156872247363e-5, 0.00085573059777871, 0.013538712306656065, 0.9718077856608406
+			],
+			"wakeups": [
+				46.44815529990023, 184.59266885600823, 847.2663506050692, 1534.7390474550457
+			],
+			"busyFrac": 0.012554744525547445,
+			"freqMeanKHz": 1618592.6916666664,
+			"freqMaxKHz": 5607910,
+			"freqSamples": 10,
+			"otherCpuMs": 300.083
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 3,
+			"order": 11,
+			"elapsedS": 19.999364092,
+			"pkgJ": 879.368434,
+			"pkgW": 43.96981973800649,
+			"reqs": 20001,
+			"serverCpuMs": 10964.31,
+			"load0": 0.16,
+			"load1": 0.27,
+			"residency": [
+				0.00013071457278879432, 0.0011151625403723695, 0.045622192242517894,
+				0.9233578043640662
+			],
+			"wakeups": [
+				115.45367089564759, 293.85934337536634, 2962.0941809693213, 2492.279243015443
+			],
+			"busyFrac": 0.024804422655679566,
+			"freqMeanKHz": 1428477.379166667,
+			"freqMaxKHz": 5503784,
+			"freqSamples": 10,
+			"otherCpuMs": 182.913
+		},
+		{
+			"set": "sweep",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 12,
+			"elapsedS": 20.003470869,
+			"pkgJ": 378.877837,
+			"pkgW": 18.94060483209235,
+			"reqs": 0,
+			"serverCpuMs": 1.357,
+			"load0": 0.25,
+			"load1": 0.17,
+			"residency": [
+				4.066794234498105e-5, 0.0004722284645097474, 0.00832043729260673, 0.9818463090874845
+			],
+			"wakeups": [
+				35.593822925170876, 101.23243177453796, 540.1062680948681, 507.4119419810174
+			],
+			"busyFrac": 0.0010209609534525149,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 261.042
+		},
+		{
+			"set": "sweep",
+			"cond": "null-bursty-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 3,
+			"order": 13,
+			"elapsedS": 20.002039384,
+			"pkgJ": 396.287642,
+			"pkgW": 19.812361849312115,
+			"reqs": 20000,
+			"serverCpuMs": 186.394,
+			"load0": 0.16,
+			"load1": 0.31,
+			"residency": [
+				5.952726338590768e-5, 0.0007379268375240525, 0.01025292118449582, 0.9906612747290116
+			],
+			"wakeups": [412.4079470915614, 412.6579216018606, 677.1809484004364, 580.2408333064204],
+			"busyFrac": 0.002500520941862888,
+			"freqMeanKHz": 1206732.6625,
+			"freqMaxKHz": 5548165,
+			"freqSamples": 10,
+			"otherCpuMs": 293.903
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "steady",
+			"round": 3,
+			"order": 14,
+			"elapsedS": 19.99987453,
+			"pkgJ": 443.88772,
+			"pkgW": 22.19452523735408,
+			"reqs": 1001,
+			"serverCpuMs": 1165.526,
+			"load0": 0.31,
+			"load1": 0.2,
+			"residency": [
+				4.756488173161888e-5, 0.0006753542368348048, 0.010599239410995111,
+				0.9775441305397696
+			],
+			"wakeups": [
+				46.050288896487395, 181.70113990210118, 667.4541872738439, 844.555298317664
+			],
+			"busyFrac": 0.004460470642182713,
+			"freqMeanKHz": 960989.6083333334,
+			"freqMaxKHz": 5623645,
+			"freqSamples": 10,
+			"otherCpuMs": 315.467
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-1000",
+			"route": "cms",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 3,
+			"order": 15,
+			"elapsedS": 20.001930918,
+			"pkgJ": 688.551153,
+			"pkgW": 34.42423413133398,
+			"reqs": 20000,
+			"serverCpuMs": 10066.179,
+			"load0": 0.19,
+			"load1": 0.13,
+			"residency": [
+				7.892363024708652e-5, 0.000927620858676007, 0.016571520920931653, 0.9584403644290866
+			],
+			"wakeups": [
+				116.1387872762575, 457.6558152074306, 1159.8380223942738, 1882.3182698885473
+			],
+			"busyFrac": 0.023493850323118615,
+			"freqMeanKHz": 1443821.2750000001,
+			"freqMaxKHz": 5486293,
+			"freqSamples": 10,
+			"otherCpuMs": 293.45
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-steady-2",
+			"route": "ana",
+			"rate": 2,
+			"mode": "steady",
+			"round": 3,
+			"order": 16,
+			"elapsedS": 20.000673941,
+			"pkgJ": 838.869674,
+			"pkgW": 41.94207037595744,
+			"reqs": 41,
+			"serverCpuMs": 15853.411,
+			"load0": 0.12,
+			"load1": 0.09,
+			"residency": [
+				4.383602285534605e-5, 0.0007112885316747839, 0.011231321537596583,
+				0.9700928107340522
+			],
+			"wakeups": [42.89855444526593, 1030.6152713056722, 692.626660524789, 664.5276073799878],
+			"busyFrac": 0.0342405801933978,
+			"freqMeanKHz": 1097254.1124999998,
+			"freqMaxKHz": 5532436,
+			"freqSamples": 10,
+			"otherCpuMs": 291.819
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 3,
+			"order": 17,
+			"elapsedS": 20.00000965,
+			"pkgJ": 798.739073,
+			"pkgW": 39.936934380429165,
+			"reqs": 20001,
+			"serverCpuMs": 244.42,
+			"load0": 0.08,
+			"load1": 0.06,
+			"residency": [
+				0.0001329207691990622, 0.0009322933001684826, 0.04785617899272697, 0.954614324815255
+			],
+			"wakeups": [
+				119.3499424136528, 343.99983402008013, 3422.748348523922, 1681.2991887731414
+			],
+			"busyFrac": 0.002064349312926163,
+			"freqMeanKHz": 1374748.8583333334,
+			"freqMaxKHz": 5584679,
+			"freqSamples": 10,
+			"otherCpuMs": 224.126
+		},
+		{
+			"set": "sweep",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 3,
+			"order": 18,
+			"elapsedS": 20.000048395,
+			"pkgJ": 404.192263,
+			"pkgW": 20.20956424790691,
+			"reqs": 1001,
+			"serverCpuMs": 171.151,
+			"load0": 0.05,
+			"load1": 0.04,
+			"residency": [
+				3.759574236103575e-5, 0.0004736030206657574, 0.009506122830892612, 0.990803375420199
+			],
+			"wakeups": [
+				35.54991397809565, 114.99972172942334, 576.0986059853982, 709.8982822236316
+			],
+			"busyFrac": 0.0021256199724919767,
+			"freqMeanKHz": 1042115.8083333333,
+			"freqMaxKHz": 5618105,
+			"freqSamples": 10,
+			"otherCpuMs": 248.108
+		},
+		{
+			"set": "sweep",
+			"cond": "ana-bursty-0.4",
+			"route": "ana",
+			"rate": 0.4,
+			"mode": "bursty",
+			"round": 3,
+			"order": 19,
+			"elapsedS": 20.001387174,
+			"pkgJ": 477.839089,
+			"pkgW": 23.890297450026253,
+			"reqs": 8,
+			"serverCpuMs": 3122.351,
+			"load0": 0.03,
+			"load1": 0.02,
+			"residency": [
+				3.7351576009911665e-5, 0.00043896122088703547, 0.009623745009557004,
+				1.0097371784419615
+			],
+			"wakeups": [
+				31.99778067552946, 105.74266582616376, 598.0585194385678, 549.4118935053019
+			],
+			"busyFrac": 0.007606226686394232,
+			"freqMeanKHz": 1098581.9333333333,
+			"freqMaxKHz": 5541948,
+			"freqSamples": 10,
+			"otherCpuMs": 273.422
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-200",
+			"route": "cms",
+			"rate": 200,
+			"mode": "bursty",
+			"round": 3,
+			"order": 20,
+			"elapsedS": 20.001552022,
+			"pkgJ": 444.392332,
+			"pkgW": 22.217892467104875,
+			"reqs": 4000,
+			"serverCpuMs": 1834.284,
+			"load0": 0.02,
+			"load1": 0.09,
+			"residency": [
+				4.836291365136812e-5, 0.000671752037969593, 0.01082960544403831, 0.9730344831204387
+			],
+			"wakeups": [
+				49.896128005581026, 180.83596693004668, 703.4454118622496, 795.4882692352703
+			],
+			"busyFrac": 0.005418359904136709,
+			"freqMeanKHz": 1403669.3625,
+			"freqMaxKHz": 5630901,
+			"freqSamples": 10,
+			"otherCpuMs": 290.172
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-5",
+			"route": "cms",
+			"rate": 5,
+			"mode": "bursty",
+			"round": 3,
+			"order": 21,
+			"elapsedS": 20.002846717,
+			"pkgJ": 385.718288,
+			"pkgW": 19.28316971364811,
+			"reqs": 100,
+			"serverCpuMs": 60.232,
+			"load0": 0.08,
+			"load1": 0.05,
+			"residency": [
+				4.048173799741266e-5, 0.0005555521750089508, 0.009705049873476966,
+				0.9528411452956693
+			],
+			"wakeups": [
+				40.44424333424741, 131.83123568901166, 628.1105973442329, 555.0210006141098
+			],
+			"busyFrac": 0.0012710716592694465,
+			"freqMeanKHz": 954770.8375,
+			"freqMaxKHz": 5551482,
+			"freqSamples": 10,
+			"otherCpuMs": 305.275
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-steady-500",
+			"route": "cms",
+			"rate": 500,
+			"mode": "steady",
+			"round": 3,
+			"order": 22,
+			"elapsedS": 20.000617947,
+			"pkgJ": 770.703521,
+			"pkgW": 38.5339854519646,
+			"reqs": 10002,
+			"serverCpuMs": 6936.61,
+			"load0": 0.05,
+			"load1": 0.03,
+			"residency": [
+				8.443489118561482e-5, 0.0008265140462395667, 0.029192423031488248, 0.957457096279653
+			],
+			"wakeups": [
+				82.29745722665996, 251.4422311013809, 1776.4451125536018, 1861.7424770910757
+			],
+			"busyFrac": 0.01592927734456445,
+			"freqMeanKHz": 1074145.6791666667,
+			"freqMaxKHz": 5585813,
+			"freqSamples": 10,
+			"otherCpuMs": 256.885
+		},
+		{
+			"set": "sweep",
+			"cond": "cms-bursty-50",
+			"route": "cms",
+			"rate": 50,
+			"mode": "bursty",
+			"round": 3,
+			"order": 23,
+			"elapsedS": 20.000760148,
+			"pkgJ": 401.219227,
+			"pkgW": 20.060198913995794,
+			"reqs": 1000,
+			"serverCpuMs": 470.964,
+			"load0": 0.03,
+			"load1": 0.02,
+			"residency": [
+				4.047137845479718e-5, 0.0005905629709036062, 0.011682153908370208,
+				0.9951883942266252
+			],
+			"wakeups": [41.39842655344261, 174.69336035957545, 744.8716893637536, 612.276728953452],
+			"busyFrac": 0.0023548044261987623,
+			"freqMeanKHz": 1345737.2125,
+			"freqMaxKHz": 5633918,
+			"freqSamples": 10,
+			"otherCpuMs": 322.662
+		},
+		{
+			"set": "sweep",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 24,
+			"elapsedS": 19.999804445,
+			"pkgJ": 389.144701,
+			"pkgW": 19.457425299840228,
+			"reqs": 0,
+			"serverCpuMs": 0.896,
+			"load0": 0.02,
+			"load1": 0.01,
+			"residency": [
+				4.3173338804780165e-5, 0.0007056568997367514, 0.011071370753095382,
+				1.0126279803899019
+			],
+			"wakeups": [
+				43.00042044736103, 164.30160650003296, 681.5566640906724, 611.8059820859414
+			],
+			"busyFrac": 0.001292124294020799,
+			"freqMeanKHz": 847821.0166666668,
+			"freqMaxKHz": 5607796,
+			"freqSamples": 10,
+			"otherCpuMs": 305.891
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 0,
+			"elapsedS": 20.002073712,
+			"pkgJ": 361.274621,
+			"pkgW": 18.061858295385527,
+			"reqs": 0,
+			"serverCpuMs": 3.53,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				2.2424758208823594e-5, 0.0004555548488554968, 0.006901194862136669,
+				0.9896151036642074
+			],
+			"wakeups": [22.59765694838071, 99.78965324992899, 481.2501012944972, 402.1083071589072],
+			"busyFrac": 0.0008751458576429405,
+			"freqMeanKHz": 1423953.7625000002,
+			"freqMaxKHz": 5612671,
+			"freqSamples": 10,
+			"otherCpuMs": 258.471
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 0,
+			"order": 1,
+			"elapsedS": 20.000509022,
+			"pkgJ": 415.984317,
+			"pkgW": 20.798686500550005,
+			"reqs": 1001,
+			"serverCpuMs": 270.978,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				4.580508421022126e-5, 0.0006775577554098114, 0.01051379699563462, 0.9802971045270297
+			],
+			"wakeups": [
+				44.29887254496497, 260.44337142970943, 657.9332548749369, 752.6308447171081
+			],
+			"busyFrac": 0.003042427273485038,
+			"freqMeanKHz": 980184.7583333332,
+			"freqMaxKHz": 5574627,
+			"freqSamples": 10,
+			"otherCpuMs": 315.626
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-50",
+			"route": "timer",
+			"rate": 50,
+			"mode": "steady",
+			"round": 0,
+			"order": 2,
+			"elapsedS": 20.000891302,
+			"pkgJ": 392.793393,
+			"pkgW": 19.638794445161672,
+			"reqs": 1001,
+			"serverCpuMs": 1.391,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				4.323557320235668e-5, 0.0006972668429000861, 0.010172444580656685,
+				0.9918149100860172
+			],
+			"wakeups": [
+				42.74809492687478, 164.49266936774038, 649.0710740826764, 589.4237322724289
+			],
+			"busyFrac": 0.0013338057228601797,
+			"freqMeanKHz": 885400.7041666666,
+			"freqMaxKHz": 5641471,
+			"freqSamples": 10,
+			"otherCpuMs": 318.673
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-200",
+			"route": "null",
+			"rate": 200,
+			"mode": "steady",
+			"round": 0,
+			"order": 3,
+			"elapsedS": 20.001571496,
+			"pkgJ": 458.130376,
+			"pkgW": 22.90471906628031,
+			"reqs": 4001,
+			"serverCpuMs": 635.11,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				3.359736009415007e-5, 0.0005499922011394606, 0.010033478288116873,
+				0.9772609514995214
+			],
+			"wakeups": [
+				30.547599728460856, 137.18922038444614, 662.3979522133844, 1096.6138337873329
+			],
+			"busyFrac": 0.004421456577959456,
+			"freqMeanKHz": 1375456.4583333335,
+			"freqMaxKHz": 5626579,
+			"freqSamples": 10,
+			"otherCpuMs": 276.062
+		},
+		{
+			"set": "timer",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 4,
+			"elapsedS": 20.007275432,
+			"pkgJ": 383.388254,
+			"pkgW": 19.16244194783273,
+			"reqs": 0,
+			"serverCpuMs": 1.564,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				3.716564685984343e-5, 0.0006154219603021591, 0.00975174634163051, 0.9905471524941284
+			],
+			"wakeups": [41.73481805845916, 164.4901631501666, 637.2681799345561, 539.0039256795493],
+			"busyFrac": 0.001125,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 320.419
+		},
+		{
+			"set": "timer",
+			"cond": "timer-bursty-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 0,
+			"order": 5,
+			"elapsedS": 19.999205542,
+			"pkgJ": 371.003382,
+			"pkgW": 18.55090599578378,
+			"reqs": 20000,
+			"serverCpuMs": 1.024,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				2.515516590280631e-5, 0.00041348309141415866, 0.008693470329852565,
+				0.9829701651755743
+			],
+			"wakeups": [
+				24.15095934614301, 107.60427435382974, 547.5217491516894, 468.21859900058627
+			],
+			"busyFrac": 0.001021195006564825,
+			"freqMeanKHz": 849749.1208333332,
+			"freqMaxKHz": 5605213,
+			"freqSamples": 10,
+			"otherCpuMs": 250.714
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-200",
+			"route": "timer",
+			"rate": 200,
+			"mode": "steady",
+			"round": 0,
+			"order": 6,
+			"elapsedS": 19.999834023,
+			"pkgJ": 450.322613,
+			"pkgW": 22.516317509541565,
+			"reqs": 4000,
+			"serverCpuMs": 0.907,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				5.088583896061133e-5, 0.0004882936356089713, 0.010113048510005962,
+				1.0017892616154804
+			],
+			"wakeups": [50.45041868045707, 285.0023651918784, 643.8053428439695, 785.5065188007736],
+			"busyFrac": 0.0018759770713913497,
+			"freqMeanKHz": 1503899.8666666665,
+			"freqMaxKHz": 5575876,
+			"freqSamples": 10,
+			"otherCpuMs": 269.027
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 0,
+			"order": 7,
+			"elapsedS": 20.0000626,
+			"pkgJ": 791.804557,
+			"pkgW": 39.59010393297469,
+			"reqs": 20002,
+			"serverCpuMs": 252.324,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				0.0001685515557669638, 0.0007501893185740996, 0.044833653420664796,
+				0.9584109772569746
+			],
+			"wakeups": [
+				153.39951985950285, 1585.9450359920374, 3315.2896231434797, 1609.0949635327643
+			],
+			"busyFrac": 0.0016887313666214948,
+			"freqMeanKHz": 1044838.1,
+			"freqMaxKHz": 5612987,
+			"freqSamples": 10,
+			"otherCpuMs": 202.124
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 0,
+			"order": 8,
+			"elapsedS": 20.00040786,
+			"pkgJ": 744.399476,
+			"pkgW": 37.21921478855282,
+			"reqs": 20002,
+			"serverCpuMs": 0.693,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				0.00010481036260227546, 0.0006746737413783921, 0.027813753627455605,
+				0.9579340877668149
+			],
+			"wakeups": [91.24813917669778, 314.943577355627, 1769.16392144015, 1069.1281972686731],
+			"busyFrac": 0.0010627878383728927,
+			"freqMeanKHz": 1031227.8666666666,
+			"freqMaxKHz": 5599827,
+			"freqSamples": 10,
+			"otherCpuMs": 202.928
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 0,
+			"order": 9,
+			"elapsedS": 20.001432827,
+			"pkgJ": 380.218985,
+			"pkgW": 19.009587377497333,
+			"reqs": 0,
+			"serverCpuMs": 0.934,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				4.3061498349458556e-5, 0.0007129885038743814, 0.009976579014411027,
+				0.9858284864163649
+			],
+			"wakeups": [
+				44.49681218830413, 178.03724517140566, 643.2539164210349, 536.6615528418613
+			],
+			"busyFrac": 0.0011461437472648842,
+			"freqMeanKHz": 1073450.8125,
+			"freqMaxKHz": 5574616,
+			"freqSamples": 10,
+			"otherCpuMs": 325.514
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 0,
+			"elapsedS": 20.002661381,
+			"pkgJ": 370.127359,
+			"pkgW": 18.503905652853486,
+			"reqs": 0,
+			"serverCpuMs": 1.136,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				3.610352907101821e-5, 0.0006212902421643676, 0.008797085630172423,
+				0.9676046001084213
+			],
+			"wakeups": [
+				38.34489748091987, 589.9714930538922, 563.0250787876396, 474.73682722140165
+			],
+			"busyFrac": 0.0010627214002917275,
+			"freqMeanKHz": 824759.6916666667,
+			"freqMaxKHz": 5601471,
+			"freqSamples": 10,
+			"otherCpuMs": 320.561
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-200",
+			"route": "null",
+			"rate": 200,
+			"mode": "steady",
+			"round": 1,
+			"order": 1,
+			"elapsedS": 20.000122275,
+			"pkgJ": 465.383434,
+			"pkgW": 23.26902943897127,
+			"reqs": 4001,
+			"serverCpuMs": 526.841,
+			"load0": 0.08,
+			"load1": 0.18,
+			"residency": [
+				4.296432066021789e-5, 0.0006546189144902782, 0.009645311864307922,
+				0.9865453622582915
+			],
+			"wakeups": [
+				45.69972060333316, 250.99846545813182, 668.2959142058546, 1166.5428680485406
+			],
+			"busyFrac": 0.004481313962940576,
+			"freqMeanKHz": 916290.9208333332,
+			"freqMaxKHz": 5608656,
+			"freqSamples": 10,
+			"otherCpuMs": 394.107
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 1,
+			"order": 2,
+			"elapsedS": 19.999290749,
+			"pkgJ": 782.592005,
+			"pkgW": 39.13098793461618,
+			"reqs": 20000,
+			"serverCpuMs": 195.349,
+			"load0": 0.17,
+			"load1": 0.12,
+			"residency": [
+				0.00010337866607111447, 0.0005498486657024665, 0.04432973871224223,
+				0.9672562097050328
+			],
+			"wakeups": [
+				91.10323075287573, 487.4672868330327, 3264.3657627340795, 1602.8068396176902
+			],
+			"busyFrac": 0.001313348204048448,
+			"freqMeanKHz": 1621522.066666667,
+			"freqMaxKHz": 5601735,
+			"freqSamples": 10,
+			"otherCpuMs": 146.822
+		},
+		{
+			"set": "timer",
+			"cond": "timer-bursty-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 1,
+			"order": 3,
+			"elapsedS": 20.001630428,
+			"pkgJ": 379.936452,
+			"pkgW": 18.995274078663723,
+			"reqs": 20000,
+			"serverCpuMs": 1.137,
+			"load0": 0.11,
+			"load1": 0.08,
+			"residency": [
+				3.7640681478948886e-5, 0.0005126561242217016, 0.007844839644356083,
+				0.9825861898648482
+			],
+			"wakeups": [
+				35.09713883210642, 167.88631367266856, 529.6568216343809, 487.91022487539385
+			],
+			"busyFrac": 0.001250260470931444,
+			"freqMeanKHz": 753659.575,
+			"freqMaxKHz": 5610874,
+			"freqSamples": 10,
+			"otherCpuMs": 263.32
+		},
+		{
+			"set": "timer",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 4,
+			"elapsedS": 20.003209823,
+			"pkgJ": 370.215458,
+			"pkgW": 18.507802561482936,
+			"reqs": 0,
+			"serverCpuMs": 0.99,
+			"load0": 0.07,
+			"load1": 0.05,
+			"residency": [
+				3.681909086176564e-5, 0.0006078170340785444, 0.008524194442231143,
+				0.9846871726732676
+			],
+			"wakeups": [
+				37.24402266397203, 208.16659110440207, 577.707283093773, 488.47160463043053
+			],
+			"busyFrac": 0.001145976580405884,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 308.755
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-200",
+			"route": "timer",
+			"rate": 200,
+			"mode": "steady",
+			"round": 1,
+			"order": 5,
+			"elapsedS": 19.99983942,
+			"pkgJ": 424.030287,
+			"pkgW": 21.201684578325477,
+			"reqs": 4001,
+			"serverCpuMs": 0.796,
+			"load0": 0.05,
+			"load1": 0.03,
+			"residency": [
+				4.035657402293283e-5, 0.0006314300697520301, 0.008974067886124391,
+				0.9764075374927852
+			],
+			"wakeups": [
+				38.150306308809355, 143.30115056493787, 605.104858386908, 674.2554135967157
+			],
+			"busyFrac": 0.0016882034180908713,
+			"freqMeanKHz": 1359211.7333333334,
+			"freqMaxKHz": 5625137,
+			"freqSamples": 10,
+			"otherCpuMs": 318.824
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 1,
+			"order": 6,
+			"elapsedS": 20.000839937,
+			"pkgJ": 398.03984,
+			"pkgW": 19.901156214127653,
+			"reqs": 1000,
+			"serverCpuMs": 163.553,
+			"load0": 0.03,
+			"load1": 0.16,
+			"residency": [
+				3.734426499183811e-5, 0.0006854587128932534, 0.00977736646474052, 0.9991148611563766
+			],
+			"wakeups": [
+				39.59833699458099, 149.29373013360964, 657.3223945299953, 653.6725478120604
+			],
+			"busyFrac": 0.0021673891297099034,
+			"freqMeanKHz": 1217852.2208333332,
+			"freqMaxKHz": 5547234,
+			"freqSamples": 10,
+			"otherCpuMs": 301.244
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-50",
+			"route": "timer",
+			"rate": 50,
+			"mode": "steady",
+			"round": 1,
+			"order": 7,
+			"elapsedS": 20.000382204,
+			"pkgJ": 390.27387,
+			"pkgW": 19.513320596540733,
+			"reqs": 1000,
+			"serverCpuMs": 1.098,
+			"load0": 0.14,
+			"load1": 0.09,
+			"residency": [
+				3.688054520540502e-5, 0.0006330004032356941, 0.009910402276897075,
+				0.9705911601421447
+			],
+			"wakeups": [
+				35.84931491242216, 147.69717747739895, 638.7377935930168, 535.6897628614937
+			],
+			"busyFrac": 0.0012087614363420378,
+			"freqMeanKHz": 987631.3375,
+			"freqMaxKHz": 5603721,
+			"freqSamples": 10,
+			"otherCpuMs": 293.145
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 1,
+			"order": 8,
+			"elapsedS": 20.000575306,
+			"pkgJ": 746.442141,
+			"pkgW": 37.32103349927508,
+			"reqs": 20002,
+			"serverCpuMs": 0.836,
+			"load0": 0.09,
+			"load1": 0.06,
+			"residency": [
+				8.715165972302924e-5, 0.0005229037085179533, 0.027113403408150275, 0.928164892725078
+			],
+			"wakeups": [
+				76.24780670896567, 331.14047464490466, 1709.7508185047802, 1080.1189300549413
+			],
+			"busyFrac": 0.000958553001729563,
+			"freqMeanKHz": 1269168.725,
+			"freqMaxKHz": 5619509,
+			"freqSamples": 10,
+			"otherCpuMs": 166.87
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 1,
+			"order": 9,
+			"elapsedS": 20.000059605,
+			"pkgJ": 375.699824,
+			"pkgW": 18.78493521619682,
+			"reqs": 0,
+			"serverCpuMs": 1.048,
+			"load0": 0.06,
+			"load1": 0.04,
+			"residency": [
+				2.9258246136445285e-5, 0.0004793964879452835, 0.008492885105745829,
+				0.9912047751286357
+			],
+			"wakeups": [
+				26.24992176867065, 117.54964967265656, 548.148366380831, 498.59851405177847
+			],
+			"busyFrac": 0.00106274354539582,
+			"freqMeanKHz": 843410.0333333332,
+			"freqMaxKHz": 5623494,
+			"freqSamples": 10,
+			"otherCpuMs": 265.126
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 0,
+			"elapsedS": 20.001758995,
+			"pkgJ": 375.980862,
+			"pkgW": 18.797389874259906,
+			"reqs": 0,
+			"serverCpuMs": 0.965,
+			"load0": 0.04,
+			"load1": 0.25,
+			"residency": [
+				3.210550966178496e-5, 0.00044589203390709087, 0.008094236030631332,
+				0.9778821830064752
+			],
+			"wakeups": [
+				30.847286988821157, 104.79078367677333, 543.0522386913701, 460.0595378786585
+			],
+			"busyFrac": 0.0010835139189864977,
+			"freqMeanKHz": 706449.7708333333,
+			"freqMaxKHz": 5641075,
+			"freqSamples": 10,
+			"otherCpuMs": 290.921
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-200",
+			"route": "timer",
+			"rate": 200,
+			"mode": "steady",
+			"round": 2,
+			"order": 1,
+			"elapsedS": 20.000284799,
+			"pkgJ": 431.882862,
+			"pkgW": 21.59383560486068,
+			"reqs": 4000,
+			"serverCpuMs": 0.818,
+			"load0": 0.23,
+			"load1": 0.29,
+			"residency": [
+				3.52974140332557e-5, 0.0006578781318482965, 0.010154836645633908, 0.9857213883767156
+			],
+			"wakeups": [
+				35.74949092903665, 229.94672557012524, 651.6907199567323, 699.2400428567518
+			],
+			"busyFrac": 0.00156328164082041,
+			"freqMeanKHz": 1195191.25,
+			"freqMaxKHz": 5623431,
+			"freqSamples": 10,
+			"otherCpuMs": 294.647
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 2,
+			"order": 2,
+			"elapsedS": 20.000366702,
+			"pkgJ": 392.459532,
+			"pkgW": 19.62261681735839,
+			"reqs": 1001,
+			"serverCpuMs": 162.586,
+			"load0": 0.26,
+			"load1": 0.19,
+			"residency": [
+				3.703890422132054e-5, 0.0006285676418160971, 0.00911955154211052, 0.9864368760812333
+			],
+			"wakeups": [
+				40.649254691850295, 210.89613319830818, 610.6888029597288, 641.7382336653119
+			],
+			"busyFrac": 0.0020007085842902693,
+			"freqMeanKHz": 889943.5625,
+			"freqMaxKHz": 5627978,
+			"freqSamples": 10,
+			"otherCpuMs": 291.502
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 2,
+			"order": 3,
+			"elapsedS": 20.000600638,
+			"pkgJ": 790.400942,
+			"pkgW": 39.51886027354015,
+			"reqs": 20001,
+			"serverCpuMs": 202.296,
+			"load0": 0.17,
+			"load1": 0.12,
+			"residency": [
+				0.00010131362402604127, 0.000730875967072711, 0.04671356793613243,
+				0.9492149328553912
+			],
+			"wakeups": [
+				95.14714255052962, 787.0263641029359, 3454.196263923221, 1630.5010329560282
+			],
+			"busyFrac": 0.0018551715512569308,
+			"freqMeanKHz": 1084730.0416666667,
+			"freqMaxKHz": 5626435,
+			"freqSamples": 10,
+			"otherCpuMs": 207.854
+		},
+		{
+			"set": "timer",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 4,
+			"elapsedS": 20.001862519,
+			"pkgJ": 384.765274,
+			"pkgW": 19.23647228524379,
+			"reqs": 0,
+			"serverCpuMs": 1.097,
+			"load0": 0.11,
+			"load1": 0.08,
+			"residency": [
+				3.7611080765706504e-5, 0.0006503061062927274, 0.009518711477617538,
+				0.9878268722674179
+			],
+			"wakeups": [39.59631255577675, 130.1378807862208, 650.3394365221515, 539.5497539165942],
+			"busyFrac": 0.001250260470931444,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 299.721
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-200",
+			"route": "null",
+			"rate": 200,
+			"mode": "steady",
+			"round": 2,
+			"order": 5,
+			"elapsedS": 20.00023227,
+			"pkgJ": 481.056009,
+			"pkgW": 24.05252111604602,
+			"reqs": 4001,
+			"serverCpuMs": 507.558,
+			"load0": 0.07,
+			"load1": 0.05,
+			"residency": [
+				4.5593220503133685e-5, 0.0005842202984908967, 0.012209579037387182,
+				0.9804907901535418
+			],
+			"wakeups": [
+				42.34950817398682, 139.4983799355646, 737.5914339818814, 1288.4350367597006
+			],
+			"busyFrac": 0.00456440183409754,
+			"freqMeanKHz": 1169330.4083333334,
+			"freqMaxKHz": 5624636,
+			"freqSamples": 10,
+			"otherCpuMs": 260.702
+		},
+		{
+			"set": "timer",
+			"cond": "timer-bursty-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 2,
+			"order": 6,
+			"elapsedS": 20.000893959,
+			"pkgJ": 382.323032,
+			"pkgW": 19.115297185402174,
+			"reqs": 20000,
+			"serverCpuMs": 1.08,
+			"load0": 0.05,
+			"load1": 0.03,
+			"residency": [
+				3.527967307093706e-5, 0.0004569212432237831, 0.009169102659907764,
+				0.9668335636883787
+			],
+			"wakeups": [
+				33.74849151161384, 121.59456497221461, 588.3237031365334, 544.2256742280247
+			],
+			"busyFrac": 0.0011461198632991582,
+			"freqMeanKHz": 880845.8291666668,
+			"freqMaxKHz": 5622618,
+			"freqSamples": 10,
+			"otherCpuMs": 255.874
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-50",
+			"route": "timer",
+			"rate": 50,
+			"mode": "steady",
+			"round": 2,
+			"order": 7,
+			"elapsedS": 19.999884589,
+			"pkgJ": 403.656554,
+			"pkgW": 20.18294416668846,
+			"reqs": 1001,
+			"serverCpuMs": 0.885,
+			"load0": 0.03,
+			"load1": 0.02,
+			"residency": [
+				4.8089860838279796e-5, 0.0006522266803733371, 0.010532767029858784,
+				0.984397836766937
+			],
+			"wakeups": [
+				45.400261984481794, 238.00137339882525, 663.0038258967276, 654.4537765582403
+			],
+			"busyFrac": 0.0013547311379741558,
+			"freqMeanKHz": 939882.3541666666,
+			"freqMaxKHz": 5322664,
+			"freqSamples": 10,
+			"otherCpuMs": 290.549
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 2,
+			"order": 8,
+			"elapsedS": 20.000056877,
+			"pkgJ": 746.670783,
+			"pkgW": 37.333432979316626,
+			"reqs": 20000,
+			"serverCpuMs": 0.617,
+			"load0": 0.02,
+			"load1": 0.01,
+			"residency": [
+				0.00011676633460072602, 0.0007792144506976512, 0.028202257297010588,
+				0.9582848101984093
+			],
+			"wakeups": [
+				99.3997173221139, 363.94896498373595, 1791.5949049728297, 1091.1468969418972
+			],
+			"busyFrac": 0.0011253282207310466,
+			"freqMeanKHz": 1018690.8833333332,
+			"freqMaxKHz": 5634773,
+			"freqSamples": 10,
+			"otherCpuMs": 197.397
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 2,
+			"order": 9,
+			"elapsedS": 20.001159752,
+			"pkgJ": 379.822704,
+			"pkgW": 18.99003401350364,
+			"reqs": 0,
+			"serverCpuMs": 0.939,
+			"load0": 0.01,
+			"load1": 0.01,
+			"residency": [
+				4.271418977331577e-5, 0.000639277513164611, 0.009185890248937267, 0.9487475823213621
+			],
+			"wakeups": [
+				41.697582057290695, 144.64161258002636, 616.5642469190753, 527.9193872217415
+			],
+			"busyFrac": 0.0012919358199624921,
+			"freqMeanKHz": 916286.95,
+			"freqMaxKHz": 5623263,
+			"freqSamples": 10,
+			"otherCpuMs": 329.072
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 0,
+			"elapsedS": 20.001575024,
+			"pkgJ": 392.716553,
+			"pkgW": 19.6342814267765,
+			"reqs": 0,
+			"serverCpuMs": 0.897,
+			"load0": 0.01,
+			"load1": 0,
+			"residency": [
+				5.047935802331377e-5, 0.0008575137197655519, 0.011305520093392687,
+				0.9957717359475348
+			],
+			"wakeups": [
+				47.74623992631031, 162.83717637695568, 703.5445950188887, 612.5517608137737
+			],
+			"busyFrac": 0.0016670139612419254,
+			"freqMeanKHz": 942302.0916666668,
+			"freqMaxKHz": 5622132,
+			"freqSamples": 10,
+			"otherCpuMs": 311.842
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-50",
+			"route": "timer",
+			"rate": 50,
+			"mode": "steady",
+			"round": 3,
+			"order": 1,
+			"elapsedS": 20.000312312,
+			"pkgJ": 390.547064,
+			"pkgW": 19.52704827342498,
+			"reqs": 1001,
+			"serverCpuMs": 0.891,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				3.804940583569823e-5, 0.0006590084591875048, 0.009531559492312925, 0.994715989829656
+			],
+			"wakeups": [
+				37.44941520491193, 171.44732274718692, 613.9404129520875, 579.4909509011071
+			],
+			"busyFrac": 0.0012504168056018672,
+			"freqMeanKHz": 978657.3041666668,
+			"freqMaxKHz": 5631104,
+			"freqSamples": 10,
+			"otherCpuMs": 301.418
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-1000",
+			"route": "null",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 3,
+			"order": 2,
+			"elapsedS": 19.999051962,
+			"pkgJ": 791.06343,
+			"pkgW": 39.55504648435795,
+			"reqs": 20000,
+			"serverCpuMs": 194.556,
+			"load0": 0,
+			"load1": 0,
+			"residency": [
+				0.0001262893196870362, 0.000749331353063198, 0.046579212109821175,
+				0.9496244265021025
+			],
+			"wakeups": [
+				111.15526897094423, 873.6914146330673, 3401.5612404657645, 1678.5295654906106
+			],
+			"busyFrac": 0.0014593670516615937,
+			"freqMeanKHz": 1072628.4,
+			"freqMaxKHz": 5600342,
+			"freqSamples": 10,
+			"otherCpuMs": 171.596
+		},
+		{
+			"set": "timer",
+			"cond": "timer-bursty-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "bursty",
+			"round": 3,
+			"order": 3,
+			"elapsedS": 20.000790002,
+			"pkgJ": 388.905044,
+			"pkgW": 19.444484140931984,
+			"reqs": 20000,
+			"serverCpuMs": 1.423,
+			"load0": 0.08,
+			"load1": 0.06,
+			"residency": [
+				4.274206168428927e-5, 0.0005603174507379976, 0.009529881902045217,
+				0.9647014108644675
+			],
+			"wakeups": [37.54851682983037, 103.99589215186042, 588.5267531343985, 535.028866306278],
+			"busyFrac": 0.0013336945422718653,
+			"freqMeanKHz": 1075310.3875,
+			"freqMaxKHz": 5621120,
+			"freqSamples": 10,
+			"otherCpuMs": 256.122
+		},
+		{
+			"set": "timer",
+			"cond": "idle-nofreq",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 4,
+			"elapsedS": 20.00321836,
+			"pkgJ": 385.386717,
+			"pkgW": 19.266235565905202,
+			"reqs": 0,
+			"serverCpuMs": 1.343,
+			"load0": 0.13,
+			"load1": 0.09,
+			"residency": [
+				3.7089864906452316e-5, 0.000626211731260629, 0.010244286926503027, 0.992229621977024
+			],
+			"wakeups": [
+				37.44397459049684, 135.97811867309935, 632.9981392054353, 595.7541324365166
+			],
+			"busyFrac": 0.001291908899585339,
+			"freqMeanKHz": null,
+			"freqMaxKHz": null,
+			"freqSamples": 0,
+			"otherCpuMs": 327.865
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-200",
+			"route": "null",
+			"rate": 200,
+			"mode": "steady",
+			"round": 3,
+			"order": 5,
+			"elapsedS": 19.999173804,
+			"pkgJ": 477.959063,
+			"pkgW": 23.898940410448567,
+			"reqs": 4000,
+			"serverCpuMs": 525.164,
+			"load0": 0.09,
+			"load1": 0.06,
+			"residency": [
+				5.662108900586261e-5, 0.0007580959001233482, 0.012527173745041972,
+				0.9874369283220216
+			],
+			"wakeups": [
+				54.80226387056003, 233.05962764660615, 771.9818904174967, 1255.5018645309233
+			],
+			"busyFrac": 0.004939455201017069,
+			"freqMeanKHz": 1210301.2541666667,
+			"freqMaxKHz": 5594951,
+			"freqSamples": 10,
+			"otherCpuMs": 306.124
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-200",
+			"route": "timer",
+			"rate": 200,
+			"mode": "steady",
+			"round": 3,
+			"order": 6,
+			"elapsedS": 19.999407027,
+			"pkgJ": 437.693674,
+			"pkgW": 21.885332570565517,
+			"reqs": 4000,
+			"serverCpuMs": 0.981,
+			"load0": 0.06,
+			"load1": 0.04,
+			"residency": [
+				4.140122749050344e-5, 0.0006510693033259001, 0.010828685639243812,
+				0.9915241827701282
+			],
+			"wakeups": [40.30119487602146, 147.2043644106789, 684.920306962459, 784.0232452307897],
+			"busyFrac": 0.0016884145578855213,
+			"freqMeanKHz": 967619.6499999998,
+			"freqMaxKHz": 5626264,
+			"freqSamples": 10,
+			"otherCpuMs": 299.183
+		},
+		{
+			"set": "timer",
+			"cond": "null-steady-50",
+			"route": "null",
+			"rate": 50,
+			"mode": "steady",
+			"round": 3,
+			"order": 7,
+			"elapsedS": 19.999752805,
+			"pkgJ": 415.662724,
+			"pkgW": 20.78339307754259,
+			"reqs": 1000,
+			"serverCpuMs": 160.96,
+			"load0": 0.04,
+			"load1": 0.02,
+			"residency": [
+				4.90214392260668e-5, 0.0006809938335802014, 0.010890190850036358, 0.9889284499917432
+			],
+			"wakeups": [
+				52.250645804919486, 152.1018799412106, 698.1086284481205, 792.0097890429902
+			],
+			"busyFrac": 0.0021468620380599036,
+			"freqMeanKHz": 1438730.7708333333,
+			"freqMaxKHz": 5556614,
+			"freqSamples": 10,
+			"otherCpuMs": 308.465
+		},
+		{
+			"set": "timer",
+			"cond": "timer-steady-1000",
+			"route": "timer",
+			"rate": 1000,
+			"mode": "steady",
+			"round": 3,
+			"order": 8,
+			"elapsedS": 19.999417084,
+			"pkgJ": 742.430142,
+			"pkgW": 37.12258906755645,
+			"reqs": 20001,
+			"serverCpuMs": 0.699,
+			"load0": 0.02,
+			"load1": 0.01,
+			"residency": [
+				0.0001018508851921963, 0.00044171704086319624, 0.026084541504829792,
+				0.9579804981913375
+			],
+			"wakeups": [
+				86.0025066118572, 433.7126409018892, 1669.3486545020144, 1014.2295605319254
+			],
+			"busyFrac": 0.000646048682894298,
+			"freqMeanKHz": 1131841.6916666667,
+			"freqMaxKHz": 5632821,
+			"freqSamples": 10,
+			"otherCpuMs": 155.045
+		},
+		{
+			"set": "timer",
+			"cond": "idle",
+			"route": "none",
+			"rate": 0,
+			"mode": "none",
+			"round": 3,
+			"order": 9,
+			"elapsedS": 19.999795893,
+			"pkgJ": 393.737237,
+			"pkgW": 19.68706276336597,
+			"reqs": 0,
+			"serverCpuMs": 0.97,
+			"load0": 0.01,
+			"load1": 0.01,
+			"residency": [
+				3.673162485908775e-5, 0.0005356679666790837, 0.010641512767028983, 0.993208269371345
+			],
+			"wakeups": [39.25040056407539, 126.90129507213166, 655.3566881443772, 603.956163584034],
+			"busyFrac": 0.001187895965321774,
+			"freqMeanKHz": 1238458.6958333333,
+			"freqMaxKHz": 5622656,
+			"freqSamples": 10,
+			"otherCpuMs": 263.669
+		}
+	]
+}
