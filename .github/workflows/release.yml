@@ -50,18 +50,11 @@ jobs:
       - name: Build
         run: bun run build
 
-  browser:
-    name: Browser Lane
-    uses: ./.github/workflows/browser.yml
-
-    permissions:
-      contents: read
-
   cdn:
     name: Publish the Release Build to the CDN
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [gate, browser]
+    needs: gate
 
     permissions:
       contents: read
