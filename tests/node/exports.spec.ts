@@ -93,9 +93,12 @@ describe('the packed package', () => {
 		execFileSync('bun', ['scripts/build-cdn.ts', `--out=${join(stage, 'dist/cdn')}`], {
 			cwd: root
 		});
-		for (const name of ['package.json', 'LICENSE', 'README.md']) {
+		for (const name of ['LICENSE', 'README.md']) {
 			writeFileSync(join(stage, name), readFileSync(join(root, name)));
 		}
+		// npm 10 runs `prepare` (husky) on pack despite --ignore-scripts and prints into the json
+		const { scripts: _, ...manifest } = pkg;
+		writeFileSync(join(stage, 'package.json'), JSON.stringify(manifest, null, '\t'));
 		const out = join(work, 'out');
 		mkdirSync(out);
 		const packed = JSON.parse(
