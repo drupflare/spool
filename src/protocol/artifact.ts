@@ -33,7 +33,8 @@ export type StaticBody = { type: string; bytes: number; version?: string };
 /** who may be served an artifact from the replica */
 export type Scope = 'public' | 'principal';
 
-type ArtifactBase = {
+/** the fields every artifact carries, whatever its body */
+export type ArtifactBase = {
 	protocol: typeof PROTOCOL_VERSION;
 	/** the request path the artifact answers */
 	id: string;

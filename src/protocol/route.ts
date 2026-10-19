@@ -49,7 +49,8 @@ export const DEFAULT_FRESHNESS: Record<Scope, Freshness> = {
 	principal: { maxStale: 300, mode: 'hard' }
 };
 
-type Common = {
+/** the declaration fields every strategy shares */
+export type RouteCommon = {
 	scope?: Scope;
 	freshness?: Partial<Freshness>;
 	/** keep the artifact across worker restarts; default true */
@@ -68,13 +69,13 @@ type Common = {
 };
 
 /** a route answered by filling placeholders in a stored shell */
-export type AssemblyRoute = Common & {
+export type AssemblyRoute = RouteCommon & {
 	strategy: 'assembly';
 	load(ctx: RouteContext): AssemblyBody | Promise<AssemblyBody>;
 };
 
 /** a route answered by rendering stored JSON through a compiled template */
-export type TemplateRoute = Common & {
+export type TemplateRoute = RouteCommon & {
 	strategy: 'template';
 	template: TemplateSource;
 	load(ctx: RouteContext): unknown;
@@ -86,7 +87,7 @@ export type TemplateRoute = Common & {
  * `depends` changes or the freshness bound passes. It has no `load`, is always public, and
  * is answered in `serve` mode only.
  */
-export type StaticRoute = Omit<Common, 'scope' | 'persist' | 'mode' | 'retention'> & {
+export type StaticRoute = Omit<RouteCommon, 'scope' | 'persist' | 'mode' | 'retention'> & {
 	strategy: 'static';
 	scope?: undefined;
 	persist?: undefined;
@@ -99,7 +100,7 @@ export type StaticRoute = Omit<Common, 'scope' | 'persist' | 'mode' | 'retention
  * `@drupflare/spool/sw` takes a renderer keyed by this pattern. Without one the worker refuses the
  * local view and the network answers.
  */
-export type ProjectionRoute = Common & {
+export type ProjectionRoute = RouteCommon & {
 	strategy: 'projection';
 	load(ctx: RouteContext): unknown;
 };
@@ -108,7 +109,7 @@ export type ProjectionRoute = Common & {
  * A route for a JSON read. The worker answers a GET (not a navigation) from the stored value with
  * `JSON.stringify`, so the application's own handler has to return the same JSON `load` does.
  */
-export type DataRoute = Common & {
+export type DataRoute = RouteCommon & {
 	strategy: 'data';
 	load(ctx: RouteContext): unknown;
 	/** the content type of the local answer; default `application/json` */
