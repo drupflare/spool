@@ -29,7 +29,7 @@ export const DEFAULT_PRIOR: ProvisionPrior = {
 	futureViews: 2,
 	requestBytes: 2000,
 	artifactBytes: 20_000,
-	avoidedBytes: 16_900,
+	avoidedBytes: 17_054,
 	changesPerDay: 1
 };
 
