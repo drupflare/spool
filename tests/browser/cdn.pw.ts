@@ -72,14 +72,13 @@ test('the page runtime loads from another origin with SRI, registers the worker 
 	const fetches = browserName === 'webkit' ? 2 : 1;
 	expect(cdnHits).toEqual(Array(fetches).fill(`/spool/${VERSION}/client.js`));
 	expect(withSri.hits.some((h) => h.path.endsWith('/client.js'))).toBe(false);
-	await expect
-		.poll(() => viewsOf(withSri.sink.events).filter((v) => v.route === '/n/:id').length)
-		.toBeGreaterThan(0);
-	const loads = viewsOf(withSri.sink.events)
-		.filter((v) => v.route === '/n/:id')
-		.map((v) => v.crossOriginLoads);
-	expect(loads.some((count) => count === 0)).toBe(true);
-	expect(loads.some((count) => count === 1)).toBe(false);
+	const loads = () =>
+		viewsOf(withSri.sink.events)
+			.filter((v) => v.route === '/n/:id')
+			.map((v) => v.crossOriginLoads);
+	// a loads report leaves when its page is hidden, which can be a later flush than its view
+	await expect.poll(() => loads().some((count) => count === 0)).toBe(true);
+	expect(loads().some((count) => count === 1)).toBe(false);
 });
 
 test('a script whose bytes do not match the integrity hash never runs', async ({ page }) => {

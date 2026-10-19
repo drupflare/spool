@@ -130,11 +130,19 @@ for (const kind of ['node', 'php'] as Kind[]) {
 			reset();
 			for (const path of paths()) await page.goto(`${fx.front}${path}`);
 			await quiet();
-			expect(seen()).toEqual([
-				'/.spool/sync',
-				...paths().flatMap((path) => [path, '/.spool/artifact'])
-			]);
-			expect(fx.originHits).toEqual(paths().flatMap((path) => [path, path]));
+			// each artifact fetch is background provisioning and can land after the next page
+			const [sync, ...rest] = seen();
+			expect(sync).toBe('/.spool/sync');
+			expect(rest.sort()).toEqual(
+				paths()
+					.flatMap((path) => [path, '/.spool/artifact'])
+					.sort()
+			);
+			expect([...fx.originHits].sort()).toEqual(
+				paths()
+					.flatMap((path) => [path, path])
+					.sort()
+			);
 		});
 
 		test('a change the proxy sees on any visitor request reaches the warm browser at its next sync', async ({
