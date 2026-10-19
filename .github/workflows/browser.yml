@@ -1,0 +1,67 @@
+name: Browser Lane
+
+on:
+  push:
+    branches: [master, ver/*, feat/*, renovate/*]
+  pull_request:
+    branches: [master, ver/*, feat/*, renovate/*]
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  browser:
+    name: Chromium, Firefox and WebKit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    env:
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Install the Browsers
+        run: bunx playwright install --with-deps chromium firefox webkit
+      - name: Run the Browser Suites
+        run: bun run test:browser
+      - name: Fail on a Silent Skip
+        if: ${{ !cancelled() }}
+        run: |
+          bun -e '
+          const file = Bun.file("playwright-report/results.json");
+          if (!(await file.exists())) {
+            console.error("::error::no browser report was written, so nothing proves the suite ran");
+            process.exit(1);
+          }
+          const { stats } = await file.json();
+          console.log(`expected=${stats.expected} unexpected=${stats.unexpected} skipped=${stats.skipped} flaky=${stats.flaky}`);
+          if (stats.expected + stats.unexpected + stats.flaky === 0) {
+            console.error("::error::no browser test ran at all");
+            process.exit(1);
+          }
+          if (stats.skipped > 0) {
+            console.error(`::error::${stats.skipped} browser test(s) were SKIPPED; every engine this job claims has to actually run`);
+            process.exit(1);
+          }' >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive the Browser Report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-report
+          path: |
+            playwright-report/
+            playwright-results/
+          retention-days: 14
+          if-no-files-found: warn
