@@ -76,7 +76,9 @@ test('shadow mode makes the requests the page would make, plus only the batched 
 	fx.sink.events.length = 0;
 	const start = fx.hits.length;
 	const page = await walk(context, true);
-	await expect.poll(() => viewsOf(fx.sink.events).length).toBe(WARM.length + VIEW_BATCH);
+	await expect
+		.poll(() => viewsOf(fx.sink.events).length)
+		.toBeGreaterThanOrEqual(WARM.length + VIEW_BATCH);
 
 	// WebKit fetches a page's cacheable subresources once more on the first load the worker controls
 	const expected = { ...baseline };
@@ -95,16 +97,20 @@ test('a divergent route reports mismatch and a matching route never does', async
 	const context = await browser.newContext();
 	fx.sink.events.length = 0;
 	await walk(context, true);
-	await expect.poll(() => viewsOf(fx.sink.events).length).toBe(WARM.length + VIEW_BATCH);
+	await expect
+		.poll(() => viewsOf(fx.sink.events).length)
+		.toBeGreaterThanOrEqual(WARM.length + VIEW_BATCH);
 
 	const shadow = viewsOf(fx.sink.events).filter((v) => v.reason === 'fresh');
-	expect(shadow).toHaveLength(VIEW_BATCH);
+	// the batch leaves at the moment that finds VIEW_BATCH held; that navigation's own view may beat it
+	expect([VIEW_BATCH, VIEW_BATCH + 1]).toContain(shadow.length);
 	expect(shadow.every((v) => v.tier === 'shadow')).toBe(true);
+	const rounds = Array.from({ length: shadow.length }, (_, i) => WARM[i % WARM.length] as string);
+	const loads = (prefix: string) => rounds.filter((path) => path.startsWith(prefix)).length;
 	const mismatches = (route: string) =>
 		shadow.filter((v) => v.route === route).map((v) => v.mismatch);
-	expect(mismatches('/n/:id').every((m) => m === false)).toBe(true);
-	expect(mismatches('/n/:id')).toHaveLength(14);
-	expect(mismatches('/div/:id')).toEqual(Array.from({ length: 6 }, () => true));
+	expect(mismatches('/n/:id')).toEqual(Array.from({ length: loads('/n/') }, () => false));
+	expect(mismatches('/div/:id')).toEqual(Array.from({ length: loads('/div/') }, () => true));
 	expect(new Set(shadow.map((v) => v.engine)).size).toBe(1);
 	await context.close();
 });
