@@ -1164,9 +1164,10 @@ By default the worker answers an immutable same-origin asset from CacheStorage. 
 that. `passthrough` leaves assets to the browser's cache and never touches them. `static-routing`
 asks the browser through `InstallEvent.addRoutes` to send only navigations, beacons and routed
 paths to the worker and the rest of the origin to the network, and acts as `passthrough` where the
-API does not exist: Chromium and WebKit have it in the Playwright builds spool is tested with,
+API does not exist: Chromium has it, Playwright's WebKit has it on macOS and not on Linux, and
 Firefox does not. Both options cut the service worker's fetch events (Static Routing took them from
-32 to 3 per view on a desktop Chromium rig); neither changes server-side Worker invocations. Neither is measured to save energy. In the same run, new-tab views drew 2.78 J,
+32 to 3 per view on a desktop Chromium rig); neither changes server-side Worker invocations.
+Neither is measured to save energy. In the same run, new-tab views drew 2.78 J,
 2.83 J and 2.84 J of RAPL package energy above idle with CacheStorage, navigation-only handling
 and Static Routing (8 rounds each), and the ranges overlap. Under Static Routing a same-origin write no
 longer reaches the worker, so it is not a network moment and its response cannot carry
