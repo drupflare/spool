@@ -42,8 +42,8 @@ analytics request woke the radio; an iPhone 14 Pro over cellular (2026-10-19) sh
 attributable to an isolated request. Analytics are queued in the service worker and flushed on a
 network moment that already happens.
 
-**The modelled 12.3 J per view is an allocation, not a meter reading.** 11.8 J of it is SWD v4's
-0.194 kWh/GB spread over 16,900 B, the median repeat-view document request over every
+**The modelled 12.4 J per view is an allocation, not a meter reading.** 11.9 J of it is SWD v4's
+0.194 kWh/GB spread over 17,054 B, the median repeat-view document request over every
 `measurements/repeat-nav` reading (`scripts/impact.ts` refuses to run if `DOCUMENT_BYTES` drifts
 from that median); the rest is the origin request. Only the document counts: an optimized HTTP cache
 already keeps static files, and API calls and third-party requests still leave during a local view.

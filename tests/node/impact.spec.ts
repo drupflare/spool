@@ -34,13 +34,41 @@ describe('docs/impact.md', () => {
 		expect(render(template, figures)).not.toMatch(/\{\{/);
 	});
 
-	it('reproduces the 12.3 J headline, the retired server-year and the tier table', () => {
+	it('reproduces the 12.4 J headline, the retired server-year and the tier table', () => {
 		const { values, tables } = buildFigures(loadReadings());
-		expect(values.headlineJ).toBe('12.3');
+		expect(values.headlineJ).toBe('12.4');
 		expect(values.serverYear).toBe('3.80');
 		expect(values.freeTierViews).toBe('3,040,000');
-		expect(tables['views-channel']).toContain('| Transformative | 90% | 0.306 MWh |');
+		expect(tables['views-channel']).toContain('| Transformative | 90% | 0.309 MWh |');
 		expect(tables['free-tier']).toContain('20.97M');
+	});
+
+	it('prices bandwidth from the host table, with every host in each dollar table', () => {
+		const { tables, values } = buildFigures(loadReadings());
+		for (const name of ['host-prices', 'bandwidth-per-million', 'bandwidth-worked']) {
+			for (const host of ['Cloudflare Workers', 'AWS CloudFront', 'Azure', 'Google Cloud']) {
+				expect(tables[name], `${name} ${host}`).toContain(host);
+			}
+		}
+		expect(tables['bandwidth-per-million']).toContain('| $0.30 |');
+		expect(values.gbPerMillion).toBe('17.1');
+	});
+
+	it('opens with the notice before the evidence', () => {
+		const text = readFileSync(join(root, 'docs/impact.md'), 'utf8');
+		expect(text.startsWith('# Impact Notice\n')).toBe(true);
+		const order = [
+			'## What Spool Saves',
+			'## Bandwidth and Request Costs',
+			'## How the Figures Are Made',
+			'## Measured Readings',
+			'## Per-Site Figures',
+			'## Capacity',
+			'## What This Does Not Claim',
+			'## Reproducing'
+		].map((h) => text.indexOf(`\n${h}\n`));
+		expect(order.every((i) => i >= 0)).toBe(true);
+		expect([...order].sort((a, b) => a - b)).toEqual(order);
 	});
 
 	it('names each rig of the readings it prints from', () => {

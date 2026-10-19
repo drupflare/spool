@@ -1,12 +1,99 @@
-# Energy Impact
+# Impact Notice
 
-This page sets out how spool's energy figures are built. Every number comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
+Spool lets a visitor's browser answer a page view it has already seen, without asking the site. A local view removes the document request, the transaction that carries it and the server work behind it. The page's own API calls and every third-party request still leave the browser unless the site declares `data` routes or turns on the third-party cache.
 
-Two channels carry the numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at 3.80 MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.
+This page says what that saves, how sure each number is and what it means in money. Every figure carries a label: L0 published by someone else, L1 measured here, L2 derived from L0 and L1, L3 a scenario. The sections after the notice show the readings and the arithmetic.
 
-Tiers on this page are relative to an institution's own views. The tables use 100 million views a year as a scale, an L3 choice that names no institution. Multiply a table by your own yearly views over 100 million.
+## What Spool Saves
 
-## Measurement Labels
+The headline is 12.4 joules per local view (L2). It applies the Sustainable Web Design v4 intensities for the network, the data centre and the device to the 17,054 bytes of the document a local view replaces, then adds the origin's energy for one request. No meter read it.
+
+Meters read less, because they leave out the network and every data centre between the two ends. Three readings sit beside the headline:
+
+| where              | figure per view                     | label | what it covers                                                                                   |
+| ------------------ | ----------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| Desktop            | saves 0.80 J                        | L1    | package energy of the browser, the origin and the service worker, against optimized HTTP caching |
+| iPhone 14 Pro      | saves 0.088 J                       | L1    | the whole phone with the screen on, over Wi-Fi, against a network view                           |
+| Server, 4 runtimes | a network view costs 0.61 to 0.98 J | L1    | package energy of the server, which a local view does not spend                                  |
+
+On the server, a local view sent nothing in all but one window per runtime, and its measured energy (0.32 J at most, as a median) sits inside the idle drift. The ranges and the method are under Measured Readings.
+
+Spool does not claim that the headline is a meter reading, a saving in radio wakes, a capacity saving without evidence that equipment was removed, or a figure for paced or cellular phone use. The full list is under What This Does Not Claim.
+
+### A Worked Example
+
+Take an institution with 100 million views a year, a scale chosen for the example that names no institution (L3). Spool's tiers name the share of those views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy those local views avoid at each of the three per-view figures.
+
+| tier           | Z_annual | attributional, 12 J | measured desktop, 0.80 J | measured phone, 0.088 J |
+| -------------- | -------: | ------------------: | -----------------------: | ----------------------: |
+| Meaningful     |      30% |           0.103 MWh |              0.00668 MWh |            0.000731 MWh |
+| Major          |      65% |           0.223 MWh |               0.0145 MWh |             0.00158 MWh |
+| Transformative |      90% |           0.309 MWh |               0.0200 MWh |             0.00219 MWh |
+
+The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a view count and a tier share. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with. Multiply a row by your own yearly views over 100 million.
+
+## Bandwidth and Request Costs
+
+A local view moves no document, so a host that bills traffic bills less. The bytes saved per local view are the document's median size, 17,054 B or 17.1 KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to 17.1 GB and one million requests.
+
+Prices are each vendor's published list prices, read from the vendor's own page on 2026-10-19. Every input is L0 unless the table says L2, and every input's source is in `src/report/inputs.ts`. A price that could not be read from the vendor's page is left out.
+
+| host                               | tier the price is taken from                                                             | egress price  | free egress a month | request price     | label           | vendor page, read 2026-10-19                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- | ------------- | ------------------- | ----------------- | --------------- | --------------------------------------------------- |
+| Cloudflare Workers (Standard plan) | Standard plan, requests past the included 10 million a month                             | $0 per GB     | no egress charge    | $0.30 per million | L0, requests L0 | developers.cloudflare.com/workers/platform/pricing  |
+| AWS CloudFront (pay as you go)     | United States, Mexico and Canada; the next 9 TB after the first free 1 TB                | $0.085 per GB | 1,000 GB            | $1.00 per million | L0, requests L2 | aws.amazon.com/cloudfront/pricing/pay-as-you-go     |
+| Microsoft Azure                    | default routing from North America or Europe; the next 10 TB after the first free 100 GB | $0.087 per GB | 100 GB              | not read          | L0              | azure.microsoft.com/en-us/pricing/details/bandwidth |
+| Google Cloud (Premium Tier)        | to North America, 1 to 1,024 GiB a month, per GiB                                        | $0.12 per GiB | 1 GiB               | not read          | L0              | cloud.google.com/vpc/network-pricing                |
+
+Egress is priced at the first paid tier of each host. A free allowance is used up by everything the site serves, not by the bytes spool removes, so for a site whose total traffic is past the allowance the saving comes off at the paid rate. A site large enough to reach a host's later tiers pays a lower rate per GB there, so for it these figures are the high end. A site that serves less than its allowance in total saves nothing in dollars. A GiB is 2^30 bytes and a GB is 10^9.
+
+| host                               | bytes no longer moved | egress | requests | total |
+| ---------------------------------- | --------------------: | -----: | -------: | ----: |
+| Cloudflare Workers (Standard plan) |               17.1 GB |     $0 |    $0.30 | $0.30 |
+| AWS CloudFront (pay as you go)     |               17.1 GB |  $1.45 |    $1.00 | $2.45 |
+| Microsoft Azure                    |               17.1 GB |  $1.48 | not read | $1.48 |
+| Google Cloud (Premium Tier)        |              15.9 GiB |  $1.91 | not read | $1.91 |
+
+The dollar figure is small. A million local views save between $0.30 and $2.45 at these list prices. Scaled to the institution above:
+
+| host                               | Meaningful, 30M local views | Major, 65M local views | Transformative, 90M local views |
+| ---------------------------------- | --------------------------: | ---------------------: | ------------------------------: |
+| Cloudflare Workers (Standard plan) |                $9.00 a year |             $20 a year |                      $27 a year |
+| AWS CloudFront (pay as you go)     |                  $73 a year |            $159 a year |                     $220 a year |
+| Microsoft Azure                    |                  $45 a year |             $96 a year |                     $134 a year |
+| Google Cloud (Premium Tier)        |                  $57 a year |            $124 a year |                     $172 a year |
+
+At the Transformative tier that is $27 to $220 a year across these hosts. The bytes and requests behind it, a month at a time:
+
+| tier           | local views a year | local views a month, requests no longer sent | bytes no longer moved, GB a month |
+| -------------- | -----------------: | -------------------------------------------: | --------------------------------: |
+| Meaningful     |         30 million |                                  2.5 million |                                43 |
+| Major          |         65 million |                                  5.4 million |                                92 |
+| Transformative |         90 million |                                  7.5 million |                               128 |
+
+The same rule holds for requests. Cloudflare Workers and CloudFront each include 10 million requests a month, and that allowance is used by all of the site's requests. Past it, each request spool removes saves the request price in the table.
+
+Two more hosts publish traffic terms that this page cannot turn into dollars. Pantheon bills overage at $40 for each 10,000 unique visits, counting an IP address and user agent once over 24 hours; the page carries a notice that the automated overage program is paused. A visit is a different unit from a view, and no reading here says how many visits spool removes, so no Pantheon figure is derived. Acquia's pricing page lists no traffic or bandwidth price, so Acquia is left out.
+
+The money above does not include:
+
+- staff time spent on the site or on the migration;
+- plan tiers that do not scale with traffic, such as a flat hosting plan, which gets cheaper only when traffic falls under a tier boundary;
+- request fees at hosts where none was read (Azure and Google Cloud above);
+- the origin's compute and the servers behind it, which the Capacity section treats;
+- the requests spool sends itself. The table counts one request avoided per local view and does not subtract spool's syncs and flushes.
+
+Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.
+
+## How the Figures Are Made
+
+Every number on this page comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
+
+Two channels carry the energy numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at 3.80 MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.
+
+Tiers on this page are relative to an institution's own views. The tables use 100 million views a year as a scale, an L3 choice that names no institution.
+
+### Measurement Labels
 
 Each figure carries one label, and a derived figure keeps its label wherever it travels.
 
@@ -17,9 +104,9 @@ Each figure carries one label, and a derived figure keeps its label wherever it 
 | L2    | derived: arithmetic over L0 and L1 figures                  |
 | L3    | a scenario: an assumption, or a what-if no reading backs    |
 
-A figure that mixes an L2 product with an L3 term is L3 as a whole. The 12.3 J headline below is L2, and the table that builds it says so.
+A figure that mixes an L2 product with an L3 term is L3 as a whole. The 12.4 J headline is L2, and the table that builds it says so.
 
-## Accounting Quantities
+### Accounting Quantities
 
 Spool counts five quantities and never assumes they move together.
 
@@ -41,7 +128,7 @@ The browser's count and the proxy's count differ, and the difference is the reas
 
 The two counts differ in both directions. The browser's network count leaves out requests it answered from its memory or disk cache, and the proxy sees requests the browser's counter does not attribute to the network. This reading does not explain every difference. The byte columns differ too: on repeat views the proxy saw several times the bytes the browser reports, and the gap is not explained here either. Both counts are printed because neither alone is the wire.
 
-## Traffic Measures
+### Traffic Measures
 
 Three measures feed three different benefits.
 
@@ -53,58 +140,70 @@ Three measures feed three different benefits.
 
 The code is in `src/report/traffic.ts`. `Z_annual` names the tiers: Meaningful at 30%, Major at 65% and Transformative at 90%. `scripts/measure/traces.ts` turns an institution's server-work trace into the intervals `Z_peak_work` reads.
 
-## Views Channel
+### Views Channel
 
 The channel's energy is `E_views = V x Z_annual x J_view`, where `V` is the institution's yearly views and `J_view` is the joules one local view avoids. Two `J_view` figures exist, and the page always prints both. Both are floors: they count what a meter or a published model attributes to a view today, and the work is to raise them.
 
-### Attributional Headline
+#### Attributional Headline
 
-12.3 J per local revisit view is the attributional figure. It applies the Sustainable Web Design v4 intensities (network, data centre and device, 0.194 kWh/GB together) to the bytes of the document request a local view replaces, then adds an origin request. The radio-wake term is 0 J until a phone reading attributes a wake to a network view (see the cellular reading below).
+12.4 J per local revisit view is the attributional figure. It applies the Sustainable Web Design v4 intensities (network, data centre and device, 0.194 kWh/GB together) to the bytes of the document request a local view replaces, then adds an origin request. The radio-wake term is 0 J until a phone reading attributes a wake to a network view (see the cellular reading under Measured Readings).
 
 | term           | basis                                                                                                       | joules | label |
 | -------------- | ----------------------------------------------------------------------------------------------------------- | -----: | ----- |
-| Network        | SWD v4 0.059 kWh/GB over 16,900 B                                                                           |    3.6 | L2    |
-| Data centre    | SWD v4 0.055 kWh/GB over the same bytes                                                                     |    3.3 | L2    |
+| Network        | SWD v4 0.059 kWh/GB over 17,054 B                                                                           |    3.6 | L2    |
+| Data centre    | SWD v4 0.055 kWh/GB over the same bytes                                                                     |    3.4 | L2    |
 | Device         | SWD v4 0.08 kWh/GB over the same bytes                                                                      |    4.9 | L2    |
 | Origin request | a conventional origin, drupflare/worker docs/impact.md, RAPL mix @40 views/s, regular host, idle subtracted |  0.455 | L1    |
 | Radio wake     | 0 J on 43% of views (phones), until a phone reading attributes a wake; 5 J was the earlier scenario value   |   0.00 | L1    |
-| Total          | the sum of the rows                                                                                         |   12.3 | L2    |
+| Total          | the sum of the rows                                                                                         |   12.4 | L2    |
 
 Every term counts as energy that goes away when the view makes no request, the same sense drupflare's own impact page uses. The figure is an allocation of a published model over measured bytes. No meter read it.
 
-A default local view replaces one request, the page's document. The model prices that request: 16,900 B, the median repeat-view document over every repeat-navigation reading (44 views from 3 readings). The rest of a repeat view is left out. An optimized HTTP cache already keeps a site's static files, so those bytes are the baseline fix's saving and not spool's. The page's own API calls and every third-party request still leave the browser during a local view, unless the site declares `data` routes or turns on the third-party cache. For scale, the whole repeat view's median is 66,311 B, and the latest reading's median is 31 network requests over 15 sites.
+A default local view replaces one request, the page's document. The model prices that request: 17,054 B, the median repeat-view document over every repeat-navigation reading (59 views from 4 readings). The rest of a repeat view is left out. An optimized HTTP cache already keeps a site's static files, so those bytes are the baseline fix's saving and not spool's. The page's own API calls and every third-party request still leave the browser during a local view, unless the site declares `data` routes or turns on the third-party cache. For scale, the whole repeat view's median is 66,343 B, and the latest reading's median is 32 network requests over 15 sites. Every site read so far is under Per-Site Figures.
 
-The saving grows with the size of a site's document. Where the browser's own cache answered the document (a long `max-age` on the HTML), a local view has no request to replace and saves nothing. The headline is the typical site; an institution's own figure comes from its own pages and traffic. Every site read so far, lightest document first, with the attributional joules a local view of that page avoids. Sites that answered the rig with an error page instead of their home page are left out (www.ox.ac.uk).
+### Counting Rules
 
-| site               | document bytes, 2026-10-18 | document bytes, 2026-10-19 | document bytes, 2026-10-19-document | whole view bytes, latest reading | J per local view |
-| ------------------ | -------------------------: | -------------------------: | ----------------------------------: | -------------------------------: | ---------------: |
-| www.mass.gov       |                          0 |                          0 |                                   0 |                          327,335 |              0.0 |
-| www.harvard.edu    |                          0 |                          0 |                                   0 |                            3,853 |              0.0 |
-| www.mit.edu        |                          0 |                          0 |                                   0 |                                0 |              0.0 |
-| www.unl.edu        |                        415 |                        413 |                                 414 |                          142,325 |              0.7 |
-| www.uiowa.edu      |                        515 |                        515 |                                 516 |                           18,167 |              0.8 |
-| demo.drupflare.com |                      5,227 |                      5,259 |                               5,265 |                           35,894 |              4.1 |
-| www.berkeley.edu   |                     16,264 |                     16,265 |                              16,265 |                           17,009 |             11.8 |
-| www.asu.edu        |                     17,076 |                     17,054 |                              16,746 |                           26,566 |             12.2 |
-| www.colorado.edu   |                     18,355 |                     18,337 |                              18,364 |                          110,551 |             13.3 |
-| www.cornell.edu    |                     18,924 |                     18,934 |                              18,934 |                        6,651,081 |             13.7 |
-| www.yale.edu       |                     31,945 |                     31,946 |                              31,969 |                           33,421 |             22.8 |
-| www.tufts.edu      |                     43,166 |                     43,165 |                              43,128 |                          120,633 |             30.6 |
-| www.georgetown.edu |                     56,089 |                     56,098 |                              56,093 |                           66,251 |             39.6 |
-| www.rutgers.edu    |                    193,748 |                    193,745 |                             193,742 |                       14,562,912 |            135.8 |
-| www.ucdavis.edu    |                   not read |                    957,863 |                             957,877 |                        1,068,401 |            669.4 |
+1. The attributional headline already holds a data-centre term (SWD v4's 3.4 J of the bytes term). Where a workload's origin joules were measured, they replace that term and the modelled origin request. They never add to the headline.
+2. The meter-visible figure is the part of the headline spool controls directly. The origin-term figures break the headline down. They do not add to it.
+3. Origin-term and power-state joules on a node that is later retired sit inside that node's retired 3.80 MWh. Subtract them from the views and retained-node figures for that node.
+4. A projection view reports server joules removed, device joules added and provisioning bytes, per device class. Only the net is credited.
+5. Network hardware stays out of the measured savings. The 12.4 J headline still carries SWD's network term (3.6 J of the bytes term), and that term is attributional: a published per-byte intensity applied to measured bytes. It is not a measurement of any router, and network energy is not proportional to data volume (Mytton, Lunden and Malmodin 2024, abstract only). One institution's traffic is a small share of any operator node's load, so no causal tie to an operator's power state can be shown from it.
+6. Every figure keeps its label. Hyperscale per-request figures are never printed as spool savings.
+7. Embodied energy is a separate kgCO2e line.
 
-| navigation         | navigations | sites | median bytes | mean bytes | 75th percentile bytes | median network requests | median document bytes |
-| ------------------ | ----------: | ----: | -----------: | ---------: | --------------------: | ----------------------: | --------------------: |
-| Cold home page     |          15 |    15 |    4,992,103 |  7,359,851 |             8,361,679 |                    85.0 |                29,559 |
-| Warm internal page |          82 |    14 |      971,451 |  3,571,297 |             2,283,203 |                    23.0 |                23,258 |
-| Home page again    |          15 |    15 |       66,251 |  1,545,627 |               234,830 |                    31.0 |                16,746 |
+### Evidence Behind the Design
 
-Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
+Each finding forced a mechanism in code. Labels give what was read: full text, abstract only, or a web page.
 
-### Measured Figures
+| finding                                                                                                                                                 | source (label)                                    | mechanism                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| A page rendered from cache with no network used 6.8% to 40.5% of the networked load's energy; one analytics request erased the saving on 15 of 25 sites | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
+| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                          | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
+| Safari deletes script-writable storage after 7 days without interaction                                                                                 | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
+| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                            | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
+| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                   | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
+| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
+| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                        | the views reading (L1)                            | beacon queueing in the worker                                                               |
+| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
+| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                    | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
+| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                 | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
+| A server cache already removes recompute, and a projection relocates work                                                                               | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
+| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                           | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
 
-The meter-visible part is smaller. These readings are the floor the engineering work has to raise.
+### Baselines
+
+Spool's saving is credited against an optimized HTTP baseline: immutable hashed assets, ETag revalidation and compression. Fixing a site's own asset caching comes first and is not spool's credit. Other baselines it is compared with:
+
+- **Compression Dictionary Transport (RFC 9842).** Shrinks bytes for repeat loads, but every view still makes a request.
+- **Back-forward cache and Speculation Rules.** Make some navigations instant. A bfcache restore needs no request, and it covers only back and forward navigations in one session.
+- **The Drupal PWA module.** Caches the shell, with no story for authenticated pages.
+- **Fawkes-style patching.** Sends a patch against a stored template on each load, so it still makes one request per view.
+
+## Measured Readings
+
+### Desktop and Phone
+
+The meter-visible part is smaller than the headline. These readings are the floor the engineering work has to raise.
 
 | arm                    | J per navigation above idle | ms per navigation | origin requests per navigation | origin CPU ms per navigation | rounds |
 | ---------------------- | --------------------------: | ----------------: | -----------------------------: | ---------------------------: | -----: |
@@ -169,11 +268,11 @@ The headline's origin term is modelled. For a view the origin would otherwise re
 
 | workload                               | origin J per request | label           | J per local view |
 | -------------------------------------- | -------------------: | --------------- | ---------------: |
-| Modelled origin request (the headline) |                0.455 | L1, modelled    |  12.3 (headline) |
+| Modelled origin request (the headline) |                0.455 | L1, modelled    |  12.4 (headline) |
 | Cache hit                              |             0.000717 | L1              |              8.5 |
 | CMS render                             |               0.0151 | L1              |              8.5 |
-| Analytics page                         |                 10.9 | L1              |             19.3 |
-| Local 8B model request                 |                  286 | L1, GPU sampled |            294.4 |
+| Analytics page                         |                 10.9 | L1              |             19.4 |
+| Local 8B model request                 |                  286 | L1, GPU sampled |            294.5 |
 
 Each origin figure is package energy above idle on paisley-park (L1, 8 rounds unless noted) against a synthetic CMS and enrollment database that each file describes. The per-view figure is L2 over the L3 radio term. A real origin's joules replace the origin column when they are measured.
 
@@ -268,17 +367,26 @@ The first column is the energy one avoided operation saves on this machine. The 
 
 The origin term is measured per workload against the origin's real baseline. It is close to zero where a server cache exists and it is net of device work a projection relocates.
 
-### Tiers at the Reference Scale
+### Third-Party Requests
 
-Views-channel energy per 100 million views a year, at the three per-view figures.
+A view is strict zero-network only when it makes no request at all, and the service worker can answer only same-origin requests. Most requests that leave the browser on the 16 sites of the on-wire reading go to hosts other than the page's own.
 
-| tier           | Z_annual | attributional, 12 J | measured desktop, 0.80 J | measured phone, 0.088 J |
-| -------------- | -------: | ------------------: | -----------------------: | ----------------------: |
-| Meaningful     |      30% |           0.102 MWh |              0.00668 MWh |            0.000731 MWh |
-| Major          |      65% |           0.221 MWh |               0.0145 MWh |             0.00158 MWh |
-| Transformative |      90% |           0.306 MWh |               0.0200 MWh |             0.00219 MWh |
+| navigation         | median proxy requests to other hosts | share of proxy requests | median bytes from other origins (direct run) |
+| ------------------ | -----------------------------------: | ----------------------: | -------------------------------------------: |
+| Cold home page     |                                 46.5 |                     63% |                                    1,777,317 |
+| Warm internal page |                                 17.0 |                     63% |                                       15,936 |
+| Home page again    |                                 26.0 |                     73% |                                       10,229 |
 
-The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a view count and a tier share.
+Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and a view with any is not strict zero-network. WebKit also re-checks the worker script on some navigations, which `updateViaCache: 'all'` with a 24-hour script lifetime removes in Chromium and Firefox:
+
+| registration                             | engine   | navigations | reached the origin | paths that did |
+| ---------------------------------------- | -------- | ----------: | -----------------: | -------------- |
+| default registration                     | chromium |          13 |                  1 | `/sw.js` x 1   |
+| default registration                     | firefox  |          13 |                  4 | `/sw.js` x 4   |
+| default registration                     | webkit   |          13 |                  3 | `/sw.js` x 3   |
+| updateViaCache all, script max-age 86400 | chromium |          13 |                  0 | none           |
+| updateViaCache all, script max-age 86400 | firefox  |          13 |                  0 | none           |
+| updateViaCache all, script max-age 86400 | webkit   |          13 |                  5 | `/sw.js` x 5   |
 
 ### Free-Tier Ceiling
 
@@ -290,7 +398,97 @@ The Workers free plan carries 3,040,000 views a month at one request per view. A
 | Major          |      65% |             7.95M (from 3.04M) |
 | Transformative |      90% |            20.97M (from 3.04M) |
 
-## Capacity Channel
+## Per-Site Figures
+
+The saving grows with the size of a site's document. Where the browser's own cache answered the document (a long `max-age` on the HTML), a local view has no request to replace and saves nothing. The headline is the typical site; an institution's own figure comes from its own pages and traffic. Every site read so far, lightest document first, with the attributional joules a local view of that page avoids. Sites that answered the rig with an error page instead of their home page are left out (www.ox.ac.uk).
+
+| site               | document bytes, 2026-10-18 | document bytes, 2026-10-19 | document bytes, 2026-10-19-document | document bytes, 2026-10-19-requests | whole view bytes, latest reading | J per local view |
+| ------------------ | -------------------------: | -------------------------: | ----------------------------------: | ----------------------------------: | -------------------------------: | ---------------: |
+| www.mass.gov       |                          0 |                          0 |                                   0 |                                   0 |                          327,401 |              0.0 |
+| www.harvard.edu    |                          0 |                          0 |                                   0 |                                   0 |                            3,856 |              0.0 |
+| www.mit.edu        |                          0 |                          0 |                                   0 |                                   0 |                                0 |              0.0 |
+| www.unl.edu        |                        415 |                        413 |                                 414 |                                 414 |                          142,115 |              0.7 |
+| www.uiowa.edu      |                        515 |                        515 |                                 516 |                                 513 |                           18,163 |              0.8 |
+| demo.drupflare.com |                      5,227 |                      5,259 |                               5,265 |                               5,253 |                           35,906 |              4.1 |
+| www.berkeley.edu   |                     16,264 |                     16,265 |                              16,265 |                              16,264 |                           17,014 |             11.8 |
+| www.asu.edu        |                     17,076 |                     17,054 |                              16,746 |                              17,477 |                           27,374 |             12.7 |
+| www.colorado.edu   |                     18,355 |                     18,337 |                              18,364 |                              18,361 |                          109,609 |             13.3 |
+| www.cornell.edu    |                     18,924 |                     18,934 |                              18,934 |                              18,925 |                        6,873,140 |             13.7 |
+| www.yale.edu       |                     31,945 |                     31,946 |                              31,969 |                              31,845 |                           33,392 |             22.7 |
+| www.tufts.edu      |                     43,166 |                     43,165 |                              43,128 |                              43,134 |                          121,180 |             30.6 |
+| www.georgetown.edu |                     56,089 |                     56,098 |                              56,093 |                              56,114 |                           66,343 |             39.6 |
+| www.rutgers.edu    |                    193,748 |                    193,745 |                             193,742 |                             193,747 |                       14,562,969 |            135.8 |
+| www.ucdavis.edu    |                   not read |                    957,863 |                             957,877 |                             957,868 |                        1,068,391 |            669.4 |
+
+### What a Repeat View Moves
+
+The `requests` run of the repeat-navigation rig kept every request of each site's home-page repeat view: its URL without the query string, whether it was same-origin (an exact origin match), its type, bytes, which cache answered it, and its cache headers. The document is the first Document request. Same-origin static is Script, Stylesheet, Font, Image and Media. Same-origin dynamic is every other same-origin request (XHR, Fetch, Ping, EventSource, Other and further documents). Third-party is any other origin, including an institution's own subdomains and media hosts, which is why one university's video host shows up there. Requests the browser cache answered carry no bytes and are left out. 15 of 16 sites loaded their home page (www.ox.ac.uk answered with a block page); the blocked page is listed and left out of every share.
+
+| site               |        document B | same-origin static B | same-origin dynamic B | third-party B | whole view B | J a local view removes, document only (headline basis) | J a local view removes on the site as it ships today, including the cache-header fix |
+| ------------------ | ----------------: | -------------------: | --------------------: | ------------: | -----------: | -----------------------------------------------------: | -----------------------------------------------------------------------------------: |
+| demo.drupflare.com |             5,253 |               29,617 |                 1,036 |             0 |       35,906 |                                                    4.1 |                                                                                 24.8 |
+| www.asu.edu        |            17,477 |                    0 |                    60 |         9,837 |       27,374 |                                                   12.7 |                                                                                 12.7 |
+| www.yale.edu       |            31,845 |                    0 |                     0 |         1,547 |       33,392 |                                                   22.7 |                                                                                 22.7 |
+| www.colorado.edu   |            18,361 |                    0 |                76,556 |        14,692 |      109,609 |                                                   13.3 |                                                                                 13.3 |
+| www.ox.ac.uk       | blocked, HTTP 403 |                      |                       |               |              |                                                        |                                                                                      |
+| www.berkeley.edu   |            16,264 |                    0 |                     0 |           750 |       17,014 |                                                   11.8 |                                                                                 11.8 |
+| www.cornell.edu    |            18,925 |              105,578 |                     0 |     6,748,637 |    6,873,140 |                                                   13.7 |                                                                                 87.4 |
+| www.uiowa.edu      |               513 |                    0 |                     0 |        17,650 |       18,163 |                                                    0.8 |                                                                                  0.8 |
+| www.tufts.edu      |            43,134 |                    0 |                     0 |        78,046 |      121,180 |                                                   30.6 |                                                                                 30.6 |
+| www.unl.edu        |               414 |                    0 |                     0 |       141,701 |      142,115 |                                                    0.7 |                                                                                  0.7 |
+| www.georgetown.edu |            56,114 |                    0 |                     0 |        10,229 |       66,343 |                                                   39.6 |                                                                                 39.6 |
+| www.mass.gov       |                 0 |              322,073 |                     0 |         5,328 |      327,401 |                                                    0.0 |                                                                                225.4 |
+| www.ucdavis.edu    |           957,868 |                    0 |                     0 |       110,523 |    1,068,391 |                                                  669.4 |                                                                                669.4 |
+| www.rutgers.edu    |           193,747 |           14,353,583 |                     0 |        15,639 |   14,562,969 |                                                  135.8 |                                                                             10,160.3 |
+| www.harvard.edu    |                 0 |                    0 |                     0 |         3,856 |        3,856 |                                                    0.0 |                                                                                  0.0 |
+| www.mit.edu        |                 0 |                    0 |                     0 |             0 |            0 |                                                    0.0 |                                                                                  0.0 |
+
+The last column is a second figure per site and it is not spool's credit. A site that ships today with short cache lifetimes on its static files re-downloads them on every repeat view, and a local view would remove those bytes along with the document. The saving that comes from fixing the cache headers is the baseline fix's, not spool's against an optimized HTTP cache, so the headline stays on the document only. The column prices document plus same-origin static bytes at the same SWD v4 rate and a single origin request, so it is L2 over an L3 simplification: it does not count the origin work of each static request. Its median over the 15 sites is 22.7 J, against 12.4 J for the document alone. Most of that gap sits at a few sites (the largest figure is 10,160.3 J), since a median site's same-origin static share of its repeat view is 0.0%.
+
+| class                                                       | bytes over all sites | pooled share of bytes | median share of a site |
+| ----------------------------------------------------------- | -------------------: | --------------------: | ---------------------: |
+| Document                                                    |            1,359,915 |                  5.8% |                  15.7% |
+| Same-origin static (Script, Stylesheet, Font, Image, Media) |           14,810,851 |                 63.3% |                   0.0% |
+| Same-origin dynamic (XHR, Fetch, Ping, Other and the rest)  |               77,652 |                  0.3% |                   0.0% |
+| Third-party                                                 |            7,158,435 |                 30.6% |                  14.4% |
+| Whole repeat view                                           |           23,406,853 |                100.0% |                 100.0% |
+
+Pooled over all sites, the shares are 5.8% document, 63.3% same-origin static, 0.3% same-origin dynamic and 30.6% third-party, out of 23,406,853 B. The two heaviest sites carry 91.6% of the pooled bytes, so the pooled static and third-party shares describe them more than a typical page. The median site's share is the better read of a typical page.
+
+| class     | total bytes | median bytes per site | sites with any |
+| --------- | ----------: | --------------------: | -------------: |
+| unknown   |   7,119,616 |                 9,299 |             13 |
+| ads       |      36,470 |                     0 |              5 |
+| video     |       2,126 |                     0 |              4 |
+| analytics |         183 |                     0 |              4 |
+| social    |          40 |                     0 |              1 |
+
+99.5% of the third-party bytes come from hosts the table in `src/report/thirdparty.ts` does not know. The largest hosts, by bytes over all sites:
+
+| host                                | class   | bytes over all sites | sites |
+| ----------------------------------- | ------- | -------------------: | ----: |
+| cdnsecakmi.kaltura.com              | unknown |            3,415,557 |     2 |
+| media.univcomm.cornell.edu          | unknown |            3,208,074 |     1 |
+| cdn.universityrelations.cornell.edu | unknown |              124,661 |     1 |
+| ucommchat.unl.edu                   | unknown |               89,721 |     1 |
+| story.tagboard.com                  | unknown |               83,654 |     1 |
+| api.curator.io                      | unknown |               56,961 |     1 |
+| googleads.g.doubleclick.net         | ads     |               34,262 |     5 |
+| mediahub.unl.edu                    | unknown |               17,084 |     1 |
+| events.unl.edu                      | unknown |                8,553 |     1 |
+| www.juicer.io                       | unknown |                8,540 |     1 |
+
+The classified origins move little: ad calls total 36,470 B at 5 sites and analytics endpoints 183 B. The third-party report names what blocks zero-network by host; this table says what those hosts cost in bytes. Bytes are not the cost that matters for zero-network, which a single request of any size breaks.
+
+| navigation         | navigations | sites | median bytes | mean bytes | 75th percentile bytes | median network requests | median document bytes |
+| ------------------ | ----------: | ----: | -----------: | ---------: | --------------------: | ----------------------: | --------------------: |
+| Cold home page     |          15 |    15 |    4,992,892 |  7,318,189 |             8,472,860 |                    85.0 |                29,561 |
+| Warm internal page |          82 |    14 |      971,161 |  3,609,705 |             2,283,212 |                    23.5 |                23,254 |
+| Home page again    |          15 |    15 |       66,343 |  1,560,457 |               234,758 |                    32.0 |                17,477 |
+
+Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
+
+## Capacity
 
 This channel is the ceiling. It counts infrastructure an institution can stop running because spool lowers peak work, and an institution reaches it when it acts on the numbers and removes servers. It assigns no energy to an individual request. It is conditional and discontinuous: a fleet sized by peak throughput shrinks only when peak work falls far enough to retire a whole node, and the channel counts only when equipment is actually removed.
 
@@ -334,80 +532,22 @@ The effect is bounded by the node's whole above-idle energy. At three origin req
 
 Embodied energy is a separate line in kgCO2e, L3 until a retirement ledger exists. It covers a server or instance-year not bought because a measured drop in peak work let a refresh slip. It stays outside the MWh figures so one retired server is never counted twice.
 
-## Counting Rules
-
-1. The attributional headline already holds a data-centre term (SWD v4's 3.3 J of the bytes term). Where a workload's origin joules were measured, they replace that term and the modelled origin request. They never add to the headline.
-2. The meter-visible figure is the part of the headline spool controls directly. The origin-term figures break the headline down. They do not add to it.
-3. Origin-term and power-state joules on a node that is later retired sit inside that node's retired 3.80 MWh. Subtract them from the views and retained-node figures for that node.
-4. A projection view reports server joules removed, device joules added and provisioning bytes, per device class. Only the net is credited.
-5. Network hardware stays out of the measured savings. The 12.3 J headline still carries SWD's network term (3.6 J of the bytes term), and that term is attributional: a published per-byte intensity applied to measured bytes. It is not a measurement of any router, and network energy is not proportional to data volume (Mytton, Lunden and Malmodin 2024, abstract only). One institution's traffic is a small share of any operator node's load, so no causal tie to an operator's power state can be shown from it.
-6. Every figure keeps its label. Hyperscale per-request figures are never printed as spool savings.
-7. Embodied energy is a separate kgCO2e line.
-
-## Shared Responsibility
+### Shared Responsibility
 
 drupflare removes fixed idle capacity: a site that ran on a provisioned server runs on Workers, and the capacity it kept idle goes away. Spool removes throughput work: requests and renders that never reach the origin. A provider sized by throughput downsizes when demand falls, so spool lowers demand and drupflare lowers the floor. The two counts do not overlap, and a capacity saving already realised by migration is not spool's. On drupflare the immediate benefit is Worker requests and execution avoided. Cloud-hosted origins show a smaller bill, and the provider's electricity is not established.
 
-## Third-Party Requests
-
-A view is strict zero-network only when it makes no request at all, and the service worker can answer only same-origin requests. Most requests that leave the browser on the 16 sites of the on-wire reading go to hosts other than the page's own.
-
-| navigation         | median proxy requests to other hosts | share of proxy requests | median bytes from other origins (direct run) |
-| ------------------ | -----------------------------------: | ----------------------: | -------------------------------------------: |
-| Cold home page     |                                 46.5 |                     63% |                                    1,771,682 |
-| Warm internal page |                                 17.0 |                     63% |                                       15,643 |
-| Home page again    |                                 26.0 |                     73% |                                       10,158 |
-
-Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and a view with any is not strict zero-network. WebKit also re-checks the worker script on some navigations, which `updateViaCache: 'all'` with a 24-hour script lifetime removes in Chromium and Firefox:
-
-| registration                             | engine   | navigations | reached the origin | paths that did |
-| ---------------------------------------- | -------- | ----------: | -----------------: | -------------- |
-| default registration                     | chromium |          13 |                  1 | `/sw.js` x 1   |
-| default registration                     | firefox  |          13 |                  4 | `/sw.js` x 4   |
-| default registration                     | webkit   |          13 |                  3 | `/sw.js` x 3   |
-| updateViaCache all, script max-age 86400 | chromium |          13 |                  0 | none           |
-| updateViaCache all, script max-age 86400 | firefox  |          13 |                  0 | none           |
-| updateViaCache all, script max-age 86400 | webkit   |          13 |                  5 | `/sw.js` x 5   |
-
-## Evidence Behind the Design
-
-Each finding forced a mechanism in code. Labels give what was read: full text, abstract only, or a web page.
-
-| finding                                                                                                                                                 | source (label)                                    | mechanism                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| A page rendered from cache with no network used 6.8% to 40.5% of the networked load's energy; one analytics request erased the saving on 15 of 25 sites | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
-| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                          | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
-| Safari deletes script-writable storage after 7 days without interaction                                                                                 | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
-| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                            | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
-| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                   | OHO 2022 benchmarks (full text)                   | the mobile share and the session-entry view                                                 |
-| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
-| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                        | the views reading (L1)                            | beacon queueing in the worker                                                               |
-| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
-| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                    | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
-| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                 | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
-| A server cache already removes recompute, and a projection relocates work                                                                               | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
-| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                           | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
-
-## Baselines
-
-Spool's saving is credited against an optimized HTTP baseline: immutable hashed assets, ETag revalidation and compression. Fixing a site's own asset caching comes first and is not spool's credit. Other baselines it is compared with:
-
-- **Compression Dictionary Transport (RFC 9842).** Shrinks bytes for repeat loads, but every view still makes a request.
-- **Back-forward cache and Speculation Rules.** Make some navigations instant. A bfcache restore needs no request, and it covers only back and forward navigations in one session.
-- **The Drupal PWA module.** Caches the shell, with no story for authenticated pages.
-- **Fawkes-style patching.** Sends a patch against a stored template on each load, so it still makes one request per view.
-
-## What Spool Does Not Claim
+## What This Does Not Claim
 
 Spool does not claim:
 
-- that 12.3 J is a meter reading. It is an attributional allocation, and the meters read 0.80 J on a desktop and 0.088 J on a phone;
+- that 12.4 J is a meter reading. It is an attributional allocation, and the meters read 0.80 J on a desktop and 0.088 J on a phone;
 - a marginal kWh per GB;
 - that one avoided request is one avoided radio wake;
 - a capacity saving without evidence that equipment was removed, since a cloud-hosted origin shows a bill and the provider's electricity is not established;
 - savings from a projection without its relocated device work and its provisioning bytes;
 - that one institution's traffic moves a network operator's power state;
-- a paced or cellular phone figure, which neither run has resolved.
+- a paced or cellular phone figure, which neither run has resolved;
+- a dollar saving beyond the list-price arithmetic in Bandwidth and Request Costs, which leaves out free allowances, contract prices, staff time and plan tiers that do not scale with traffic.
 
 ## Reproducing
 
@@ -428,5 +568,7 @@ The RAPL runs happen on a Linux host with the package counter readable, inside t
 node scripts/measure/rapl.ts run compute-server --raw out/compute-server.jsonl
 node scripts/measure/rapl.ts publish compute-server --raw out/compute-server.jsonl
 ```
+
+The vendor prices are inputs in `src/report/inputs.ts` with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.
 
 `bun run impact:check` runs in CI and fails on any difference between the committed page and the readings.

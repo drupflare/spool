@@ -5,23 +5,30 @@ import { format, resolveConfig } from 'prettier';
 import {
 	DOCUMENT_BYTES,
 	FREE_TIER_VIEWS,
+	HOSTS,
 	MOBILE_SHARE,
 	MODELLED_VIEW,
 	ORIGIN_J,
+	PANTHEON_OVERAGE,
+	PRICES_READ,
 	PUE,
 	RADIO_J,
 	SERVER_WATTS,
 	SWD_V4,
 	TIERS,
 	attributionalJoules,
+	bandwidthUsd,
 	capacityMWh,
+	classifyOrigin,
 	dataCentreJoules,
 	deviceCpuFigures,
+	egressUsd,
 	freeTierCeiling,
 	inferenceFigures,
 	joulesPerView,
 	joulesPerViewWithOrigin,
 	median,
+	monthlyGb,
 	onWireFigures,
 	parseMeasurementText,
 	peakCut,
@@ -30,6 +37,8 @@ import {
 	raplRun,
 	repeatBytesBySite,
 	repeatNavFigures,
+	repeatSplitBySite,
+	requestUsd,
 	runtimeRun,
 	saving,
 	serverYearMWh,
@@ -37,9 +46,11 @@ import {
 	spread,
 	viewsChannelMWh,
 	zeroNetworkFigures,
+	type ByteSplit,
 	type Fit,
 	type Measurement,
 	type OpFigures,
+	type OriginClass,
 	type Spread
 } from '../src/report/index';
 import { isMain } from './measure/lib';
@@ -121,6 +132,12 @@ export function table(headers: string[], rows: string[][], right: number[] = [])
 
 const tierName = (key: string) => key.charAt(0).toUpperCase() + key.slice(1);
 const pct = (z: number) => `${Math.round(z * 100)}%`;
+
+/** dollars: cents under ten, whole dollars above */
+const usd = (n: number): string => (n === 0 ? '$0' : `$${fixed(n, n < 10 ? 2 : 0)}`);
+
+/** a list price at the precision vendors print it */
+const price = (n: number): string => (n === 0 ? '$0' : `$${fixed(n, n < 0.1 ? 3 : 2)}`);
 
 // #endregion
 
@@ -261,6 +278,126 @@ export function buildFigures(readings: Readings): Figures {
 			];
 		}),
 		bySite.map((_, i) => i + 1).concat(bySite.length + 1, bySite.length + 2)
+	);
+	const splitReading = latest(readings, 'repeat-nav', 'requests');
+	const splits = repeatSplitBySite(splitReading.rows);
+	const splitSites = splitReading.rows.map((row) => String(row.site));
+	const unreadReason = (site: string) => {
+		const row = splitReading.rows.find((r) => String(r.site) === site);
+		const nav = ((row?.navs as Array<Record<string, unknown>> | undefined) ?? []).find(
+			(n) => n.kind === 'warm-home-repeat'
+		);
+		if (row?.error) return `error: ${String(row.error)}`;
+		if (nav && typeof nav.docStatus === 'number' && nav.docStatus >= 400)
+			return `blocked, HTTP ${nav.docStatus}`;
+		return nav ? 'home page did not load' : 'no repeat view';
+	};
+	const shipsToday = (s: ByteSplit) => {
+		const moved = s.document + s.sameOriginStatic;
+		return moved === 0 ? 0 : joulesPerView({ ...MODELLED_VIEW, bytes: moved });
+	};
+	const split = [...splits.values()];
+	const pool = (pick: (s: ByteSplit) => number) => split.reduce((n, s) => n + pick(s), 0);
+	const total = pool((s) => s.total);
+	const share = (n: number) => `${fixed((100 * n) / total, 1)}%`;
+	v.splitSites = fixed(split.length);
+	v.splitSitesAll = fixed(splitSites.length);
+	v.splitTotalBytes = fixed(total);
+	v.splitDocumentShare = share(pool((s) => s.document));
+	v.splitStaticShare = share(pool((s) => s.sameOriginStatic));
+	v.splitDynamicShare = share(pool((s) => s.sameOriginDynamic));
+	v.splitThirdShare = share(pool((s) => s.thirdPartyTotal));
+	const classBytes = (kind: OriginClass) => pool((s) => s.thirdParty[kind] ?? 0);
+	const topTwo = [...split].sort((a, b) => b.total - a.total).slice(0, 2);
+	v.splitTopTwoShare = share(topTwo.reduce((n, s) => n + s.total, 0));
+	v.splitUnknownShare = `${fixed((100 * classBytes('unknown')) / pool((s) => s.thirdPartyTotal), 1)}%`;
+	v.splitAdsBytes = fixed(classBytes('ads'));
+	v.splitAdsSites = fixed(split.filter((s) => (s.thirdParty.ads ?? 0) > 0).length);
+	v.splitAnalyticsBytes = fixed(classBytes('analytics'));
+	v.splitStaticMedian = `${fixed(100 * median(split.filter((s) => s.total > 0).map((s) => s.sameOriginStatic / s.total)), 1)}%`;
+	v.shipsTodayMedianJ = fixed(median(split.map(shipsToday)), 1);
+	v.shipsTodayMaxJ = fixed(Math.max(...split.map(shipsToday)), 1);
+	t['split-by-site'] = table(
+		[
+			'site',
+			'document B',
+			'same-origin static B',
+			'same-origin dynamic B',
+			'third-party B',
+			'whole view B',
+			'J a local view removes, document only (headline basis)',
+			'J a local view removes on the site as it ships today, including the cache-header fix'
+		],
+		splitSites.map((site) => {
+			const s = splits.get(site);
+			const host = new URL(site).hostname;
+			return s
+				? [
+						host,
+						fixed(s.document),
+						fixed(s.sameOriginStatic),
+						fixed(s.sameOriginDynamic),
+						fixed(s.thirdPartyTotal),
+						fixed(s.total),
+						s.document === 0
+							? '0.0'
+							: fixed(joulesPerView({ ...MODELLED_VIEW, bytes: s.document }), 1),
+						fixed(shipsToday(s), 1)
+					]
+				: [host, unreadReason(site), '', '', '', '', '', ''];
+		}),
+		[1, 2, 3, 4, 5, 6, 7]
+	);
+	const parts: Array<[string, (s: ByteSplit) => number]> = [
+		['Document', (s) => s.document],
+		['Same-origin static (Script, Stylesheet, Font, Image, Media)', (s) => s.sameOriginStatic],
+		['Same-origin dynamic (XHR, Fetch, Ping, Other and the rest)', (s) => s.sameOriginDynamic],
+		['Third-party', (s) => s.thirdPartyTotal],
+		['Whole repeat view', (s) => s.total]
+	];
+	t['split-pooled'] = table(
+		['class', 'bytes over all sites', 'pooled share of bytes', 'median share of a site'],
+		parts.map(([label, pick]) => [
+			label,
+			fixed(pool(pick)),
+			share(pool(pick)),
+			`${fixed(100 * median(split.filter((s) => s.total > 0).map((s) => pick(s) / s.total)), 1)}%`
+		]),
+		[1, 2, 3]
+	);
+	const hosts = new Map<string, number>();
+	for (const s of split)
+		for (const [host, n] of Object.entries(s.thirdPartyHosts))
+			hosts.set(host, (hosts.get(host) ?? 0) + n);
+	t['third-party-hosts'] = table(
+		['host', 'class', 'bytes over all sites', 'sites'],
+		[...hosts]
+			.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+			.slice(0, 10)
+			.map(([host, n]) => [
+				host,
+				classifyOrigin(`https://${host}/`).class,
+				fixed(n),
+				fixed(split.filter((s) => (s.thirdPartyHosts[host] ?? 0) > 0).length)
+			]),
+		[2, 3]
+	);
+	const classes = [
+		...new Set(split.flatMap((s) => Object.keys(s.thirdParty) as OriginClass[]))
+	].sort(
+		(a, b) =>
+			pool((s) => s.thirdParty[b] ?? 0) - pool((s) => s.thirdParty[a] ?? 0) ||
+			(a < b ? -1 : 1)
+	);
+	t['third-party-classes'] = table(
+		['class', 'total bytes', 'median bytes per site', 'sites with any'],
+		classes.map((kind) => [
+			kind,
+			fixed(pool((s) => s.thirdParty[kind] ?? 0)),
+			fixed(median(split.map((s) => s.thirdParty[kind] ?? 0))),
+			fixed(split.filter((s) => (s.thirdParty[kind] ?? 0) > 0).length)
+		]),
+		[1, 2, 3]
 	);
 	const kinds: Array<[string, string]> = [
 		['cold-home', 'Cold home page'],
@@ -544,6 +681,12 @@ export function buildFigures(readings: Readings): Figures {
 		Math.max(...spoolArms.map((a) => a.originRequests.max * perWindow))
 	);
 	v.runtimeViews = fixed(perWindow);
+	const medianJ = (k: string) =>
+		Object.values(runtimes).flatMap((arms) => (arms[k] ? [arms[k].joules.median] : []));
+	v.runtimeNetworkLow = fixed(Math.min(...medianJ('network')), 2);
+	v.runtimeNetworkHigh = fixed(Math.max(...medianJ('network')), 2);
+	v.runtimeLocalHigh = fixed(Math.max(...medianJ('spool')), 2);
+	v.runtimeCount = fixed(Object.keys(runtimes).length);
 	// #endregion
 
 	// #region origin term
@@ -827,6 +970,84 @@ export function buildFigures(readings: Readings): Figures {
 			];
 		}),
 		[1, 2, 3, 4, 5]
+	);
+	// #endregion
+
+	// #region bandwidth and requests
+	const unitOf = (u: string) => u.replace('USD/', '');
+	const gbMoved = (host: (typeof HOSTS)[number], views: number) =>
+		(views * bytes) / host.bytesPerUnit;
+	v.pricesRead = PRICES_READ;
+	v.scaleViews = `${fixed(SCALE_VIEWS / 1e6)} million`;
+	v.documentKb = fixed(bytes / 1000, 1);
+	v.gbPerMillion = fixed((1e6 * bytes) / 1e9, 1);
+	v.pantheonOverage = `$${fixed(PANTHEON_OVERAGE.value)}`;
+	const topViews = SCALE_VIEWS * TIERS.transformative;
+	const costs = HOSTS.map((h) => bandwidthUsd(1e6, h));
+	v.perMillionLow = usd(Math.min(...costs));
+	v.perMillionHigh = usd(Math.max(...costs));
+	v.topWorkedHigh = usd(Math.max(...HOSTS.map((h) => bandwidthUsd(topViews, h))));
+	v.topWorkedLow = usd(Math.min(...HOSTS.map((h) => bandwidthUsd(topViews, h))));
+	t['host-prices'] = table(
+		[
+			'host',
+			'tier the price is taken from',
+			'egress price',
+			'free egress a month',
+			'request price',
+			'label',
+			`vendor page, read ${PRICES_READ}`
+		],
+		HOSTS.map((h) => [
+			h.name,
+			h.tier,
+			`${price(h.egress.value)} per ${unitOf(h.egress.unit)}`,
+			h.freeAllowance
+				? `${fixed(h.freeAllowance.value)} ${unitOf(h.freeAllowance.unit).replace('/month', '')}`
+				: 'no egress charge',
+			h.requests ? `${usd(h.requests.value)} per million` : 'not read',
+			h.requests ? `${h.egress.layer}, requests ${h.requests.layer}` : h.egress.layer,
+			h.page
+		])
+	);
+	t['bandwidth-per-million'] = table(
+		['host', 'bytes no longer moved', 'egress', 'requests', 'total'],
+		HOSTS.map((h) => [
+			h.name,
+			`${fixed(gbMoved(h, 1e6), 1)} ${unitOf(h.egress.unit)}`,
+			usd(egressUsd(1e6, h)),
+			h.requests ? usd(requestUsd(1e6, h)) : 'not read',
+			usd(bandwidthUsd(1e6, h))
+		]),
+		[1, 2, 3, 4]
+	);
+	t['bandwidth-worked'] = table(
+		[
+			'host',
+			...Object.entries(TIERS).map(
+				([k, z]) => `${tierName(k)}, ${fixed((SCALE_VIEWS * z) / 1e6)}M local views`
+			)
+		],
+		HOSTS.map((h) => [
+			h.name,
+			...Object.values(TIERS).map((z) => `${usd(bandwidthUsd(SCALE_VIEWS * z, h))} a year`)
+		]),
+		[1, 2, 3]
+	);
+	t['monthly-gb'] = table(
+		[
+			'tier',
+			'local views a year',
+			'local views a month, requests no longer sent',
+			'bytes no longer moved, GB a month'
+		],
+		Object.entries(TIERS).map(([k, z]) => [
+			tierName(k),
+			`${fixed((SCALE_VIEWS * z) / 1e6)} million`,
+			`${fixed((SCALE_VIEWS * z) / 12 / 1e6, 1)} million`,
+			fixed(monthlyGb(SCALE_VIEWS * z))
+		]),
+		[1, 2, 3]
 	);
 	// #endregion
 
