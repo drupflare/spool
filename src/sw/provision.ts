@@ -2,8 +2,19 @@ import type { Cost } from '../protocol/provision.js';
 
 export * from '../protocol/provision.js';
 
-/** what one artifact cost and what it served */
-export type LedgerEntry = { id: string; bytes: number; requests: number; views: number };
+/**
+ * What one artifact cost and what it served. `catalogueBytes` is the part of `bytes` that arrived
+ * in a catalogue bundle (the JSON text, uncompressed) and `catalogueViews` the part of `views`
+ * that was the first open of a catalogue entry.
+ */
+export type LedgerEntry = {
+	id: string;
+	bytes: number;
+	requests: number;
+	views: number;
+	catalogueBytes: number;
+	catalogueViews: number;
+};
 
 /** the whole ledger summed; `bytesPerView` is null until a view has been served */
 export type LedgerTotals = {
@@ -11,6 +22,8 @@ export type LedgerTotals = {
 	requests: number;
 	views: number;
 	bytesPerView: number | null;
+	catalogueBytes: number;
+	catalogueViews: number;
 };
 
 /**
@@ -21,21 +34,31 @@ export class Ledger {
 	readonly #rows = new Map<string, LedgerEntry>();
 
 	#row(id: string): LedgerEntry {
-		const row = this.#rows.get(id) ?? { id, bytes: 0, requests: 0, views: 0 };
+		const row = this.#rows.get(id) ?? {
+			id,
+			bytes: 0,
+			requests: 0,
+			views: 0,
+			catalogueBytes: 0,
+			catalogueViews: 0
+		};
 		this.#rows.set(id, row);
 		return row;
 	}
 
-	/** charges a fetch of `id` */
-	spend(id: string, cost: Cost): void {
+	/** charges a fetch of `id`; `catalogue` marks bytes that came in a catalogue bundle */
+	spend(id: string, cost: Cost, catalogue = false): void {
 		const row = this.#row(id);
 		row.bytes += cost.bytes;
 		row.requests += cost.requests;
+		if (catalogue) row.catalogueBytes += cost.bytes;
 	}
 
-	/** counts a local view served from `id` */
-	serve(id: string): void {
-		this.#row(id).views += 1;
+	/** counts a local view served from `id`; `catalogue` marks the first open of a catalogue entry */
+	serve(id: string, catalogue = false): void {
+		const row = this.#row(id);
+		row.views += 1;
+		if (catalogue) row.catalogueViews += 1;
 	}
 
 	entries(): LedgerEntry[] {
@@ -53,13 +76,17 @@ export class Ledger {
 			bytes,
 			requests: sum((r) => r.requests),
 			views,
-			bytesPerView: views === 0 ? null : bytes / views
+			bytesPerView: views === 0 ? null : bytes / views,
+			catalogueBytes: sum((r) => r.catalogueBytes),
+			catalogueViews: sum((r) => r.catalogueViews)
 		};
 	}
 
-	/** the mean cost of one fetch so far, or null before the first */
+	/** the mean cost of one fetch so far, catalogue entries left out, or null before the first */
 	meanFetchBytes(): number | null {
-		const rows = [...this.#rows.values()].filter((r) => r.bytes > 0);
-		return rows.length === 0 ? null : rows.reduce((t, r) => t + r.bytes, 0) / rows.length;
+		const rows = [...this.#rows.values()].filter((r) => r.bytes > r.catalogueBytes);
+		return rows.length === 0
+			? null
+			: rows.reduce((t, r) => t + r.bytes - r.catalogueBytes, 0) / rows.length;
 	}
 }

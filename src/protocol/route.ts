@@ -49,6 +49,9 @@ export const DEFAULT_FRESHNESS: Record<Scope, Freshness> = {
 	principal: { maxStale: 300, mode: 'hard' }
 };
 
+/** a page a route's catalogue suggests, with the share of devices expected to open it next */
+export type CatalogueGuess = { path: string; p: number };
+
 /** the declaration fields every strategy shares */
 export type RouteCommon = {
 	scope?: Scope;
@@ -66,6 +69,15 @@ export type RouteCommon = {
 	retention?: Retention;
 	/** overrides the provisioning priors for this route when the server decides whether to ship it */
 	provision?: { reuse?: number; futureViews?: number };
+	/**
+	 * Pages a device on this route may open next, each with the share of devices expected to
+	 * (from the site's own `nextShare` over the sink, link position, or a fixed prior). The server
+	 * ships the data of those that repay their transfer, never their HTML. Only `template`,
+	 * `projection` and `data` routes can be entries.
+	 */
+	catalogue?(ctx: RouteContext): readonly CatalogueGuess[] | Promise<readonly CatalogueGuess[]>;
+	/** compressed bytes of the document this route renders, which a catalogue entry for it replaces; the server's prior when absent */
+	documentBytes?: number;
 };
 
 /** a route answered by filling placeholders in a stored shell */
@@ -134,6 +146,8 @@ export type Route = {
 	contentType?: string;
 	provision?: { reuse?: number; futureViews?: number };
 	template?: CompiledTemplate;
+	catalogue?: RouteCommon['catalogue'];
+	documentBytes?: number;
 	depends(ctx: RouteContext): readonly string[] | Promise<readonly string[]>;
 	load(ctx: RouteContext): unknown;
 };
@@ -154,6 +168,8 @@ export type SerializedRoute = {
 	type?: string;
 	/** what a manifest route's file is at now; the worker compares it with the stored copy */
 	version?: string;
+	/** the route declares a `catalogue`, so the worker asks for one when a flush goes out on it */
+	catalogue?: true;
 };
 
 function bad(pattern: string, message: string): never {
@@ -228,6 +244,17 @@ export function defineRoute(pattern: string, declaration: RouteDeclaration): Rou
 	if (declaration.mode) route.mode = declaration.mode;
 	if (scope === 'principal') route.retention = retention;
 	if (declaration.provision) route.provision = declaration.provision;
+	if (declaration.catalogue !== undefined) {
+		if (typeof declaration.catalogue !== 'function')
+			return bad(pattern, 'catalogue must be a function');
+		route.catalogue = declaration.catalogue;
+	}
+	if (declaration.documentBytes !== undefined) {
+		if (!Number.isFinite(declaration.documentBytes) || declaration.documentBytes < 0) {
+			return bad(pattern, 'documentBytes must be a non-negative number');
+		}
+		route.documentBytes = declaration.documentBytes;
+	}
 	if (declaration.strategy === 'data' && declaration.contentType) {
 		route.contentType = declaration.contentType;
 	}
@@ -265,5 +292,6 @@ export function serializeRoute(route: Route): SerializedRoute {
 	if (route.mode) out.mode = route.mode;
 	if (route.retention) out.retention = route.retention;
 	if (route.contentType) out.type = route.contentType;
+	if (route.catalogue) out.catalogue = true;
 	return out;
 }

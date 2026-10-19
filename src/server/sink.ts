@@ -94,7 +94,7 @@ export function splitBytes(text: string, limit: number = MAX_BEACON_BLOB): strin
  * | --- | --- | --- |
  * | index1 | route pattern | path |
  * | blob1 | `view` | `beacon` |
- * | blob2 to blob8 | tier, reason, engine, scope, strategy, route, id | content type, body slice, vendor |
+ * | blob2 to blob9 | tier, reason, engine, scope, strategy, route, id, from | content type, body slice, vendor |
  * | double1 to double6 | at, staleSec, swAgeMs, gapMs, mismatch, crossOriginLoads | at, slice number from 0, slice count |
  *
  * `staleSec`, `gapMs` and `crossOriginLoads` are -1 when unknown; `mismatch` is -1 when nothing was
@@ -127,7 +127,8 @@ export function analyticsEngineSink(dataset: AnalyticsEngineLike): Sink {
 							view.scope,
 							view.strategy,
 							view.route,
-							view.id
+							view.id,
+							view.from ?? null
 						],
 						doubles: [
 							view.at,

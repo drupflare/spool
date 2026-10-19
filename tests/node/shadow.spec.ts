@@ -289,6 +289,40 @@ describe('view events', () => {
 		]);
 	});
 
+	const referred = (path: string, referrer: string) => {
+		const request = nav(path);
+		Object.defineProperty(request, 'referrer', { value: referrer });
+		return request;
+	};
+
+	it.each([['serve'], ['shadow']] as const)(
+		'carry the referring route pattern, external, or nothing in %s mode',
+		async (mode) => {
+			const r = make({ mode });
+			const site = 'https://site.test';
+			for (const [path, referrer] of [
+				['/soft/1', ''],
+				['/soft/2', `${site}/soft/9?q=1#x`],
+				['/hard/3', `${site}/nowhere/7`],
+				['/hard/4', 'https://other.example/soft/9'],
+				['/soft/5', 'about:client'],
+				['/soft/6', 'not a url']
+			] as const) {
+				await r.drive(referred(path, referrer));
+			}
+			const views = [...viewsOf(r.sink.events), ...(await held(r.storage))];
+			expect(views.map((v) => v.from)).toEqual([
+				undefined,
+				'/soft/:id',
+				undefined,
+				'external',
+				undefined,
+				undefined
+			]);
+			expect(JSON.stringify(views)).not.toContain('/soft/9');
+		}
+	);
+
 	it('are not queued when the config turns them off', async () => {
 		const r = make({ views: false });
 		await r.visit('/soft/1');

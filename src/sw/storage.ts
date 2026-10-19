@@ -9,10 +9,17 @@ export type StoredArtifact = {
 	fetchedAt: number;
 	/** when a need-sync last confirmed this artifact; later than `fetchedAt` once it has */
 	validatedAt?: number;
+	/** set while the artifact is a catalogue entry that no page has opened */
+	catalogue?: true;
 };
 
 /** when the worker last tried a standalone flush, and when it last looked; both epoch milliseconds */
-export type FlushState = { lastStandalone: number; checkedAt: number };
+export type FlushState = {
+	lastStandalone: number;
+	checkedAt: number;
+	/** when a catalogue was last asked for each page path, oldest first; epoch milliseconds */
+	catalogue?: Record<string, number>;
+};
 
 /** the replica's bookkeeping: what runtime wrote it, how far it has synced, what changed when */
 export type ReplicaMeta = {
@@ -74,7 +81,7 @@ export function memoryStorage(): ReplicaStorage {
 		readBeacons: async () => [...beacons].map(([key, event]) => ({ key, event })),
 		removeBeacons: async (keys) => void keys.forEach((key) => beacons.delete(key)),
 		getFlush: async () => flush,
-		setFlush: async (state) => void (flush = { ...state }),
+		setFlush: async (state) => void (flush = structuredClone(state)),
 		putRecords: async (entries) => void entries.forEach((e) => records.set(e.id, e)),
 		allRecords: async () => [...records.values()],
 		deleteRecords: async (ids) => void ids.forEach((id) => records.delete(id)),

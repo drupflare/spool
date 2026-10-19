@@ -27,14 +27,26 @@ export type BeaconEvent = {
 };
 
 /**
+ * A flush's request for the catalogue of the page the visitor is on. `sweep` says the worker names
+ * the entries it holds and no page has opened at every required sync of a principal page, so a
+ * revoked one is dropped. The server sends principal entries only to a worker that says so.
+ */
+export type CatalogueAsk = { path: string; sweep?: true };
+
+/**
  * The body of `/.spool/beacon`: every held request in one flush. `want` asks for the artifacts of
- * these paths in the answer, so provisioning rides a request that is happening anyway.
+ * these paths in the answer, so provisioning rides a request that is happening anyway, and
+ * `catalogue` asks for the entries a site suggests for the page the visitor is on.
  */
 export type BeaconBatch = {
 	protocol: typeof PROTOCOL_VERSION;
 	events: BeaconEvent[];
 	want?: string[];
+	catalogue?: CatalogueAsk;
 };
+
+/** most characters of the page path a catalogue request names */
+export const MAX_CATALOGUE_PATH = 2048;
 
 /** where the worker records events it dropped past a vendor's age cap; the body is `{vendor, count}` */
 export const DROPPED_PATH = '/.spool/dropped';
@@ -97,6 +109,16 @@ export function parseBeaconBatch(value: unknown): BeaconBatch {
 			return bad(`want must be a list of at most ${MAX_WANT}`);
 		if (want.some((p) => typeof p !== 'string' || !p.startsWith('/'))) return bad('want paths');
 		batch.want = want as string[];
+	}
+	const catalogue = v['catalogue'];
+	if (catalogue !== undefined) {
+		const ask = (catalogue ?? {}) as Record<string, unknown>;
+		const path = ask['path'];
+		if (typeof path !== 'string' || !path.startsWith('/') || path.length > MAX_CATALOGUE_PATH) {
+			return bad('catalogue path');
+		}
+		if (ask['sweep'] !== undefined && ask['sweep'] !== true) return bad('catalogue sweep');
+		batch.catalogue = ask['sweep'] === true ? { path, sweep: true } : { path };
 	}
 	return batch;
 }

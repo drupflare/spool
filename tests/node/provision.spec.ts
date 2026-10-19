@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { SerializedRoute, SwConfig } from '../../src/protocol/index';
+import { attributionalJoules, ORIGIN_J } from '../../src/report/index';
 import {
 	benefit,
+	chooseEntries,
 	DEFAULT_PRIOR,
+	entryBreakEven,
+	JOULES_PER_BYTE,
 	Ledger,
+	ORIGIN_JOULES,
 	plan,
 	priorFrom,
 	smoothReuse,
 	weigh,
+	type EntryCandidate,
 	type Opportunity
 } from '../../src/sw/provision';
 import { differs, modeFor, runsShadow } from '../../src/sw/shadow';
@@ -85,28 +91,165 @@ describe('the provisioning model', () => {
 	});
 });
 
+describe('the catalogue break-even', () => {
+	const k = 6.984e-4;
+	const o = 0.455;
+
+	it('is k*E / (k*D + o)', () => {
+		expect(entryBreakEven(17_054, 17_054)).toBe((k * 17_054) / (k * 17_054 + o));
+		expect(entryBreakEven(17_054, 17_054)).toBeCloseTo(0.963, 3);
+		expect(entryBreakEven(7603, 17_424)).toBeCloseTo(0.4206, 4);
+		expect(entryBreakEven(473, 17_424)).toBeCloseTo(0.0262, 4);
+		expect(entryBreakEven(0, 17_054)).toBe(0);
+		expect(entryBreakEven(100_000, 100)).toBeGreaterThan(1);
+	});
+
+	it('uses the energy model constants of the report', () => {
+		expect(JOULES_PER_BYTE).toBeCloseTo(attributionalJoules(1), 12);
+		expect(ORIGIN_JOULES).toBe(ORIGIN_J.conventional.value);
+	});
+});
+
+describe('choosing catalogue entries', () => {
+	const entry = (path: string, p: number, entryBytes: number, documentBytes = 17_054) =>
+		({ path, p, entryBytes, documentBytes }) satisfies EntryCandidate;
+	const paths = (list: EntryCandidate[]) => list.map((c) => c.path);
+
+	it('keeps an entry at its break-even and drops one just below it', () => {
+		const at = entryBreakEven(5000, 17_054);
+		expect(paths(chooseEntries([entry('/at', at, 5000)], { capBytes: 1e6 }))).toEqual(['/at']);
+		const below = at - 1e-12;
+		expect(chooseEntries([entry('/below', below, 5000)], { capBytes: 1e6 })).toEqual([]);
+		expect(chooseEntries([entry('/zero', 0, 5000)], { capBytes: 1e6 })).toEqual([]);
+	});
+
+	it('never chooses an entry that cannot pay, at any size, document or share', () => {
+		const sizes = [0, 1, 80, 473, 2000, 7603, 17_054, 60_000];
+		const shares = [0, 0.01, 0.05, 0.226, 0.5, 0.96, 0.99, 1];
+		for (const e of sizes) {
+			for (const d of [0, 500, 4000, 17_054, 60_000]) {
+				for (const p of shares) {
+					const chosen = chooseEntries([entry('/x', p, e, d)], { capBytes: 1e9 });
+					expect(chosen.length === 1, `E ${e} D ${d} p ${p}`).toBe(
+						p >= entryBreakEven(e, d)
+					);
+				}
+			}
+		}
+	});
+
+	it('orders by expected net joules, then path, and counts a path once', () => {
+		const chosen = chooseEntries(
+			[
+				entry('/b', 0.9, 4000),
+				entry('/a', 0.9, 4000),
+				entry('/big', 0.95, 9000),
+				entry('/small', 0.5, 100),
+				entry('/a', 0.6, 4000)
+			],
+			{ capBytes: 1e6 }
+		);
+		expect(paths(chosen)).toEqual(['/a', '/b', '/small', '/big']);
+		expect(chosen[0]?.p).toBe(0.9);
+	});
+
+	it('stays under the cap, skips what does not fit and takes a smaller one that does', () => {
+		const list = [entry('/a', 0.9, 6000), entry('/b', 0.9, 5000), entry('/c', 0.5, 800)];
+		expect(paths(chooseEntries(list, { capBytes: 11_800 }))).toEqual(['/b', '/a', '/c']);
+		expect(paths(chooseEntries(list, { capBytes: 11_799 }))).toEqual(['/b', '/a']);
+		expect(paths(chooseEntries(list, { capBytes: 6000 }))).toEqual(['/b', '/c']);
+		expect(paths(chooseEntries(list, { capBytes: 5000 }))).toEqual(['/b']);
+		expect(paths(chooseEntries(list, { capBytes: 4999 }))).toEqual(['/c']);
+		expect(paths(chooseEntries(list, { capBytes: 799 }))).toEqual([]);
+		expect(chooseEntries(list, { capBytes: 0 })).toEqual([]);
+		expect(chooseEntries(list, { capBytes: -5 })).toEqual([]);
+	});
+
+	it('holds the cap for every cap over a pool of mixed entries', () => {
+		let seed = 7;
+		const next = () => (seed = (seed * 48_271) % 2_147_483_647) / 2_147_483_647;
+		const pool = Array.from({ length: 60 }, (_, i) =>
+			entry(`/e${i}`, next(), Math.floor(next() * 12_000), 2000 + Math.floor(next() * 30_000))
+		);
+		for (const cap of [0, 500, 4000, 12_000, 32_768, 1e9]) {
+			const chosen = chooseEntries(pool, { capBytes: cap });
+			expect(chosen.reduce((sum, c) => sum + c.entryBytes, 0)).toBeLessThanOrEqual(cap);
+			for (const c of chosen) {
+				expect(c.p).toBeGreaterThanOrEqual(entryBreakEven(c.entryBytes, c.documentBytes));
+			}
+		}
+	});
+
+	it('refuses a share outside 0 to 1 and a size that is negative or not a number', () => {
+		const list = [
+			entry('/over', 1.5, 100),
+			entry('/neg', -0.1, 100),
+			entry('/nan', Number.NaN, 100),
+			entry('/size', 0.9, -1),
+			entry('/size-nan', 0.9, Number.NaN),
+			entry('/doc', 0.9, 100, Number.NaN),
+			entry('/doc-inf', 0.9, 100, Infinity),
+			entry('/ok', 0.9, 100)
+		];
+		expect(paths(chooseEntries(list, { capBytes: 1e6 }))).toEqual(['/ok']);
+	});
+});
+
 describe('Ledger', () => {
 	it('keeps bytes, requests and views per artifact and sums them', () => {
 		const ledger = new Ledger();
-		expect(ledger.totals()).toEqual({ bytes: 0, requests: 0, views: 0, bytesPerView: null });
+		expect(ledger.totals()).toEqual({
+			bytes: 0,
+			requests: 0,
+			views: 0,
+			bytesPerView: null,
+			catalogueBytes: 0,
+			catalogueViews: 0
+		});
 		expect(ledger.meanFetchBytes()).toBeNull();
 		ledger.spend('/b', { bytes: 300, requests: 1 });
 		ledger.spend('/a', { bytes: 100, requests: 1 });
 		ledger.spend('/a', { bytes: 50, requests: 0 });
 		for (let i = 0; i < 3; i++) ledger.serve('/a');
 		ledger.serve('/c');
+		const zero = { catalogueBytes: 0, catalogueViews: 0 };
 		expect(ledger.entries()).toEqual([
-			{ id: '/a', bytes: 150, requests: 1, views: 3 },
-			{ id: '/b', bytes: 300, requests: 1, views: 0 },
-			{ id: '/c', bytes: 0, requests: 0, views: 1 }
+			{ id: '/a', bytes: 150, requests: 1, views: 3, ...zero },
+			{ id: '/b', bytes: 300, requests: 1, views: 0, ...zero },
+			{ id: '/c', bytes: 0, requests: 0, views: 1, ...zero }
 		]);
 		expect(ledger.totals()).toEqual({
 			bytes: 450,
 			requests: 2,
 			views: 4,
-			bytesPerView: 450 / 4
+			bytesPerView: 450 / 4,
+			...zero
 		});
 		expect(ledger.meanFetchBytes()).toBe(225);
+	});
+
+	it('counts catalogue bytes and the first open of an entry apart, and keeps them out of the mean fetch', () => {
+		const ledger = new Ledger();
+		ledger.spend('/a', { bytes: 100, requests: 1 });
+		ledger.spend('/e', { bytes: 40, requests: 0 }, true);
+		ledger.spend('/e', { bytes: 10, requests: 0 }, true);
+		ledger.serve('/e', true);
+		ledger.serve('/e');
+		expect(ledger.entries().find((e) => e.id === '/e')).toEqual({
+			id: '/e',
+			bytes: 50,
+			requests: 0,
+			views: 2,
+			catalogueBytes: 50,
+			catalogueViews: 1
+		});
+		expect(ledger.totals()).toMatchObject({
+			bytes: 150,
+			views: 2,
+			catalogueBytes: 50,
+			catalogueViews: 1
+		});
+		expect(ledger.meanFetchBytes()).toBe(100);
 	});
 
 	it('hands out copies', () => {

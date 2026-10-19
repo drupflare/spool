@@ -159,14 +159,18 @@ export class Replica {
 	 * Stores an artifact unless a change it missed is already known. The first one sets the cursor
 	 * to its vector, since nothing earlier can affect it. Returns whether it was kept.
 	 */
-	async put(artifact: Artifact, persist: boolean): Promise<boolean> {
+	async put(artifact: Artifact, persist: boolean, catalogue = false): Promise<boolean> {
 		if (!this.isCurrent(artifact)) return false;
 		if (usesGraph(artifact)) {
 			await this.#wake();
 			await this.graph.put(artifact, persist);
 		}
 		const { records: _records, projections: _projections, ...rest } = artifact;
-		const stored: StoredArtifact = { artifact: rest as Artifact, fetchedAt: this.#now() };
+		const stored: StoredArtifact = {
+			artifact: rest as Artifact,
+			fetchedAt: this.#now(),
+			...(catalogue ? { catalogue: true as const } : {})
+		};
 		if (persist) {
 			this.#memory.delete(artifact.id);
 			await this.#storage.putArtifact(stored);
@@ -179,6 +183,32 @@ export class Replica {
 			await this.#save();
 		}
 		return true;
+	}
+
+	/** marks the catalogue entry `id` as opened, so it is an ordinary artifact from now on */
+	async open(id: string): Promise<void> {
+		const stored = await this.get(id);
+		if (!stored?.catalogue) return;
+		const { catalogue: _catalogue, ...opened } = stored;
+		if (this.#memory.has(id)) this.#memory.set(id, opened);
+		else await this.#storage.putArtifact(opened);
+	}
+
+	/**
+	 * `need` with the dependency tags and drop tag of every unopened catalogue entry added, each at
+	 * the vector its entry was built at. A revoked entry that no page opens is named by no page's
+	 * sync, so a required sync of a principal page carries this. Null when the union is over
+	 * `MAX_NEED`, which the caller answers with a full sync.
+	 */
+	async sweep(need: Record<string, number>): Promise<Record<string, number> | null> {
+		const out = { ...need };
+		for (const { artifact, catalogue } of await this.#all()) {
+			if (!catalogue) continue;
+			for (const tag of [...artifact.deps, artifactTag(artifact.id)]) {
+				out[tag] = Math.min(out[tag] ?? Infinity, artifact.vector);
+			}
+		}
+		return Object.keys(out).length > MAX_NEED ? null : out;
 	}
 
 	/** removes artifacts by id */

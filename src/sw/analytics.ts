@@ -4,7 +4,8 @@ import {
 	MAX_BEACON_BYTES,
 	OWN_PREFIX,
 	type BeaconBatch,
-	type BeaconEvent
+	type BeaconEvent,
+	type CatalogueAsk
 } from '../protocol/beacon.js';
 import type { CollectorConfig } from '../protocol/collector.js';
 import { LOADS_PATH, VIEW_PATH } from '../protocol/view.js';
@@ -20,6 +21,12 @@ export const VIEW_BATCH = 20;
 
 /** or until the oldest has been held this long */
 export const VIEW_HOLD_MS = 60 * 60 * 1000;
+
+/** a page's catalogue is asked for again after this long; the record survives a worker restart */
+export const CATALOGUE_REASK_MS = 24 * 60 * 60 * 1000;
+
+/** page paths whose last catalogue ask is kept */
+export const MAX_CATALOGUE_ASKED = 256;
 
 /** most events one request carries, so a long offline stretch never builds a body the server refuses */
 export const FLUSH_CHUNK = 100;
@@ -59,6 +66,12 @@ export type QueueDeps = {
 	replay(event: BeaconEvent): Promise<boolean>;
 	/** artifact paths to ask for with the next flush; sent once, with the first batch */
 	want?(): string[] | Promise<string[]>;
+	/**
+	 * the catalogue to ask for, sent with the first batch of a flush unless that path was asked
+	 * within {@link CATALOGUE_REASK_MS}. A due ask makes {@link BeaconQueue.flushAtMoment} flush
+	 * and nothing else does, so it adds no request on a local view or with nothing held
+	 */
+	catalogue?(): CatalogueAsk | undefined;
 };
 
 /**
@@ -119,8 +132,9 @@ export class BeaconQueue {
 
 	/**
 	 * Flushes at a network moment when it is worth a request: another site's beacon is held,
-	 * artifacts are wanted, {@link VIEW_BATCH} views are held (their loads reports ride along), or the oldest has waited
-	 * {@link VIEW_HOLD_MS}. A few views alone keep waiting for a later moment.
+	 * artifacts are wanted, a catalogue ask is due, {@link VIEW_BATCH} views are held (their loads
+	 * reports ride along), or the oldest has waited {@link VIEW_HOLD_MS}. A few views alone keep
+	 * waiting for a later moment. With nothing held there is nothing to carry the ask, so no flush.
 	 */
 	async flushAtMoment(): Promise<boolean> {
 		await this.#expire();
@@ -131,9 +145,10 @@ export class BeaconQueue {
 		const others = held.some((b) => !own(b.event.path));
 		const views = held.filter((b) => b.event.path === VIEW_PATH).length;
 		const wanted = ((await this.#deps.want?.()) ?? []).length > 0;
+		const asking = (await this.#due(this.#deps.catalogue?.())) !== undefined;
 		const oldest = Math.min(...held.map((b) => b.event.at));
 		const aged = this.#deps.now() - oldest >= VIEW_HOLD_MS;
-		if (others || wanted || aged || views >= VIEW_BATCH) return this.flush();
+		if (others || wanted || asking || aged || views >= VIEW_BATCH) return this.flush();
 		return false;
 	}
 
@@ -229,7 +244,7 @@ export class BeaconQueue {
 	}
 
 	async #run(): Promise<boolean> {
-		const { storage, send, replay, want } = this.#deps;
+		const { storage, send, replay, want, catalogue } = this.#deps;
 		await this.#expire();
 		const held = await storage.readBeacons();
 		if (held.length === 0) return false;
@@ -246,6 +261,7 @@ export class BeaconQueue {
 		}
 		const batched = held.filter((h) => inBatch(h.event));
 		let wanted = (await want?.()) ?? [];
+		let ask = await this.#due(catalogue?.());
 		if (batched.length === 0 && wanted.length === 0) return ok;
 		let done = true;
 		for (let at = 0; at < Math.max(batched.length, 1); at += FLUSH_CHUNK) {
@@ -255,7 +271,9 @@ export class BeaconQueue {
 				events: chunk.map(({ event: { until: _until, ...event } }) => event)
 			};
 			if (wanted.length > 0) batch.want = wanted;
+			if (ask) batch.catalogue = ask;
 			wanted = [];
+			ask = undefined;
 			try {
 				done = await send(batch);
 			} catch {
@@ -263,7 +281,29 @@ export class BeaconQueue {
 			}
 			if (!done) return false;
 			await storage.removeBeacons(chunk.map((b) => b.key));
+			if (batch.catalogue) await this.#asked(batch.catalogue.path);
 		}
 		return ok && done;
+	}
+
+	/** `ask` unless its path was asked within {@link CATALOGUE_REASK_MS} */
+	async #due(ask: CatalogueAsk | undefined): Promise<CatalogueAsk | undefined> {
+		if (!ask) return undefined;
+		const at = (await this.#read()).catalogue?.[ask.path];
+		const now = this.#deps.now();
+		// a stored time ahead of the clock cannot be trusted, so it counts as never
+		return at === undefined || at > now || now - at >= CATALOGUE_REASK_MS ? ask : undefined;
+	}
+
+	/** stores when `path` was asked, keeping the latest {@link MAX_CATALOGUE_ASKED} paths */
+	async #asked(path: string): Promise<void> {
+		const state = await this.#read();
+		const asked = { ...state.catalogue };
+		delete asked[path];
+		asked[path] = this.#deps.now();
+		const paths = Object.keys(asked);
+		for (const old of paths.slice(0, paths.length - MAX_CATALOGUE_ASKED)) delete asked[old];
+		state.catalogue = asked;
+		await this.#write(state);
 	}
 }

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { TimedView } from '../../src/protocol/index';
 import {
+	catalogueFigures,
 	factors,
 	factorsByEngine,
 	mismatchesByRoute,
+	nextShare,
 	OVERHEAD_ROUTES,
+	transitions,
 	zAnnual,
 	zDaily,
 	zPeakWork,
@@ -324,5 +327,88 @@ describe('mismatchesByRoute', () => {
 			{ route: '/a', shadowViews: 1, compared: 1, mismatches: 0 },
 			{ route: '/b', shadowViews: 3, compared: 2, mismatches: 1 }
 		]);
+	});
+});
+
+describe('transitions and nextShare', () => {
+	const views = [
+		view({ route: '/b', from: '/a' }),
+		view({ route: '/b', from: '/a' }),
+		view({ route: '/c', from: '/a' }),
+		view({ route: '/a', from: '/b' }),
+		view({ route: '/a', from: 'external' }),
+		view({ route: '/a' })
+	];
+
+	it('counts per pair and per from, skipping views with no from', () => {
+		expect(transitions(views)).toEqual({
+			pairs: [
+				{ from: '/a', route: '/b', views: 2 },
+				{ from: '/a', route: '/c', views: 1 },
+				{ from: '/b', route: '/a', views: 1 },
+				{ from: 'external', route: '/a', views: 1 }
+			],
+			byFrom: { '/a': 3, '/b': 1, external: 1 }
+		});
+		expect(transitions([])).toEqual({ pairs: [], byFrom: {} });
+	});
+
+	it('gives the share of views from a route that go to each route', () => {
+		expect(nextShare(views, '/a')).toEqual({ '/b': 2 / 3, '/c': 1 / 3 });
+		expect(nextShare(views, 'external')).toEqual({ '/a': 1 });
+		expect(nextShare(views, '/nowhere')).toEqual({});
+		expect(nextShare(views, 'constructor')).toEqual({});
+	});
+});
+
+describe('catalogueFigures', () => {
+	const hit = (over: Partial<TimedView> = {}) =>
+		view({ tier: 'local', reason: 'catalogue', staleSec: 0, ...over });
+	const rows = [
+		{ id: '/a', catalogueBytes: 400, catalogueViews: 1 },
+		{ id: '/b', catalogueBytes: 600, catalogueViews: 0 },
+		{ id: '/c', catalogueBytes: 0, catalogueViews: 0 }
+	];
+
+	it('counts entries sent and used from the ledger, hits from the views, and nets the bytes', () => {
+		const figures = catalogueFigures([hit(), local(), view(), soft()], { entries: rows });
+		expect(figures).toEqual({
+			sent: 2,
+			used: 1,
+			hits: 1,
+			views: 4,
+			hitShare: 0.25,
+			bytesSent: 1000,
+			bytesSaved: 17_054,
+			bytesNet: 16_054
+		});
+	});
+
+	it('takes the document size the caller knows and goes negative when the entries cost more', () => {
+		const figures = catalogueFigures([hit()], { entries: rows }, { documentBytes: 300 });
+		expect(figures).toMatchObject({ bytesSaved: 300, bytesNet: -700 });
+	});
+
+	it('reads the served views or the shadow views, never both', () => {
+		const views = [hit(), hit({ tier: 'shadow' }), hit({ tier: 'shadow' }), local()];
+		expect(catalogueFigures(views, { entries: [] })).toMatchObject({ hits: 1, views: 2 });
+		expect(catalogueFigures(views, { entries: [] }, { basis: 'shadow' })).toMatchObject({
+			hits: 2,
+			views: 2,
+			hitShare: 1
+		});
+	});
+
+	it('has no hit share without views and counts no entry from an empty ledger', () => {
+		expect(catalogueFigures([], { entries: [] })).toEqual({
+			sent: 0,
+			used: 0,
+			hits: 0,
+			views: 0,
+			hitShare: null,
+			bytesSent: 0,
+			bytesSaved: 0,
+			bytesNet: 0
+		});
 	});
 });

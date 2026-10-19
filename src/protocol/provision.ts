@@ -110,6 +110,79 @@ export function plan(
 		);
 }
 
+/** joules to move one byte: SWD v4, 0.194 kWh/GB over decimal GB (L2) */
+export const JOULES_PER_BYTE = 6.984e-4;
+
+/** joules of the origin request a local view avoids (L1, `ORIGIN_J.conventional` in `src/report/inputs.ts`) */
+export const ORIGIN_JOULES = 0.455;
+
+/** the default cap on one catalogue bundle, in compressed bytes */
+export const DEFAULT_CATALOGUE_BYTES = 32_768;
+
+/**
+ * The share of devices that must open a catalogue entry for it to repay its transfer:
+ * `k*E / (k*D + o)`, with `E` the entry's compressed bytes and `D` the document it replaces. At 1
+ * or above the entry never pays.
+ */
+export function entryBreakEven(entryBytes: number, documentBytes: number): number {
+	return (JOULES_PER_BYTE * entryBytes) / (JOULES_PER_BYTE * documentBytes + ORIGIN_JOULES);
+}
+
+/** a page a catalogue could carry the data of, with what the break-even rule needs to weigh it */
+export type EntryCandidate = {
+	path: string;
+	/** the predicted share of devices that will open the page, 0 to 1 */
+	p: number;
+	/** compressed bytes of the entry */
+	entryBytes: number;
+	/** bytes of the document the entry replaces */
+	documentBytes: number;
+};
+
+const sound = (n: number) => Number.isFinite(n) && n >= 0;
+
+/** expected joules of shipping an entry: `p * (k*D + o) - k*E` */
+function expectedNet(c: EntryCandidate): number {
+	return (
+		c.p * (JOULES_PER_BYTE * c.documentBytes + ORIGIN_JOULES) - JOULES_PER_BYTE * c.entryBytes
+	);
+}
+
+/**
+ * The candidates worth shipping: those whose `p` is at least their break-even, best expected net
+ * first, kept while their entry bytes fit under `capBytes`. A candidate that does not fit is
+ * skipped and a smaller one may still go. A path is chosen once. A candidate with a `p` outside 0
+ * to 1 or a negative or non-finite size is never chosen.
+ */
+export function chooseEntries(
+	candidates: readonly EntryCandidate[],
+	options: { capBytes: number }
+): EntryCandidate[] {
+	const paying = candidates
+		.filter(
+			(c) =>
+				sound(c.entryBytes) &&
+				sound(c.documentBytes) &&
+				c.p >= 0 &&
+				c.p <= 1 &&
+				c.p >= entryBreakEven(c.entryBytes, c.documentBytes)
+		)
+		.sort(
+			(a, b) =>
+				expectedNet(b) - expectedNet(a) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
+		);
+	const out: EntryCandidate[] = [];
+	const seen = new Set<string>();
+	let bytes = 0;
+	for (const c of paying) {
+		if (seen.has(c.path) || bytes + c.entryBytes > options.capBytes) continue;
+		seen.add(c.path);
+		bytes += c.entryBytes;
+		out.push(c);
+	}
+	return out;
+}
+
 /**
  * P_reuse from aggregate telemetry: the share of a route's views that found a stored copy, pulled
  * toward the prior by `weight` pseudo-views so a few views do not decide it. The telemetry

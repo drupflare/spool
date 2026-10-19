@@ -818,6 +818,46 @@ describe('BeaconQueue, persisted and batched', () => {
 		expect(await storage.readBeacons()).toEqual([]);
 	});
 
+	it('flushes at a moment for a due catalogue ask, once that day, and not with nothing held', async () => {
+		const storage = memoryStorage();
+		const sent: BeaconBatch[] = [];
+		const queue = new BeaconQueue({
+			storage,
+			now: () => 1,
+			replay: async () => true,
+			catalogue: () => ({ path: '/a' }),
+			send: async (batch) => {
+				sent.push(batch);
+				return true;
+			}
+		});
+		expect(await queue.flushAtMoment()).toBe(false);
+		await queue.record(view(1));
+		expect(await queue.flushAtMoment()).toBe(true);
+		expect(sent.map((b) => b.catalogue)).toEqual([{ path: '/a' }]);
+		await queue.record(view(1));
+		expect(await queue.flushAtMoment()).toBe(false);
+		expect(sent).toHaveLength(1);
+	});
+
+	it('keeps a few views waiting when the site declares no catalogue', async () => {
+		const storage = memoryStorage();
+		const sent: BeaconBatch[] = [];
+		const queue = new BeaconQueue({
+			storage,
+			now: () => 1,
+			replay: async () => true,
+			catalogue: () => undefined,
+			send: async (batch) => {
+				sent.push(batch);
+				return true;
+			}
+		});
+		await queue.record(view(1));
+		expect(await queue.flushAtMoment()).toBe(false);
+		expect(sent).toEqual([]);
+	});
+
 	it('stops at the first chunk that fails and keeps the rest held', async () => {
 		const storage = memoryStorage();
 		let calls = 0;

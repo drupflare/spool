@@ -109,6 +109,27 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 			}),
 			freshness: { maxStale: 3600, mode: 'soft' }
 		}),
+		defineRoute('/cat/:id', {
+			strategy: 'template',
+			template: { source: TEMPLATE },
+			depends: (ctx) => [`node:${ctx.params['id']}`],
+			load: (ctx) => ({
+				title: titleOf('cat', ctx.params['id'] as string),
+				body: bodyOf(ctx.params['id'] as string)
+			}),
+			freshness: { maxStale: 3600, mode: 'soft' }
+		}),
+		defineRoute('/home', {
+			strategy: 'template',
+			template: { source: TEMPLATE },
+			depends: () => ['home'],
+			load: () => ({ title: 'home', body: bodyOf('1') }),
+			freshness: { maxStale: 3600, mode: 'soft' },
+			catalogue: () => [
+				{ path: '/cat/1', p: 0.9 },
+				{ path: '/cat/2', p: 0.9 }
+			]
+		}),
 		defineRoute('/asm/:slug', {
 			strategy: 'assembly',
 			depends: () => ['menu'],
@@ -156,6 +177,11 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 				headers: { 'content-type': 'image/gif', 'cache-control': 'no-store' }
 			});
 		}
+		if (kind === 'cat') {
+			if (!db.has(id)) return new Response('missing', { status: 404 });
+			return html(layout(titleOf('cat', id), escape(bodyOf(id))));
+		}
+		if (pathname === '/home') return html(layout('home', escape(bodyOf('1'))));
 		if (kind === 'div') {
 			if (!db.has(id)) return new Response('missing', { status: 404 });
 			return html(layout(`network div ${id}`, escape(bodyOf(id))));

@@ -717,15 +717,26 @@ describe('sinks', () => {
 		const sink = analyticsEngineSink({ writeDataPoint: (point) => void points.push(point) });
 		await sink.write([
 			viewToBeacon(VIEW, 9),
-			viewToBeacon({ ...VIEW, staleSec: null, mismatch: null, gapMs: 250 }, 10),
+			viewToBeacon({ ...VIEW, staleSec: null, mismatch: null, gapMs: 250, from: '/' }, 10),
 			{ ...rum, body: 'b'.repeat(5000) }
 		]);
 		expect(points[0]).toEqual({
 			indexes: ['/node/:id'],
-			blobs: ['view', 'shadow', 'fresh', 'webkit', 'public', 'template', '/node/:id', 'v1'],
+			blobs: [
+				'view',
+				'shadow',
+				'fresh',
+				'webkit',
+				'public',
+				'template',
+				'/node/:id',
+				'v1',
+				null
+			],
 			doubles: [9, 12, 4000, -1, 0, -1]
 		});
 		expect(points[1]?.doubles).toEqual([10, -1, 4000, 250, -1, -1]);
+		expect(points[1]?.blobs?.[8]).toBe('/');
 		expect(points).toHaveLength(4);
 		expect(points.slice(2)).toEqual([
 			{
@@ -924,6 +935,48 @@ describe('/.spool/artifact with records and projections', () => {
 	it('answers 400 for a malformed have list', async () => {
 		const { spool } = setupCampus();
 		expect((await spool.respond(get('/.spool/artifact?path=/d&have=x')))?.status).toBe(400);
+	});
+});
+
+describe('/.spool/beacon with a catalogue', () => {
+	const catalogued = () =>
+		createSpool({
+			store: memoryStore(),
+			routes: [
+				defineRoute('/home', {
+					strategy: 'template',
+					template: { source: '<p>{{id}}</p>' },
+					load: () => ({ id: 'h' }),
+					catalogue: () => [{ path: '/n/1', p: 0.9 }]
+				}),
+				defineRoute('/n/:id', {
+					strategy: 'template',
+					template: { source: '<p>{{id}}</p>' },
+					load: (ctx) => ({ id: ctx.params['id'] })
+				})
+			]
+		});
+	const ask = (headers: Record<string, string> = {}) =>
+		new Request(`${ORIGIN}/.spool/beacon`, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				protocol: 1,
+				events: [],
+				catalogue: { path: '/home', sweep: true }
+			})
+		});
+
+	it('measures an entry with the runtime compressor and sends one that repays its bytes', async () => {
+		const response = await catalogued().respond(ask());
+		expect(response?.status).toBe(200);
+		const body = (await response?.json()) as { catalogue: unknown[] };
+		expect(body.catalogue.map((a) => parseArtifact(a).id)).toEqual(['/n/1']);
+	});
+
+	it('sends nothing to a request with Save-Data on', async () => {
+		const response = await catalogued().respond(ask({ 'save-data': 'on' }));
+		expect(response?.status).toBe(204);
 	});
 });
 

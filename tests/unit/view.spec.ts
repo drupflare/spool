@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	engineOf,
+	FROM_EXTERNAL,
 	funnelOf,
 	LOADS_PATH,
 	loadsFromBeacon,
@@ -37,11 +38,32 @@ describe('view events as beacons', () => {
 		expect(viewFromBeacon(beacon)).toEqual({ ...VIEW, at: 1234 });
 	});
 
+	it('round-trips the catalogue reason', () => {
+		const catalogue: ViewEvent = { ...VIEW, reason: 'catalogue' };
+		expect(viewFromBeacon(viewToBeacon(catalogue, 9))).toEqual({ ...catalogue, at: 9 });
+	});
+
 	it('keeps null for what was not measured', () => {
 		const back = viewFromBeacon(
 			viewToBeacon({ ...VIEW, staleSec: null, gapMs: 5, mismatch: true }, 1)
 		);
 		expect(back).toMatchObject({ staleSec: null, gapMs: 5, mismatch: true });
+	});
+
+	it('round-trips from, and drops an unknown or overlong one instead of failing', () => {
+		for (const from of ['/p/:id', FROM_EXTERNAL]) {
+			expect(viewFromBeacon(viewToBeacon({ ...VIEW, from }, 7))).toEqual({
+				...VIEW,
+				from,
+				at: 7
+			});
+		}
+		expect(viewFromBeacon(viewToBeacon(VIEW, 7))).not.toHaveProperty('from');
+		for (const from of [1, '', `/${'r'.repeat(256)}`, null]) {
+			const back = viewFromBeacon(viewToBeacon({ ...VIEW, from: from as never }, 7));
+			expect(back).toEqual({ ...VIEW, at: 7 });
+			expect(back).not.toHaveProperty('from');
+		}
 	});
 
 	it.each([
@@ -140,9 +162,10 @@ describe('engineOf', () => {
 describe('the reason table', () => {
 	const reasons = Object.keys(REASON_TIER) as ViewReason[];
 
-	it('lists eleven reasons and gives each a serve tier', () => {
-		expect(reasons).toHaveLength(11);
+	it('lists twelve reasons and gives each a serve tier', () => {
+		expect(reasons).toHaveLength(12);
 		expect(REASON_TIER.fresh).toBe('local');
+		expect(REASON_TIER.catalogue).toBe('local');
 		expect(REASON_TIER['soft-deferred']).toBe('local');
 		expect(REASON_TIER['soft-sync']).toBe('local-revalidate');
 		expect(REASON_TIER.invalidated).toBe('fallback');
@@ -158,13 +181,15 @@ describe('the reason table', () => {
 		expect(stage('principal')).toBe('ineligible');
 		expect(stage('cold')).toBe('cold');
 		expect(stage('fresh')).toBe('local');
+		expect(stage('catalogue')).toBe('local');
+		expect(stage('catalogue', null, 1)).toBe('unusable');
 		expect(stage('soft-deferred')).toBe('local');
 		expect(stage('fresh', true)).toBe('unusable');
 		expect(stage('fresh', null, 1)).toBe('unusable');
 		expect(stage('fresh', null, null)).toBe('unusable');
 		expect(stage('cold', null, 3)).toBe('cold');
 		for (const reason of reasons.filter(
-			(r) => !['principal', 'cold', 'fresh', 'soft-deferred'].includes(r)
+			(r) => !['principal', 'cold', 'fresh', 'catalogue', 'soft-deferred'].includes(r)
 		)) {
 			expect(stage(reason), reason).toBe('unusable');
 		}

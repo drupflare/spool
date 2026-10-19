@@ -1,5 +1,5 @@
 import { parseArtifact, PROTOCOL_VERSION, type Artifact } from '../protocol/artifact.js';
-import { MAX_WANT, type BeaconEvent } from '../protocol/beacon.js';
+import { MAX_WANT, type BeaconEvent, type CatalogueAsk } from '../protocol/beacon.js';
 import { applyStamp, type CollectorConfig } from '../protocol/collector.js';
 import { PATHS, type AssetMode, type SwConfig } from '../protocol/config.js';
 import {
@@ -13,6 +13,7 @@ import { matchRoute, type Retention, type SerializedRoute } from '../protocol/ro
 import { encodeHeld, parseSyncResponse, type SyncResponse } from '../protocol/sync.js';
 import {
 	engineOf,
+	FROM_EXTERNAL,
 	loadsToBeacon,
 	REASON_TIER,
 	viewToBeacon,
@@ -159,6 +160,9 @@ export type Runtime = {
 	readonly ledger: Ledger;
 };
 
+/** the strategies a catalogue entry may have: data for a template or renderer the device holds */
+const ENTRY_STRATEGIES: readonly string[] = ['template', 'projection', 'data'];
+
 const ASSET_CACHE = 'spool-assets-';
 const CACHE_PREFIXES = [ASSET_CACHE, STATIC_CACHE];
 const YEAR = 31_536_000;
@@ -214,6 +218,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	const declined = new Set<string>();
 	const wants = new Set<string>();
 	const asked = new Set<string>();
+	let currentPath: string | null = null;
 	const latestView = new Map<string, string>();
 	const assetCache = `${ASSET_CACHE}${config.version}`;
 	const staticCache = `${STATIC_CACHE}${config.version}`;
@@ -314,6 +319,44 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 	}
 
+	/** the page the last view was on, when its route declares a catalogue; the queue skips a recent ask */
+	const catalogueAsk = (): CatalogueAsk | undefined =>
+		currentPath !== null ? { path: currentPath, sweep: true } : undefined;
+
+	/**
+	 * Stores the entries a flush brought, each marked unopened. An entry is kept only for a route
+	 * whose strategy and scope match it. A principal entry is kept only when the answer names the
+	 * partition the worker holds, and one the device already holds is left as it is. Every entry is
+	 * charged to the ledger as received.
+	 */
+	async function acceptCatalogue(list: unknown, partition: string | null): Promise<void> {
+		if (!Array.isArray(list)) return;
+		for (const raw of list) {
+			let artifact: Artifact;
+			try {
+				artifact = parseArtifact(raw);
+			} catch {
+				continue;
+			}
+			ledger.spend(
+				artifact.id,
+				{ bytes: encoder.encode(JSON.stringify(raw)).length, requests: 0 },
+				true
+			);
+			const hit = matchRoute(config.routes, artifact.id);
+			if (!hit || !ENTRY_STRATEGIES.includes(artifact.strategy)) continue;
+			if (artifact.strategy !== hit.route.strategy || artifact.scope !== hit.route.scope)
+				continue;
+			let side: Side | null = publicSide;
+			if (artifact.scope === 'principal') {
+				side = await principalSide();
+				if (!side || side.id !== partition) continue;
+			}
+			if (await side.replica.get(artifact.id)) continue;
+			await side.replica.put(artifact, hit.route.persist, true);
+		}
+	}
+
 	async function replay(event: BeaconEvent): Promise<boolean> {
 		const entry = config.collectors?.find((c) => c.vendor === event.vendor);
 		let search = event.search ?? '';
@@ -344,6 +387,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		storage,
 		now,
 		want: wantList,
+		catalogue: catalogueAsk,
 		replay,
 		async send(batch) {
 			const response = await deps.fetch(`${origin}${PATHS.beacon}`, {
@@ -352,16 +396,24 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				body: JSON.stringify(batch),
 				credentials: 'same-origin'
 			});
-			if (response.status === 200 && batch.want) {
-				const body = (await response.json()) as { artifacts?: unknown };
-				const list = Array.isArray(body.artifacts) ? body.artifacts : [];
-				for (const raw of list) {
-					const artifact = parseArtifact(raw);
-					await accept(artifact, encoder.encode(JSON.stringify(raw)).length, 0);
+			if (response.status === 200 && (batch.want || batch.catalogue)) {
+				const body = (await response.json()) as {
+					artifacts?: unknown;
+					catalogue?: unknown;
+				};
+				if (batch.want) {
+					const list = Array.isArray(body.artifacts) ? body.artifacts : [];
+					for (const raw of list) {
+						const artifact = parseArtifact(raw);
+						await accept(artifact, encoder.encode(JSON.stringify(raw)).length, 0);
+					}
+					for (const path of batch.want) {
+						wants.delete(path);
+						asked.add(path);
+					}
 				}
-				for (const path of batch.want) {
-					wants.delete(path);
-					asked.add(path);
+				if (batch.catalogue) {
+					await acceptCatalogue(body.catalogue, response.headers.get(HEADERS.partition));
 				}
 			}
 			return response.ok || (response.status >= 400 && response.status < 500);
@@ -694,13 +746,16 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			return { reason: 'invalidated', staleSec: age };
 		}
 
+		const fromCatalogue = stored.catalogue === true;
 		const action = verdict(route.freshness, rep.validatedAt(stored), now());
 		const age = staleSec() as number;
+		const base = rep.needFor(
+			stored.artifact,
+			route.sync === 'deferred' || route.scope === 'principal'
+		);
+		// a principal sync also names the catalogue entries no page has opened, so a revoked one is dropped
 		const need =
-			rep.needFor(
-				stored.artifact,
-				route.sync === 'deferred' || route.scope === 'principal'
-			) ?? undefined;
+			(route.scope === 'principal' && base ? await rep.sweep(base) : base) ?? undefined;
 		let reason: ViewReason = 'fresh';
 		if (action === 'sync-first') {
 			reason = 'hard-sync';
@@ -751,7 +806,24 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 		const rendered = await renderLocal(config, route, plain.artifact, renderers);
 		if (!rendered.ok) return { reason: 'refused', staleSec: age };
+		if (fromCatalogue) {
+			await rep.open(path);
+			if (REASON_TIER[reason] === 'local') reason = 'catalogue';
+		}
 		return { reason, html: rendered.html, headers, staleSec: age };
+	}
+
+	/** the route pattern of a same-origin referrer, `external` for another origin, else undefined */
+	function referrerRoute(referrer: string): string | undefined {
+		let url: URL;
+		try {
+			url = new URL(referrer);
+		} catch {
+			return undefined;
+		}
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+		if (url.origin !== origin) return FROM_EXTERNAL;
+		return matchRoute(config.routes, url.pathname)?.route.pattern;
 	}
 
 	async function navigate(
@@ -763,8 +835,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const at = now();
 		const gapMs = lastViewAt === null ? null : at - lastViewAt;
 		lastViewAt = at;
+		currentPath = route.catalogue ? path : null;
 		const decision = await decide(path, route, shadow);
 
+		const from = referrerRoute(request.referrer);
 		const id = crypto.randomUUID();
 		latestView.delete(path);
 		latestView.set(path, id);
@@ -781,7 +855,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			route: route.pattern,
 			mismatch,
 			swAgeMs: at - startedAt,
-			gapMs
+			gapMs,
+			...(from ? { from } : {})
 		});
 		const record = async (mismatch: boolean | null) => {
 			if (config.views !== false) await analytics.record(viewToBeacon(view(mismatch), at));
@@ -817,7 +892,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			if (route.scope === 'principal' && refusesSession(response)) await dropPrincipal(path);
 			return response;
 		}
-		ledger.serve(path);
+		ledger.serve(path, decision.reason === 'catalogue');
 		track(record(null));
 		const headers = new Headers(decision.headers);
 		headers.set('content-type', 'text/html; charset=utf-8');
@@ -847,7 +922,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	): Promise<Response> {
 		const decision = await decide(path, route, false);
 		if (decision.html !== undefined) {
-			ledger.serve(path);
+			ledger.serve(path, decision.reason === 'catalogue');
 			const headers = new Headers(decision.headers);
 			headers.set('content-type', route.type ?? 'application/json');
 			return new Response(decision.html, { headers });

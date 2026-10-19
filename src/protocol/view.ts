@@ -14,12 +14,15 @@ export type ViewTier = 'local' | 'local-revalidate' | 'network' | 'fallback' | '
  * soft bound with the sync left for a network moment (`soft-deferred`) or sent now (`soft-sync`),
  * past a hard bound and synced first (`hard-sync`), past it offline and shown anyway
  * (`offline-stale`), a stored copy a change outdated (`invalidated`, `stale-after-sync`), a hard
- * route offline that refuses (`hard-refused`), or a render the worker declined (`refused`).
+ * route offline that refuses (`hard-refused`), or a render the worker declined (`refused`). A
+ * page the visitor had not opened, shown with no request from a catalogue entry that came with an
+ * earlier flush, is `catalogue`.
  */
 export type ViewReason =
 	| 'cold'
 	| 'principal'
 	| 'fresh'
+	| 'catalogue'
 	| 'soft-deferred'
 	| 'soft-sync'
 	| 'hard-sync'
@@ -34,6 +37,7 @@ export const REASON_TIER: Record<ViewReason, Exclude<ViewTier, 'shadow'>> = {
 	cold: 'network',
 	principal: 'network',
 	fresh: 'local',
+	catalogue: 'local',
 	'soft-deferred': 'local',
 	'soft-sync': 'local-revalidate',
 	'hard-sync': 'local-revalidate',
@@ -67,6 +71,11 @@ export type ViewEvent = {
 	/** milliseconds since this worker's previous view, or null for its first */
 	gapMs: number | null;
 	/**
+	 * Where the visitor came from: the referring page's route pattern when it is same-origin and
+	 * matches a declared route, `external` for a cross-origin referrer, omitted otherwise. Never a path.
+	 */
+	from?: string;
+	/**
 	 * Cross-origin resources the page loaded during the view, as the page runtime counted them from
 	 * `PerformanceResourceTiming` when it was hidden. Without `Timing-Allow-Origin` such an entry has a
 	 * transfer size of 0 whether it came from cache or network, so a cache hit counts: this is an upper
@@ -84,6 +93,9 @@ export type TimedView = ViewEvent & {
 
 /** longest route pattern a view may name; a longer one is not read as a view */
 export const MAX_ROUTE_CHARS = 256;
+
+/** the `from` of a view whose referrer is another origin */
+export const FROM_EXTERNAL = 'external';
 
 /** the `path` a view carries inside a beacon batch */
 export const VIEW_PATH = '/.spool/view';
@@ -217,6 +229,7 @@ export function viewFromBeacon(event: BeaconEvent): TimedView | null {
 		mismatch,
 		swAgeMs,
 		gapMs,
+		from,
 		crossOriginLoads
 	} = value;
 	if (typeof id !== 'string' || id === '' || id.length > 64) return null;
@@ -248,6 +261,9 @@ export function viewFromBeacon(event: BeaconEvent): TimedView | null {
 		mismatch,
 		swAgeMs,
 		gapMs,
+		...(typeof from === 'string' && from !== '' && from.length <= MAX_ROUTE_CHARS
+			? { from }
+			: {}),
 		at: event.at
 	};
 }

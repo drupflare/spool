@@ -1,5 +1,6 @@
 import { cdnClientUrl } from '../cdn/location.js';
 import { parseArtifact, PROTOCOL_VERSION, type Artifact } from '../protocol/artifact.js';
+import type { CatalogueAsk } from '../protocol/beacon.js';
 import { checkCollectors, type CollectorConfig } from '../protocol/collector.js';
 import {
 	clientPath,
@@ -14,7 +15,13 @@ import { HEADERS, writeEnvelope, type Envelope } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
 import { collectRefs, createCollector } from '../protocol/graph.js';
 import { checkPattern } from '../protocol/pattern.js';
-import { benefit, priorFrom } from '../protocol/provision.js';
+import {
+	benefit,
+	chooseEntries,
+	DEFAULT_CATALOGUE_BYTES,
+	priorFrom,
+	type EntryCandidate
+} from '../protocol/provision.js';
 import {
 	matchRoute,
 	serializeRoute,
@@ -27,16 +34,23 @@ import { clientTag, injectClientTag } from '../protocol/tag.js';
 import type { Mode } from '../protocol/view.js';
 import type { VersionStore } from '../stores/version-store.js';
 import { VERSION } from '../version.js';
-import { respondBeacon } from './beacon.js';
+import { respondBeacon, type Bundle } from './beacon.js';
 import { CLIENT_CORE } from './embedded.js';
 import { partitionId, type IdentityOptions } from './identity.js';
 import type { Sink } from './sink.js';
+import { compressedSize, type Sizer } from './size.js';
 import { workerResponse, workerScript } from './stub.js';
 import { json, respondSync } from './sync.js';
 import type { WorkSeries } from './work.js';
 
 /** most changed tags a response carries inline before the worker is left to ask `/.spool/sync` */
 export const MAX_PIGGYBACK = 32;
+
+/** most pages one catalogue request makes the server build, whatever its route suggests */
+export const MAX_CATALOGUE_BUILD = 32;
+
+/** the strategies whose artifact is data for a template or projection the device already holds */
+const ENTRY_STRATEGIES: readonly string[] = ['template', 'projection', 'data'];
 
 /** what `createSpool` takes */
 export type SpoolOptions = {
@@ -67,6 +81,10 @@ export type SpoolOptions = {
 	 * artifact whose transfer its expected reuse does not repay
 	 */
 	provision?: ProvisionConfig;
+	/** the most compressed bytes of entries one catalogue bundle may carry; default 32 KiB */
+	catalogueBytes?: number;
+	/** measures an entry's compressed bytes for the catalogue; default Brotli, gzip where the runtime has no Brotli stream */
+	catalogueSize?: Sizer;
 	/** how the worker treats same-origin subresources; default `cache` */
 	assets?: AssetMode;
 	/** same-origin paths whose request ends the session; the worker wipes the principal store first */
@@ -165,6 +183,11 @@ export function createSpool(options: SpoolOptions): Spool {
 	const collectors = [...(options.collectors ?? [])];
 	checkCollectors(collectors);
 	const prior = priorFrom(options.provision);
+	const catalogueBytes = options.catalogueBytes ?? DEFAULT_CATALOGUE_BYTES;
+	if (!(Number.isFinite(catalogueBytes) && catalogueBytes >= 0)) {
+		throw new ProtocolError('bad-route', 'catalogueBytes must be a non-negative number');
+	}
+	const measure = options.catalogueSize ?? compressedSize;
 
 	const config: SwConfig = {
 		protocol: PROTOCOL_VERSION,
@@ -363,6 +386,79 @@ export function createSpool(options: SpoolOptions): Spool {
 		return out;
 	};
 
+	/**
+	 * The entries to send a device on `ask.path`: the data of pages that route's `catalogue` suggests,
+	 * kept when the share expected to open one reaches its break-even and the bundle stays under
+	 * `catalogueBytes`. A failure sends nothing, so it never turns a flush into an error.
+	 */
+	const catalogue =
+		(request: Request) =>
+		async (ask: CatalogueAsk): Promise<Bundle> => {
+			const none: Bundle = { artifacts: [] };
+			try {
+				const here = matchRoute(routes, ask.path);
+				if (!here?.route.catalogue) return none;
+				const headers = new Headers(request.headers);
+				headers.delete('content-type');
+				headers.delete('content-length');
+				headers.set('accept', 'application/json');
+				const probe = new Request(request.url, { headers });
+				const identity = await who(probe);
+				if (here.route.scope === 'principal' && !identity) return none;
+				const url = new URL(request.url);
+				const ctx = context(probe, new URL(ask.path, url), here.params, identity);
+				const guesses = [...(await here.route.catalogue(ctx))]
+					.filter(
+						(g) =>
+							typeof g.path === 'string' &&
+							g.path.startsWith('/') &&
+							!g.path.startsWith(SPOOL_PREFIX) &&
+							!/[?#]/.test(g.path) &&
+							g.path !== ask.path &&
+							typeof g.p === 'number' &&
+							g.p > 0 &&
+							g.p <= 1
+					)
+					.sort((a, b) => b.p - a.p);
+				const built = new Map<string, { artifact: Artifact; partition?: string }>();
+				const pool: EntryCandidate[] = [];
+				let attempts = 0;
+				for (const guess of guesses) {
+					if (attempts >= MAX_CATALOGUE_BUILD) break;
+					if (built.has(guess.path)) continue;
+					const target = matchRoute(routes, guess.path);
+					if (!target || !ENTRY_STRATEGIES.includes(target.route.strategy)) continue;
+					if (target.route.scope === 'principal' && !ask.sweep) continue;
+					attempts += 1;
+					let result: Built;
+					try {
+						result = await buildArtifact(probe, url, guess.path);
+					} catch {
+						continue;
+					}
+					if (!('artifact' in result)) continue;
+					// ponytail: records two entries share are sized and sent once per entry, dedupe if bundles repeat them
+					const entryBytes = await measure(
+						new TextEncoder().encode(JSON.stringify(result.artifact))
+					);
+					const documentBytes =
+						target.route.documentBytes ??
+						(target.route.strategy === 'data' ? entryBytes : prior.avoidedBytes);
+					built.set(guess.path, result);
+					pool.push({ path: guess.path, p: guess.p, entryBytes, documentBytes });
+				}
+				const chosen = chooseEntries(pool, { capBytes: catalogueBytes });
+				const entries = chosen.flatMap((c) => built.get(c.path) ?? []);
+				const partition = entries.find((e) => e.partition !== undefined)?.partition;
+				return {
+					artifacts: entries.map((e) => e.artifact),
+					...(partition !== undefined ? { partition } : {})
+				};
+			} catch {
+				return none;
+			}
+		};
+
 	async function respond(request: Request): Promise<Response | undefined> {
 		const url = new URL(request.url);
 		if (!url.pathname.startsWith(SPOOL_PREFIX)) return undefined;
@@ -390,7 +486,7 @@ export function createSpool(options: SpoolOptions): Spool {
 			}
 			if (url.pathname === PATHS.artifact && get) return await respondArtifact(request, url);
 			if (url.pathname === PATHS.beacon) {
-				return await respondBeacon(request, sink, provide(request));
+				return await respondBeacon(request, sink, provide(request), catalogue(request));
 			}
 			if (url.pathname === clientPath(VERSION) && get) {
 				return new Response(CLIENT_CORE, {

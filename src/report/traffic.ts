@@ -1,4 +1,5 @@
 import { funnelOf, type Engine, type TimedView } from '../protocol/view.js';
+import { DOCUMENT_BYTES } from './inputs.js';
 
 /**
  * Which views a measure reads. `served` takes the views the worker answered, where `Z` is real;
@@ -255,4 +256,94 @@ export function mismatchesByRoute(views: readonly TimedView[]): RouteMismatches[
 		routes.set(view.route, entry);
 	}
 	return [...routes.values()].sort((a, b) => (a.route < b.route ? -1 : 1));
+}
+
+/** what the worker's ledger holds per entry that the catalogue figures read */
+export type CatalogueLedgerRow = { id: string; catalogueBytes: number; catalogueViews: number };
+
+/** what a catalogue sent, what a view used and what the views saved */
+export type CatalogueFigures = {
+	/** entries the worker received in catalogue bundles */
+	sent: number;
+	/** entries that served a view with no request */
+	used: number;
+	/** views the catalogue answered locally */
+	hits: number;
+	/** views in the basis */
+	views: number;
+	/** `hits` over `views`; null with no views */
+	hitShare: number | null;
+	/** JSON bytes of the entries received, as the ledger counts them */
+	bytesSent: number;
+	/** `hits` times `documentBytes` */
+	bytesSaved: number;
+	/** `bytesSaved` less `bytesSent`; negative when the catalogue moved more than it kept off the wire */
+	bytesNet: number;
+};
+
+/**
+ * Catalogue figures from the views the sink holds and the worker's ledger entries. A view is a hit
+ * when its reason is `catalogue`; the ledger says how many entries arrived, how many served a view
+ * and what they weighed. `documentBytes` is what a hit keeps off the wire, `DOCUMENT_BYTES` (L1)
+ * unless the site knows its own, so `bytesSaved` is a scenario figure (L3) until shadow views
+ * measure the use share. The ledger counts uncompressed JSON text and a document is counted on
+ * the wire, so `bytesNet` compares unlike units.
+ */
+export function catalogueFigures(
+	views: readonly TimedView[],
+	ledger: { entries: readonly CatalogueLedgerRow[] },
+	options: { basis?: Basis; documentBytes?: number } = {}
+): CatalogueFigures {
+	const pool = views.filter((v) => inBasis(v, options.basis ?? 'served'));
+	const hits = pool.filter((v) => v.reason === 'catalogue').length;
+	const sent = ledger.entries.filter((e) => e.catalogueBytes > 0);
+	const bytesSent = sent.reduce((total, e) => total + e.catalogueBytes, 0);
+	const bytesSaved = hits * (options.documentBytes ?? DOCUMENT_BYTES.value);
+	return {
+		sent: sent.length,
+		used: ledger.entries.filter((e) => e.catalogueViews > 0).length,
+		hits,
+		views: pool.length,
+		hitShare: ratio(hits, pool.length),
+		bytesSent,
+		bytesSaved,
+		bytesNet: bytesSaved - bytesSent
+	};
+}
+
+/** views that came from `from` and went to `route` */
+export type Transition = { from: string; route: string; views: number };
+
+/** how many views came from each referrer, and the pairs; `from` may be a route pattern or `external` */
+export type Transitions = {
+	pairs: Transition[];
+	byFrom: Record<string, number>;
+};
+
+/** counts per `(from, route)` pair and per `from`; a view with no `from` counts in neither */
+export function transitions(views: readonly TimedView[]): Transitions {
+	const pairs = new Map<string, Transition>();
+	const byFrom: Record<string, number> = Object.create(null);
+	for (const view of views) {
+		if (view.from === undefined) continue;
+		const key = JSON.stringify([view.from, view.route]);
+		const entry = pairs.get(key) ?? { from: view.from, route: view.route, views: 0 };
+		entry.views += 1;
+		pairs.set(key, entry);
+		byFrom[view.from] = (byFrom[view.from] ?? 0) + 1;
+	}
+	const sorted = [...pairs.values()].sort((a, b) =>
+		a.from === b.from ? (a.route < b.route ? -1 : 1) : a.from < b.from ? -1 : 1
+	);
+	return { pairs: sorted, byFrom };
+}
+
+/** the share of views from `from` that went to each route, in route order; empty when none came from it */
+export function nextShare(views: readonly TimedView[], from: string): Record<string, number> {
+	const { pairs, byFrom } = transitions(views);
+	const total = byFrom[from];
+	const out: Record<string, number> = {};
+	if (!total) return out;
+	for (const pair of pairs) if (pair.from === from) out[pair.route] = pair.views / total;
+	return out;
 }
