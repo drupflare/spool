@@ -9,6 +9,7 @@ import {
 } from '../protocol/sync.js';
 import { isCurrent, validatedAt } from './freshness.js';
 import { Graph, usesGraph, type Materialized } from './graph/index.js';
+import { MAX_POLICY_PATHS, type HeaderSet } from './policy.js';
 import type { ReplicaStorage, StoredArtifact } from './storage.js';
 
 /**
@@ -26,6 +27,8 @@ export class Replica {
 	#tags = new Map<string, number>();
 	#cursor: number | null = null;
 	#syncedAt = 0;
+	#site: HeaderSet | undefined;
+	#policies = new Map<string, HeaderSet>();
 	/** records and projections; untouched until a page that references them is stored or shown */
 	readonly graph: Graph;
 
@@ -47,6 +50,8 @@ export class Replica {
 			this.#cursor = meta.cursor;
 			this.#syncedAt = meta.syncedAt;
 			this.#tags = new Map(meta.tags);
+			this.#site = meta.policy?.site;
+			this.#policies = new Map(meta.policy?.paths);
 			return;
 		}
 		await this.#storage.clearArtifacts();
@@ -62,6 +67,33 @@ export class Replica {
 	/** when the replica last completed a sync or a piggybacked diff */
 	get syncedAt(): number {
 		return this.#syncedAt;
+	}
+
+	/** the security headers of the latest network navigation, or undefined before one was seen */
+	get sitePolicy(): HeaderSet | undefined {
+		return this.#site;
+	}
+
+	/** the security headers `path` itself was last answered with, or undefined */
+	policyOf(path: string): HeaderSet | undefined {
+		return this.#policies.get(path);
+	}
+
+	/** keeps the headers of a network view: for `path`, or for the whole site when `path` is null */
+	async keepPolicy(path: string | null, headers: HeaderSet): Promise<void> {
+		const same = (a: HeaderSet | undefined) => JSON.stringify(a) === JSON.stringify(headers);
+		if (path === null) {
+			if (same(this.#site)) return;
+			this.#site = headers;
+		} else {
+			if (same(this.#policies.get(path))) return;
+			this.#policies.delete(path);
+			this.#policies.set(path, headers);
+			if (this.#policies.size > MAX_POLICY_PATHS) {
+				this.#policies.delete(this.#policies.keys().next().value as string);
+			}
+		}
+		await this.#save();
 	}
 
 	/** the stored artifact for `id`, memory-only routes included */
@@ -162,6 +194,8 @@ export class Replica {
 		await this.#storage.clearArtifacts();
 		await this.graph.clear();
 		this.#tags = new Map();
+		this.#site = undefined;
+		this.#policies = new Map();
 		this.#cursor = cursor;
 		await this.#save();
 	}
@@ -245,7 +279,8 @@ export class Replica {
 			version: this.#version,
 			cursor: this.#cursor,
 			tags: [...this.#tags],
-			syncedAt: this.#syncedAt
+			syncedAt: this.#syncedAt,
+			policy: { ...(this.#site ? { site: this.#site } : {}), paths: [...this.#policies] }
 		});
 	}
 }

@@ -100,6 +100,32 @@ export function writeEnvelope(headers: Headers, envelope: Envelope): void {
 	for (const [name, value] of Object.entries(encodeEnvelope(envelope))) headers.set(name, value);
 }
 
+/**
+ * The envelope of a response as the worker uses it. A malformed spool header drops every field
+ * but `Spool-Clear`, which is read on its own so a valid clear still applies and a malformed one
+ * reads as a full wipe. A response that names another protocol version is left alone.
+ */
+export function decodeEnvelopeOrClear(headers: Headers): Envelope | undefined {
+	try {
+		return decodeEnvelope(headers);
+	} catch {
+		const version = headers.get(HEADERS.protocol)?.trim();
+		if (version && /^\d{1,15}$/.test(version) && Number(version) !== PROTOCOL_VERSION) {
+			return undefined;
+		}
+		const raw = headers.get(HEADERS.clear);
+		if (raw === null) return undefined;
+		try {
+			return {
+				protocol: PROTOCOL_VERSION,
+				clear: list(raw).map((t) => decode(t, 'Spool-Clear'))
+			};
+		} catch {
+			return { protocol: PROTOCOL_VERSION, clear: [CLEAR_ALL] };
+		}
+	}
+}
+
 /** reads the spool headers; throws `ProtocolError` on a malformed one */
 export function decodeEnvelope(headers: Headers): Envelope {
 	const out: Envelope = {};

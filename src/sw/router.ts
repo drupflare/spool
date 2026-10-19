@@ -3,7 +3,7 @@ import type { SwConfig } from '../protocol/config.js';
 import { matchPattern, type Params } from '../protocol/pattern.js';
 import { matchRoute, type SerializedRoute } from '../protocol/route.js';
 
-/** how the worker treats a request */
+/** how the worker treats a request; a `static` hit keys its file by pathname plus query string */
 export type Classified =
 	| { kind: 'ignore' }
 	| { kind: 'beacon' }
@@ -50,7 +50,7 @@ export function classify(config: SwConfig, request: Request, origin: string): Cl
 	const queried = url.search !== '';
 	if (request.mode !== 'navigate') {
 		if (hit?.route.strategy === 'static' && !request.headers.has('range')) {
-			return { kind: 'static', route: hit.route, path: url.pathname };
+			return { kind: 'static', route: hit.route, path: url.pathname + url.search };
 		}
 		if (hit?.route.strategy === 'data' && !request.headers.has('range') && !queried) {
 			return { kind: 'data', route: hit.route, path: url.pathname };

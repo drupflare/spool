@@ -339,4 +339,26 @@ describe('the README matches the fixtures', () => {
 		expect(staticAbout.depends({} as never)).toEqual(['site']);
 		expect(staticAbout.freshness).toEqual({ maxStale: 3600, mode: 'soft' });
 	});
+
+	it('projection: the renderer in the bundled worker escapes the names it renders', async () => {
+		const serve = vi.fn();
+		vi.resetModules();
+		vi.doMock('../../src/sw/index', () => ({ serve }));
+		vi.stubGlobal('CONFIG', '{}');
+		try {
+			await import('./readme/sw');
+		} finally {
+			vi.doUnmock('../../src/sw/index');
+			vi.unstubAllGlobals();
+			vi.resetModules();
+		}
+		const render = serve.mock.calls[0]?.[1]['/rosters/:id'];
+		const html = render({
+			body: { data: { names: ['Ada', '<script>alert(1)</script>', 'Bo & "Co"'] } }
+		});
+		expect(html).toContain('<li>Ada</li>');
+		expect(html).toContain('<li>&lt;script&gt;alert(1)&lt;/script&gt;</li>');
+		expect(html).toContain('<li>Bo &amp; &quot;Co&quot;</li>');
+		expect(html).not.toContain('<script>');
+	});
 });

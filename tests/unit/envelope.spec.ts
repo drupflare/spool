@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	CLEAR_ALL,
 	decodeEnvelope,
+	decodeEnvelopeOrClear,
 	encodeEnvelope,
 	HEADERS,
 	ProtocolError,
@@ -96,6 +97,37 @@ describe('the envelope codec', () => {
 			expect(error).toBeInstanceOf(ProtocolError);
 			expect((error as ProtocolError).code).toBe('bad-header');
 		}
+	});
+
+	it('keeps a valid Spool-Clear when another spool header is malformed', () => {
+		const headers = new Headers({
+			'spool-protocol': '1',
+			'spool-artifact': 'noequals',
+			'spool-clear': 'abc, d%20e'
+		});
+		expect(() => decodeEnvelope(headers)).toThrow(ProtocolError);
+		expect(decodeEnvelopeOrClear(headers)).toEqual({ protocol: 1, clear: ['abc', 'd e'] });
+	});
+
+	it('reads a malformed Spool-Clear as a full wipe', () => {
+		const headers = new Headers({ 'spool-protocol': '1', 'spool-clear': '%E0%A4%A' });
+		expect(decodeEnvelopeOrClear(headers)).toEqual({ protocol: 1, clear: [CLEAR_ALL] });
+		expect(
+			decodeEnvelopeOrClear(new Headers({ 'spool-vector': 'x', 'spool-clear': '%E0%A4%A' }))
+		).toEqual({ protocol: 1, clear: [CLEAR_ALL] });
+	});
+
+	it('decodes a sound envelope in full and leaves other cases alone', () => {
+		const sound = new Headers(encodeEnvelope({ vector: 3, clear: ['*'] }));
+		expect(decodeEnvelopeOrClear(sound)).toEqual({ protocol: 1, vector: 3, clear: ['*'] });
+		expect(decodeEnvelopeOrClear(new Headers())).toEqual({});
+		expect(decodeEnvelopeOrClear(new Headers({ 'spool-vector': 'x' }))).toBeUndefined();
+		const other = new Headers({
+			'spool-protocol': '2',
+			'spool-vector': 'x',
+			'spool-clear': '*'
+		});
+		expect(decodeEnvelopeOrClear(other)).toBeUndefined();
 	});
 
 	it('refuses to encode a partition that is not a base64url token', () => {

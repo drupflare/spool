@@ -3,7 +3,7 @@ import { defineRoute } from '../../src/protocol/index';
 import { SW_CORE } from '../../src/server/embedded';
 import { createSpool } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
-import { nav, sub } from './helpers';
+import { artifact, nav, sub } from './helpers';
 import { HTML, rig, type RigOptions } from './rig';
 
 const JSON_TYPE = { 'content-type': 'application/json' };
@@ -231,5 +231,175 @@ describe('provisioning benefit rule', () => {
 		await get(r, '/api/cold/2');
 		expect(r.artifacts.filter((a) => a.text !== '')).toHaveLength(0);
 		expect(r.log.filter((l) => l === 'GET /.spool/artifact')).toHaveLength(1);
+	});
+});
+
+describe('security headers on a local render', () => {
+	const ALL = {
+		'content-security-policy': "default-src 'self'",
+		'content-security-policy-report-only': "default-src 'none'",
+		'x-frame-options': 'DENY',
+		'x-content-type-options': 'nosniff',
+		'referrer-policy': 'same-origin',
+		'permissions-policy': 'camera=()',
+		'cross-origin-opener-policy': 'same-origin',
+		'cross-origin-embedder-policy': 'require-corp',
+		'cross-origin-resource-policy': 'same-origin'
+	};
+	const secured = [
+		defineRoute('/t/:id', {
+			strategy: 'template',
+			template: { source: '<html><head></head><body>{{id}}</body></html>' },
+			depends,
+			load: (ctx) => ({ id: ctx.params['id'] })
+		}),
+		defineRoute('/api/d/:id', {
+			strategy: 'data',
+			depends,
+			load: (ctx) => course(ctx.params['id'] as string),
+			provision: wide
+		})
+	];
+	let sent: Record<string, Record<string, string>> = {};
+	const secureApp: RigOptions['app'] = (request) => {
+		const { pathname } = new URL(request.url);
+		const id = pathname.split('/').pop() as string;
+		const extra = { 'x-other': 'not a policy', ...(sent[pathname] ?? sent['*']) };
+		if (pathname.startsWith('/api/')) {
+			return new Response(JSON.stringify(course(id)), {
+				headers: { ...JSON_TYPE, ...extra }
+			});
+		}
+		if (pathname === '/t/404') return new Response('gone', { status: 404, headers: extra });
+		if (pathname === '/t/redirect') {
+			return new Response(null, { status: 302, headers: { ...extra, location: '/t/1' } });
+		}
+		if (pathname === '/clear') {
+			return new Response('<html><head></head><body>clear</body></html>', {
+				headers: { ...HTML, ...extra, 'spool-clear': '*' }
+			});
+		}
+		if (pathname === '/file.pdf') {
+			return new Response('pdf', {
+				headers: { 'content-type': 'application/pdf', ...extra }
+			});
+		}
+		return new Response(`<html><head></head><body>${id}</body></html>`, {
+			headers: { ...HTML, ...extra }
+		});
+	};
+	const secure = () => {
+		sent = { '*': ALL };
+		return rig({ routes: secured, app: secureApp });
+	};
+	const policyOf = (response: Response) =>
+		Object.fromEntries(
+			Object.keys(ALL).map((name) => [name, response.headers.get(name) ?? undefined])
+		);
+	/** stores an artifact for `/t/<id>` the worker never saw a network view of */
+	const unseen = async (r: ReturnType<typeof secure>, id: string) => {
+		await r.runtime.message({ type: 'spool:status' });
+		await r.runtime.replica.put(
+			artifact({ id: `/t/${id}`, deps: [], vector: 0, body: { data: { id } } }),
+			true
+		);
+	};
+
+	it('replays the nine security headers of the network answer and no other', async () => {
+		const r = secure();
+		await r.drive(nav('/t/1'));
+		r.reset();
+		const local = await r.drive(nav('/t/1'));
+		expect(r.log).toEqual([]);
+		expect(policyOf(local)).toEqual(ALL);
+		expect(local.headers.has('x-other')).toBe(false);
+		expect(local.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		expect(await local.text()).toContain('1');
+	});
+
+	it('keeps each path its own set, and a path with none of its own takes the latest set seen', async () => {
+		const r = secure();
+		sent = {
+			'/t/1': { 'content-security-policy': 'p1' },
+			'/t/2': { 'x-frame-options': 'DENY' }
+		};
+		await r.drive(nav('/t/1'));
+		await r.drive(nav('/t/2'));
+		await unseen(r, '3');
+		r.reset();
+		const [one, two, three] = [
+			await r.drive(nav('/t/1')),
+			await r.drive(nav('/t/2')),
+			await r.drive(nav('/t/3'))
+		];
+		expect(r.log).toEqual([]);
+		expect(one.headers.get('content-security-policy')).toBe('p1');
+		expect(one.headers.has('x-frame-options')).toBe(false);
+		expect(two.headers.get('x-frame-options')).toBe('DENY');
+		expect(two.headers.has('content-security-policy')).toBe(false);
+		expect(three.headers.get('x-frame-options')).toBe('DENY');
+		expect(three.headers.has('content-security-policy')).toBe(false);
+	});
+
+	it('goes to the network for a stored page until a policy has been seen, then serves it locally', async () => {
+		const r = secure();
+		await unseen(r, '3');
+		const first = await r.drive(nav('/t/3'));
+		expect(r.log).toEqual(['GET /t/3']);
+		expect(policyOf(first)).toEqual(ALL);
+		r.reset();
+		const second = await r.drive(nav('/t/3'));
+		expect(r.log).toEqual([]);
+		expect(policyOf(second)).toEqual(ALL);
+	});
+
+	it('keeps nothing from an error, a redirect or a page that is not HTML', async () => {
+		const r = secure();
+		await r.drive(nav('/t/404'));
+		await r.drive(nav('/t/redirect'));
+		await r.drive(nav('/file.pdf'));
+		expect(r.runtime.replica.sitePolicy).toBeUndefined();
+		expect(r.runtime.replica.policyOf('/t/404')).toBeUndefined();
+		expect(r.runtime.replica.policyOf('/t/redirect')).toBeUndefined();
+		await unseen(r, '3');
+		r.reset();
+		await r.drive(nav('/t/3'));
+		expect(r.log).toEqual(['GET /t/3']);
+	});
+
+	it('answers a data route with the headers its own network answer carried', async () => {
+		const r = secure();
+		sent = { '/api/d/1': { 'x-content-type-options': 'nosniff' } };
+		await get(r, '/api/d/1');
+		r.reset();
+		const local = await get(r, '/api/d/1');
+		expect(r.log).toEqual([]);
+		expect(local.headers.get('x-content-type-options')).toBe('nosniff');
+		expect(local.headers.get('content-type')).toBe('application/json');
+		expect(local.headers.has('x-other')).toBe(false);
+	});
+
+	it('keeps the sets across a worker restart', async () => {
+		const r = secure();
+		await r.drive(nav('/t/1'));
+		const restarted = r.make();
+		r.reset();
+		const local = await r.drive(nav('/t/1'), restarted);
+		expect(r.log).toEqual([]);
+		expect(policyOf(local)).toEqual(ALL);
+	});
+
+	it('wipes the sets with the store, so a page stored again is not served until one is seen', async () => {
+		const r = secure();
+		await r.drive(nav('/t/1'));
+		expect(r.runtime.replica.sitePolicy).toBeDefined();
+		await r.drive(nav('/clear'));
+		expect(await r.runtime.replica.ids()).toEqual([]);
+		expect(r.runtime.replica.sitePolicy).toBeUndefined();
+		expect(r.runtime.replica.policyOf('/t/1')).toBeUndefined();
+		await unseen(r, '1');
+		r.reset();
+		await r.drive(nav('/t/1'));
+		expect(r.log).toEqual(['GET /t/1']);
 	});
 });

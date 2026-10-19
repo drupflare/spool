@@ -24,7 +24,21 @@ export const VIEW_HOLD_MS = 60 * 60 * 1000;
 /** most events one request carries, so a long offline stretch never builds a body the server refuses */
 export const FLUSH_CHUNK = 100;
 
+/** how long a logout waits for the held same-origin requests to go out before it drops them */
+export const LOGOUT_SEND_MS = 3000;
+
+/** the vendor name a dropped same-origin request is counted under */
+export const SAME_ORIGIN_VENDOR = 'same-origin';
+
 export { MAX_BEACON_BYTES };
+
+function within<T>(promise: Promise<T>, ms: number): Promise<T> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const late = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => reject(new Error('timed out')), ms);
+	});
+	return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
 
 const encoder = new TextEncoder();
 
@@ -166,20 +180,52 @@ export class BeaconQueue {
 		const late = held.filter((b) => b.event.until !== undefined && b.event.until < at);
 		if (late.length === 0) return;
 		await storage.removeBeacons(late.map((b) => b.key));
+		await this.#report(late.map(({ event }) => event.vendor ?? 'unknown'));
+	}
+
+	/** counts dropped events by vendor and queues one `dropped` record per vendor */
+	async #report(vendors: readonly string[]): Promise<void> {
 		const counts = new Map<string, number>();
-		for (const { event } of late) {
-			const vendor = event.vendor ?? 'unknown';
-			counts.set(vendor, (counts.get(vendor) ?? 0) + 1);
-		}
+		for (const vendor of vendors) counts.set(vendor, (counts.get(vendor) ?? 0) + 1);
 		for (const [vendor, count] of counts) {
 			this.dropped.set(vendor, (this.dropped.get(vendor) ?? 0) + count);
-			await storage.addBeacon({
+			await this.#deps.storage.addBeacon({
 				path: DROPPED_PATH,
 				body: JSON.stringify({ vendor, count }),
 				contentType: 'application/json',
-				at
+				at: this.#deps.now()
 			});
 		}
+	}
+
+	/**
+	 * Sends the held same-origin requests now and drops whatever does not get through, counted under
+	 * {@link SAME_ORIGIN_VENDOR}. A replay carries the browser's cookies, so after a logout it would
+	 * be attributed to whoever signs in next. Run it while the session that made them is still the
+	 * browser's. A request that fails, or a network that is down, loses the event for good.
+	 */
+	async sendSameOrigin(timeoutMs: number): Promise<void> {
+		if (this.#flushing) await this.#flushing.catch(() => false);
+		const { storage, replay } = this.#deps;
+		const mine = (await storage.readBeacons()).filter(
+			({ event }) => !inBatch(event) && event.origin === undefined
+		);
+		if (mine.length === 0) return;
+		await storage.removeBeacons(mine.map((b) => b.key));
+		let down = false;
+		const lost: string[] = [];
+		for (const { event } of mine) {
+			let delivered = false;
+			if (!down) {
+				try {
+					delivered = await within(replay(event), timeoutMs);
+				} catch {
+					down = true;
+				}
+			}
+			if (!delivered) lost.push(SAME_ORIGIN_VENDOR);
+		}
+		await this.#report(lost);
 	}
 
 	async #run(): Promise<boolean> {

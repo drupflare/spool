@@ -188,6 +188,26 @@ describe('/.spool/sync', () => {
 		});
 	});
 
+	it('names the partition of the request identity, and none for a request with no identity', async () => {
+		const { spool } = setup();
+		for (const query of ['?from=0', `?need=${encodeURIComponent(encodeHeld({ a: 0 }))}`]) {
+			const ann = await spool.respond(get(`/.spool/sync${query}`, { 'x-user': 'ann' }));
+			expect(ann?.headers.get(HEADERS.partition)).toBe(
+				await partitionId('test-secret', 'ann')
+			);
+			expect(ann?.headers.get(HEADERS.protocol)).toBe('1');
+			const nobody = await spool.respond(get(`/.spool/sync${query}`));
+			expect(nobody?.headers.has(HEADERS.partition)).toBe(false);
+			expect(nobody?.headers.get(HEADERS.protocol)).toBe('1');
+		}
+	});
+
+	it('sends no partition when the server has no identity option', async () => {
+		const spool = createSpool({ routes, store: memoryStore() });
+		const response = await spool.respond(get('/.spool/sync?from=0', { 'x-user': 'ann' }));
+		expect(response?.headers.has(HEADERS.partition)).toBe(false);
+	});
+
 	it('says reset when the client is ahead of the server', async () => {
 		const { spool } = setup();
 		await spool.invalidate(['a']);

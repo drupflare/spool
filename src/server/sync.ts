@@ -11,9 +11,12 @@ export function json(body: unknown, status = 200, headers: Record<string, string
 	});
 }
 
-async function respondNeed(held: Record<string, number>, store: VersionStore): Promise<Response> {
+async function respondNeed(
+	held: Record<string, number>,
+	store: VersionStore,
+	headers: Record<string, string>
+): Promise<Response> {
 	const versions = Object.values(held);
-	const headers = { [HEADERS.protocol]: '1' };
 	if (versions.length === 0) {
 		const cursor = await store.cursor();
 		return json(
@@ -45,17 +48,23 @@ async function respondNeed(held: Record<string, number>, store: VersionStore): P
  * Answers `/.spool/sync`. With `from=<n>` it is every tag changed after `n` and the artifacts
  * dropped. With `need=<id>@<version>,...` it is only those ids whose version moved past the one
  * the worker holds, which is the invalid part of what the next page reads and nothing else.
+ * `partition` is the partition id of the request's identity, sent as `Spool-Partition`; a server
+ * with an identity option passes none for a request that resolves to nobody, and the worker reads
+ * that as a sign-out.
  */
-export async function respondSync(url: URL, store: VersionStore): Promise<Response> {
+export async function respondSync(
+	url: URL,
+	store: VersionStore,
+	partition?: string
+): Promise<Response> {
+	const headers: Record<string, string> = { [HEADERS.protocol]: '1' };
+	if (partition !== undefined) headers[HEADERS.partition] = partition;
 	const need = url.searchParams.get('need');
-	if (need !== null) return respondNeed(parseHeld(need, MAX_NEED), store);
+	if (need !== null) return respondNeed(parseHeld(need, MAX_NEED), store, headers);
 	const raw = url.searchParams.get('from') ?? '';
 	if (!/^\d{1,15}$/.test(raw)) {
 		throw new ProtocolError('bad-sync', 'from must be a non-negative integer');
 	}
 	const diff = await store.diff(Number(raw));
-	return json(toSyncResponse(diff), 200, {
-		[HEADERS.protocol]: '1',
-		[HEADERS.vector]: String(diff.cursor)
-	});
+	return json(toSyncResponse(diff), 200, { ...headers, [HEADERS.vector]: String(diff.cursor) });
 }

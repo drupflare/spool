@@ -6,9 +6,10 @@ import { idbPartitions, idbVault } from '../../src/sw/partition';
 import { createRuntime, type PartitionStatus, type Runtime } from '../../src/sw/runtime';
 import { memoryVault, sealedStorage } from '../../src/sw/seal';
 import { memoryStorage } from '../../src/sw/storage';
-import { artifact, fakeCaches, freshIndexedDB, nav, ORIGIN } from './helpers';
+import { artifact, fakeCaches, freshIndexedDB, nav, ORIGIN, sub } from './helpers';
 
-const HTML = { 'content-type': 'text/html; charset=utf-8' };
+const POLICY = "default-src 'self'";
+const HTML = { 'content-type': 'text/html; charset=utf-8', 'content-security-policy': POLICY };
 const page = (text: string) => `<html><head></head><body>${text}</body></html>`;
 const source = '<html><head></head><body>grades of {{owner}} {{mark.score}}</body></html>';
 
@@ -45,6 +46,7 @@ function world() {
 		routes,
 		store: memoryStore(),
 		sink: memorySink(),
+		beacons: ['/track'],
 		logout: ['/logout'],
 		identity: {
 			secret: 's',
@@ -57,6 +59,8 @@ function world() {
 		artifactHeaders: undefined as undefined | ((headers: Headers) => void)
 	};
 	const log: string[] = [];
+	/** who the server saw behind each replayed beacon */
+	const tracked: Array<string | null> = [];
 	const cleared: unknown[] = [];
 	let t = 1_700_000_000_000;
 
@@ -65,6 +69,10 @@ function world() {
 		const as = user.current;
 		const html = (text: string, init: ResponseInit = {}) =>
 			new Response(page(text), { ...init, headers: { ...HTML, ...init.headers } });
+		if (request.method === 'POST' && pathname === '/track') {
+			tracked.push(as);
+			return new Response(null, { status: 204 });
+		}
 		if (request.method === 'POST' && pathname === '/login') {
 			user.current = searchParams.get('as');
 			return html('welcome');
@@ -139,6 +147,8 @@ function world() {
 		spool,
 		hooks,
 		log,
+		tracked,
+		storage,
 		cleared,
 		runtime,
 		boot,
@@ -329,7 +339,118 @@ describe('principal routes from a sealed per-partition store', () => {
 	});
 });
 
+describe('security headers on a principal page', () => {
+	it("replays the site's policy from the sealed store and keeps it across a restart", async () => {
+		const w = world();
+		await signIn(w, 'A');
+		w.log.length = 0;
+		const local = await w.drive(nav('/grades'));
+		expect(w.log).toEqual([]);
+		expect(local.headers.get('content-security-policy')).toBe(POLICY);
+
+		const restarted = w.boot();
+		const again = await w.drive(nav('/grades'), restarted);
+		expect(w.log).toEqual([]);
+		expect(again.headers.get('content-security-policy')).toBe(POLICY);
+	});
+});
+
 describe('logout and the end of a session', () => {
+	it('sends the held same-origin beacons while the session is still the signed-out user, then wipes', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		await w.drive(sub('/track', { method: 'POST', body: 'one' }));
+		await w.drive(sub('/track', { method: 'POST', body: 'two' }));
+		expect(w.tracked).toEqual([]);
+
+		w.log.length = 0;
+		await w.visit('/logout');
+		expect(w.log.slice(0, 3)).toEqual(['POST /track', 'POST /track', 'GET /logout']);
+		expect(w.tracked).toEqual(['A', 'A']);
+		expect((await w.partition()).partition).toBeNull();
+		const left = await w.storage.readBeacons();
+		expect(left.filter((b) => b.event.path === '/track')).toEqual([]);
+
+		w.user.current = 'B';
+		w.advance(25 * 3600);
+		await w.visit('/about');
+		expect(w.tracked).toEqual(['A', 'A']);
+	});
+
+	it('drops the held same-origin beacons and counts them when the logout cannot send them, and never replays them for the next user', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		await w.drive(sub('/track', { method: 'POST', body: 'one' }));
+		await w.drive(sub('/track', { method: 'POST', body: 'two' }));
+
+		w.hooks.offline = true;
+		w.log.length = 0;
+		await expect(w.drive(nav('/logout'))).rejects.toThrow();
+		expect(w.log.filter((line) => line === 'POST /track')).toHaveLength(1);
+		expect((await w.partition()).partition).toBeNull();
+		const held = (await w.runtime.message({ type: 'spool:held' })) as {
+			dropped: Record<string, number>;
+		};
+		expect(held.dropped).toEqual({ 'same-origin': 2 });
+		const left = await w.storage.readBeacons();
+		expect(left.filter((b) => b.event.path === '/track')).toEqual([]);
+		const record = left.find((b) => b.event.path === '/.spool/dropped');
+		expect(JSON.parse(record?.event.body ?? '{}')).toEqual({ vendor: 'same-origin', count: 2 });
+
+		w.hooks.offline = false;
+		w.user.current = 'B';
+		w.advance(25 * 3600);
+		await w.visit('/about');
+		expect(w.tracked).toEqual([]);
+	});
+
+	it('does not send or drop held cross-origin events before the logout, which carry no cookies', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		await w.storage.addBeacon({
+			path: '/collect',
+			origin: 'https://vendor.test',
+			vendor: 'v',
+			body: 'x',
+			contentType: 'text/plain',
+			at: 1_700_000_000_000
+		});
+		await w.visit('/logout');
+		expect(w.log.indexOf('POST /collect')).toBeGreaterThan(w.log.indexOf('GET /logout'));
+		const held = (await w.runtime.message({ type: 'spool:held' })) as {
+			dropped: Record<string, number>;
+		};
+		expect(held.dropped).toEqual({});
+	});
+
+	it('reads a valid Spool-Clear beside a malformed spool header, and a malformed Spool-Clear as a wipe', async () => {
+		const cases: Array<Record<string, string>> = [
+			{ 'spool-artifact': 'noequals', 'spool-clear': '*' },
+			{ 'spool-vector': 'x', 'spool-clear': '%E0%A4%A' }
+		];
+		for (const headers of cases) {
+			const w = world();
+			await signIn(w, 'A');
+			const a = await partitionId('s', 'A');
+			const broken = createRuntime({
+				config: w.spool.config,
+				storage: memoryStorage(),
+				fetch: async () =>
+					new Response(page('x'), {
+						headers: { ...HTML, 'spool-protocol': '1', ...headers }
+					}),
+				caches: fakeCaches(),
+				origin: ORIGIN,
+				partitions: idbPartitions(w.factory, idbVault(w.factory))
+			});
+			expect((await w.partition(broken)).partition).toBe(a);
+			const waited: Promise<unknown>[] = [];
+			await broken.handle(nav('/about'), (p) => void waited.push(p));
+			await Promise.all(waited);
+			expect((await w.partition(broken)).partition).toBeNull();
+		}
+	});
+
 	it('wipes before the request leaves, with the network down', async () => {
 		const w = world();
 		await signIn(w, 'A');
@@ -456,6 +577,38 @@ describe('principal data fails safe', () => {
 		expect(w.log[0]).toMatch(/^GET \/\.spool\/sync$/);
 		expect(w.log).toContain('GET /grades');
 		expect((await w.partition()).artifacts).toEqual([]);
+	});
+
+	it('ends the open window at the first required sync after a sign-in the worker never saw', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		w.user.current = 'B';
+
+		w.advance(100);
+		w.log.length = 0;
+		expect(await w.visit('/grades')).toContain('grades of A 91');
+		expect(w.log).toEqual([]);
+
+		w.advance(300);
+		const body = await w.visit('/grades');
+		expect(w.log[0]).toBe('GET /.spool/sync');
+		expect(body).toContain('grades of B 47');
+		expect(body).not.toContain('grades of A');
+		expect((await w.partition()).partition).toBe(await partitionId('s', 'B'));
+		expect(w.cleared).toContainEqual({ type: 'spool:cleared', reason: 'partition' });
+		expect(await w.names()).not.toContain(`spool-p-${await partitionId('s', 'A')}`);
+	});
+
+	it('wipes the principal store at the first required sync after a sign-out the worker never saw', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		w.user.current = null;
+		w.advance(301);
+		const body = await w.visit('/grades');
+		expect(w.log).toContain('GET /.spool/sync');
+		expect(body).not.toContain('grades of A');
+		expect((await w.partition()).partition).toBeNull();
+		expect(w.cleared).toContainEqual({ type: 'spool:cleared', reason: 'session-ended' });
 	});
 
 	it('refuses a hard principal route offline past its bound', async () => {

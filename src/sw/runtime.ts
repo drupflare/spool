@@ -2,7 +2,12 @@ import { parseArtifact, PROTOCOL_VERSION, type Artifact } from '../protocol/arti
 import { MAX_WANT, type BeaconEvent } from '../protocol/beacon.js';
 import { applyStamp, type CollectorConfig } from '../protocol/collector.js';
 import { PATHS, type AssetMode, type SwConfig } from '../protocol/config.js';
-import { decodeEnvelope, HEADERS, type Envelope } from '../protocol/envelope.js';
+import {
+	decodeEnvelope,
+	decodeEnvelopeOrClear,
+	HEADERS,
+	type Envelope
+} from '../protocol/envelope.js';
 import { manifestRoutes, parseManifest } from '../protocol/manifest.js';
 import { matchRoute, type Retention, type SerializedRoute } from '../protocol/route.js';
 import { encodeHeld, parseSyncResponse, type SyncResponse } from '../protocol/sync.js';
@@ -14,10 +19,11 @@ import {
 	type ViewEvent,
 	type ViewReason
 } from '../protocol/view.js';
-import { BeaconQueue } from './analytics.js';
+import { BeaconQueue, LOGOUT_SEND_MS } from './analytics.js';
 import { collectorAnswer } from './collect.js';
 import { verdict } from './freshness.js';
 import type { PartitionHost } from './partition.js';
+import { policyHeaders, type HeaderSet } from './policy.js';
 import {
 	Ledger,
 	plan,
@@ -159,6 +165,9 @@ const YEAR = 31_536_000;
 const DAY_MS = 86_400_000;
 const encoder = new TextEncoder();
 
+/** a static file's key is its pathname plus query string; this is the pathname a route matches */
+const pathOf = (key: string) => key.split('?', 1)[0] as string;
+
 function immutable(response: Response): boolean {
 	const control = response.headers.get('cache-control') ?? '';
 	if (/(?:^|,)\s*immutable\b/i.test(control)) return true;
@@ -171,6 +180,8 @@ type Decision = {
 	reason: ViewReason;
 	/** the local page, or the JSON text of a data route, when the worker could show one */
 	html?: string;
+	/** the site's security headers to answer `html` with */
+	headers?: HeaderSet;
 	/** the stored file of a static route, when the worker could show it */
 	response?: Response;
 	staleSec: number | null;
@@ -265,6 +276,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			credentials: 'same-origin'
 		});
 		if (!response.ok) throw new Error(`sync answered ${response.status}`);
+		// the answer names who the server sees, so a sign-in the worker never saw ends here
+		await early(decodeEnvelopeOrClear(response.headers), true);
 		return parseSyncResponse(await response.json());
 	}
 
@@ -440,7 +453,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	 * What a response says about who is signed in, applied before the response is handed back so no
 	 * later view reads a store the response outdated. `Spool-Clear` wipes everything or one
 	 * partition; a different `Spool-Partition` replaces the store; a navigation the server decorated
-	 * with no partition means the session ended.
+	 * with no partition means the session ended. A sync answer is read the same way, so the first
+	 * required sync after a sign-in the worker never saw swaps the store before its result is used.
 	 */
 	async function early(
 		envelope: Envelope | undefined,
@@ -513,8 +527,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		sent: number | null,
 		navigation: boolean,
 		moment: boolean,
-		provisionable: boolean
+		provisionable: boolean,
+		keep: () => Promise<void>
 	): Promise<void> {
+		await keep();
 		if (envelope && envelope.protocol === PROTOCOL_VERSION) {
 			await replica.applyEnvelope(envelope, sent, headers.has('age'));
 			const side = principal;
@@ -562,6 +578,37 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 	}
 
+	/**
+	 * Keeps the security headers of a network view so a local render can replay them: the site-wide
+	 * set from any HTML navigation, and the set of the route's own path. Errors, redirects and
+	 * queried URLs are never kept, since no local render answers them.
+	 */
+	async function keepPolicy(
+		request: Request,
+		response: Response,
+		envelope: Envelope | undefined,
+		navigation: boolean,
+		after?: { route?: SerializedRoute; signedOut?: boolean }
+	): Promise<void> {
+		if (request.method !== 'GET' || response.status !== 200 || response.redirected) return;
+		if (after?.signedOut) return;
+		if (navigation && !/text\/html/i.test(response.headers.get('content-type') ?? '')) return;
+		const set = policyHeaders(response.headers);
+		if (navigation) await replica.keepPolicy(null, set);
+		const route = after?.route;
+		const url = new URL(request.url);
+		if (!route || route.strategy === 'static' || url.search !== '') return;
+		const side =
+			route.scope === 'principal'
+				? principal?.id === envelope?.partition
+					? principal
+					: null
+				: publicSide;
+		if (!side) return;
+		await side.loaded;
+		await side.replica.keepPolicy(url.pathname, set);
+	}
+
 	async function passthrough(
 		request: Request,
 		navigation: boolean,
@@ -569,6 +616,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			clone?: boolean;
 			provision?: boolean;
 			signedOut?: boolean;
+			/** the route a navigation or data read matched, so its own headers are kept */
+			route?: SerializedRoute;
 			run(copy: Response | null): Promise<void>;
 		}
 	): Promise<Response> {
@@ -590,12 +639,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 		}
 		const response = await deps.fetch(outgoing);
-		let envelope: Envelope | undefined;
-		try {
-			envelope = decodeEnvelope(response.headers);
-		} catch {
-			envelope = undefined;
-		}
+		const envelope = decodeEnvelopeOrClear(response.headers);
 		await early(envelope, navigation, after?.signedOut);
 		// a cacheable GET may be answered by the HTTP cache with no radio wake, so only these count
 		const moment = navigation || request.method !== 'GET';
@@ -613,7 +657,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 					sent,
 					navigation,
 					moment,
-					after?.provision ?? navigation
+					after?.provision ?? navigation,
+					() => keepPolicy(request, response, envelope, navigation, after)
 				);
 			})()
 		);
@@ -695,6 +740,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 			return { reason, response: kept, staleSec: age };
 		}
+		// never answer a page locally without the policy the site sent with it
+		const headers = rep.policyOf(path) ?? replica.sitePolicy;
+		if (!headers && !dry) return { reason: 'refused', staleSec: age };
 		const plain = await rep.materialize(stored.artifact);
 		if (!plain.ok) {
 			// a reference with nothing behind it: drop the page so the next network view fetches it whole
@@ -703,7 +751,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 		const rendered = await renderLocal(config, route, plain.artifact, renderers);
 		if (!rendered.ok) return { reason: 'refused', staleSec: age };
-		return { reason, html: rendered.html, staleSec: age };
+		return { reason, html: rendered.html, headers, staleSec: age };
 	}
 
 	async function navigate(
@@ -743,6 +791,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			const html = decision.html;
 			return passthrough(request, true, {
 				clone: html !== undefined,
+				route,
 				run: async (network) => {
 					await record(
 						html === undefined || !network ? null : await differs(html, network)
@@ -759,6 +808,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			const keeps = route.strategy === 'static';
 			const response = await passthrough(request, true, {
 				clone: keeps,
+				route,
 				run: async (copy) => {
 					if (keeps) await capture(path, route, copy);
 					await record(null);
@@ -769,9 +819,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 		ledger.serve(path);
 		track(record(null));
-		return new Response(decision.html, {
-			headers: { 'content-type': 'text/html; charset=utf-8' }
-		});
+		const headers = new Headers(decision.headers);
+		headers.set('content-type', 'text/html; charset=utf-8');
+		return new Response(decision.html, { headers });
 	}
 
 	/** whether the server answered a principal page with a refusal or a redirect, as to a signed-out visitor */
@@ -798,12 +848,13 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const decision = await decide(path, route, false);
 		if (decision.html !== undefined) {
 			ledger.serve(path);
-			return new Response(decision.html, {
-				headers: { 'content-type': route.type ?? 'application/json' }
-			});
+			const headers = new Headers(decision.headers);
+			headers.set('content-type', route.type ?? 'application/json');
+			return new Response(decision.html, { headers });
 		}
 		const response = await passthrough(request, false, {
 			provision: true,
+			route,
 			run: async () => undefined
 		});
 		if (route.scope === 'principal' && refusesSession(response)) await dropPrincipal(path);
@@ -829,7 +880,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	): Promise<void> {
 		if (!copy || copy.status !== 200 || copy.redirected) return;
 		// a sync in the same view may have replaced the manifest, so the route is read again
-		const route = config.manifest ? matchRoute(config.routes, path)?.route : asked;
+		const route = config.manifest ? matchRoute(config.routes, pathOf(path))?.route : asked;
 		if (route?.strategy !== 'static') return;
 		const bytes = await readCapped(copy, MAX_STATIC_BYTES);
 		if (!bytes) return;
@@ -930,7 +981,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		for (const id of await replica.ids()) {
 			const stored = await replica.get(id);
 			if (stored?.artifact.strategy !== 'static') continue;
-			const hit = matchRoute(routes, id);
+			const hit = matchRoute(routes, pathOf(id));
 			if (!hit || stored.artifact.body.version !== hit.route.version) dropped.push(id);
 		}
 		return {
@@ -1042,6 +1093,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const route = classify(config, request, origin);
 		track(analytics.flushIfDue());
 		if (route.kind === 'logout') {
+			// held beacons still carry this session; sent after the logout they would carry the next one
+			await analytics.sendSameOrigin(LOGOUT_SEND_MS).catch(() => undefined);
 			await wipePartition('logout');
 			return passthrough(request, request.mode === 'navigate', {
 				signedOut: true,

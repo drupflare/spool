@@ -380,7 +380,14 @@ export function createSpool(options: SpoolOptions): Spool {
 	async function answer(request: Request, url: URL): Promise<Response> {
 		try {
 			const get = request.method === 'GET' || request.method === 'HEAD';
-			if (url.pathname === PATHS.sync && get) return await respondSync(url, store);
+			if (url.pathname === PATHS.sync && get) {
+				const identity = await who(request);
+				const partition =
+					identity && options.identity
+						? await partitionId(options.identity.secret, identity.principal)
+						: undefined;
+				return await respondSync(url, store, partition);
+			}
 			if (url.pathname === PATHS.artifact && get) return await respondArtifact(request, url);
 			if (url.pathname === PATHS.beacon) {
 				return await respondBeacon(request, sink, provide(request));

@@ -71,6 +71,21 @@ describe('a static route on the server half', () => {
 		expect(r.log).toEqual([]);
 	});
 
+	it('answers a query string from the network, not from the stored copy of the path', async () => {
+		const r = rig({ routes, app });
+		await r.drive(sub('/site.css'));
+		r.reset();
+		const queried = await r.drive(sub('/site.css?v=2'));
+		expect(await queried.text()).toBe('main{color:red}');
+		expect(r.urls).toEqual(['GET /site.css?v=2']);
+
+		r.reset();
+		await r.drive(sub('/site.css'));
+		expect(r.urls).toEqual([]);
+		await r.drive(sub('/site.css?v=2'));
+		expect(r.urls).toEqual(['GET /site.css?v=2']);
+	});
+
 	it('keeps an asset fetched as a subresource', async () => {
 		const r = rig({ routes, app });
 		await r.drive(sub('/site.css'));
@@ -324,6 +339,44 @@ describe('a static site with no server', () => {
 		none.reset();
 		await none.visit('/');
 		expect(none.log).toEqual(['GET /']);
+	});
+
+	it('keeps a file with a query string apart from the same path without one', async () => {
+		const p = plain();
+		await p.drive(sub('/app.js'));
+		p.reset();
+		const queried = await p.drive(sub('/app.js?v=2'));
+		expect(p.log).toEqual(['GET /app.js']);
+		expect(await queried.text()).toBe('console.log(1)');
+
+		p.reset();
+		await p.drive(sub('/app.js?v=2'));
+		await p.drive(sub('/app.js'));
+		expect(p.log).toEqual([]);
+		const status = await p.runtime().message({ type: 'spool:status' });
+		expect(status).toMatchObject({
+			artifacts: expect.arrayContaining(['/app.js', '/app.js?v=2'])
+		});
+	});
+
+	it('refreshes a queried file with its path, dropping it when the version changes and not before', async () => {
+		const p = plain();
+		await p.drive(sub('/app.js'));
+		await p.drive(sub('/app.js?v=2'));
+		p.advance(901);
+		await p.drive(sub('/app.js'));
+		const kept = (await p.runtime().message({ type: 'spool:status' })) as {
+			artifacts: string[];
+		};
+		expect(kept.artifacts).toEqual(expect.arrayContaining(['/app.js', '/app.js?v=2']));
+
+		p.world.routes[1] = { pattern: '/app.js', strategy: 'static', version: 'build-2' };
+		p.advance(901);
+		await p.drive(sub('/app.js'));
+		const after = (await p.runtime().message({ type: 'spool:status' })) as {
+			artifacts: string[];
+		};
+		expect(after.artifacts).not.toContain('/app.js?v=2');
 	});
 
 	it('picks up a changed file once spool.json changes, past the hard bound', async () => {

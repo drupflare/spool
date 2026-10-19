@@ -1,6 +1,7 @@
 import type { Artifact } from '../protocol/artifact.js';
 import type { BeaconEvent } from '../protocol/beacon.js';
 import type { ProjectionEntry, RecordEntry } from '../protocol/graph.js';
+import type { HeaderSet } from './policy.js';
 
 /** an artifact as held on the device, with the time the worker stored it */
 export type StoredArtifact = {
@@ -22,6 +23,8 @@ export type ReplicaMeta = {
 	tags: Array<[string, number]>;
 	/** when the last sync (or a piggybacked diff) completed, epoch milliseconds */
 	syncedAt: number;
+	/** the security headers seen on network views: the latest site-wide set and each path's own */
+	policy?: { site?: HeaderSet; paths: Array<[string, HeaderSet]> };
 };
 
 /** a queued beacon with the key to remove it by */

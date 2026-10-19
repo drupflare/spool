@@ -785,6 +785,13 @@ export const about = defineRoute('/about', {
 The worker leaves a hole it cannot fill in place and refuses to render a page with a gap, so the
 request goes to the network instead.
 
+A page the worker renders keeps the site's security headers. The worker remembers
+`Content-Security-Policy` (and its report-only form), `X-Frame-Options`, `X-Content-Type-Options`,
+`Referrer-Policy`, `Permissions-Policy` and the three `Cross-Origin-*` policies from the network
+answer to each path, and sends them with every local render of it. A path with no answer of its own
+uses the latest set from any navigation. A page with neither goes to the network until the worker
+has seen one, so a local view never goes out without the site's policy.
+
 ### Records and Projections
 
 Pages that read the same data share one stored copy. `ctx.record(id, data)` stores an
@@ -858,7 +865,8 @@ A `static` route has no `load` and no template. The application serves the file 
 and `handle` or `decorate` marks the response for the worker, which keeps the bytes. A tag in
 `depends` ties the file to a deploy, and `spool.invalidate` after one makes devices fetch the
 file again. A static route is always public and is always answered from the device, so it takes no
-`scope`, `persist` or `mode`.
+`scope`, `persist` or `mode`. A query string makes a different file: `/app.js?v=2` is not
+answered with the copy of `/app.js`, and a query the worker has not stored goes to the network.
 
 ```ts
 import { defineRoute } from '@drupflare/spool/server';
@@ -901,6 +909,7 @@ export const roster = defineRoute('/rosters/:id', {
 ```
 
 ```ts
+import { escapeHtml } from '@drupflare/spool/protocol';
 import { serve } from '@drupflare/spool/sw';
 
 declare const CONFIG: string;
@@ -908,7 +917,7 @@ declare const CONFIG: string;
 serve(JSON.parse(CONFIG), {
   '/rosters/:id': (artifact) => {
     const { names } = (artifact.body as { data: { names: string[] } }).data;
-    return `<!doctype html><html><head><title>Roster</title></head><body><ul>${names.map((name) => `<li>${name}</li>`).join('')}</ul></body></html>`;
+    return `<!doctype html><html><head><title>Roster</title></head><body><ul>${names.map((name) => `<li>${escapeHtml(name)}</li>`).join('')}</ul></body></html>`;
   }
 });
 ```
@@ -988,8 +997,12 @@ permission goes, and the first required sync past the bound finds the page inval
 
 A different `Spool-Partition` wipes the partition before it. A login or account-switch handler has
 to send the new value itself with `spool.partition(principal)`, because the request it answers
-still carries the old identity. Paths in `logout` are wiped when the request reaches the worker,
-before it is sent, so logout empties every tab even with the network down. The page runtime
+still carries the old identity. A sync answer carries `Spool-Partition` for the request's identity
+too, so a sign-in the worker never saw ends at the first required sync, no later than the route's
+`maxStale` plus the next view. Paths in `logout` are wiped when the request reaches the worker,
+before it is sent, so logout empties every tab even with the network down. The worker first sends
+the same-origin posts it holds in `beacons`, while they still carry the session that is ending,
+and drops any that do not get through. The page runtime
 dispatches a `spool:cleared` event on `window` in every tab when that happens, so a page can blank
 what it shows. A response can also send
 `Spool-Clear`: `*` wipes everything, a partition id wipes one. `decorate(request, response, { clear:
