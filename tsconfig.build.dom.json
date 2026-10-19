@@ -1,0 +1,19 @@
+{
+	"extends": "./tsconfig.dom.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"allowImportingTsExtensions": false,
+		"declaration": true,
+		"types": ["node"],
+		"outDir": "dist",
+		"rootDir": "src"
+	},
+	"include": [
+		"src/protocol/**/*.ts",
+		"src/sw/**/*.ts",
+		"src/client/**/*.ts",
+		"src/node/**/*.ts",
+		"src/version.ts"
+	],
+	"exclude": ["node_modules", "dist", "coverage"]
+}

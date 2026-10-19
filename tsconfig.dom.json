@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+		"types": []
+	},
+	"include": [
+		"src/protocol/**/*.ts",
+		"src/sw/**/*.ts",
+		"src/client/**/*.ts",
+		"src/cdn/client.ts",
+		"src/version.ts"
+	],
+	"exclude": ["node_modules", "dist", "coverage"]
+}
