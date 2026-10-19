@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_PRIOR } from '../../src/protocol/index';
 import {
+	HOSTS,
 	TIERS,
 	attributionalJoules,
+	bandwidthUsd,
 	capacityMWh,
 	dataCentreJoules,
+	egressUsd,
 	fleetFor,
 	freeTierCeiling,
 	joulesPerView,
 	joulesPerViewWithOrigin,
 	linearFit,
 	median,
+	monthlyGb,
 	onWireFigures,
 	peakCut,
 	phoneRun,
@@ -18,16 +23,20 @@ import {
 	raplRun,
 	repeatBytesBySite,
 	repeatNavFigures,
+	repeatSplitBySite,
+	requestUsd,
 	runtimeRun,
 	saving,
 	serverYearMWh,
 	serversAfter,
+	splitRequestBytes,
 	spread,
 	swdTotal,
 	viewsChannelMWh,
 	zeroNetworkFigures,
 	type Row
 } from '../../src/report/index';
+import { DOCUMENT_BYTES } from '../../src/report/inputs';
 
 // a scale for the tables: 100 million views a year, a round number and no institution
 const VIEWS = 100e6;
@@ -38,13 +47,17 @@ describe('the views channel', () => {
 		expect(attributionalJoules(1e6)).toBeCloseTo(698.4, 6);
 	});
 
-	it('models about 12.3 J per local view, the replaced document request', () => {
-		expect(joulesPerView()).toBeCloseTo(12.26, 2);
+	it('models about 12.4 J per local view, the replaced document request', () => {
+		expect(joulesPerView()).toBeCloseTo(12.37, 2);
+	});
+
+	it("keeps the worker's provisioning prior on the measured document median", () => {
+		expect(DEFAULT_PRIOR.avoidedBytes).toBe(DOCUMENT_BYTES.value);
 	});
 
 	it('replaces the data-centre term and the modelled origin with a measured origin', () => {
-		expect(dataCentreJoules()).toBeCloseTo(3.35, 2);
-		expect(joulesPerViewWithOrigin(0)).toBeCloseTo(attributionalJoules(16_900, 0.139), 8);
+		expect(dataCentreJoules()).toBeCloseTo(3.38, 2);
+		expect(joulesPerViewWithOrigin(0)).toBeCloseTo(attributionalJoules(17_054, 0.139), 8);
 		expect(joulesPerViewWithOrigin(10.9) - joulesPerViewWithOrigin(0)).toBeCloseTo(10.9, 10);
 		expect(joulesPerViewWithOrigin(0.015, { bytes: 0, radioJ: 0, mobileShare: 0 })).toBe(0.015);
 	});
@@ -52,6 +65,42 @@ describe('the views channel', () => {
 	it('scales with the local share, tier by tier', () => {
 		const mwh = Object.values(TIERS).map((z) => viewsChannelMWh(VIEWS, z));
 		expect(mwh.map((v) => Number(v.toFixed(2)))).toEqual([0.1, 0.22, 0.31]);
+	});
+});
+
+describe('bandwidth and request dollars', () => {
+	const host = (name: string) => {
+		const found = HOSTS.find((h) => h.name.startsWith(name));
+		if (!found) throw new Error(`no host ${name}`);
+		return found;
+	};
+
+	it('prices a million local views at each host list price', () => {
+		expect(egressUsd(1e6, host('Cloudflare'))).toBe(0);
+		expect(requestUsd(1e6, host('Cloudflare'))).toBeCloseTo(0.3, 10);
+		expect(bandwidthUsd(1e6, host('AWS'))).toBeCloseTo(17.054 * 0.085 + 1, 8);
+		expect(bandwidthUsd(1e6, host('Microsoft'))).toBeCloseTo(17.054 * 0.087, 8);
+		expect(bandwidthUsd(1e6, host('Google'))).toBeCloseTo((17_054e6 / 2 ** 30) * 0.12, 8);
+	});
+
+	it('bills no request where none was read, and scales linearly with views', () => {
+		expect(requestUsd(5e6, host('Microsoft'))).toBe(0);
+		expect(bandwidthUsd(3e6, host('AWS'))).toBeCloseTo(3 * bandwidthUsd(1e6, host('AWS')), 10);
+		expect(bandwidthUsd(0, host('AWS'))).toBe(0);
+	});
+
+	it('counts the GB a month the local views no longer move', () => {
+		expect(monthlyGb(90e6)).toBeCloseTo((90e6 * 17_054) / 12 / 1e9, 8);
+	});
+
+	it('gives every price an L0 or L2 label, a source and the date read', () => {
+		for (const h of HOSTS) {
+			for (const input of [h.egress, h.requests, h.freeAllowance]) {
+				if (!input) continue;
+				expect(['L0', 'L2']).toContain(input.layer);
+				expect(input.source).toContain('2026-10-19');
+			}
+		}
 	});
 });
 
@@ -363,6 +412,70 @@ describe('navigation figures', () => {
 			['a', { bytes: 40, document: 10 }],
 			['d', { bytes: 7, document: 0 }]
 		]);
+	});
+
+	it('splits a repeat view into document, same-origin static and dynamic, and third-party by class', () => {
+		const req = (
+			type: string,
+			bytes: number,
+			url: string,
+			sameOrigin: boolean,
+			extra = {}
+		) => ({
+			type,
+			bytes,
+			url,
+			host: new URL(url).hostname,
+			sameOrigin,
+			fromCache: false,
+			...extra
+		});
+		const requests = [
+			req('Document', 100, 'https://a.test/', true),
+			req('Script', 10, 'https://a.test/a.js', true),
+			req('Image', 20, 'https://a.test/a.png', true),
+			req('Fetch', 5, 'https://a.test/api', true),
+			req('Other', 1, 'https://a.test/x', true),
+			req('Script', 7, 'https://www.googletagmanager.com/gtm.js', false),
+			req('Font', 3, 'https://fonts.gstatic.com/f.woff2', false),
+			req('XHR', 2, 'https://unknown.example/collect', false),
+			req('Document', 4, 'https://a.test/frame', true),
+			req('Script', 999, 'https://a.test/cached.js', true, { fromCache: true })
+		];
+		const split = splitRequestBytes(requests);
+		expect(split).toEqual({
+			document: 100,
+			sameOriginStatic: 30,
+			sameOriginDynamic: 10,
+			thirdParty: { analytics: 7, fonts: 3, unknown: 2 },
+			thirdPartyTotal: 12,
+			thirdPartyHosts: {
+				'www.googletagmanager.com': 7,
+				'fonts.gstatic.com': 3,
+				'unknown.example': 2
+			},
+			total: 152
+		});
+		expect(split.document + split.sameOriginStatic + split.sameOriginDynamic).toBe(
+			split.total - split.thirdPartyTotal
+		);
+		const nav = (kind: string, ok: true | string, list?: unknown) => ({
+			kind,
+			ok,
+			bytes: 1,
+			...(list ? { requestList: list } : {})
+		});
+		const bySite = repeatSplitBySite([
+			{
+				site: 'a',
+				navs: [nav('cold-home', true, requests), nav('warm-home-repeat', true, requests)]
+			},
+			{ site: 'b', navs: [nav('warm-home-repeat', true)] },
+			{ site: 'c', navs: [nav('warm-home-repeat', 'timeout', requests)] },
+			{ site: 'd' }
+		]);
+		expect([...bySite.keys()]).toEqual(['a']);
+		expect(splitRequestBytes([]).total).toBe(0);
 	});
 
 	it('counts the views and the paths a zero-network run leaked', () => {

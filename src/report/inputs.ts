@@ -37,7 +37,7 @@ export const SWD_V4 = {
  * files, and the page's own API calls and third-party requests still leave during a local view.
  */
 export const DOCUMENT_BYTES: Input = {
-	value: 16_900,
+	value: 17_054,
 	unit: 'B',
 	layer: 'L1',
 	source: 'median repeat-view document request over every measurements/repeat-nav reading (Playwright + CDP, n=1 per site per reading)'
@@ -48,7 +48,7 @@ export const MOBILE_SHARE: Input = {
 	value: 0.43,
 	unit: 'fraction',
 	layer: 'L0',
-	source: 'OHO 2022 higher-education Google Analytics benchmarks (full text)'
+	source: 'OHO, 2023 Google Analytics benchmarks for higher education websites, 2022 data: 43.2% mobile (web page)'
 };
 
 /**
@@ -117,6 +117,111 @@ export const READ_SHARE: Input = { value: 0.9, unit: 'fraction', layer: 'L3', so
 
 /** servers a redundant deployment keeps whatever the load */
 export const SERVER_FLOOR: Input = { value: 2, unit: 'servers', layer: 'L3', source: 'scenario' };
+
+/** date the vendor pricing pages below were read */
+export const PRICES_READ = '2026-10-19';
+
+/** a host's published list prices for traffic a local view no longer sends */
+export type HostPrice = {
+	name: string;
+	/** the tier the egress price is taken from */
+	tier: string;
+	page: string;
+	egress: Input;
+	bytesPerUnit: number;
+	freeAllowance?: Input;
+	requests?: Input;
+};
+
+/** list prices of hosts higher ed uses, first paid tier, USD, read from each vendor's own page */
+export const HOSTS: readonly HostPrice[] = [
+	{
+		name: 'Cloudflare Workers (Standard plan)',
+		tier: 'Standard plan, requests past the included 10 million a month',
+		page: 'developers.cloudflare.com/workers/platform/pricing',
+		egress: {
+			value: 0,
+			unit: 'USD/GB',
+			layer: 'L0',
+			source: `developers.cloudflare.com/workers/platform/pricing (web page read ${PRICES_READ}): "no additional charges for data transfer (egress) or throughput (bandwidth)"`
+		},
+		bytesPerUnit: 1e9,
+		requests: {
+			value: 0.3,
+			unit: 'USD/million requests',
+			layer: 'L0',
+			source: `developers.cloudflare.com/workers/platform/pricing (web page read ${PRICES_READ}): 10 million included a month, then $0.30 per additional million; static asset requests are free`
+		}
+	},
+	{
+		name: 'AWS CloudFront (pay as you go)',
+		tier: 'United States, Mexico and Canada; the next 9 TB after the first free 1 TB',
+		page: 'aws.amazon.com/cloudfront/pricing/pay-as-you-go',
+		egress: {
+			value: 0.085,
+			unit: 'USD/GB',
+			layer: 'L0',
+			source: `aws.amazon.com/cloudfront/pricing/pay-as-you-go (web page read ${PRICES_READ}): data transfer out to internet, $0.085 per GB for the next 9 TB`
+		},
+		bytesPerUnit: 1e9,
+		freeAllowance: {
+			value: 1000,
+			unit: 'GB/month',
+			layer: 'L0',
+			source: `aws.amazon.com/cloudfront/pricing/pay-as-you-go (web page read ${PRICES_READ}): first 1 TB free`
+		},
+		requests: {
+			value: 1,
+			unit: 'USD/million requests',
+			layer: 'L2',
+			source: `aws.amazon.com/cloudfront/pricing/pay-as-you-go (web page read ${PRICES_READ}): HTTPS requests $0.0100 per 10,000 after 10 million free a month, times 100`
+		}
+	},
+	{
+		name: 'Microsoft Azure',
+		tier: 'default routing from North America or Europe; the next 10 TB after the first free 100 GB',
+		page: 'azure.microsoft.com/en-us/pricing/details/bandwidth',
+		egress: {
+			value: 0.087,
+			unit: 'USD/GB',
+			layer: 'L0',
+			source: `azure.microsoft.com/en-us/pricing/details/bandwidth (web page read ${PRICES_READ}): Microsoft Premium Global Network, $0.087 per GB for the next 10 TB`
+		},
+		bytesPerUnit: 1e9,
+		freeAllowance: {
+			value: 100,
+			unit: 'GB/month',
+			layer: 'L0',
+			source: `azure.microsoft.com/en-us/pricing/details/bandwidth (web page read ${PRICES_READ}): first 100 GB a month free`
+		}
+	},
+	{
+		name: 'Google Cloud (Premium Tier)',
+		tier: 'to North America, 1 to 1,024 GiB a month, per GiB',
+		page: 'cloud.google.com/vpc/network-pricing',
+		egress: {
+			value: 0.12,
+			unit: 'USD/GiB',
+			layer: 'L0',
+			source: `cloud.google.com/vpc/network-pricing (web page read ${PRICES_READ}): Premium Tier data transfer out to North America, 1 to 1,024 GiB a month, $0.12 per GiB`
+		},
+		bytesPerUnit: 2 ** 30,
+		freeAllowance: {
+			value: 1,
+			unit: 'GiB/month',
+			layer: 'L0',
+			source: `cloud.google.com/vpc/network-pricing (web page read ${PRICES_READ}): first 1 GiB a month free`
+		}
+	}
+];
+
+/** Pantheon bills traffic in unique visits, which no per-view figure converts to */
+export const PANTHEON_OVERAGE: Input = {
+	value: 40,
+	unit: 'USD per 10,000 unique visits',
+	layer: 'L0',
+	source: `docs.pantheon.io/guides/account-mgmt/traffic/overages (web page read ${PRICES_READ}): a visit is an IP address and user agent over 24 hours; the page carries a notice that the automated overage program is paused`
+};
 
 /** the three tiers, named by the share of annual views served with zero network */
 export const TIERS = { meaningful: 0.3, major: 0.65, transformative: 0.9 } as const;
