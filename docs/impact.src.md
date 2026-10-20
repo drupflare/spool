@@ -237,6 +237,16 @@ A spool local view sent nothing to the origin in every window but one per runtim
 
 One request per view is also what breaks the saving. A page that posts to an analytics endpoint on every view makes each view a network view again, with that request's bytes and origin work. On a 2012 3G phone that post also woke the radio (Thiagarajan et al.); this phone showed no wake for an isolated request. Spool queues those posts in the service worker and sends them on a network moment that happens anyway.
 
+### Worker Request Cost
+
+A closed-loop `fetch` of one 4,096-byte asset from a page, one request at a time, on paisley-park (L1, {{value:swRounds}} rounds, {{value:swRequests}} requests per window for the first three arms and a quarter of that for the two that reach the origin). Millijoules per request above idle:
+
+{{table:sw-request}}
+
+A worker answering from CacheStorage costs {{value:swExtra}} mJ ({{value:swExtraPct}}%) more per request than the browser's own cache, and {{value:swVs304}} mJ less than a loopback 304. The ranges of those two arms overlap. A worker that receives the event and answers nothing costs {{value:swPassExtra}} mJ more than the cache. For a URL the browser would revalidate on a share of views, a worker that answers it saves energy only when that share is above {{value:swBreakEven}}%, which is the worker's extra cost over the browser cache divided by the 304's extra cost over the same cache. A worker should answer a URL only when the browser would otherwise leave for the network on most views.
+
+The meter reads the package of the browser and the co-located origin over loopback with no emulated latency. It excludes the radio, the network and every hop between. A 304 carries no body and costs the same here as a 200 with 4,096 bytes, so the wire's share is invisible to it. The loop keeps one core busy, so each figure is energy per request in a boosted state, and a sparse real load also pays wake costs this loop never sees. It measures a `fetch` from the page, and a browser's own favicon request may take a different path.
+
 ### Origin Term by Workload
 
 The headline's origin term is modelled. For a view the origin would otherwise render, such as an authenticated view or a cache miss (a meaningful share of views), the measured origin joules for that workload replace SWD's data-centre term and the modelled origin request. They never add to the headline. Where a cache would have answered, the term is the cost of a cache hit, a fraction of a millijoule.

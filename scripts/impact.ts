@@ -797,6 +797,47 @@ export function buildFigures(readings: Readings): Figures {
 	void nullArm;
 	// #endregion
 
+	// #region worker request cost
+	const swReading = latest(readings, 'rapl', 'sw-request');
+	const sw = raplRun(swReading.rows);
+	const swMj = (k: string) => arm(sw, k).joules.median * 1000;
+	const mj = (s: Spread): Spread => ({
+		...s,
+		median: s.median * 1000,
+		min: s.min * 1000,
+		max: s.max * 1000
+	});
+	v.swRounds = fixed(arm(sw, 'http-cache').windows);
+	v.swRequests = fixed(Number(swReading.method['requests per window']));
+	v.swExtra = fixed(swMj('sw-cache') - swMj('http-cache'), 1);
+	v.swExtraPct = fixed(((swMj('sw-cache') - swMj('http-cache')) / swMj('http-cache')) * 100);
+	v.swVs304 = fixed(swMj('revalidate') - swMj('sw-cache'), 1);
+	v.swPassExtra = fixed(swMj('sw-pass') - swMj('http-cache'), 1);
+	v.swBreakEven = fixed(
+		((swMj('sw-cache') - swMj('http-cache')) / (swMj('revalidate') - swMj('http-cache'))) * 100
+	);
+	const swLabels: Array<[string, string]> = [
+		['http-cache', 'Browser cache (immutable, no worker)'],
+		['sw-cache', 'Worker answers from CacheStorage'],
+		['sw-pass', 'Worker receives the event and answers nothing'],
+		['revalidate', 'Conditional request, 304'],
+		['network-200', 'Full 200, no-store']
+	];
+	t['sw-request'] = table(
+		[
+			'arm',
+			'mJ per request above idle',
+			'microseconds per request',
+			'origin requests per request'
+		],
+		swLabels.map(([k, label]) => {
+			const f = arm(sw, k);
+			return [label, range(mj(f.joules)), fixed(f.ms * 1000), fixed(f.originRequests ?? 0)];
+		}),
+		[1, 2, 3]
+	);
+	// #endregion
+
 	// #region projection
 	const projMeasurement = latest(readings, 'rapl', 'projection');
 	const proj = raplRun(projMeasurement.rows);

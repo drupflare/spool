@@ -24,6 +24,21 @@ import {
 	writeMeasurement,
 	type Draft
 } from '../../scripts/measure/lib';
+import {
+	DECLARED,
+	HEADER_ARMS,
+	HEADLESS,
+	WORKER_ARMS,
+	clipPath,
+	pageHtml,
+	pages,
+	parse as parseLinkAssets,
+	pngOf,
+	rangeOf,
+	startOrigin as startLinkOrigin,
+	svgOf,
+	workerSource
+} from '../../scripts/measure/link-assets';
 import { parse as parseOnWire } from '../../scripts/measure/on-wire';
 import {
 	K_J_PER_B,
@@ -53,6 +68,14 @@ import {
 	plan as raplPlan,
 	stripRow
 } from '../../scripts/measure/rapl';
+import {
+	ARM_ASSET,
+	ASSET_BYTES,
+	SW_ARMS,
+	requestsFor,
+	startSwOrigin,
+	swSource
+} from '../../scripts/measure/rapl-sw';
 import {
 	SITES,
 	originOf,
@@ -349,6 +372,11 @@ describe('the RAPL runner', () => {
 			rapl: '/rapl/intel-rapl:0'
 		});
 		expect(parseRapl(['run', 'power-state', '--set', 'timer']).config.set).toBe('timer');
+		expect(parseRapl(['run', 'sw-request']).config).toMatchObject({
+			rounds: 8,
+			requests: 20_000
+		});
+		expect(parseRapl(['run', 'sw-request', '--requests', '50']).config.requests).toBe(50);
 		expect(parseRapl([]).command).toBeUndefined();
 		expect(() => parseRapl(['run', 'nope'])).toThrow(/experiment must be/);
 		expect(() => parseRapl(['bake'])).toThrow(/unknown command/);
@@ -414,7 +442,8 @@ describe('the RAPL runner', () => {
 			'compute-server',
 			'compute-browser',
 			'projection',
-			'power-state'
+			'power-state',
+			'sw-request'
 		] as const) {
 			const made = publishDraft(experiment, rows, meta, { date: '2026-10-19' });
 			const text = JSON.stringify({ schema: 1, ...made });
@@ -768,5 +797,158 @@ describe('the payload rig', () => {
 		expect(a.sites).toEqual(SITES);
 		const b = parsePayload(['--site', 'https://x.test/', '--pages', '5', '--dry-run']);
 		expect([b.sites, b.pages, b.dryRun]).toEqual([['https://x.test/'], 5, true]);
+	});
+});
+
+describe('the sw-request experiment', () => {
+	it('gives every arm an asset and shortens the windows of the arms that reach the origin', () => {
+		expect(SW_ARMS.map((a) => ARM_ASSET[a])).toHaveLength(5);
+		expect(requestsFor('http-cache', 20_000)).toBe(20_000);
+		expect(requestsFor('sw-cache', 20_000)).toBe(20_000);
+		expect(requestsFor('revalidate', 20_000)).toBe(5000);
+		expect(requestsFor('network-200', 20_000)).toBe(5000);
+	});
+
+	it('writes workers that parse, count every fetch event and answer only in sw-cache', () => {
+		for (const arm of ['sw-cache', 'sw-pass'] as const) {
+			expect(() => new Function(swSource(arm))).not.toThrow();
+			expect(swSource(arm)).toContain('events++');
+		}
+		expect(swSource('sw-cache')).toContain('respondWith(caches.match');
+		expect(swSource('sw-pass')).not.toContain('respondWith');
+	});
+
+	it('serves 4,096 bytes under three header sets, answers a 304 and counts hits', async () => {
+		const server = startSwOrigin(0);
+		await new Promise((r) => server.once('listening', r));
+		const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+		const immutable = await fetch(base + ARM_ASSET['http-cache']);
+		expect((await immutable.arrayBuffer()).byteLength).toBe(ASSET_BYTES);
+		expect(immutable.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+		const first = await fetch(base + ARM_ASSET.revalidate);
+		await first.arrayBuffer();
+		const etag = first.headers.get('etag')!;
+		const second = await fetch(base + ARM_ASSET.revalidate, {
+			headers: { 'if-none-match': etag }
+		});
+		expect(second.status).toBe(304);
+		expect((await fetch(base + ARM_ASSET['network-200'])).headers.get('cache-control')).toBe(
+			'no-store'
+		);
+		expect((await fetch(`${base}/sw-cache.js`)).headers.get('content-type')).toBe(
+			'text/javascript'
+		);
+		expect((await fetch(`${base}/missing`)).status).toBe(404);
+		const stats = (await (await fetch(`${base}/__stats`)).json()) as {
+			hits: Record<string, number>;
+			notModified: number;
+		};
+		expect(stats.hits['/asset/revalidate']).toBe(2);
+		expect(stats.hits['/__stats']).toBeUndefined();
+		expect(stats.notModified).toBe(1);
+		await new Promise((r) => server.close(r));
+	});
+});
+
+describe('the link-assets rig', () => {
+	it('builds PNGs and SVGs of an exact size and refuses a size below the PNG minimum', () => {
+		for (const size of [200, 4096, 102_400]) {
+			const png = pngOf(size);
+			expect(png.length).toBe(size);
+			expect([...png.subarray(0, 8)]).toEqual([
+				0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+			]);
+			expect(png.subarray(-8, -4).toString('latin1')).toBe('IEND');
+			expect(svgOf(size).length).toBe(size);
+		}
+		expect(() => pngOf(50)).toThrow(/at least/);
+	});
+
+	it('reads the first range of a header and clamps it to the length', () => {
+		expect(rangeOf('bytes=0-99', 1000)).toEqual([0, 99]);
+		expect(rangeOf('bytes=900-', 1000)).toEqual([900, 999]);
+		expect(rangeOf('bytes=-100', 1000)).toEqual([900, 999]);
+		expect(rangeOf('bytes=0-5000', 1000)).toEqual([0, 999]);
+		expect(rangeOf('bytes=2000-3000', 1000)).toBeNull();
+		expect(rangeOf('bytes=-', 1000)).toBeNull();
+		expect(rangeOf(undefined, 1000)).toBeNull();
+	});
+
+	it('names every icon tag on a declared page, none on a bare page and one clip per preload', () => {
+		const declared = pageHtml('p', '1');
+		for (const d of DECLARED) {
+			expect(declared).toContain(d.tag);
+			expect(pageHtml('b', '1')).not.toContain(d.path);
+		}
+		expect(pageHtml('v', 'metadata')).toContain(`preload="metadata"`);
+		expect(pageHtml('v', 'metadata')).toContain(clipPath('metadata'));
+		expect(new Set(['none', 'metadata', 'auto'].map(clipPath)).size).toBe(3);
+		expect(Object.keys(pages(2)).sort()).toEqual(
+			['/b/1', '/b/2', '/p/1', '/p/2', '/p/3', '/v/auto', '/v/metadata', '/v/none'].sort()
+		);
+	});
+
+	it('parses as a worker and logs the fetch events it receives', () => {
+		for (const mode of WORKER_ARMS) {
+			const source = workerSource(mode, { '/p/1': '<p>x</p>' });
+			expect(() => new Function(source)).not.toThrow();
+			expect(source).toContain(`const MODE = "${mode}"`);
+		}
+		expect(workerSource('icons', {})).toContain('/favicon.ico');
+	});
+
+	it('logs hits and answers conditional requests, ranges and the worker script', async () => {
+		const clip = Buffer.alloc(1000, 1);
+		const shipping = await startLinkOrigin(HEADER_ARMS[0]!, 'icons', clip, 2);
+		const icon = `${shipping.origin}/assets/icon-32.png`;
+		const first = await fetch(icon);
+		const etag = first.headers.get('etag');
+		expect(first.headers.get('cache-control')).toBe('max-age=0, must-revalidate');
+		expect(etag).toBeTruthy();
+		expect((await fetch(icon, { headers: { 'if-none-match': etag! } })).status).toBe(304);
+		const ranged = await fetch(`${shipping.origin}${clipPath('auto')}`, {
+			headers: { range: 'bytes=0-99' }
+		});
+		expect([ranged.status, ranged.headers.get('content-range')]).toEqual([
+			206,
+			'bytes 0-99/1000'
+		]);
+		expect((await ranged.arrayBuffer()).byteLength).toBe(100);
+		expect((await fetch(`${shipping.origin}/sw.js`)).headers.get('cache-control')).toBe(
+			'max-age=86400'
+		);
+		expect((await fetch(`${shipping.origin}/missing`)).status).toBe(404);
+		await new Promise((r) => setTimeout(r, 20));
+		expect(shipping.hits.map((h) => [h.path, h.status, h.bytes])).toEqual([
+			['/assets/icon-32.png', 200, 4096],
+			['/assets/icon-32.png', 304, 0],
+			[clipPath('auto'), 206, 100],
+			['/sw.js', 200, expect.any(Number)],
+			['/missing', 404, 0]
+		]);
+		expect(shipping.hits[1]!.conditional).toBe(true);
+		expect(shipping.hits[2]!.range).toBe('bytes=0-99');
+		await shipping.stop();
+		const optimized = await startLinkOrigin(HEADER_ARMS[1]!, 'none', clip, 2);
+		const res = await fetch(`${optimized.origin}/favicon.ico`);
+		expect(res.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+		expect(res.headers.get('etag')).toBeNull();
+		expect(await (await fetch(`${optimized.origin}/assets/site.js`)).text()).toBe('');
+		await optimized.stop();
+	});
+
+	it('keeps the defaults and runs Chromium headed because headless asks for no icons', () => {
+		expect(parseLinkAssets([])).toMatchObject({
+			navs: 4,
+			waitMs: 1200,
+			clipSeconds: 8,
+			engines: ['chromium', 'firefox', 'webkit']
+		});
+		expect(parseLinkAssets(['--engine', 'firefox', '--dry-run'])).toMatchObject({
+			engines: ['firefox'],
+			dryRun: true
+		});
+		expect(HEADER_ARMS.length * WORKER_ARMS.length).toBe(6);
+		expect(HEADLESS.chromium).toBe(false);
 	});
 });

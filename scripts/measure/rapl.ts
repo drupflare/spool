@@ -20,6 +20,7 @@ import {
 	type PowerSample
 } from './lib.ts';
 import { buildAll } from './rapl-data.ts';
+import { ARM_ASSET, SW_ARMS, requestsFor, type SwArm } from './rapl-sw.ts';
 
 /** the experiments, which are also the file suffixes under `measurements/rapl/` */
 export const EXPERIMENTS = [
@@ -28,7 +29,8 @@ export const EXPERIMENTS = [
 	'compute-browser',
 	'projection',
 	'inference',
-	'power-state'
+	'power-state',
+	'sw-request'
 ] as const;
 
 export type Experiment = (typeof EXPERIMENTS)[number];
@@ -72,6 +74,7 @@ export type Config = {
 	windowS: number;
 	settleS: number;
 	nreq: number;
+	requests: number;
 	set: 'sweep' | 'timer';
 	model: string;
 	ollama: string;
@@ -83,7 +86,8 @@ const DEFAULT_ROUNDS: Record<Experiment, number> = {
 	'compute-browser': 8,
 	projection: 8,
 	inference: 5,
-	'power-state': 4
+	'power-state': 4,
+	'sw-request': 8
 };
 
 export function parse(argv: string[]) {
@@ -103,6 +107,7 @@ export function parse(argv: string[]) {
 			'window-s': { type: 'string', default: '20' },
 			'settle-s': { type: 'string', default: '4' },
 			nreq: { type: 'string', default: '24' },
+			requests: { type: 'string', default: '20000' },
 			set: { type: 'string', default: 'sweep' },
 			model: { type: 'string', default: 'llama3.1:8b' },
 			ollama: { type: 'string', default: 'http://host.docker.internal:11434' },
@@ -139,6 +144,7 @@ export function parse(argv: string[]) {
 		windowS: Number(values['window-s']),
 		settleS: Number(values['settle-s']),
 		nreq: Number(values.nreq),
+		requests: Number(values.requests),
 		set: values.set === 'timer' ? 'timer' : 'sweep',
 		model: values.model as string,
 		ollama: values.ollama as string
@@ -553,6 +559,84 @@ async function runComputeBrowser(config: Config, meter: Meter) {
 				originReqs: o1.reqs - o0.reqs,
 				originRecompute: o1.recompute - o0.recompute,
 				originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+				otherCpuMs: w.others
+			});
+			await browser.close();
+		}
+	}
+	origin.kill();
+}
+
+/** closed loop from the page: one `fetch` of the arm's asset at a time, the body read, the bytes summed */
+const fetchLoop = async ({ url, n }: { url: string; n: number }) => {
+	let bytes = 0;
+	for (let i = 0; i < n; i++) bytes += (await (await fetch(url)).arrayBuffer()).byteLength;
+	return bytes;
+};
+
+const workerEvents = (page: Page) =>
+	page.evaluate(
+		() =>
+			new Promise<number>((resolve) => {
+				const channel = new MessageChannel();
+				channel.port1.onmessage = (e) => resolve(e.data as number);
+				navigator.serviceWorker.controller?.postMessage('count', [channel.port2]);
+			})
+	);
+
+/** joules per request on the page's side: the browser cache, a worker that answers or passes, a 304, a 200 */
+async function runSwRequest(config: Config, meter: Meter) {
+	const port = 8951;
+	const origin = spawn('node', [join(HERE, 'rapl-sw.ts')], {
+		stdio: 'inherit',
+		env: { ...process.env, PORT: String(port) }
+	});
+	await sleep(2000);
+	const base = `http://127.0.0.1:${port}`;
+	for (let round = 0; round < config.rounds; round++) {
+		for (const name of rotate([...SW_ARMS, 'idle'], round, 3)) {
+			if (name === 'idle') {
+				await idleWindow(meter, config, round);
+				continue;
+			}
+			const arm = name as SwArm;
+			const url = base + ARM_ASSET[arm];
+			const n = requestsFor(arm, config.requests);
+			const worker = arm === 'sw-cache' || arm === 'sw-pass';
+			const browser = await launch();
+			const page: Page = await (await browser.newContext()).newPage();
+			await page.goto(`${base}/`);
+			if (worker) {
+				await page.evaluate(
+					(u) => navigator.serviceWorker.register(u, { updateViaCache: 'all' }),
+					`/${arm}.js`
+				);
+				await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, {
+					timeout: 30_000
+				});
+				await page.reload();
+			}
+			await page.evaluate(fetchLoop, { url, n: 200 });
+			await page.waitForTimeout(2000);
+			const o0 = await stats(port);
+			const e0 = worker ? await workerEvents(page) : null;
+			const w = await meter.window(() => page.evaluate(fetchLoop, { url, n }));
+			const o1 = await stats(port);
+			const e1 = worker ? await workerEvents(page) : null;
+			const path = ARM_ASSET[arm];
+			emit(config, {
+				arm,
+				round,
+				n,
+				elapsedMs: w.elapsedMs,
+				pkgJ: w.pkgJ,
+				load0: w.load0,
+				load1: w.load1,
+				bytes: w.result,
+				originReqs: (o1.hits[path] ?? 0) - (o0.hits[path] ?? 0),
+				originNotModified: o1.notModified - o0.notModified,
+				originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+				workerEvents: e1 === null || e0 === null ? null : e1 - e0,
 				otherCpuMs: w.others
 			});
 			await browser.close();
@@ -999,6 +1083,31 @@ export function publishDraft(
 			rows: raw.map((r) => stripRow(r))
 		};
 	}
+	if (experiment === 'sw-request') {
+		return {
+			...base,
+			question:
+				'package joules per fetch from a page in Chromium: the browser cache, a worker answering from CacheStorage, a worker passing the request through, a 304 revalidation and a full 200',
+			machine,
+			software: {
+				browser:
+					'Chromium (new headless), container mcr.microsoft.com/playwright:v1.62.1-noble, --cpus 8 --memory 6g',
+				origin: 'Node http server in the same container'
+			},
+			method: {
+				asset: '4,096 B, one URL per header set',
+				arms: 'http-cache (immutable, no worker), sw-cache (worker answers from CacheStorage), sw-pass (worker with a fetch handler that answers nothing), revalidate (max-age=0 with an ETag, 304), network-200 (no-store)',
+				loop: 'fetch() and the body read, one at a time, in a loop inside the page',
+				'requests per window': meta.requests,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'arm order': 'rotated per round',
+				'emulated rtt ms': 0,
+				'energy counter range uJ': meta.range
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
 	if (experiment === 'compute-server') {
 		return {
 			...base,
@@ -1124,7 +1233,7 @@ export function publishDraft(
 // #endregion
 
 const HELP = `usage:
-  rapl.ts run <${EXPERIMENTS.join('|')}> [--rounds N] [--idle-s S] [--navs N] [--raw FILE] [--rapl DIR] [--cgroup DIR] [--mirror DIR] [--data DIR]
+  rapl.ts run <${EXPERIMENTS.join('|')}> [--rounds N] [--idle-s S] [--navs N] [--requests N] [--raw FILE] [--rapl DIR] [--cgroup DIR] [--mirror DIR] [--data DIR]
   rapl.ts publish <experiment> --raw FILE [--timer-raw FILE] [--gpu CSV] [--machine-json JSON] [--date D] [--out DIR] [--force]
   rapl.ts data [--data DIR]        builds the synthetic databases
   rapl.ts mirror <origin> <dir>    snapshots a site for the views and compute origins
@@ -1160,6 +1269,7 @@ if (isMain(import.meta.url)) {
 			rounds: config.rounds,
 			idleS: config.idleS,
 			navs: config.navs,
+			requests: config.requests,
 			range: meter.range,
 			windowS: config.windowS,
 			settleS: config.settleS,
@@ -1184,7 +1294,8 @@ if (isMain(import.meta.url)) {
 			'compute-browser': runComputeBrowser,
 			projection: runComputeBrowser,
 			inference: runInference,
-			'power-state': runPowerState
+			'power-state': runPowerState,
+			'sw-request': runSwRequest
 		};
 		await runs[config.experiment](config, meter);
 		writeFileSync(`${config.raw}.DONE`, new Date().toISOString());
