@@ -14,11 +14,13 @@ L1, measured on hardware described in the file.
 | `iphone`       | phone joules per view, back to back and paced; service-worker lifetime          | the battery gauge's accumulated energy | `scripts/measure/iphone.ts`       |
 | `payload`      | compressed bytes of a page, its shared shell, its unique part and its node data | plain GETs, gzip, brotli, zstd         | `scripts/measure/payload.ts`      |
 | `trim`         | CSS and JS used per page, new aggregate bytes, markup classes, bytes by class   | Chromium coverage and DevTools, zstd   | `scripts/measure/trim.ts`         |
+| `link-assets`  | icon, manifest, tile and video requests per navigation, by headers and worker   | the origin's request log, worker log   | `scripts/measure/link-assets.ts`  |
 
 The `rapl` experiments are `views` (optimized caching, spool and shipping headers), `compute-server`
 (recompute against a cache, per request), `compute-browser` (the same in Chromium), `projection`
 (a result computed on the server or in the page), `inference` (a local model, with the GPU board
-sampled) and `power-state` (request rate against package watts). The `iphone` experiments are
+sampled), `power-state` (request rate against package watts) and `sw-request` (one `fetch` answered by
+the browser cache, a worker, a 304 or a 200). The `iphone` experiments are
 `burst`, `paced`, `projection` and `sw-lifetime` over Wi-Fi, and `burst-cellular`, `paced-cellular`
 and `radio-cellular` (one isolated request against the same script call without it) over cellular.
 The `repeat-nav` experiment `document` records where each document landed after redirects, and

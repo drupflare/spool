@@ -1,0 +1,7788 @@
+{
+	"schema": 1,
+	"rig": "link-assets",
+	"date": "2026-10-20",
+	"layer": "L1",
+	"question": "which icon, manifest, tile and video requests reach the origin on each navigation, by cache headers, worker and engine, and whether a worker sees them",
+	"instrument": "request log of the in-process origin, plus the worker's own log of the fetch events it received",
+	"machine": {
+		"name": "darwin arm64",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"browsers": "Chromium, Firefox, WebKit, Playwright bundled builds",
+		"ffmpeg": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+	},
+	"method": {
+		"arms": "cache headers (shipping: max-age=0 with an ETag; optimized: one year immutable) by worker (none, document, icons)",
+		"first view": "a prime navigation to /p/1, then a reload once a worker controls the page",
+		"navigations": "4 declared pages (every icon tag), then 4 bare pages (no icon tag), typed navigations",
+		"video": "one page per preload mode: load, play, reload, play again",
+		"settle ms": 1200,
+		"headless": {
+			"chromium": false,
+			"firefox": true,
+			"webkit": true
+		},
+		"asset bytes (assumed)": {
+			"favicon": 4096,
+			"icon": 4096,
+			"apple": 12288,
+			"mask": 1024,
+			"tile": 8192,
+			"og": 102400
+		},
+		"clip": {
+			"bytes": 303710,
+			"sha256": "cc0e0a9b82797c2bdb7000e0eb56ab590b04ab618cf2a3e97d23c80fef8d0207",
+			"seconds": 8
+		},
+		"origin": "localhost"
+	},
+	"exclusions": [
+		"rows in a worker arm with controlled false, the worker never took control",
+		"rows from headless Chromium, which requests no icons"
+	],
+	"rows": [
+		{
+			"headers": "shipping",
+			"worker": "none",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=294912-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=65536-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "none",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "none",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "document",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 304,
+						"bytes": 0,
+						"conditional": true,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/assets/icon-32.png",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 304,
+							"bytes": 0,
+							"conditional": true,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=294912-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=131072-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/favicon.ico",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "document",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/apple.png",
+						"destination": "image",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "document",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"destination": "manifest",
+						"mode": "cors"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/manifest.webmanifest",
+							"status": 200,
+							"bytes": 89,
+							"complete": true
+						},
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/manifest.webmanifest",
+							"status": 200,
+							"bytes": 89,
+							"complete": true
+						},
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/manifest.webmanifest",
+							"status": 200,
+							"bytes": 89,
+							"complete": true
+						},
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/manifest.webmanifest",
+							"status": 200,
+							"bytes": 89,
+							"complete": true
+						},
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "icons",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 304,
+						"bytes": 0,
+						"conditional": true,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=294912-303709",
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=65536-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 304,
+								"bytes": 0,
+								"range": "bytes=0-303709",
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "icons",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 304,
+						"bytes": 0,
+						"conditional": true,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 304,
+						"bytes": 0,
+						"conditional": true,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/apple.png",
+						"destination": "image",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "shipping",
+			"worker": "icons",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"destination": "manifest",
+						"mode": "cors"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/manifest.webmanifest",
+							"destination": "manifest",
+							"mode": "cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "none",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 8798,
+								"range": "bytes=294912-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 205406,
+								"range": "bytes=98304-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "none",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						},
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 304,
+								"bytes": 0,
+								"conditional": true,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "none",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": false,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 0,
+						"complete": true
+					}
+				],
+				"swSeen": null
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/p/2",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/p/3",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/p/4",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/p/5",
+							"status": 200,
+							"bytes": 490,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/b/1",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/b/2",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/b/3",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/b/4",
+							"status": 200,
+							"bytes": 151,
+							"complete": true
+						}
+					],
+					"swSeen": null
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/none",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/metadata",
+								"status": 200,
+								"bytes": 265,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": null
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": null
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/v/auto",
+								"status": 200,
+								"bytes": 253,
+								"complete": true
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": null
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": null
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "document",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "document",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/apple.png",
+						"destination": "image",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/favicon.ico",
+							"status": 200,
+							"bytes": 4096,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "document",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5289,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"destination": "manifest",
+						"mode": "cors"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5289,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5289,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "icons",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"headless": false,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 8798,
+								"range": "bytes=294912-",
+								"complete": true
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 238174,
+								"range": "bytes=65536-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "icons",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/apple.png",
+						"destination": "image",
+						"mode": "no-cors"
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"destination": "image",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/apple.png",
+							"destination": "image",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/assets/icon-32.png",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						},
+						{
+							"path": "/assets/site.js",
+							"destination": "script",
+							"mode": "no-cors"
+						},
+						{
+							"path": "/favicon.ico",
+							"destination": "image",
+							"mode": "no-cors"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 206,
+								"bytes": 303710,
+								"range": "bytes=0-",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/assets/site.js",
+								"destination": "script",
+								"mode": "no-cors"
+							},
+							{
+								"path": "/favicon.ico",
+								"destination": "image",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		},
+		{
+			"headers": "optimized",
+			"worker": "icons",
+			"engine": "webkit",
+			"engineVersion": "27.2",
+			"headless": true,
+			"controlled": true,
+			"prime": {
+				"hits": [
+					{
+						"path": "/p/1",
+						"status": 200,
+						"bytes": 490,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					},
+					{
+						"path": "/favicon.ico",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/icon-32.png",
+						"status": 200,
+						"bytes": 4096,
+						"complete": true
+					},
+					{
+						"path": "/assets/apple.png",
+						"status": 200,
+						"bytes": 12288,
+						"complete": true
+					},
+					{
+						"path": "/assets/og.png",
+						"status": 200,
+						"bytes": 102400,
+						"complete": true
+					},
+					{
+						"path": "/assets/mask.svg",
+						"status": 200,
+						"bytes": 1024,
+						"complete": true
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"status": 200,
+						"bytes": 89,
+						"complete": true
+					},
+					{
+						"path": "/assets/tile.png",
+						"status": 200,
+						"bytes": 8192,
+						"complete": true
+					},
+					{
+						"path": "/assets/site.js",
+						"status": 200,
+						"bytes": 177,
+						"complete": true
+					},
+					{
+						"path": "/sw.js",
+						"status": 200,
+						"bytes": 5286,
+						"complete": true
+					}
+				],
+				"swSeen": [
+					{
+						"path": "/p/1",
+						"destination": "document",
+						"mode": "navigate"
+					},
+					{
+						"path": "/manifest.webmanifest",
+						"destination": "manifest",
+						"mode": "cors"
+					},
+					{
+						"path": "/assets/site.js",
+						"destination": "script",
+						"mode": "no-cors"
+					}
+				]
+			},
+			"navs": [
+				{
+					"kind": "p",
+					"path": "/p/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "p",
+					"path": "/p/5",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/p/5",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/1",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/1",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/2",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/2",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/3",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/3",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				},
+				{
+					"kind": "b",
+					"path": "/b/4",
+					"hits": [
+						{
+							"path": "/sw.js",
+							"status": 200,
+							"bytes": 5286,
+							"complete": true
+						}
+					],
+					"swSeen": [
+						{
+							"path": "/b/4",
+							"destination": "document",
+							"mode": "navigate"
+						}
+					]
+				}
+			],
+			"video": [
+				{
+					"preload": "none",
+					"load": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/none",
+								"destination": "document",
+								"mode": "navigate"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-none.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-none.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "metadata",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/metadata",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"status": 200,
+								"bytes": 303710,
+								"range": "bytes=303710-18446744073709551615",
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/media/clip-metadata.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					}
+				},
+				{
+					"preload": "auto",
+					"load": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"played": "played",
+					"afterPlay": {
+						"hits": [],
+						"swSeen": []
+					},
+					"reload": {
+						"hits": [
+							{
+								"path": "/media/clip-auto.webm",
+								"status": 200,
+								"bytes": 303710,
+								"complete": true
+							},
+							{
+								"path": "/sw.js",
+								"status": 200,
+								"bytes": 5286,
+								"complete": true
+							}
+						],
+						"swSeen": [
+							{
+								"path": "/v/auto",
+								"destination": "document",
+								"mode": "navigate"
+							},
+							{
+								"path": "/media/clip-auto.webm",
+								"destination": "video",
+								"mode": "no-cors"
+							}
+						]
+					},
+					"replayed": "played",
+					"afterReplay": {
+						"hits": [],
+						"swSeen": []
+					}
+				}
+			]
+		}
+	]
+}

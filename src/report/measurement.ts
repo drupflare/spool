@@ -9,7 +9,8 @@ export const RIGS = [
 	'rapl',
 	'iphone',
 	'payload',
-	'trim'
+	'trim',
+	'link-assets'
 ] as const;
 
 /** one of {@link RIGS} */
