@@ -21,6 +21,7 @@ import { app as express } from './readme/express';
 import { notice, stock } from './readme/freshness';
 import { course } from './readme/graph';
 import hono from './readme/hono';
+import { mediaProxy } from './readme/media';
 import { proxy as nextProxy } from './readme/next-proxy';
 import { GET as nextRoute } from './readme/next-route';
 import { server as nodeHttp } from './readme/node-http';
@@ -258,6 +259,42 @@ describe('the README strategy and configuration examples run', () => {
 		}
 	});
 
+	it('media: the proxy converts an image with the encoder it is given and defers video for a slow visitor', async () => {
+		const jpeg = new Uint8Array(10_000).fill(7);
+		jpeg.set([0xff, 0xd8, 0xff]);
+		const page = '<html><body><video autoplay src="a.mp4"></video></body></html>';
+		const encoder = vi.fn(async (input: Uint8Array) => ({
+			bytes: new Uint8Array(input.length / 4)
+		}));
+		vi.stubGlobal('fetch', async (request: Request) =>
+			new URL(request.url).pathname === '/hero.jpg'
+				? new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } })
+				: new Response(page, { headers: { 'content-type': 'text/html' } })
+		);
+		try {
+			const proxy = mediaProxy(encoder);
+			const image = await proxy(
+				new Request('https://site.test/hero.jpg', { headers: { accept: 'image/webp' } })
+			);
+			expect(image.headers.get('x-spool-image')).toBe('10000->2500; q=80; w=1600');
+			expect(encoder).toHaveBeenCalledWith(expect.any(Uint8Array), {
+				format: 'webp',
+				quality: 80,
+				width: 1600
+			});
+			const slow = await proxy(new Request('https://site.test/', { headers: { ect: '3g' } }));
+			expect(await slow.text()).toContain(
+				'<video data-spool-autoplay src="a.mp4" controls preload="none">'
+			);
+			const fast = await proxy(new Request('https://site.test/'));
+			expect(await fast.text()).toContain('<video autoplay src="a.mp4">');
+			expect({ ...proxy.video }).toEqual({ pages: 1, rewritten: 1 });
+			expect(proxy.images.converted).toBe(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('page runtime: the tag points at this version on the CDN with the hash', () => {
 		expect(cdn.config.clientTag).toContain(`src="${cdnClientUrl(VERSION)}"`);
 		expect(cdn.config.clientTag).toContain('crossorigin="anonymous"');
@@ -275,7 +312,8 @@ describe('the README matches the fixtures', () => {
 		'@drupflare/spool/stores': '../../../src/stores/index',
 		'@drupflare/spool/stores/durable-object': '../../../src/stores/durable-object',
 		'@drupflare/spool/node': '../../../src/node/listener',
-		'@drupflare/spool/trim': '../../../src/trim/index'
+		'@drupflare/spool/trim': '../../../src/trim/index',
+		'@drupflare/spool/media': '../../../src/media/index'
 	};
 
 	const sections = new Map<string, string[]>();
@@ -311,6 +349,7 @@ describe('the README matches the fixtures', () => {
 		['Shadow Mode', ['shadow.ts']],
 		['Proxy Mode', ['proxy-node.ts', '../../fixtures/readme/proxy-workers.ts']],
 		['Trimmed Stylesheets', ['trim.ts']],
+		['Images and Video', ['media.ts']],
 		['Cloudflare Workers', ['../../fixtures/readme/workers.ts']],
 		['Cloudflare Pages Functions', ['cloudflare-pages.ts']],
 		['Hono', ['hono.ts']],

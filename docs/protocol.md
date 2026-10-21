@@ -574,7 +574,7 @@ The worker also posts `spool:cleared` to every page, as above. The replies list 
 
 ## Proxy Additions
 
-`spoolProxy` (`src/proxy/proxy.ts`) answers the paths above and forwards everything else to an origin. It adds four things to the wire.
+`spoolProxy` (`src/proxy/proxy.ts`) answers the paths above and forwards everything else to an origin. It adds six things to the wire.
 
 **Tag headers.** The origin names a page's dependencies in `Cache-Tag` (commas), `Surrogate-Key` and `X-Drupal-Cache-Tags` (spaces) or `xkey` (spaces or commas). `readTags` merges the four in first-seen order without repeats. The proxy removes them from the response unless `exposeTags` is set. A page with no tags depends on `proxy:path:<path>`.
 
@@ -600,6 +600,20 @@ The proxy also forgets the remembered body of every page that carries a purged t
 - **Guard.** Every HTML response to a `GET` is checked, kept or not, whatever its status. The guard fires when the page's tokens (`pageTokens`) include a token in the `missing` list of a trimmed stylesheet it links, or when the page loads a same-origin script whose key is not in that entry's `scripts`. Then the proxy rewrites the `href` of each trimmed stylesheet link to carry `spool-trim=0` (`&amp;spool-trim=0` after an existing query), before the body is decorated or becomes an artifact shell, and a rewritten page's `ETag` becomes weak. Other links are left alone.
 
 The proxy counts `served`, `mismatched` and `guarded` in `proxy.trim`, and writes each mismatch and each guard firing to the `sink` as an event at `TRIM_PATH` (`/.spool/trim`) whose body is JSON: `{"kind":"mismatch","file":<key>}` or `{"kind":"guard","page":<path>,"reason":"token"|"script","files":[<keys>]}`. A URL that carries `spool-trim=0` is a different URL for the browser's cache, which is why a guarded page pays the full file once.
+
+**Converted images.** With `images: <options>` (`src/media/image.ts`) the proxy answers some image requests with WebP. The request must be a `GET` whose pathname matches `paths` (default `/\.(?:jpe?g|png)$/i`), whose `Accept` contains `image/webp`, and that carries no `Range` and no `Authorization`. The proxy deletes `If-None-Match` and `If-Modified-Since` from the request it forwards, so the origin sends the whole file. The response is converted when it is `200`, its `Content-Type` is `image/jpeg` or `image/png` and the first bytes agree, it has no `Set-Cookie`, and its size is between `minBytes` and `maxBytes`. A response that fails a test is sent as it came, and the proxy counts the test in `proxy.images.skipped` under `path`, `accept`, `range`, `authorization`, `status`, `type`, `set-cookie`, `size-min` or `size-max`. A converted response has these headers.
+
+- **`Content-Type` and `Content-Length`.** `image/webp`, and no `Content-Length`. `Accept-Ranges` is removed, since the converted body does not answer a range.
+- **`Vary`.** `Accept`, `Save-Data`, `Sec-CH-Width`, `Sec-CH-DPR`, `Sec-CH-Viewport-Width` and `ECT` are added to the origin's `Vary`, skipping any it already lists in any case. A `Vary: *` stays as it is.
+- **`ETag`.** `W/"<first 16 hex digits of the sha256 of the origin's bytes>-<quality>-<width or 0>"`. When the request's `If-None-Match` names it (weak or strong, or `*`) the answer is `304` with no body and the encoder is not called; the proxy counts it under `skipped['not-modified']`.
+- **`Cache-Control`.** The origin's value, unchanged.
+- **`X-Spool-Image`.** `<bytes in>-><bytes out>; q=<quality>; w=<width or 0>`.
+
+The quality is `quality.saveData` for `Save-Data: on`, else `quality.slow` for an `ECT` of `slow-2g`, `2g` or `3g`, else `quality.default`. The width is `Sec-CH-Width`, else `Sec-CH-Viewport-Width` times `Sec-CH-DPR` rounded up, else `width.fallback`; a value that is not a positive integer of at most 16384 is ignored. When the encoder throws, returns nothing, or returns bytes that are not smaller, the origin's bytes go out with a `200` and the proxy counts `failed` or `larger`. `bytesIn` and `bytesOut` count converted responses only. The proxy fetches the origin for every request, and the cache of converted bytes is keyed by the sha256 of the origin's bytes with the quality and width, so a hit skips the encoder and never skips the origin.
+
+With `images.hints` not false, an HTML response gains `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT`, merged into any `Accept-CH` the origin sent.
+
+**Video tags.** With `video: <options>` (`src/media/video.ts`) the proxy rewrites the `<video>` start tags of every HTML response to a `GET` that is not `204`, `205` or `304`, after the trim guard. A tag inside an HTML comment, `<audio>`, `<source>` and `<iframe>` are not touched, and nothing outside an edited start tag changes. `preload` is set to `none` (or `metadata`), keeping the quote style of an existing attribute. `autoplay: 'defer'` replaces the `autoplay` attribute with `data-spool-autoplay`, adds `controls` when absent and sets `preload` to `none` unless the option is `metadata`. A rewritten page's `ETag` becomes weak, and `proxy.video` counts `pages` and `rewritten` tags. With `when: 'always'` the rewrite is also applied to the artifact shell the proxy builds, so a held copy carries it. With `when: 'save-data'` (needs `Save-Data: on`) or `'slow'` (needs an `ECT` of `slow-2g`, `2g` or `3g`, or `Save-Data: on`) a rewritten response also gets `private` in `Cache-Control` (`public` is replaced, a header with none gets `private, max-age=0`) and `Save-Data, ECT` in `Vary`. `decline` then refuses the page through its `private` verdict, so it is never a replica or a shared cache entry, and the artifact shell is built from the origin's tags. A page that triggered no rewrite keeps its headers, apart from the `Accept-CH` above.
 
 ## Limits
 

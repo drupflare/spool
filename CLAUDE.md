@@ -26,7 +26,9 @@ under `src/protocol`, `src/sw` or `src/client` (a node test fails on drift). P5 
 per-partition stores and the logout wipe, P6 the `projection` and `data` strategies, collectors and
 the third-party cache, P7 `src/proxy` (`spoolProxy` in front of an origin that cannot load the
 library), and `src/trim` (`@drupflare/spool/trim`, used as `spoolProxy({ trim })`) trims a site's CSS
-against every page and script, behind a hash check and a per-page guard, and never touches JS. Not built yet: the capacity and institution reports (P8) and the drupflare adapter (P9),
+against every page and script, behind a hash check and a per-page guard, and never touches JS, and
+`src/media` (`@drupflare/spool/media`, used as `spoolProxy({ images, video })`) converts JPEG and
+PNG to WebP through a caller-supplied encoder and rewrites `<video>` tags, with no client change. Not built yet: the capacity and institution reports (P8) and the drupflare adapter (P9),
 both pinned to drupflare v1.0.4.
 
 ## Load-bearing facts, each measured

@@ -261,6 +261,19 @@ Two checks stand between a stale or incomplete manifest and a visitor (`src/prox
 
 A site that cannot accept these limits should not pass `trim`. The same saving is available from a build step that purges with a safelist, which puts the same decision in the site's hands.
 
+## Images and Video
+
+The `images` option hands bytes the origin sent to a decoder, and a decoder is attack surface: a crafted JPEG or PNG is parsed by whatever `encoder` the caller passes. spool imports no decoder. tinyimg, the encoder the README wires in, runs as WebAssembly, so a fault in it stays inside the module's memory and cannot reach the proxy process. The proxy sets no time limit on the encoder, and an encoder that never returns holds that request open.
+
+Four rules bound what reaches it (`src/media/image.ts`).
+
+- **What converts.** A `200` whose `Content-Type` is `image/jpeg` or `image/png` and whose first bytes are that format's magic number. A WebP, a GIF and a body that disagrees with its header never match. A response with `Set-Cookie`, a request with `Range` or `Authorization`, and a non-`GET` are never converted.
+- **Size.** A file below `minBytes` or above `maxBytes` goes out as it came. A `Content-Length` over `maxBytes` is refused before the body is read. A response without one is read first, the way the proxy reads an HTML page.
+- **Fallback.** An encoder that throws, returns no bytes or returns bytes that are not smaller leaves the origin's bytes in the response with a `200`. A decoder fault costs the visitor the conversion and nothing else.
+- **The cache.** Converted bytes are keyed by the sha256 of the origin's bytes with the quality and width. The proxy fetches the origin for every request, so a cache hit saves the encoder and never replaces the origin's answer, and one visitor's image cannot reach another. The converted response keeps the origin's `Cache-Control`, so a `private` image stays private.
+
+`video` edits start tags in text the origin already sent. It adds no script and changes no attribute value except `preload`. A page rewritten because of `Save-Data` or `ECT` is made `private`, varied on both headers and declined, so one visitor's connection never becomes another's stored page. `tests/node/media.spec.ts` covers each rule.
+
 ## Purge Endpoint
 
 `POST /.spool/purge` exists in proxy mode only (`respondPurge`, `src/proxy/purge.ts`).

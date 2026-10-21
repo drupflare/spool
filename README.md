@@ -36,6 +36,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Shadow Mode](#-shadow-mode)
 - [Proxy Mode](#-proxy-mode)
 - [Trimmed Stylesheets](#-trimmed-stylesheets)
+- [Images and Video](#-images-and-video)
 - [Out of Scope](#-out-of-scope)
 - [Browser Support](#-browser-support)
 - [Subpath Exports](#-subpath-exports)
@@ -1419,7 +1420,8 @@ in the instance: a restart forgets them, and each instance of a scaled-out proxy
 A whole page is a large artifact, and the provisioning rule declines one that costs more than the
 priors say it saves, so set `provision` on the spool for large pages. A `Content-Security-Policy`
 that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
-always goes to the origin. [Trimmed Stylesheets](#-trimmed-stylesheets) covers the `trim` option.
+always goes to the origin. [Trimmed Stylesheets](#-trimmed-stylesheets) covers the `trim` option
+and [Images and Video](#-images-and-video) the `images` and `video` options.
 
 ---
 
@@ -1475,6 +1477,72 @@ seen, never to a repeat or local view, and it is not part of the per-view headli
 
 ---
 
+## 🎬 Images and Video
+
+A browser that has fetched an image cannot make it smaller, so conversion happens where the file is
+served. `@drupflare/spool/media` gives `spoolProxy` two options, both off until set. `images`
+converts a JPEG or PNG response to WebP for a browser whose `Accept` lists it. `video` rewrites
+the `<video>` tags of an HTML response, such as adding `preload="none"`.
+
+```ts
+import { type ImageEncoder } from '@drupflare/spool/media';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export function mediaProxy(encoder: ImageEncoder) {
+  return spoolProxy({
+    origin: 'https://origin.example.edu',
+    spool: { store: memoryStore() },
+    images: { encoder, width: { fallback: 1600 } },
+    video: { preload: 'none', autoplay: 'defer', when: 'slow' }
+  });
+}
+```
+
+An `ImageEncoder` takes the origin's bytes and `{ format: 'webp', quality, width }` and returns
+`{ bytes }`. It never upscales, so `width` is a ceiling, and it throws on input it cannot decode.
+spool has no runtime dependencies and ships an adapter for [tinyimg](https://tinyimg.gmitch215.dev),
+which decodes and encodes inside WebAssembly:
+
+```js
+import { readFile } from 'node:fs/promises';
+import { TinyImgModule, transform } from '@gmitch215/tinyimg';
+import { tinyimgEncoder } from '@drupflare/spool/media';
+
+const wasm = new URL(import.meta.resolve('@gmitch215/tinyimg/tinyimg.wasm'));
+const module = await TinyImgModule.loadBytes(await readFile(wasm));
+
+export const encoder = tinyimgEncoder({ module, transform });
+```
+
+Quality is 80, 65 for `Save-Data: on` and 70 for an `ECT` of `slow-2g`, `2g` or `3g`. The width
+comes from `Sec-CH-Width`, then `Sec-CH-Viewport-Width` times `Sec-CH-DPR`, then
+`width.fallback`. The proxy converts a `GET` that matches `paths` (JPEG and PNG names by default),
+has no `Range` or `Authorization`, and gets a `200` JPEG or PNG without a cookie between
+`minBytes` (4096) and `maxBytes` (15,000,000). Anything else, and any file the encoder cannot
+shrink, goes out as the origin sent it. The proxy fetches the origin for every request, so a
+visitor only gets bytes the origin sent that visitor.
+
+A converted response carries `Vary` for `Accept`, `Save-Data`, `Sec-CH-Width`, `Sec-CH-DPR`,
+`Sec-CH-Viewport-Width` and `ECT`, a weak `ETag` and `X-Spool-Image`. HTML responses gain
+`Accept-CH` for the three size hints and `ECT` unless `hints` is false, and the browser then
+sends them with later image requests to the same origin.
+
+Drupal's video formatter has no `preload` setting, and `preload="none"` does not stop `autoplay`.
+`autoplay: 'defer'` removes the attribute, adds `controls` and marks the tag
+`data-spool-autoplay`. With `when: 'always'` the page the spool keeps carries the rewrite. With
+`'save-data'` or `'slow'` the rewritten page is private to that visitor: it gets `private` in
+`Cache-Control` and `Save-Data, ECT` in `Vary`, and the spool does not keep it. A device's stored
+copy of that page keeps the origin's tags.
+
+`proxy.images` counts `converted`, `bytesIn` and `bytesOut` (converted responses only),
+`cacheHits`, and `skipped` by reason. `proxy.video` counts `pages` and `rewritten`. Read the
+saving as `bytesIn - bytesOut` over real traffic on the site. A request for any other path counts
+under `skipped.path`, so that key follows total traffic.
+[docs/security.md](docs/security.md#images-and-video) covers the decoder.
+
+---
+
 ## 🚫 Out of Scope
 
 - spool never authorises on the client. The device holds only what the server already sent that
@@ -1520,6 +1588,7 @@ loads per view and reports the view as such.
 | `@drupflare/spool/client`                | `register` and the page handle                                       |
 | `@drupflare/spool/report`                | the energy model                                                     |
 | `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                       |
+| `@drupflare/spool/media`                 | `tinyimgEncoder`, `imageVariant` and `rewriteVideo`                  |
 
 ---
 
