@@ -62,3 +62,26 @@ export const overFetch =
 	(handler: (request: Request) => Response | Promise<Response>): Fetcher =>
 	async (path) =>
 		handler(new Request(`https://site.test${path}`));
+
+export const HTML = 'text/html; charset=utf-8';
+
+export type Reply = {
+	status?: number;
+	headers?: Record<string, string>;
+	body?: string | Uint8Array;
+};
+
+/** an origin that never sees spool: replies by path, and keeps every request it got */
+export function fakeOrigin() {
+	const replies = new Map<string, Reply>();
+	const hits: Array<{ request: Request; body: string }> = [];
+	const fetch = async (request: Request) => {
+		hits.push({ request, body: await request.clone().text() });
+		const reply = replies.get(new URL(request.url).pathname) ?? { status: 404, body: 'none' };
+		return new Response((reply.body ?? '') as BodyInit, {
+			status: reply.status ?? 200,
+			headers: reply.headers ?? { 'content-type': HTML }
+		});
+	};
+	return { replies, hits, fetch };
+}

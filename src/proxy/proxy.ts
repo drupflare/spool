@@ -1,3 +1,13 @@
+import { makePrivate, mergeList, signalsOf } from '../media/headers.js';
+import {
+	convertImage,
+	createImageConverter,
+	IMAGE_HINTS,
+	imageRequest,
+	type ImageOptions,
+	type ImageStats
+} from '../media/image.js';
+import { resolveVideoOptions, rewriteVideo, type VideoOptions } from '../media/video.js';
 import { PATHS } from '../protocol/config.js';
 import { writeEnvelope } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
@@ -88,10 +98,23 @@ export type ProxyOptions = {
 	 * and every HTML page is checked against the guard first. Without it nothing is trimmed.
 	 */
 	trim?: TrimManifest;
+	/**
+	 * Converts JPEG and PNG responses to WebP for a browser that accepts it, at the quality and
+	 * width the request's headers call for; see `ImageOptions`. Without it no image is touched.
+	 */
+	images?: ImageOptions;
+	/**
+	 * Rewrites `<video>` tags in HTML responses, such as `preload="none"`; see `VideoOptions`.
+	 * Without it no page is touched for video.
+	 */
+	video?: VideoOptions;
 };
 
 /** what the proxy counted since it started: trimmed answers, hash mismatches and guard firings */
 export type TrimStats = { served: number; mismatched: number; guarded: number };
+
+/** what the proxy counted for `video`: pages with at least one rewritten tag, and the tags */
+export type VideoStats = { pages: number; rewritten: number };
 
 /** where the proxy writes a guard firing or a hash mismatch to the sink, as JSON `{ kind, ... }` */
 export const TRIM_PATH = '/.spool/trim';
@@ -102,6 +125,10 @@ export type SpoolProxy = {
 	readonly spool: Spool;
 	/** live counters; all zero when `trim` is not set */
 	readonly trim: Readonly<TrimStats>;
+	/** live counters; all zero when `images` is not set */
+	readonly images: Readonly<ImageStats>;
+	/** live counters; all zero when `video` is not set */
+	readonly video: Readonly<VideoStats>;
 };
 
 type Page = { text: string; tags: string[] };
@@ -130,6 +157,11 @@ const toBytes = (text: string) => Uint8Array.from(text, (char) => char.charCodeA
  * or `no-store`, is decorated so the worker can keep it; anything else is forwarded untouched.
  * The tags the origin sends in `Cache-Tag`, `Surrogate-Key`, `X-Drupal-Cache-Tags` or `xkey`
  * become the page's dependencies, and a page with none depends on its own path.
+ *
+ * With `images` the proxy answers a JPEG or PNG request from a browser that accepts WebP with the
+ * converted file, and adds `Accept-CH` to HTML so later image requests carry their width. With
+ * `video` it rewrites `<video>` tags in HTML. Both run on the origin's response before the page is
+ * kept, so a held page carries the rewritten tags.
  *
  * Limits: the proxy sees finished HTML, so an artifact is the whole page, the replica holds no
  * records, and two pages never share a fragment. A page is invalidated by `POST /.spool/purge`, or
@@ -162,6 +194,17 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 	const { store } = options.spool;
 	const { trim } = options;
 	const stats: TrimStats = { served: 0, mismatched: 0, guarded: 0 };
+	const images = options.images ? createImageConverter(options.images) : undefined;
+	const video = options.video ? resolveVideoOptions(options.video) : undefined;
+	const videoStats: VideoStats = { pages: 0, rewritten: 0 };
+	const imageStats: ImageStats = images?.stats ?? {
+		converted: 0,
+		bytesIn: 0,
+		bytesOut: 0,
+		cacheHits: 0,
+		skipped: {}
+	};
+	const readsHtml = Boolean(trim || video || images?.options.hints);
 
 	function note(kind: 'guard' | 'mismatch', detail: Record<string, unknown>): void {
 		if (!options.spool.sink) return;
@@ -212,11 +255,17 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		return headers;
 	}
 
-	function forward(request: Request, url: URL): Request {
+	function forward(request: Request, url: URL, whole: boolean): Request {
 		const read = request.method === 'GET' || request.method === 'HEAD';
+		const headers = originHeaders(request.headers, url);
+		// a conversion needs the whole file, so the origin gets no conditional request
+		if (whole) {
+			headers.delete('if-none-match');
+			headers.delete('if-modified-since');
+		}
 		return new Request(new URL(url.pathname + stripTrimParam(url.search), base), {
 			method: request.method,
-			headers: originHeaders(request.headers, url),
+			headers,
 			redirect: 'manual',
 			signal: request.signal,
 			...(read || !request.body ? {} : { body: request.body, duplex: 'half' })
@@ -301,7 +350,11 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		if (!data && !isUtf8(htmlCharset(response.headers, bytes))) {
 			throw new ProtocolError('bad-artifact', `${path} is not kept (charset)`);
 		}
-		const text = guarded(new TextDecoder().decode(bytes), ctx.url.href);
+		let text = guarded(new TextDecoder().decode(bytes), ctx.url.href);
+		// a signal-triggered rewrite is never part of a held copy
+		if (!data && video?.when === 'always') {
+			text = rewriteVideo(text, video, { saveData: false, slow: false }).html;
+		}
 		if (text.length > gate.maxBytes) {
 			throw new ProtocolError('bad-artifact', `${path} is not kept (size)`);
 		}
@@ -391,19 +444,22 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		if (answered) return answered;
 		if (url.pathname === PATHS.worker && request.method === 'GET') return spool.stub();
 
+		const converting = images !== undefined && imageRequest(images, request);
 		let upstream: Response;
 		try {
-			upstream = await call(forward(request, url));
+			upstream = await call(forward(request, url, converting));
 		} catch {
 			return new Response('bad gateway', {
 				status: 502,
 				headers: { 'content-type': 'text/plain', 'cache-control': 'no-store' }
 			});
 		}
-		if (trim && request.method === 'GET') {
-			const key = trimKey(url.href);
-			const entry = trim.styles[key];
+		if (images && converting) upstream = await convertImage(images, request, upstream);
+		if (request.method === 'GET') {
+			const key = trim ? trimKey(url.href) : '';
+			const entry = trim?.styles[key];
 			if (
+				trim &&
 				entry &&
 				url.searchParams.get(TRIM_PARAM) !== '0' &&
 				upstream.status === 200 &&
@@ -425,14 +481,32 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 					statusText: upstream.statusText,
 					headers
 				});
-			} else if (isHtml(upstream) && ![204, 205, 304].includes(upstream.status)) {
+			} else if (
+				readsHtml &&
+				isHtml(upstream) &&
+				![204, 205, 304].includes(upstream.status)
+			) {
 				const bytes = new Uint8Array(await upstream.arrayBuffer());
-				// another charset is rewritten byte for byte; the guard inserts ASCII only
+				// another charset is rewritten byte for byte; the edits insert ASCII only
 				const utf8 = isUtf8(htmlCharset(upstream.headers, bytes));
 				const text = utf8 ? new TextDecoder().decode(bytes) : fromBytes(bytes);
-				const verdict = guarded(text, url.href);
+				let verdict = guarded(text, url.href);
 				const headers = new Headers(upstream.headers);
 				headers.delete('content-length');
+				if (video) {
+					const result = rewriteVideo(verdict, video, signalsOf(request.headers));
+					if (result.rewritten > 0) {
+						verdict = result.html;
+						videoStats.pages++;
+						videoStats.rewritten += result.rewritten;
+						// a page rewritten for one visitor's connection is not another's copy
+						if (video.when !== 'always') {
+							makePrivate(headers);
+							mergeList(headers, 'vary', ['Save-Data', 'ECT']);
+						}
+					}
+				}
+				if (images?.options.hints) mergeList(headers, 'accept-ch', IMAGE_HINTS);
 				if (verdict !== text) weaken(headers);
 				const body = verdict === text ? bytes : utf8 ? verdict : toBytes(verdict);
 				upstream = new Response(body, {
@@ -488,5 +562,5 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		return spool.decorate(request, new Response(text, init));
 	}
 
-	return Object.assign(handle, { spool, trim: stats });
+	return Object.assign(handle, { spool, trim: stats, images: imageStats, video: videoStats });
 }

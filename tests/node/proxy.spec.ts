@@ -21,29 +21,11 @@ import {
 import { memorySink } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
 import { buildTrimManifest } from '../../src/trim/index';
-import { closeServers, listen } from './exercise';
+import { closeServers, fakeOrigin, HTML, listen, type Reply } from './exercise';
 
 const HOST = 'https://site.test';
 const ORIGIN = 'https://origin.test';
-const HTML = 'text/html; charset=utf-8';
 const PAGE = '<!doctype html><html><head><title>t</title></head><body><p>body</p></body></html>';
-
-type Reply = { status?: number; headers?: Record<string, string>; body?: string | Uint8Array };
-
-/** an origin that never sees spool: replies by path, and keeps every request it got */
-function fakeOrigin() {
-	const replies = new Map<string, Reply>();
-	const hits: Array<{ request: Request; body: string }> = [];
-	const fetch = async (request: Request) => {
-		hits.push({ request, body: await request.clone().text() });
-		const reply = replies.get(new URL(request.url).pathname) ?? { status: 404, body: 'none' };
-		return new Response((reply.body ?? '') as BodyInit, {
-			status: reply.status ?? 200,
-			headers: reply.headers ?? { 'content-type': HTML }
-		});
-	};
-	return { replies, hits, fetch };
-}
 
 function setup(over: Partial<ProxyOptions> = {}) {
 	const origin = fakeOrigin();
