@@ -31,6 +31,10 @@ export type Tag = {
 	name: string;
 	attributes: Attribute[];
 	body?: string;
+	/** where the `<` sits in the HTML */
+	start: number;
+	/** where the closing `>` sits, or the length of the HTML when the tag never closes */
+	end: number;
 };
 
 /** the value of the first attribute called `name` on `tag` */
@@ -88,7 +92,7 @@ export function tagsOf(html: string): Tag[] {
 			}
 			attributes.push({ name, value, start, end: i });
 		}
-		const tag: Tag = { name: found[0].toLowerCase(), attributes };
+		const tag: Tag = { name: found[0].toLowerCase(), attributes, start: open, end: i };
 		at = Math.min(html.length, i + 1);
 		if (tag.name === 'script' || tag.name === 'style') {
 			const end = new RegExp(`</${tag.name}\\s*>`, 'gi');

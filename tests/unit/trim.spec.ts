@@ -70,6 +70,17 @@ describe('pageTokens', () => {
 		]);
 	});
 
+	it('gives each tag the offsets of its < and its closing >, and the length when it never closes', () => {
+		const html = '<p title="a>b">x</p><i/><b class="a';
+		expect(tagsOf(html).map((t) => [t.name, t.start, t.end])).toEqual([
+			['p', 0, 14],
+			['i', 20, 23],
+			['b', 24, html.length]
+		]);
+		expect(html[14]).toBe('>');
+		expect(html[23]).toBe('>');
+	});
+
 	it('takes the text of a script or style as its body and does not scan it for tags', () => {
 		const tags = tagsOf('<script>a<b>c</script><style>p>q{}</style><i></i>');
 		expect(tags.map((t) => [t.name, t.body])).toEqual([
