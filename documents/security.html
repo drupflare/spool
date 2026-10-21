@@ -302,6 +302,16 @@
 <li>A stylesheet reached through <code>@import</code> inside another stylesheet. It is not linked from the page, so the guard cannot send it a <code>spool-trim=0</code>, and a manifest built from linked files holds no entry for it.</li>
 </ul>
 <p>A site that cannot accept these limits should not pass <code>trim</code>. The same saving is available from a build step that purges with a safelist, which puts the same decision in the site's hands.</p>
+<h2 id="images-and-video" class="tsd-anchor-link">Images and Video<a href="#images-and-video" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The <code>images</code> option hands bytes the origin sent to a decoder, and a decoder is attack surface: a crafted JPEG or PNG is parsed by whatever <code>encoder</code> the caller passes. spool imports no decoder. tinyimg, the encoder the README wires in, runs as WebAssembly, so a fault in it stays inside the module's memory and cannot reach the proxy process. The proxy sets no time limit on the encoder, and an encoder that never returns holds that request open.</p>
+<p>Four rules bound what reaches it (<code>src/media/image.ts</code>).</p>
+<ul>
+<li><strong>What converts.</strong> A <code>200</code> whose <code>Content-Type</code> is <code>image/jpeg</code> or <code>image/png</code> and whose first bytes are that format's magic number. A WebP, a GIF and a body that disagrees with its header never match. A response with <code>Set-Cookie</code>, a request with <code>Range</code> or <code>Authorization</code>, and a non-<code>GET</code> are never converted.</li>
+<li><strong>Size.</strong> A file below <code>minBytes</code> or above <code>maxBytes</code> goes out as it came. A <code>Content-Length</code> over <code>maxBytes</code> is refused before the body is read. A response without one is read first, the way the proxy reads an HTML page.</li>
+<li><strong>Fallback.</strong> An encoder that throws, returns no bytes or returns bytes that are not smaller leaves the origin's bytes in the response with a <code>200</code>. A decoder fault costs the visitor the conversion and nothing else.</li>
+<li><strong>The cache.</strong> Converted bytes are keyed by the sha256 of the origin's bytes with the quality and width. The proxy fetches the origin for every request, so a cache hit saves the encoder and never replaces the origin's answer, and one visitor's image cannot reach another. The converted response keeps the origin's <code>Cache-Control</code>, so a <code>private</code> image stays private.</li>
+</ul>
+<p><code>video</code> edits start tags in text the origin already sent. It adds no script and changes no attribute value except <code>preload</code>. A page rewritten because of <code>Save-Data</code> or <code>ECT</code> is made <code>private</code>, varied on both headers and declined, so one visitor's connection never becomes another's stored page. <code>tests/node/media.spec.ts</code> covers each rule.</p>
 <h2 id="purge-endpoint" class="tsd-anchor-link">Purge Endpoint<a href="#purge-endpoint" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p><code>POST /.spool/purge</code> exists in proxy mode only (<code>respondPurge</code>, <code>src/proxy/purge.ts</code>).</p>
 <ul>
@@ -459,6 +469,7 @@
 <li><a href="#content-security-policy"><span>Content <wbr/>Security <wbr/>Policy</span></a></li>
 <li><a href="#clear-site-data"><span>Clear-<wbr/>Site-<wbr/>Data</span></a></li>
 <li><a href="#trimmed-stylesheets"><span>Trimmed <wbr/>Stylesheets</span></a></li>
+<li><a href="#images-and-video"><span>Images and <wbr/>Video</span></a></li>
 <li><a href="#purge-endpoint"><span>Purge <wbr/>Endpoint</span></a></li>
 <li><a href="#analytics-and-third-parties"><span>Analytics and <wbr/>Third <wbr/>Parties</span></a></li>
 <li><a href="#what-spool-never-does"><span>What <wbr/>Spool <wbr/>Never <wbr/>Does</span></a></li>

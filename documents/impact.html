@@ -1061,6 +1061,52 @@
 </table>
 <p>A spool local view sent nothing to the origin in every window but one per runtime, and its server energy is inside the idle drift. The exception is the fourth spool window, which made up to 6 requests to <code>/.spool/*</code> in every runtime. It ended about 15 minutes after the worker was primed, which is when the public routes' default soft bound expires: the timing matches one sync with the held view telemetry flushed on the same network moment (the rig counted <code>/.spool/*</code> requests, not their paths). That is spool's own overhead. The medians above leave it out, since it is one window in six; the measured per-view figure P8 reports nets syncs and flushes against the saving. A bare HTML request from curl costs the server more than a browser view, most likely because curl opens a new connection through the relay for each request while the browser reuses one.</p>
 <p>One request per view is also what breaks the saving. A page that posts to an analytics endpoint on every view makes each view a network view again, with that request's bytes and origin work. On a 2012 3G phone that post also woke the radio (Thiagarajan et al.); this phone showed no wake for an isolated request. Spool queues those posts in the service worker and sends them on a network moment that happens anyway.</p>
+<h3 id="worker-request-cost" class="tsd-anchor-link">Worker Request Cost<a href="#worker-request-cost" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A closed-loop <code>fetch</code> of one 4,096-byte asset from a page, one request at a time, on paisley-park (L1, 8 rounds, 60,000 requests per window for the first three arms and a quarter of that for the two that reach the origin). Millijoules per request above idle:</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">mJ per request above idle</th>
+<th style="text-align:right">microseconds per request</th>
+<th style="text-align:right">origin requests per request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Browser cache (immutable, no worker)</td>
+<td style="text-align:right">14.0 (13.5 to 14.2)</td>
+<td style="text-align:right">273</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>Worker answers from CacheStorage</td>
+<td style="text-align:right">18.9 (18.9 to 20.0)</td>
+<td style="text-align:right">370</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>Worker receives the event and answers nothing</td>
+<td style="text-align:right">17.2 (17.0 to 17.4)</td>
+<td style="text-align:right">338</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>Conditional request, 304</td>
+<td style="text-align:right">19.3 (18.8 to 19.9)</td>
+<td style="text-align:right">377</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Full 200, no-store</td>
+<td style="text-align:right">19.0 (18.4 to 19.7)</td>
+<td style="text-align:right">365</td>
+<td style="text-align:right">1</td>
+</tr>
+</tbody>
+</table>
+<p>A worker answering from CacheStorage costs 4.9 mJ (35%) more per request than the browser's own cache, and 0.4 mJ less than a loopback 304. The ranges of those two arms overlap. A worker that receives the event and answers nothing costs 3.2 mJ more than the cache. For a URL the browser would revalidate on a share of views, a worker that answers it saves energy only when that share is above 93%, which is the worker's extra cost over the browser cache divided by the 304's extra cost over the same cache. A worker should answer a URL only when the browser would otherwise leave for the network on most views.</p>
+<p>The meter reads the package of the browser and the co-located origin over loopback with no emulated latency. It excludes the radio, the network and every hop between. A 304 carries no body and costs the same here as a 200 with 4,096 bytes, so the wire's share is invisible to it. The loop keeps one core busy, so each figure is energy per request in a boosted state, and a sparse real load also pays wake costs this loop never sees. It measures a <code>fetch</code> from the page, and a browser's own favicon request may take a different path.</p>
 <h3 id="origin-term-by-workload" class="tsd-anchor-link">Origin Term by Workload<a href="#origin-term-by-workload" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>The headline's origin term is modelled. For a view the origin would otherwise render, such as an authenticated view or a cache miss (a meaningful share of views), the measured origin joules for that workload replace SWD's data-centre term and the modelled origin request. They never add to the headline. Where a cache would have answered, the term is the cost of a cache hit, a fraction of a millijoule.</p>
 <table>
@@ -2235,6 +2281,7 @@
 <ul>
 <li><a href="#desktop-and-phone"><span>Desktop and <wbr/>Phone</span></a></li>
 <li><a href="#server-runtimes"><span>Server <wbr/>Runtimes</span></a></li>
+<li><a href="#worker-request-cost"><span>Worker <wbr/>Request <wbr/>Cost</span></a></li>
 <li><a href="#origin-term-by-workload"><span>Origin <wbr/>Term by <wbr/>Workload</span></a></li>
 <li>
 <ul>

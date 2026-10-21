@@ -24,6 +24,10 @@ or a cookie outside <code>publicCookies</code>, answered 200 as <code>text/html<
 or <code>no-store</code>, is decorated so the worker can keep it; anything else is forwarded untouched.
 The tags the origin sends in <code>Cache-Tag</code>, <code>Surrogate-Key</code>, <code>X-Drupal-Cache-Tags</code> or <code>xkey</code>
 become the page's dependencies, and a page with none depends on its own path.</p>
+<p>With <code>images</code> the proxy answers a JPEG or PNG request from a browser that accepts WebP with the
+converted file, and adds <code>Accept-CH</code> to HTML so later image requests carry their width. With
+<code>video</code> it rewrites <code>&lt;video&gt;</code> tags in HTML. Both run on the origin's response before the page is
+kept, so a held page carries the rewritten tags.</p>
 <p>Limits: the proxy sees finished HTML, so an artifact is the whole page, the replica holds no
 records, and two pages never share a fragment. A page is invalidated by <code>POST /.spool/purge</code>, or
 when the proxy sees its body change, and it stays on a device until its route's <code>maxStale</code> runs
@@ -37,7 +41,7 @@ forgets it, and each instance of a scaled-out proxy keeps its own.</p>
 <li><span><span class="tsd-kind-parameter">options</span>: <a href="../types/proxy.ProxyOptions.html" class="tsd-signature-type tsd-kind-type-alias">ProxyOptions</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../types/proxy.SpoolProxy.html" class="tsd-signature-type tsd-kind-type-alias">SpoolProxy</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/proxy/proxy.ts#L141">src/proxy/proxy.ts:141</a></li></ul></aside></div></li></ul></section></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/proxy/proxy.ts#L173">src/proxy/proxy.ts:173</a></li></ul></aside></div></li></ul></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

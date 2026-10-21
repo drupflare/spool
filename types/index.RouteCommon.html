@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">RouteCommon</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#documentbytes">documentBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#freshness">freshness</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="index.Freshness.html" class="tsd-signature-type tsd-kind-type-alias">Freshness</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#mode">mode</a><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#offline">offline</a><span class="tsd-signature-symbol">?:</span> <a href="index.OfflineRule.html" class="tsd-signature-type tsd-kind-type-alias">OfflineRule</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#persist">persist</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#provision">provision</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">futureViews</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reuse</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#retention">retention</a><span class="tsd-signature-symbol">?:</span> <a href="index.Retention.html" class="tsd-signature-type tsd-kind-type-alias">Retention</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#scope">scope</a><span class="tsd-signature-symbol">?:</span> <a href="index.Scope.html" class="tsd-signature-type tsd-kind-type-alias">Scope</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sync">sync</a><span class="tsd-signature-symbol">?:</span> <a href="index.SyncRule.html" class="tsd-signature-type tsd-kind-type-alias">SyncRule</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#catalogue-1">catalogue</a><span class="tsd-signature-symbol">?</span><span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.CatalogueGuess.html" class="tsd-signature-type tsd-kind-type-alias">CatalogueGuess</a><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <a href="index.CatalogueGuess.html" class="tsd-signature-type tsd-kind-type-alias">CatalogueGuess</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#depends-1">depends</a><span class="tsd-signature-symbol">?</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L56">src/protocol/route.ts:56</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L56">src/protocol/route.ts:56</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -48,57 +48,57 @@
 <div class="tsd-comment tsd-typography"><p>compressed bytes of the document this route renders, which a catalogue entry for it replaces; the server's prior when absent</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L80">src/protocol/route.ts:80</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L80">src/protocol/route.ts:80</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="freshness"><code class="tsd-tag">Optional</code><span>freshness</span><a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">freshness</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="index.Freshness.html" class="tsd-signature-type tsd-kind-type-alias">Freshness</a><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L58">src/protocol/route.ts:58</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L58">src/protocol/route.ts:58</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="mode"><code class="tsd-tag">Optional</code><span>mode</span><a href="#mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">mode</span><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a></div>
 <div class="tsd-comment tsd-typography"><p><code>shadow</code> renders locally and compares but never serves; the server's mode when absent</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L63">src/protocol/route.ts:63</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L63">src/protocol/route.ts:63</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="offline"><code class="tsd-tag">Optional</code><span>offline</span><a href="#offline" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">offline</span><span class="tsd-signature-symbol">?:</span> <a href="index.OfflineRule.html" class="tsd-signature-type tsd-kind-type-alias">OfflineRule</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L61">src/protocol/route.ts:61</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L61">src/protocol/route.ts:61</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="persist"><code class="tsd-tag">Optional</code><span>persist</span><a href="#persist" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">persist</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>keep the artifact across worker restarts; default true</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L60">src/protocol/route.ts:60</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L60">src/protocol/route.ts:60</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="provision"><code class="tsd-tag">Optional</code><span>provision</span><a href="#provision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">provision</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">futureViews</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reuse</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>overrides the provisioning priors for this route when the server decides whether to ship it</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L71">src/protocol/route.ts:71</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L71">src/protocol/route.ts:71</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="retention"><code class="tsd-tag">Optional</code><span>retention</span><a href="#retention" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">retention</span><span class="tsd-signature-symbol">?:</span> <a href="index.Retention.html" class="tsd-signature-type tsd-kind-type-alias">Retention</a></div>
 <div class="tsd-comment tsd-typography"><p>a principal route's at-rest key; default <code>session</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L69">src/protocol/route.ts:69</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L69">src/protocol/route.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="scope"><code class="tsd-tag">Optional</code><span>scope</span><a href="#scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">scope</span><span class="tsd-signature-symbol">?:</span> <a href="index.Scope.html" class="tsd-signature-type tsd-kind-type-alias">Scope</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L57">src/protocol/route.ts:57</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L57">src/protocol/route.ts:57</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sync"><code class="tsd-tag">Optional</code><span>sync</span><a href="#sync" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">sync</span><span class="tsd-signature-symbol">?:</span> <a href="index.SyncRule.html" class="tsd-signature-type tsd-kind-type-alias">SyncRule</a></div>
 <div class="tsd-comment tsd-typography"><p>how a soft route past its bound refreshes; default <code>background</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L65">src/protocol/route.ts:65</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L65">src/protocol/route.ts:65</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -119,7 +119,7 @@ ships the data of those that repay their transfer, never their HTML. Only <code>
 <li><span><span class="tsd-kind-parameter">ctx</span>: <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-keyword">readonly</span> <a href="index.CatalogueGuess.html" class="tsd-signature-type tsd-kind-type-alias">CatalogueGuess</a><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <a href="index.CatalogueGuess.html" class="tsd-signature-type tsd-kind-type-alias">CatalogueGuess</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L78">src/protocol/route.ts:78</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L78">src/protocol/route.ts:78</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="depends"><code class="tsd-tag">Optional</code><span>depends</span><a href="#depends" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -134,7 +134,7 @@ ships the data of those that repay their transfer, never their HTML. Only <code>
 <li><span><span class="tsd-kind-parameter">ctx</span>: <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/77fe6eb5b6e4b134446106709f25dd6a803eef97/src/protocol/route.ts#L67">src/protocol/route.ts:67</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/afb5b368ddcae34e75762fdc3d1b78773988f696/src/protocol/route.ts#L67">src/protocol/route.ts:67</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

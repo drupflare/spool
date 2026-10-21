@@ -42,6 +42,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 <li><a href="#-shadow-mode">Shadow Mode</a></li>
 <li><a href="#-proxy-mode">Proxy Mode</a></li>
 <li><a href="#-trimmed-stylesheets">Trimmed Stylesheets</a></li>
+<li><a href="#-images-and-video">Images and Video</a></li>
 <li><a href="#-out-of-scope">Out of Scope</a></li>
 <li><a href="#-browser-support">Browser Support</a></li>
 <li><a href="#-subpath-exports">Subpath Exports</a></li>
@@ -891,7 +892,8 @@ in the instance: a restart forgets them, and each instance of a scaled-out proxy
 A whole page is a large artifact, and the provisioning rule declines one that costs more than the
 priors say it saves, so set <code>provision</code> on the spool for large pages. A <code>Content-Security-Policy</code>
 that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
-always goes to the origin. <a href="#-trimmed-stylesheets">Trimmed Stylesheets</a> covers the <code>trim</code> option.</p>
+always goes to the origin. <a href="#-trimmed-stylesheets">Trimmed Stylesheets</a> covers the <code>trim</code> option
+and <a href="#-images-and-video">Images and Video</a> the <code>images</code> and <code>video</code> options.</p>
 <hr>
 <h2 id="🧹-trimmed-stylesheets" class="tsd-anchor-link">🧹 Trimmed Stylesheets<a href="#🧹-trimmed-stylesheets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>A new page of a Drupal site usually loads a stylesheet aggregate the visitor has not seen, and
@@ -923,6 +925,44 @@ saving from a build step that runs PurgeCSS with a safelist needs no proxy. The 
 without a change to the origin. The saving applies to a network view of a page the visitor has not
 seen, never to a repeat or local view, and it is not part of the per-view headline;
 <a href="documents/impact.html#asset-trimming">docs/impact.md</a> has the bytes, joules and prices.</p>
+<hr>
+<h2 id="🎬-images-and-video" class="tsd-anchor-link">🎬 Images and Video<a href="#🎬-images-and-video" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A browser that has fetched an image cannot make it smaller, so conversion happens where the file is
+served. <code>@drupflare/spool/media</code> gives <code>spoolProxy</code> two options, both off until set. <code>images</code>
+converts a JPEG or PNG response to WebP for a browser whose <code>Accept</code> lists it. <code>video</code> rewrites
+the <code>&lt;video&gt;</code> tags of an HTML response, such as adding <code>preload=&quot;none&quot;</code>.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-8">type</span><span class="hl-1"> </span><span class="hl-9">ImageEncoder</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/media&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">function</span><span class="hl-1"> </span><span class="hl-0">mediaProxy</span><span class="hl-1">(</span><span class="hl-9">encoder</span><span class="hl-1">: </span><span class="hl-12">ImageEncoder</span><span class="hl-1">) {</span><br/><span class="hl-1">  </span><span class="hl-8">return</span><span class="hl-1"> </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">    </span><span class="hl-9">images:</span><span class="hl-1"> { </span><span class="hl-9">encoder</span><span class="hl-1">, </span><span class="hl-9">width:</span><span class="hl-1"> { </span><span class="hl-9">fallback:</span><span class="hl-1"> </span><span class="hl-15">1600</span><span class="hl-1"> } },</span><br/><span class="hl-1">    </span><span class="hl-9">video:</span><span class="hl-1"> { </span><span class="hl-9">preload:</span><span class="hl-1"> </span><span class="hl-2">&#39;none&#39;</span><span class="hl-1">, </span><span class="hl-9">autoplay:</span><span class="hl-1"> </span><span class="hl-2">&#39;defer&#39;</span><span class="hl-1">, </span><span class="hl-9">when:</span><span class="hl-1"> </span><span class="hl-2">&#39;slow&#39;</span><span class="hl-1"> }</span><br/><span class="hl-1">  });</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p>An <code>ImageEncoder</code> takes the origin's bytes and <code>{ format: 'webp', quality, width }</code> and returns
+<code>{ bytes }</code>. It never upscales, so <code>width</code> is a ceiling, and it throws on input it cannot decode.
+spool has no runtime dependencies and ships an adapter for <a href="https://tinyimg.gmitch215.dev">tinyimg</a>,
+which decodes and encodes inside WebAssembly:</p>
+<pre><code class="js"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">readFile</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:fs/promises&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">TinyImgModule</span><span class="hl-1">, </span><span class="hl-9">transform</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@gmitch215/tinyimg&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">tinyimgEncoder</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/media&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">wasm</span><span class="hl-1"> = </span><span class="hl-10">new</span><span class="hl-1"> </span><span class="hl-0">URL</span><span class="hl-1">(</span><span class="hl-8">import</span><span class="hl-1">.</span><span class="hl-9">meta</span><span class="hl-1">.</span><span class="hl-0">resolve</span><span class="hl-1">(</span><span class="hl-2">&#39;@gmitch215/tinyimg/tinyimg.wasm&#39;</span><span class="hl-1">));</span><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">module</span><span class="hl-1"> = </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-9">TinyImgModule</span><span class="hl-1">.</span><span class="hl-0">loadBytes</span><span class="hl-1">(</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">readFile</span><span class="hl-1">(</span><span class="hl-9">wasm</span><span class="hl-1">));</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">encoder</span><span class="hl-1"> = </span><span class="hl-0">tinyimgEncoder</span><span class="hl-1">({ </span><span class="hl-9">module</span><span class="hl-1">, </span><span class="hl-9">transform</span><span class="hl-1"> });</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Quality is 80, 65 for <code>Save-Data: on</code> and 70 for an <code>ECT</code> of <code>slow-2g</code>, <code>2g</code> or <code>3g</code>. The width
+comes from <code>Sec-CH-Width</code>, then <code>Sec-CH-Viewport-Width</code> times <code>Sec-CH-DPR</code>, then
+<code>width.fallback</code>. The proxy converts a <code>GET</code> that matches <code>paths</code> (JPEG and PNG names by default),
+has no <code>Range</code> or <code>Authorization</code>, and gets a <code>200</code> JPEG or PNG without a cookie between
+<code>minBytes</code> (4096) and <code>maxBytes</code> (15,000,000). Anything else, and any file the encoder cannot
+shrink, goes out as the origin sent it. The proxy fetches the origin for every request, so a
+visitor only gets bytes the origin sent that visitor.</p>
+<p>A converted response carries <code>Vary</code> for <code>Accept</code>, <code>Save-Data</code>, <code>Sec-CH-Width</code>, <code>Sec-CH-DPR</code>,
+<code>Sec-CH-Viewport-Width</code> and <code>ECT</code>, a weak <code>ETag</code> and <code>X-Spool-Image</code>. HTML responses gain
+<code>Accept-CH</code> for the three size hints and <code>ECT</code> unless <code>hints</code> is false, and the browser then
+sends them with later image requests to the same origin.</p>
+<p>Drupal's video formatter has no <code>preload</code> setting, and <code>preload=&quot;none&quot;</code> does not stop <code>autoplay</code>.
+<code>autoplay: 'defer'</code> removes the attribute, adds <code>controls</code> and marks the tag
+<code>data-spool-autoplay</code>. With <code>when: 'always'</code> the page the spool keeps carries the rewrite. With
+<code>'save-data'</code> or <code>'slow'</code> the rewritten page is private to that visitor: it gets <code>private</code> in
+<code>Cache-Control</code> and <code>Save-Data, ECT</code> in <code>Vary</code>, and the spool does not keep it. A device's stored
+copy of that page keeps the origin's tags.</p>
+<p><code>proxy.images</code> counts <code>converted</code>, <code>bytesIn</code> and <code>bytesOut</code> (converted responses only),
+<code>cacheHits</code>, and <code>skipped</code> by reason. <code>proxy.video</code> counts <code>pages</code> and <code>rewritten</code>. Read the
+saving as <code>bytesIn - bytesOut</code> over real traffic on the site. A request for any other path counts
+under <code>skipped.path</code>, so that key follows total traffic.
+<a href="documents/security.html#images-and-video">docs/security.md</a> covers the decoder.</p>
 <hr>
 <h2 id="🚫-out-of-scope" class="tsd-anchor-link">🚫 Out of Scope<a href="#🚫-out-of-scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -1017,6 +1057,10 @@ loads per view and reports the view as such.</p>
 <tr>
 <td><code>@drupflare/spool/trim</code></td>
 <td><code>buildTrimManifest</code>, <code>trimCss</code> and <code>guardPage</code></td>
+</tr>
+<tr>
+<td><code>@drupflare/spool/media</code></td>
+<td><code>tinyimgEncoder</code>, <code>imageVariant</code> and <code>rewriteVideo</code></td>
 </tr>
 </tbody>
 </table>
@@ -1140,6 +1184,7 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#invalidation"><span>Invalidation</span></a></li>
 <li><a href="#limits"><span>Limits</span></a></li></ul></li>
 <li><a href="#🧹-trimmed-stylesheets"><span>🧹 <wbr/>Trimmed <wbr/>Stylesheets</span></a></li>
+<li><a href="#🎬-images-and-video"><span>🎬 <wbr/>Images and <wbr/>Video</span></a></li>
 <li><a href="#🚫-out-of-scope"><span>🚫 <wbr/>Out of <wbr/>Scope</span></a></li>
 <li><a href="#🌐-browser-support"><span>🌐 <wbr/>Browser <wbr/>Support</span></a></li>
 <li><a href="#🧭-subpath-exports"><span>🧭 <wbr/>Subpath <wbr/>Exports</span></a></li>
