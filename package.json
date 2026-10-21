@@ -46,6 +46,10 @@
 			"types": "./dist/report/index.d.ts",
 			"default": "./dist/report/index.js"
 		},
+		"./media": {
+			"types": "./dist/media/index.d.ts",
+			"default": "./dist/media/index.js"
+		},
 		"./trim": {
 			"types": "./dist/trim/index.d.ts",
 			"default": "./dist/trim/index.js"

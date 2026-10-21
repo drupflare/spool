@@ -11,7 +11,8 @@
 		"src/sw/index.ts",
 		"src/client/index.ts",
 		"src/report/index.ts",
-		"src/trim/index.ts"
+		"src/trim/index.ts",
+		"src/media/index.ts"
 	],
 	"tsconfig": "tsconfig.docs.json",
 	"skipErrorChecking": true,

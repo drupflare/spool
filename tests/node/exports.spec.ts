@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import pkg from '../../package.json';
 import * as clientModule from '../../src/client/index';
 import * as indexModule from '../../src/index';
+import * as mediaModule from '../../src/media/index';
 import * as nodeModule from '../../src/node/listener';
 import * as protocolModule from '../../src/protocol/index';
 import * as proxyModule from '../../src/proxy/index';
@@ -33,7 +34,8 @@ const SUBPATHS: Array<[string, string, Record<string, unknown>, string]> = [
 	['./sw', 'sw/index', swModule, 'serve'],
 	['./client', 'client/index', clientModule, 'register'],
 	['./report', 'report/index', reportModule, 'fleetFor'],
-	['./trim', 'trim/index', trimModule, 'trimCss']
+	['./trim', 'trim/index', trimModule, 'trimCss'],
+	['./media', 'media/index', mediaModule, 'rewriteVideo']
 ];
 
 describe('the package exports map', () => {
