@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="index.html" class="title">@drupflare/spool - v0.1.0</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="index.html" class="title">@drupflare/spool - v0.2.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -7,7 +7,7 @@
 <div class="container container-main">
 <div class="col-content">
 <div class="tsd-page-title">
-<h1>@drupflare/spool - v0.1.0</h1></div>
+<h1>@drupflare/spool - v0.2.0</h1></div>
 <div class="tsd-panel tsd-typography"><h1 id="🧵-spool" class="tsd-anchor-link">🧵 spool<a href="#🧵-spool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <blockquote>
 <p>An incremental application replica for the browser</p>
@@ -928,9 +928,10 @@ seen, never to a repeat or local view, and it is not part of the per-view headli
 <hr>
 <h2 id="🎬-images-and-video" class="tsd-anchor-link">🎬 Images and Video<a href="#🎬-images-and-video" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>A browser that has fetched an image cannot make it smaller, so conversion happens where the file is
-served. <code>@drupflare/spool/media</code> gives <code>spoolProxy</code> two options, both off until set. <code>images</code>
+served. <code>@drupflare/spool/media</code> gives <code>spoolProxy</code> three options, each off until set. <code>images</code>
 converts a JPEG or PNG response to WebP for a browser whose <code>Accept</code> lists it. <code>video</code> rewrites
-the <code>&lt;video&gt;</code> tags of an HTML response, such as adding <code>preload=&quot;none&quot;</code>.</p>
+the <code>&lt;video&gt;</code> tags of an HTML response, such as adding <code>preload=&quot;none&quot;</code>. <code>embeds</code> swaps a YouTube
+or Vimeo iframe for a link that loads the player on click.</p>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-8">type</span><span class="hl-1"> </span><span class="hl-9">ImageEncoder</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/media&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">function</span><span class="hl-1"> </span><span class="hl-0">mediaProxy</span><span class="hl-1">(</span><span class="hl-9">encoder</span><span class="hl-1">: </span><span class="hl-12">ImageEncoder</span><span class="hl-1">) {</span><br/><span class="hl-1">  </span><span class="hl-8">return</span><span class="hl-1"> </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">    </span><span class="hl-9">images:</span><span class="hl-1"> { </span><span class="hl-9">encoder</span><span class="hl-1">, </span><span class="hl-9">width:</span><span class="hl-1"> { </span><span class="hl-9">fallback:</span><span class="hl-1"> </span><span class="hl-15">1600</span><span class="hl-1"> } },</span><br/><span class="hl-1">    </span><span class="hl-9">video:</span><span class="hl-1"> { </span><span class="hl-9">preload:</span><span class="hl-1"> </span><span class="hl-2">&#39;none&#39;</span><span class="hl-1">, </span><span class="hl-9">autoplay:</span><span class="hl-1"> </span><span class="hl-2">&#39;defer&#39;</span><span class="hl-1">, </span><span class="hl-9">when:</span><span class="hl-1"> </span><span class="hl-2">&#39;slow&#39;</span><span class="hl-1"> }</span><br/><span class="hl-1">  });</span><br/><span class="hl-1">}</span>
 </code><button type="button">Copy</button></pre>
 
@@ -941,6 +942,9 @@ which decodes and encodes inside WebAssembly:</p>
 <pre><code class="js"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">readFile</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:fs/promises&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">TinyImgModule</span><span class="hl-1">, </span><span class="hl-9">transform</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@gmitch215/tinyimg&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">tinyimgEncoder</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/media&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">wasm</span><span class="hl-1"> = </span><span class="hl-10">new</span><span class="hl-1"> </span><span class="hl-0">URL</span><span class="hl-1">(</span><span class="hl-8">import</span><span class="hl-1">.</span><span class="hl-9">meta</span><span class="hl-1">.</span><span class="hl-0">resolve</span><span class="hl-1">(</span><span class="hl-2">&#39;@gmitch215/tinyimg/tinyimg.wasm&#39;</span><span class="hl-1">));</span><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">module</span><span class="hl-1"> = </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-9">TinyImgModule</span><span class="hl-1">.</span><span class="hl-0">loadBytes</span><span class="hl-1">(</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">readFile</span><span class="hl-1">(</span><span class="hl-9">wasm</span><span class="hl-1">));</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">encoder</span><span class="hl-1"> = </span><span class="hl-0">tinyimgEncoder</span><span class="hl-1">({ </span><span class="hl-9">module</span><span class="hl-1">, </span><span class="hl-9">transform</span><span class="hl-1"> });</span>
 </code><button type="button">Copy</button></pre>
 
+<p>Use tinyimg 1.1.1 or later. Version 1.1.0 and earlier drop the EXIF orientation tag without
+rotating the pixels, so a phone photo comes out sideways. <code>tinyimgEncoder</code> throws when the module
+reports an older version.</p>
 <p>Quality is 80, 65 for <code>Save-Data: on</code> and 70 for an <code>ECT</code> of <code>slow-2g</code>, <code>2g</code> or <code>3g</code>. The width
 comes from <code>Sec-CH-Width</code>, then <code>Sec-CH-Viewport-Width</code> times <code>Sec-CH-DPR</code>, then
 <code>width.fallback</code>. The proxy converts a <code>GET</code> that matches <code>paths</code> (JPEG and PNG names by default),
@@ -952,6 +956,12 @@ visitor only gets bytes the origin sent that visitor.</p>
 <code>Sec-CH-Viewport-Width</code> and <code>ECT</code>, a weak <code>ETag</code> and <code>X-Spool-Image</code>. HTML responses gain
 <code>Accept-CH</code> for the three size hints and <code>ECT</code> unless <code>hints</code> is false, and the browser then
 sends them with later image requests to the same origin.</p>
+<p><code>maxWidth</code> (2560) is the width for a request that carries no hint, and <code>false</code> removes it. <code>png</code>
+is <code>'lossy'</code> by default. <code>'lossless'</code> encodes every PNG without loss, and <code>'auto'</code> encodes a PNG
+under 200 KB both ways and serves the smaller file, which suits screenshots and flat graphics.
+Requests for the same file, quality and width share one encoder call while it runs. The proxy
+waits <code>timeoutMs</code> (10,000) for the encoder and then serves the origin's file, and the late result
+is cached for the next request. <code>timeoutMs: false</code> waits without limit.</p>
 <p>Drupal's video formatter has no <code>preload</code> setting, and <code>preload=&quot;none&quot;</code> does not stop <code>autoplay</code>.
 <code>autoplay: 'defer'</code> removes the attribute, adds <code>controls</code> and marks the tag
 <code>data-spool-autoplay</code>. With <code>when: 'always'</code> the page the spool keeps carries the rewrite. With
@@ -959,10 +969,151 @@ sends them with later image requests to the same origin.</p>
 <code>Cache-Control</code> and <code>Save-Data, ECT</code> in <code>Vary</code>, and the spool does not keep it. A device's stored
 copy of that page keeps the origin's tags.</p>
 <p><code>proxy.images</code> counts <code>converted</code>, <code>bytesIn</code> and <code>bytesOut</code> (converted responses only),
-<code>cacheHits</code>, and <code>skipped</code> by reason. <code>proxy.video</code> counts <code>pages</code> and <code>rewritten</code>. Read the
-saving as <code>bytesIn - bytesOut</code> over real traffic on the site. A request for any other path counts
-under <code>skipped.path</code>, so that key follows total traffic.
+<code>cacheHits</code>, <code>coalesced</code>, <code>lazied</code>, <code>responsive</code>, and <code>skipped</code> by reason. <code>proxy.video</code> counts
+<code>pages</code> and <code>rewritten</code>. Read the saving as <code>bytesIn - bytesOut</code> over real traffic on the site. A
+request for any other path counts under <code>skipped.path</code>, so that key follows total traffic.
 <a href="documents/security.html#images-and-video">docs/security.md</a> covers the decoder.</p>
+<h3 id="page-rewrites" class="tsd-anchor-link">Page Rewrites<a href="#page-rewrites" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Three options change the HTML the origin sends. Each edits start tags only and leaves every other
+byte as it was, and a rewritten page gets a weak <code>ETag</code>.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-8">type</span><span class="hl-1"> </span><span class="hl-9">ImageEncoder</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/media&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">function</span><span class="hl-1"> </span><span class="hl-0">rewriteProxy</span><span class="hl-1">(</span><span class="hl-9">encoder</span><span class="hl-1">: </span><span class="hl-12">ImageEncoder</span><span class="hl-1">) {</span><br/><span class="hl-1">  </span><span class="hl-8">return</span><span class="hl-1"> </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">    </span><span class="hl-9">images:</span><span class="hl-1"> {</span><br/><span class="hl-1">      </span><span class="hl-9">encoder</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">png:</span><span class="hl-1"> </span><span class="hl-2">&#39;auto&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">maxWidth:</span><span class="hl-1"> </span><span class="hl-15">1920</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">timeoutMs:</span><span class="hl-1"> </span><span class="hl-15">5000</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">lazy:</span><span class="hl-1"> { </span><span class="hl-9">skip:</span><span class="hl-1"> </span><span class="hl-15">3</span><span class="hl-1"> },</span><br/><span class="hl-1">      </span><span class="hl-9">responsive:</span><span class="hl-1"> { </span><span class="hl-9">widths:</span><span class="hl-1"> [</span><span class="hl-15">480</span><span class="hl-1">, </span><span class="hl-15">960</span><span class="hl-1">, </span><span class="hl-15">1440</span><span class="hl-1">], </span><span class="hl-9">sizes:</span><span class="hl-1"> </span><span class="hl-2">&#39;(min-width: 60em) 50vw, 100vw&#39;</span><span class="hl-1"> }</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">    </span><span class="hl-9">embeds:</span><span class="hl-1"> { </span><span class="hl-9">providers:</span><span class="hl-1"> [</span><span class="hl-2">&#39;youtube&#39;</span><span class="hl-1">], </span><span class="hl-9">thumbnail:</span><span class="hl-1"> </span><span class="hl-10">false</span><span class="hl-1"> }</span><br/><span class="hl-1">  });</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>lazy</code> adds <code>loading=&quot;lazy&quot;</code> and <code>decoding=&quot;async&quot;</code> to each <code>&lt;img&gt;</code> after the first <code>skip</code> (2 by
+default), and <code>iframes: true</code> does the same for <code>&lt;iframe&gt;</code>. It leaves a tag that has <code>loading</code>,
+<code>fetchpriority</code> or a lazy-loading library's <code>data-src</code>, a tag inside a <code>&lt;header&gt;</code> or <code>&lt;noscript&gt;</code>,
+and an image that a <code>&lt;link rel=&quot;preload&quot; as=&quot;image&quot;&gt;</code> names. A browser that defers the largest
+image of a page paints it later, so <code>skip</code> is the only guard and the option is off until set. In a
+crawl of 70 pages per profile on 16 sites, the default <code>skip</code> of 2 made the largest image lazy on 2
+of 23 desktop pages and 2 of 20 phone pages that had an image as their largest element, and no
+<code>skip</code> from 2 to 4 reached zero on both profiles.</p>
+<p><code>responsive</code> adds a <code>srcset</code> of <code>?spool-w=&lt;width&gt;</code> variants to a same-origin <code>&lt;img&gt;</code> that has none,
+one per entry of <code>widths</code> (320, 480, 640, 960, 1280 and 1920 by default), and a <code>sizes</code> of <code>100vw</code>
+unless the tag has one. The proxy removes <code>spool-w</code> before it asks the origin, answers only widths
+from the list and never sends a file larger than the origin's. Firefox and Safari send no
+<code>Sec-CH-Width</code>, and this is how they get a resized file. Name the layout width in <code>sizes</code>, since
+<code>100vw</code> makes the browser pick the widest candidate it can use. A tag with <code>srcset</code> or <code>data-src</code>,
+and any tag inside <code>&lt;picture&gt;</code>, stays as it is.</p>
+<p><code>embeds</code> replaces a server-rendered YouTube or Vimeo <code>&lt;iframe&gt;</code> with one whose <code>srcdoc</code> holds a
+link to the player. YouTube shows its thumbnail (<code>thumbnail: false</code> shows a plain frame) and the
+player loads on click. A page that sends <code>Content-Security-Policy</code> is left alone unless
+<code>ignoreCsp</code> is true, and so is an embed with <code>enablejsapi=1</code>. <code>proxy.embeds</code> counts <code>pages</code>,
+<code>rewritten</code> and <code>skipped</code>. <a href="documents/security.html#embed-facades">docs/security.md</a> covers the rules.</p>
+<h3 id="dictionary-transport" class="tsd-anchor-link">Dictionary Transport<a href="#dictionary-transport" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A visitor who holds an earlier stylesheet or script of a directory can fetch the next one as the
+difference from it. <code>dictionary</code> implements this for Chromium 130 and later
+(<a href="https://www.rfc-editor.org/rfc/rfc9842">RFC 9842</a>). The proxy marks public <code>.css</code> and <code>.js</code>
+responses with <code>Use-As-Dictionary</code> and answers a request that names one of them with
+<code>Content-Encoding: dcz</code>. spool has no compression library, so the caller supplies the <code>encoder</code>,
+and Node's <code>zlib</code> does zstd:</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">promisify</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:util&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">zstdCompress</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:zlib&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">compress</span><span class="hl-1"> = </span><span class="hl-0">promisify</span><span class="hl-1">(</span><span class="hl-9">zstdCompress</span><span class="hl-1">);</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">proxy</span><span class="hl-1"> = </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">  </span><span class="hl-9">dictionary:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">encoder</span><span class="hl-9">:</span><span class="hl-1"> </span><span class="hl-10">async</span><span class="hl-1"> (</span><span class="hl-9">dictionary</span><span class="hl-1">, </span><span class="hl-9">input</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-10">new</span><span class="hl-1"> </span><span class="hl-0">Uint8Array</span><span class="hl-1">(</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">compress</span><span class="hl-1">(</span><span class="hl-9">input</span><span class="hl-1">, { </span><span class="hl-9">dictionary</span><span class="hl-1"> }))</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The <code>encoder</code> gets the dictionary, the new file and the coding (<code>'dcz'</code>, or <code>'dcb'</code> when <code>formats</code>
+lists it) and returns the compressed stream. spool adds the coding's header. An encoder that
+throws, or whose output is no smaller, leaves the plain file. Only responses the proxy would keep
+as public ones, with no cookie, ever become dictionaries. <code>proxy.dictionary</code> counts <code>registered</code>,
+<code>encoded</code>, <code>bytesIn</code>, <code>bytesOut</code> and <code>skipped</code>.
+<a href="documents/security.html#dictionary-transport">docs/security.md</a> covers the exposure.</p>
+<p><code>base</code> names the files that register as dictionaries, as a function of the pathname, a regular
+expression or a list of them. Without it the browser holds the latest file of each directory it
+fetched, and the sizing in <a href="documents/impact.html#savings-today-and-at-maximum">docs/impact.md</a> shows that
+choice recovers little. With it the browser holds only the files you name, one per directory, and
+every other file of the directory is encoded against the base the request names.
+<code>scripts/measure/dictionary-size.ts</code> records the best base of each directory of a site.</p>
+<h3 id="defaults" class="tsd-anchor-link">Defaults<a href="#defaults" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Every option is absent by default. The table shows what a feature does once its parent option is
+set and how to change it.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Option</th>
+<th>Default once the parent is set</th>
+<th>Leave or enter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WebP conversion, <code>304</code> and <code>X-Spool-Image</code></td>
+<td><code>images</code></td>
+<td>on, needs an <code>encoder</code></td>
+<td>leave <code>images</code> out</td>
+</tr>
+<tr>
+<td><code>Accept-CH</code> hints and <code>Vary</code></td>
+<td><code>images.hints</code></td>
+<td>on</td>
+<td><code>hints: false</code></td>
+</tr>
+<tr>
+<td>Quality by <code>Save-Data</code> and <code>ECT</code></td>
+<td><code>images.quality</code></td>
+<td>80, 65 and 70</td>
+<td>give all three one number</td>
+</tr>
+<tr>
+<td>Width ceiling for a request with no width</td>
+<td><code>images.maxWidth</code></td>
+<td>2560</td>
+<td><code>maxWidth: false</code>, or another number</td>
+</tr>
+<tr>
+<td>Shared encodes and the encoder time limit</td>
+<td><code>images.timeoutMs</code></td>
+<td>10,000 ms, identical encodes share one call</td>
+<td><code>timeoutMs: false</code> removes the limit</td>
+</tr>
+<tr>
+<td>PNG mode</td>
+<td><code>images.png</code></td>
+<td><code>'lossy'</code></td>
+<td><code>'auto'</code> or <code>'lossless'</code></td>
+</tr>
+<tr>
+<td><code>loading=&quot;lazy&quot;</code> on images and iframes</td>
+<td><code>images.lazy</code></td>
+<td>off</td>
+<td><code>lazy: {}</code> or <code>{ skip, iframes }</code></td>
+</tr>
+<tr>
+<td><code>srcset</code> variants</td>
+<td><code>images.responsive</code></td>
+<td>off</td>
+<td><code>responsive: {}</code> or <code>{ widths, sizes }</code></td>
+</tr>
+<tr>
+<td><code>preload=&quot;none&quot;</code> on video</td>
+<td><code>video.preload</code></td>
+<td><code>'none'</code></td>
+<td><code>preload: false</code></td>
+</tr>
+<tr>
+<td>Video autoplay deferral</td>
+<td><code>video.autoplay</code></td>
+<td>off</td>
+<td><code>autoplay: 'defer'</code></td>
+</tr>
+<tr>
+<td>YouTube and Vimeo facades</td>
+<td><code>embeds</code></td>
+<td>off</td>
+<td><code>embeds: {}</code> or <code>{ providers, thumbnail, ignoreCsp }</code></td>
+</tr>
+<tr>
+<td>Dictionary transport</td>
+<td><code>dictionary</code></td>
+<td>off</td>
+<td><code>dictionary: { encoder }</code></td>
+</tr>
+<tr>
+<td>Which files become dictionaries</td>
+<td><code>dictionary.base</code></td>
+<td>every <code>.css</code> and <code>.js</code> response</td>
+<td><code>base: /\/base\.js$/</code>, a list or a function</td>
+</tr>
+</tbody>
+</table>
 <hr>
 <h2 id="🚫-out-of-scope" class="tsd-anchor-link">🚫 Out of Scope<a href="#🚫-out-of-scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -1185,6 +1336,11 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#limits"><span>Limits</span></a></li></ul></li>
 <li><a href="#🧹-trimmed-stylesheets"><span>🧹 <wbr/>Trimmed <wbr/>Stylesheets</span></a></li>
 <li><a href="#🎬-images-and-video"><span>🎬 <wbr/>Images and <wbr/>Video</span></a></li>
+<li>
+<ul>
+<li><a href="#page-rewrites"><span>Page <wbr/>Rewrites</span></a></li>
+<li><a href="#dictionary-transport"><span>Dictionary <wbr/>Transport</span></a></li>
+<li><a href="#defaults"><span>Defaults</span></a></li></ul></li>
 <li><a href="#🚫-out-of-scope"><span>🚫 <wbr/>Out of <wbr/>Scope</span></a></li>
 <li><a href="#🌐-browser-support"><span>🌐 <wbr/>Browser <wbr/>Support</span></a></li>
 <li><a href="#🧭-subpath-exports"><span>🧭 <wbr/>Subpath <wbr/>Exports</span></a></li>
@@ -1192,7 +1348,7 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#🔗-related-repositories"><span>🔗 <wbr/>Related <wbr/>Repositories</span></a></li>
 <li><a href="#📄-license"><span>📄 <wbr/>License</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="modules.html">@drupflare/spool - v0.1.0</a>
+<nav class="tsd-navigation"><a href="modules.html">@drupflare/spool - v0.2.0</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>

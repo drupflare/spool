@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>impact | @drupflare/spool - v0.1.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.1.0</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>impact | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.2.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -538,6 +538,727 @@
 </tr>
 </tbody>
 </table>
+<h2 id="savings-today-and-at-maximum" class="tsd-anchor-link">Savings Today and at Maximum<a href="#savings-today-and-at-maximum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of 0.194 kWh/GB, with no origin term, since a smaller file is the same request.</p>
+<p>Two corpora carry the figures and they are never added together. The image-crawl corpus is 70 desktop pages on 16 public sites, each loaded with an empty cache (reading <code>measurements/image-crawl</code>). The trim corpus is 75 internal pages on 10 Drupal sites of the trim reading, which is where the aggregate churn was measured. A page's saving is the sum of its levers, and a site's figure is the mean over its pages.</p>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Corpus</th>
+<th>Pages with a saving</th>
+<th>Median page</th>
+<th>Median of pages that save</th>
+<th>Median site</th>
+<th>Mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WebP at native size under the 2560 px ceiling (images)</td>
+<td>image-crawl, 16 sites</td>
+<td>59% of 70</td>
+<td>65.5 KB (45.7 J)</td>
+<td>398.0 KB (278 J)</td>
+<td>248.6 KB (174 J)</td>
+<td>1,211.8 KB (846 J)</td>
+</tr>
+<tr>
+<td>Resize to the rendered width, Chromium with hints (images)</td>
+<td>image-crawl, 16 sites</td>
+<td>43% of 70</td>
+<td>0.0 KB (0 J)</td>
+<td>151.1 KB (105 J)</td>
+<td>19.7 KB (13.8 J)</td>
+<td>206.8 KB (144 J)</td>
+</tr>
+<tr>
+<td>Video preload none, for videos that do not autoplay (video)</td>
+<td>image-crawl, 16 sites</td>
+<td>3% of 70</td>
+<td>0.0 KB (0 J)</td>
+<td>16.5 KB (11.5 J)</td>
+<td>0.0 KB (0 J)</td>
+<td>0.5 KB (0.330 J)</td>
+</tr>
+<tr>
+<td>Video autoplay deferred (video, option)</td>
+<td>image-crawl, 16 sites</td>
+<td>10% of 70</td>
+<td>0.0 KB (0 J)</td>
+<td>31.1 KB (21.7 J)</td>
+<td>0.0 KB (0 J)</td>
+<td>112.1 KB (78.3 J)</td>
+</tr>
+<tr>
+<td>YouTube and Vimeo facade, pages with no CSP (embeds, option)</td>
+<td>image-crawl, 16 sites</td>
+<td>9% of 70</td>
+<td>0.0 KB (0 J)</td>
+<td>3,076.1 KB (2,148 J)</td>
+<td>0.0 KB (0 J)</td>
+<td>276.9 KB (193 J)</td>
+</tr>
+<tr>
+<td>Trimmed stylesheets (trim, option)</td>
+<td>trim, 10 Drupal sites</td>
+<td>60% of 75</td>
+<td>3.2 KB (2.21 J)</td>
+<td>27.6 KB (19.3 J)</td>
+<td>13.8 KB (9.61 J)</td>
+<td>15.2 KB (10.6 J)</td>
+</tr>
+<tr>
+<td>New aggregates against the text of earlier pages, a ceiling (dictionary)</td>
+<td>trim, 10 Drupal sites</td>
+<td>80% of 75</td>
+<td>94.9 KB (66.3 J)</td>
+<td>126.0 KB (88.0 J)</td>
+<td>94.7 KB (66.1 J)</td>
+<td>131.6 KB (91.9 J)</td>
+</tr>
+</tbody>
+</table>
+<p>Images are the one lever with a median page above zero. Resizing, video, embeds and the trim reach a minority of pages, so their median page is at or near zero, and a few image-heavy or embed-heavy pages carry every mean. The share of pages with any saving and the median site describe the typical case. The mean is the figure to multiply by a view count.</p>
+<p>The dictionary row is a ceiling. It compresses each new aggregate against the concatenated text of every earlier page (the last 1 MiB), which a browser does not hold: it holds the dictionaries the server marked, and it sends one of them. The row says what the repeated bytes in new aggregates are worth, and nothing about how many of them a real dictionary choice recovers.</p>
+<p>The 356 new files of 10 Drupal sites in the dictionary-size reading (the home page and four internal pages of each, same-origin CSS and JavaScript, bytes only, L1) show how much of that ceiling a real choice recovers. Every arm is measured against brotli 11 alone, and a file that gains nothing goes out plain.</p>
+<table>
+<thead>
+<tr>
+<th>Dictionary choice</th>
+<th>Coding</th>
+<th style="text-align:right">Median site, share of brotli 11 bytes saved</th>
+<th style="text-align:right">All files</th>
+<th style="text-align:right">Median internal page</th>
+<th style="text-align:right">Internal pages saving over 5%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oracle: the best earlier file of the same kind</td>
+<td>dcz (zstd 19)</td>
+<td style="text-align:right">41.4%</td>
+<td style="text-align:right">48.8%</td>
+<td style="text-align:right">74.3 KB</td>
+<td style="text-align:right">27 of 29</td>
+</tr>
+<tr>
+<td>Oracle: the best earlier file of the same kind</td>
+<td>dcb (brotli 11)</td>
+<td style="text-align:right">42.0%</td>
+<td style="text-align:right">49.7%</td>
+<td style="text-align:right">74.6 KB</td>
+<td style="text-align:right">28 of 29</td>
+</tr>
+<tr>
+<td>Browser: the latest earlier file of the same directory</td>
+<td>dcz (zstd 19)</td>
+<td style="text-align:right">2.0%</td>
+<td style="text-align:right">27.2%</td>
+<td style="text-align:right">1.0 KB</td>
+<td style="text-align:right">9 of 29</td>
+</tr>
+<tr>
+<td>Browser: the latest earlier file of the same directory</td>
+<td>dcb (brotli 11)</td>
+<td style="text-align:right">3.3%</td>
+<td style="text-align:right">28.2%</td>
+<td style="text-align:right">1.8 KB</td>
+<td style="text-align:right">13 of 29</td>
+</tr>
+<tr>
+<td>Server base, used once the visit has fetched it</td>
+<td>dcz (zstd 19)</td>
+<td style="text-align:right">3.9%</td>
+<td style="text-align:right">14.2%</td>
+<td style="text-align:right">0.4 KB</td>
+<td style="text-align:right">14 of 29</td>
+</tr>
+<tr>
+<td>Server base, used once the visit has fetched it</td>
+<td>dcb (brotli 11)</td>
+<td style="text-align:right">5.1%</td>
+<td style="text-align:right">14.3%</td>
+<td style="text-align:right">0.4 KB</td>
+<td style="text-align:right">15 of 29</td>
+</tr>
+<tr>
+<td>Server base held from an earlier visit, chosen with the page measured</td>
+<td>dcz (zstd 19)</td>
+<td style="text-align:right">29.9%</td>
+<td style="text-align:right">47.4%</td>
+<td style="text-align:right">36.3 KB</td>
+<td style="text-align:right">22 of 29</td>
+</tr>
+<tr>
+<td>Server base held from an earlier visit, chosen with the page measured</td>
+<td>dcb (brotli 11)</td>
+<td style="text-align:right">30.3%</td>
+<td style="text-align:right">47.6%</td>
+<td style="text-align:right">36.4 KB</td>
+<td style="text-align:right">23 of 29</td>
+</tr>
+<tr>
+<td>Server base held from an earlier visit, chosen without the page measured</td>
+<td>dcz (zstd 19)</td>
+<td style="text-align:right">32.6%</td>
+<td style="text-align:right">60.1%</td>
+<td style="text-align:right">36.3 KB</td>
+<td style="text-align:right">24 of 29</td>
+</tr>
+<tr>
+<td>Server base held from an earlier visit, chosen without the page measured</td>
+<td>dcb (brotli 11)</td>
+<td style="text-align:right">32.8%</td>
+<td style="text-align:right">60.3%</td>
+<td style="text-align:right">36.4 KB</td>
+<td style="text-align:right">26 of 29</td>
+</tr>
+</tbody>
+</table>
+<p>A browser that picks the latest earlier file of the same directory saves 2.0% at the median site with <code>dcz</code>. A server that marks one base file per directory saves 3.9% on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves 32.6%, with the base chosen without the page measured, and 29.9% with it. The oracle saves 41.4% and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures.</p>
+<table>
+<thead>
+<tr>
+<th>Corpus</th>
+<th>Figure</th>
+<th>Built levers</th>
+<th>With the dictionary ceiling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Median page</td>
+<td>227.6 KB (159 J)</td>
+<td>227.6 KB (159 J)</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Median site</td>
+<td>517.6 KB (362 J)</td>
+<td>517.6 KB (362 J)</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Mean</td>
+<td>1,808.1 KB (1,263 J)</td>
+<td>1,808.1 KB (1,263 J)</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Median page</td>
+<td>3.2 KB (2.21 J)</td>
+<td>126.0 KB (88.0 J)</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Median site</td>
+<td>13.8 KB (9.61 J)</td>
+<td>114.6 KB (80.0 J)</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Mean</td>
+<td>15.2 KB (10.6 J)</td>
+<td>146.7 KB (102 J)</td>
+</tr>
+</tbody>
+</table>
+<p>The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. Views are the two scales this page uses: 100 million and 420 million a year. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with.</p>
+<table>
+<thead>
+<tr>
+<th>Corpus</th>
+<th>First-view share (L3)</th>
+<th>Figure</th>
+<th style="text-align:right">Built, 100 million views (MWh)</th>
+<th style="text-align:right">Ceiling, 100 million views (MWh)</th>
+<th style="text-align:right">Built, 420 million views (MWh)</th>
+<th style="text-align:right">Ceiling, 420 million views (MWh)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Low, 45%</td>
+<td>Median page</td>
+<td style="text-align:right">1.99</td>
+<td style="text-align:right">1.99</td>
+<td style="text-align:right">8.36</td>
+<td style="text-align:right">8.36</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Low, 45%</td>
+<td>Median site</td>
+<td style="text-align:right">4.53</td>
+<td style="text-align:right">4.53</td>
+<td style="text-align:right">19.0</td>
+<td style="text-align:right">19.0</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Low, 45%</td>
+<td>Mean</td>
+<td style="text-align:right">15.8</td>
+<td style="text-align:right">15.8</td>
+<td style="text-align:right">66.4</td>
+<td style="text-align:right">66.4</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Central, 60%</td>
+<td>Median page</td>
+<td style="text-align:right">2.65</td>
+<td style="text-align:right">2.65</td>
+<td style="text-align:right">11.1</td>
+<td style="text-align:right">11.1</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Central, 60%</td>
+<td>Median site</td>
+<td style="text-align:right">6.03</td>
+<td style="text-align:right">6.03</td>
+<td style="text-align:right">25.3</td>
+<td style="text-align:right">25.3</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>Central, 60%</td>
+<td>Mean</td>
+<td style="text-align:right">21.0</td>
+<td style="text-align:right">21.0</td>
+<td style="text-align:right">88.4</td>
+<td style="text-align:right">88.4</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>High, 75%</td>
+<td>Median page</td>
+<td style="text-align:right">3.31</td>
+<td style="text-align:right">3.31</td>
+<td style="text-align:right">13.9</td>
+<td style="text-align:right">13.9</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>High, 75%</td>
+<td>Median site</td>
+<td style="text-align:right">7.53</td>
+<td style="text-align:right">7.53</td>
+<td style="text-align:right">31.6</td>
+<td style="text-align:right">31.6</td>
+</tr>
+<tr>
+<td>image-crawl, 16 sites</td>
+<td>High, 75%</td>
+<td>Mean</td>
+<td style="text-align:right">26.3</td>
+<td style="text-align:right">26.3</td>
+<td style="text-align:right">110</td>
+<td style="text-align:right">110</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Low, 45%</td>
+<td>Median page</td>
+<td style="text-align:right">0.0277</td>
+<td style="text-align:right">1.10</td>
+<td style="text-align:right">0.116</td>
+<td style="text-align:right">4.63</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Low, 45%</td>
+<td>Median site</td>
+<td style="text-align:right">0.120</td>
+<td style="text-align:right">1.00</td>
+<td style="text-align:right">0.506</td>
+<td style="text-align:right">4.21</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Low, 45%</td>
+<td>Mean</td>
+<td style="text-align:right">0.133</td>
+<td style="text-align:right">1.28</td>
+<td style="text-align:right">0.558</td>
+<td style="text-align:right">5.39</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Central, 60%</td>
+<td>Median page</td>
+<td style="text-align:right">0.0368</td>
+<td style="text-align:right">1.47</td>
+<td style="text-align:right">0.155</td>
+<td style="text-align:right">6.16</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Central, 60%</td>
+<td>Median site</td>
+<td style="text-align:right">0.160</td>
+<td style="text-align:right">1.33</td>
+<td style="text-align:right">0.673</td>
+<td style="text-align:right">5.60</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>Central, 60%</td>
+<td>Mean</td>
+<td style="text-align:right">0.177</td>
+<td style="text-align:right">1.71</td>
+<td style="text-align:right">0.742</td>
+<td style="text-align:right">7.17</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>High, 75%</td>
+<td>Median page</td>
+<td style="text-align:right">0.0460</td>
+<td style="text-align:right">1.83</td>
+<td style="text-align:right">0.193</td>
+<td style="text-align:right">7.70</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>High, 75%</td>
+<td>Median site</td>
+<td style="text-align:right">0.200</td>
+<td style="text-align:right">1.67</td>
+<td style="text-align:right">0.841</td>
+<td style="text-align:right">7.00</td>
+</tr>
+<tr>
+<td>trim, 10 Drupal sites</td>
+<td>High, 75%</td>
+<td>Mean</td>
+<td style="text-align:right">0.221</td>
+<td style="text-align:right">2.14</td>
+<td style="text-align:right">0.928</td>
+<td style="text-align:right">8.97</td>
+</tr>
+</tbody>
+</table>
+<p>Local views add a second ceiling that does not depend on any lever above: a local view replaces the whole repeat view if every file in it is answered locally. The median whole repeat view is 66.3 KB (46.3 J, L2). An optimized HTTP cache already keeps the static files of a repeat view, so most of that figure is the baseline fix's saving and not spool's. It is the upper bound on what a local repeat view could remove.</p>
+<table>
+<thead>
+<tr>
+<th>Local share of views</th>
+<th style="text-align:right">Repeat-view ceiling, 100 million views (MWh)</th>
+<th style="text-align:right">Repeat-view ceiling, 420 million views (MWh)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meaningful, 30%</td>
+<td style="text-align:right">0.386</td>
+<td style="text-align:right">1.62</td>
+</tr>
+<tr>
+<td>Major, 65%</td>
+<td style="text-align:right">0.837</td>
+<td style="text-align:right">3.51</td>
+</tr>
+<tr>
+<td>Transformative, 90%</td>
+<td style="text-align:right">1.16</td>
+<td style="text-align:right">4.87</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metered-figures-beside-the-ledger" class="tsd-anchor-link">Metered Figures Beside the Ledger<a href="#metered-figures-beside-the-ledger" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The ledger above is attributional (L2): bytes at a fixed rate. The table below holds meter readings (L1) of what individual steps cost the machine that runs them. They come from the package counter of paisley-park, a Ryzen 9 9900X, and from the iPhone battery gauge for the phone row. They leave out the display, the network and every machine between the two ends, so they do not add to the ledger and are not a second way to compute it. Each cell is the median of the kept windows with the minimum and maximum in brackets, in joules or watts above the idle draw of the same round unless the row says package watts.</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Arm</th>
+<th style="text-align:right">Median (min to max)</th>
+<th>Windows</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>J saved per local view against optimized HTTP caching</td>
+<td>paisley-park desktop, Chromium</td>
+<td style="text-align:right">0.80 (difference of the arm medians)</td>
+<td>16 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J saved per local view against optimized HTTP caching</td>
+<td>iPhone 14 Pro, Wi-Fi, whole-phone counter</td>
+<td style="text-align:right">0.088 (difference of the arm medians)</td>
+<td>3 rounds</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>createImageBitmap</code>, original JPEG or PNG</td>
+<td style="text-align:right">58.6 (57.0 to 62.8)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>createImageBitmap</code>, WebP at native size</td>
+<td style="text-align:right">81.7 (79.5 to 88.1)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>createImageBitmap</code>, WebP resized to the rendered width</td>
+<td style="text-align:right">46.3 (45.8 to 47.2)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>&lt;img&gt;</code> at its CSS width, original JPEG or PNG</td>
+<td style="text-align:right">511.1 (458.5 to 526.6)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>&lt;img&gt;</code> at its CSS width, WebP at native size</td>
+<td style="text-align:right">487.3 (471.1 to 496.0)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per image decoded above idle</td>
+<td><code>&lt;img&gt;</code> at its CSS width, WebP resized to the rendered width</td>
+<td style="text-align:right">451.6 (420.9 to 456.7)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per conversion to WebP above idle</td>
+<td>tinyimg 1.1.1, module loaded, native size</td>
+<td style="text-align:right">0.57 (0.56 to 0.58)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per conversion to WebP above idle</td>
+<td>tinyimg 1.1.1, module loaded, rendered width</td>
+<td style="text-align:right">0.44 (0.44 to 0.45)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per conversion to WebP above idle</td>
+<td>tinyimg 1.1.1, fresh Node process per pass, native size</td>
+<td style="text-align:right">0.64 (0.63 to 0.65)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per MB of input above idle</td>
+<td>tinyimg 1.1.1, module loaded, native size</td>
+<td style="text-align:right">6.94 (6.79 to 7.04)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per MB of input above idle</td>
+<td>tinyimg 1.1.1, module loaded, rendered width</td>
+<td style="text-align:right">5.32 (5.26 to 5.42)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>J per MB of input above idle</td>
+<td>tinyimg 1.1.1, fresh Node process per pass, native size</td>
+<td style="text-align:right">7.74 (7.64 to 7.81)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>package W, no browser running</td>
+<td>idle windows of the kept rounds (median per round, then over rounds)</td>
+<td style="text-align:right">18.6 (18.6 to 18.7)</td>
+<td>6 kept, 0 dropped, 6 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>package W</td>
+<td>a quiet visible page</td>
+<td style="text-align:right">18.7 (18.6 to 18.7)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>package W</td>
+<td>a page polling a local endpoint once a second</td>
+<td style="text-align:right">19.2 (19.2 to 19.3)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>package W</td>
+<td>a requestAnimationFrame loop moving one box</td>
+<td style="text-align:right">22.4 (22.2 to 22.6)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>W above the idle of the same round</td>
+<td>a quiet visible page</td>
+<td style="text-align:right">0.03 (-0.01 to 0.06)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>W above the idle of the same round</td>
+<td>a page polling a local endpoint once a second</td>
+<td style="text-align:right">0.61 (0.45 to 0.76)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>W above the idle of the same round</td>
+<td>a requestAnimationFrame loop moving one box</td>
+<td style="text-align:right">3.79 (3.53 to 4.05)</td>
+<td>2 kept, 0 dropped, 2 more by the idle control</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per page load above idle (one aggregate file)</td>
+<td>brotli 11, 432,066 B on the wire</td>
+<td style="text-align:right">769.4 (760.6 to 815.3)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>mJ per page load above idle (one aggregate file)</td>
+<td>dcz against a stored dictionary, 105,331 B on the wire</td>
+<td style="text-align:right">686.1 (633.4 to 741.5)</td>
+<td>6 kept, 0 dropped</td>
+<td>L1</td>
+</tr>
+</tbody>
+</table>
+<p>A window is dropped when other containers on the host used more than 100 ms of CPU per second of it. In the image-encode reading 0 of its windows were dropped, in image-decode 0, and in dictionary-load 0. The rule sees only containers. It missed a container that started inside a window until the rig was changed to count one from zero, and it never sees a host process.</p>
+<p>Format-only WebP does not lower decode energy. Through <code>createImageBitmap</code>, a WebP at its native size cost 1.39 times the energy of the original JPEG or PNG, and the WebP resized to the rendered width cost 0.79 times. Through an <code>&lt;img&gt;</code> shown at its CSS width the native WebP was 0.95 times the original (its range overlaps the original), and the resized WebP 0.88 times (below every original window). That arm waits two animation frames per image and takes 33.3 ms an image against 1.8 ms for the bitmap path, so most of its window is frame waiting and its variants differ by less. The byte saving of a format-only conversion therefore comes with a decode cost on the pure decode path, and the decode figure favours WebP only for a file that was also resized. All of this is the 40 crawled images of the set, 6 rounds, one Chromium on one desktop.</p>
+<p>Converting an image costs 0.57 J with the module loaded (about 20 ms of one busy thread, 6.94 J per MB of input over a set of 40 images, 6 rounds). A fresh Node process per pass costs 0.64 J, 12% more. Resizing to the rendered width first costs 0.44 J. The proxy caches each result, so a conversion is paid once per image and variant. How many views repay it needs a metered joule figure per byte transferred, which no reading here carries, so the page states no break-even.</p>
+<p>A visible page with no timers drew 0.03 W above the idle of its round. A once-a-second poll to a local endpoint added 0.61 W and a <code>requestAnimationFrame</code> loop moving one box added 3.8 W (227 J a minute). Of 4 rounds, 2 are kept: in rounds 1 and 2 (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the 12 idle windows of the run the draw ran from 18.4 W to 67.6 W, and the CPU rule dropped 0 of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on 2 windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.</p>
+<p>Chromium 151.0.7922.34 negotiates compression dictionary transport on the box: the page's request for the target carried Available-Dictionary, its Accept-Encoding listed dcb and dcz, and the origin answered dcz. The pair is two JavaScript aggregates of one Drupal site, a dictionary of 1,131,781 B and a target of 1,719,688 B. The target is 432,066 B on the wire as brotli 11 and 105,331 B as dcz, 76% fewer. A page load that fetched the target cost 769.4 mJ above idle as brotli and 686.1 mJ as dcz, 11% lower over 6 rounds of 60 loads (the dcz arm's range sits below the brotli arm's). The figure counts the browser's decode and the loopback transfer. It leaves out the network, and the server's encode, which this origin did once at start-up. The pair comes from the churned JavaScript aggregates, where the delta is large, so its byte saving sits above the 29.9% that the dictionary-size reading gives at the median site for a base the visitor already holds. One pair in one browser shows that dcz decode costs no more than brotli decode here. It says nothing about how many visitors hold a dictionary.</p>
+<h3 id="lazy-loading-before-the-first-scroll" class="tsd-anchor-link">Lazy Loading Before the First Scroll<a href="#lazy-loading-before-the-first-scroll" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The crawl loaded pages twice, once as the origin sent them and once with <code>loading=&quot;lazy&quot;</code> added by the proxy's rewrite. Both loads went through the same Playwright route, so neither had a browser cache. The columns are image bytes requested before the first scroll. This is not part of the tables above, which count bytes any visitor receives. The first rows are the first crawl, with the first rule and <code>skip</code> 2. The other rows are three later crawls of up to five pages per site, one per <code>skip</code>, with the rule that also leaves an image with <code>fetchpriority</code>, one that a preload link names and one inside a <code>&lt;header&gt;</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Profile</th>
+<th style="text-align:right">Pages loaded twice</th>
+<th style="text-align:right">Median page before the first scroll, as sent</th>
+<th style="text-align:right">With the rewrite</th>
+<th style="text-align:right">Pages that loaded less</th>
+<th style="text-align:right">Median of those pages</th>
+<th style="text-align:right">Pages with an image as the largest element</th>
+<th style="text-align:right">Rewrite put lazy on that element</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>skip 2, first rule</td>
+<td>Desktop, 1440 px</td>
+<td style="text-align:right">43</td>
+<td style="text-align:right">1,334.1 KB</td>
+<td style="text-align:right">1,334.2 KB</td>
+<td style="text-align:right">56%</td>
+<td style="text-align:right">10.4 KB</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>skip 2, first rule</td>
+<td>Pixel 7</td>
+<td style="text-align:right">43</td>
+<td style="text-align:right">1,372.5 KB</td>
+<td style="text-align:right">1,102.8 KB</td>
+<td style="text-align:right">63%</td>
+<td style="text-align:right">11.6 KB</td>
+<td style="text-align:right">14</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>skip 2</td>
+<td>Desktop, 1440 px</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">983.4 KB</td>
+<td style="text-align:right">935.8 KB</td>
+<td style="text-align:right">53%</td>
+<td style="text-align:right">8.7 KB</td>
+<td style="text-align:right">23</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td>skip 2</td>
+<td>Pixel 7</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">964.7 KB</td>
+<td style="text-align:right">772.2 KB</td>
+<td style="text-align:right">54%</td>
+<td style="text-align:right">11.3 KB</td>
+<td style="text-align:right">20</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td>skip 3</td>
+<td>Desktop, 1440 px</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">983.6 KB</td>
+<td style="text-align:right">936.0 KB</td>
+<td style="text-align:right">59%</td>
+<td style="text-align:right">8.6 KB</td>
+<td style="text-align:right">23</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>skip 3</td>
+<td>Pixel 7</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">965.0 KB</td>
+<td style="text-align:right">761.1 KB</td>
+<td style="text-align:right">53%</td>
+<td style="text-align:right">11.5 KB</td>
+<td style="text-align:right">20</td>
+<td style="text-align:right">2</td>
+</tr>
+<tr>
+<td>skip 4</td>
+<td>Desktop, 1440 px</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">983.6 KB</td>
+<td style="text-align:right">936.0 KB</td>
+<td style="text-align:right">56%</td>
+<td style="text-align:right">4.6 KB</td>
+<td style="text-align:right">23</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>skip 4</td>
+<td>Pixel 7</td>
+<td style="text-align:right">70</td>
+<td style="text-align:right">1,059.3 KB</td>
+<td style="text-align:right">1,059.5 KB</td>
+<td style="text-align:right">63%</td>
+<td style="text-align:right">7.0 KB</td>
+<td style="text-align:right">20</td>
+<td style="text-align:right">0</td>
+</tr>
+</tbody>
+</table>
+<p>The last column counts pages where the rewrite put <code>loading=&quot;lazy&quot;</code> on the element the browser reported as the largest contentful paint, and the origin had not. Any count above zero is a page whose load the rewrite can slow, so the option stays off by default. No value of skip tested reached zero on both profiles. Skip 4 left the fewest, 1 of 23 desktop pages and 0 of 20 Pixel 7 pages with the largest element made lazy, and skip 2 left 2 of 23 desktop pages and 2 of 20 Pixel 7 pages.</p>
 <h2 id="how-the-figures-are-made" class="tsd-anchor-link">How the Figures Are Made<a href="#how-the-figures-are-made" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Every number on this page comes from a reading in <a href="../media/README.md"><code>measurements/</code></a> or from an input in <code>src/report/inputs.ts</code>. <code>bun run impact</code> regenerates the page from those, and <code>bun run impact:check</code> fails when the committed page differs from what the readings produce. Edit <code>docs/impact.src.md</code>, never <code>docs/impact.md</code>.</p>
 <p>Two channels carry the energy numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at 3.80 MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.</p>
@@ -2233,6 +2954,11 @@
 <pre><code class="sh"><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">compute-server</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/compute-server.jsonl</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">publish</span><span class="hl-1"> </span><span class="hl-2">compute-server</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/compute-server.jsonl</span>
 </code><button type="button">Copy</button></pre>
 
+<p>The four metered readings of the savings section use the same runner. <code>image-decode</code> and <code>image-encode</code> read an image set that <code>image-crawl.ts</code> builds from a crawl run with <code>--save</code>. <code>dictionary-load</code> reads two aggregate files of one site that you supply, and <code>idle-activity</code> needs no input. Run the four one at a time on a quiet host.</p>
+<pre><code class="sh"><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/image-crawl.ts</span><span class="hl-1"> </span><span class="hl-10">--save</span><span class="hl-1"> </span><span class="hl-2">out/crawl-files</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/image-crawl.ts</span><span class="hl-1"> </span><span class="hl-2">set</span><span class="hl-1"> </span><span class="hl-10">--from</span><span class="hl-1"> </span><span class="hl-2">out/crawl-files</span><span class="hl-1"> </span><span class="hl-10">--reading</span><span class="hl-1"> </span><span class="hl-2">measurements/image-crawl/</span><span class="hl-1">&lt;</span><span class="hl-2">dat</span><span class="hl-1">e&gt;</span><span class="hl-2">.json</span><span class="hl-1"> </span><span class="hl-10">--to</span><span class="hl-1"> </span><span class="hl-2">out/set</span><span class="hl-1"> </span><span class="hl-10">--count</span><span class="hl-1"> </span><span class="hl-15">40</span><span class="hl-1"> </span><span class="hl-10">--max-mb</span><span class="hl-1"> </span><span class="hl-15">25</span><span class="hl-1"> </span><span class="hl-10">--tinyimg</span><span class="hl-1"> &lt;</span><span class="hl-2">di</span><span class="hl-1">r&gt;</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">idle-activity</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/idle-activity.jsonl</span><span class="hl-1"> </span><span class="hl-10">--rounds</span><span class="hl-1"> </span><span class="hl-15">4</span><span class="hl-1"> </span><span class="hl-10">--window-s</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1"> </span><span class="hl-10">--idle-s</span><span class="hl-1"> </span><span class="hl-15">60</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">image-decode</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/image-decode.jsonl</span><span class="hl-1"> </span><span class="hl-10">--images</span><span class="hl-1"> </span><span class="hl-2">out/set</span><span class="hl-1"> </span><span class="hl-10">--rounds</span><span class="hl-1"> </span><span class="hl-15">6</span><span class="hl-1"> </span><span class="hl-10">--passes</span><span class="hl-1"> </span><span class="hl-15">6</span><span class="hl-1"> </span><span class="hl-10">--idle-s</span><span class="hl-1"> </span><span class="hl-15">30</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">image-encode</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/image-encode.jsonl</span><span class="hl-1"> </span><span class="hl-10">--images</span><span class="hl-1"> </span><span class="hl-2">out/set</span><span class="hl-1"> </span><span class="hl-10">--tinyimg</span><span class="hl-1"> &lt;</span><span class="hl-2">di</span><span class="hl-1">r&gt; </span><span class="hl-10">--rounds</span><span class="hl-1"> </span><span class="hl-15">6</span><span class="hl-1"> </span><span class="hl-10">--passes</span><span class="hl-1"> </span><span class="hl-15">3</span><span class="hl-1"> </span><span class="hl-10">--idle-s</span><span class="hl-1"> </span><span class="hl-15">30</span><br/><span class="hl-0">node</span><span class="hl-1"> </span><span class="hl-2">scripts/measure/rapl.ts</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">dictionary-load</span><span class="hl-1"> </span><span class="hl-10">--raw</span><span class="hl-1"> </span><span class="hl-2">out/dictionary-load.jsonl</span><span class="hl-1"> </span><span class="hl-10">--dict-file</span><span class="hl-1"> &lt;</span><span class="hl-2">bas</span><span class="hl-1">e&gt; </span><span class="hl-10">--target-file</span><span class="hl-1"> &lt;</span><span class="hl-2">targe</span><span class="hl-1">t&gt; </span><span class="hl-10">--rounds</span><span class="hl-1"> </span><span class="hl-15">6</span><span class="hl-1"> </span><span class="hl-10">--navs</span><span class="hl-1"> </span><span class="hl-15">60</span><span class="hl-1"> </span><span class="hl-10">--idle-s</span><span class="hl-1"> </span><span class="hl-15">30</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Each <code>run</code> is followed by a <code>publish</code> of the same name, as above. <code>&lt;dir&gt;</code> holds <code>node_modules/@gmitch215/tinyimg</code> at 1.1.1.</p>
 <p>The vendor prices are inputs in <code>src/report/inputs.ts</code> with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.</p>
 <p><code>bun run impact:check</code> runs in CI and fails on any difference between the committed page and the readings.</p>
 </div></div>
@@ -2263,6 +2989,11 @@
 <li><a href="#what-the-trim-removes-and-whether-it-is-safe"><span>What the <wbr/>Trim <wbr/>Removes and <wbr/>Whether <wbr/>It <wbr/>Is <wbr/>Safe</span></a></li>
 <li><a href="#bytes-and-joules-saved"><span>Bytes and <wbr/>Joules <wbr/>Saved</span></a></li>
 <li><a href="#per-million-views"><span>Per <wbr/>Million <wbr/>Views</span></a></li></ul></li>
+<li><a href="#savings-today-and-at-maximum"><span>Savings <wbr/>Today and at <wbr/>Maximum</span></a></li>
+<li>
+<ul>
+<li><a href="#metered-figures-beside-the-ledger"><span>Metered <wbr/>Figures <wbr/>Beside the <wbr/>Ledger</span></a></li>
+<li><a href="#lazy-loading-before-the-first-scroll"><span>Lazy <wbr/>Loading <wbr/>Before the <wbr/>First <wbr/>Scroll</span></a></li></ul></li>
 <li><a href="#how-the-figures-are-made"><span>How the <wbr/>Figures <wbr/>Are <wbr/>Made</span></a></li>
 <li>
 <ul>
@@ -2305,7 +3036,7 @@
 <li><a href="#what-this-does-not-claim"><span>What <wbr/>This <wbr/>Does <wbr/>Not <wbr/>Claim</span></a></li>
 <li><a href="#reproducing"><span>Reproducing</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.1.0</a>
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.2.0</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
