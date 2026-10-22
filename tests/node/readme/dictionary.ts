@@ -1,7 +1,7 @@
-import { spoolProxy } from '@drupflare/spool/proxy';
-import { memoryStore } from '@drupflare/spool/stores';
 import { promisify } from 'node:util';
 import { zstdCompress } from 'node:zlib';
+import { spoolProxy } from '../../../src/proxy/index';
+import { memoryStore } from '../../../src/stores/index';
 
 const compress = promisify(zstdCompress);
 

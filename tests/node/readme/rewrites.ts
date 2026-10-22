@@ -1,6 +1,6 @@
-import { type ImageEncoder } from '@drupflare/spool/media';
-import { spoolProxy } from '@drupflare/spool/proxy';
-import { memoryStore } from '@drupflare/spool/stores';
+import { type ImageEncoder } from '../../../src/media/index';
+import { spoolProxy } from '../../../src/proxy/index';
+import { memoryStore } from '../../../src/stores/index';
 
 export function rewriteProxy(encoder: ImageEncoder) {
 	return spoolProxy({

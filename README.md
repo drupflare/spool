@@ -1613,10 +1613,10 @@ responses with `Use-As-Dictionary` and answers a request that names one of them 
 and Node's `zlib` does zstd:
 
 ```ts
-import { spoolProxy } from '@drupflare/spool/proxy';
-import { memoryStore } from '@drupflare/spool/stores';
 import { promisify } from 'node:util';
 import { zstdCompress } from 'node:zlib';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
 
 const compress = promisify(zstdCompress);
 
