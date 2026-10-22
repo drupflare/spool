@@ -263,16 +263,43 @@ A site that cannot accept these limits should not pass `trim`. The same saving i
 
 ## Images and Video
 
-The `images` option hands bytes the origin sent to a decoder, and a decoder is attack surface: a crafted JPEG or PNG is parsed by whatever `encoder` the caller passes. spool imports no decoder. tinyimg, the encoder the README wires in, runs as WebAssembly, so a fault in it stays inside the module's memory and cannot reach the proxy process. The proxy sets no time limit on the encoder, and an encoder that never returns holds that request open.
+The `images` option hands bytes the origin sent to a decoder, and a decoder is attack surface: a crafted JPEG or PNG is parsed by whatever `encoder` the caller passes. spool imports no decoder. tinyimg, the encoder the README wires in, runs as WebAssembly, so a fault in it stays inside the module's memory and cannot reach the proxy process. The proxy waits for the encoder at most `timeoutMs` (10 seconds by default), then serves the origin's bytes and leaves the encoder to finish. An encoder that never returns holds one task and costs no request. With `timeoutMs: false` the proxy waits without limit, and a request then stays open as long as the encoder does.
 
-Four rules bound what reaches it (`src/media/image.ts`).
+Seven rules bound what reaches it (`src/media/image.ts`, `src/media/responsive.ts`).
 
 - **What converts.** A `200` whose `Content-Type` is `image/jpeg` or `image/png` and whose first bytes are that format's magic number. A WebP, a GIF and a body that disagrees with its header never match. A response with `Set-Cookie`, a request with `Range` or `Authorization`, and a non-`GET` are never converted.
 - **Size.** A file below `minBytes` or above `maxBytes` goes out as it came. A `Content-Length` over `maxBytes` is refused before the body is read. A response without one is read first, the way the proxy reads an HTML page.
 - **Fallback.** An encoder that throws, returns no bytes or returns bytes that are not smaller leaves the origin's bytes in the response with a `200`. A decoder fault costs the visitor the conversion and nothing else.
-- **The cache.** Converted bytes are keyed by the sha256 of the origin's bytes with the quality and width. The proxy fetches the origin for every request, so a cache hit saves the encoder and never replaces the origin's answer, and one visitor's image cannot reach another. The converted response keeps the origin's `Cache-Control`, so a `private` image stays private.
+- **The cache.** Converted bytes are keyed by the sha256 of the origin's bytes with the quality, the width and, for a PNG, the mode. The proxy fetches the origin for every request, so a cache hit saves the encoder and never replaces the origin's answer, and one visitor's image cannot reach another. The converted response keeps the origin's `Cache-Control`, so a `private` image stays private.
+- **Coalescing.** Requests with the same cache key share one encoder call while it runs. The key holds the hash of the bytes the origin sent that request, so a waiter only gets an encode of bytes identical to its own.
+- **The time limit.** `timeoutMs` bounds how long one request waits. The late result is cached under its key, so a slow file costs the encoder once.
+- **Widths.** The width of a conversion comes from a client hint, from the `spool-w` parameter or from `maxWidth`, and never exceeds 16384. With `images.responsive` the proxy honours `spool-w` only for a value in the fixed `widths` list and drops any other, so a visitor cannot make it encode an arbitrary size, and the keys one file can have are bounded by the widths, the three qualities and the PNG mode. The proxy removes `spool-w` before it forwards a request.
 
-`video` edits start tags in text the origin already sent. It adds no script and changes no attribute value except `preload`. A page rewritten because of `Save-Data` or `ECT` is made `private`, varied on both headers and declined, so one visitor's connection never becomes another's stored page. `tests/node/media.spec.ts` covers each rule.
+`video`, `lazy` and `responsive` edit start tags in text the origin already sent. They add no script. `video` changes no attribute value except `preload`, `lazy` adds `loading` and `decoding`, and `responsive` adds `srcset` and `sizes` built from the tag's own `src` and a fixed list of widths. A page rewritten because of `Save-Data` or `ECT` is made `private`, varied on both headers and declined, so one visitor's connection never becomes another's stored page. `tests/node/media.spec.ts` covers each rule.
+
+## Embed Facades
+
+`embeds` replaces a YouTube or Vimeo `<iframe>` with an iframe whose `srcdoc` is a link, so the player's requests wait for a click (`src/media/embeds.ts`). It never adds script to the page, and the document it writes runs none.
+
+- **Escaping.** Every attribute value the facade copies, the title and the link are escaped for `&`, `<`, `>` and `"`. The video id has to match 6 to 64 of `A-Z a-z 0-9 - _`, and the link is rebuilt from the parsed embed URL with `autoplay=1`, never echoed from the source text.
+- **What it keeps.** `sandbox` and `referrerpolicy` stay on the iframe, so the player a click loads runs under the restrictions the origin chose. `allow` and `allowfullscreen` stay too.
+- **Content-Security-Policy.** The facade needs an inline style and, for YouTube, `i.ytimg.com` for the thumbnail, and the click needs the player host in `frame-src`. A response that sends the header is left alone and counted as `skipped.csp`. `ignoreCsp: true` takes the operator's word that the policy allows all three.
+- **The thumbnail.** The visitor's browser asks `i.ytimg.com` for it without a click, which tells Google's image host about the visit and nothing else. `thumbnail: false` removes that request, and Vimeo's facade makes none.
+- **Scripted players.** A URL with `enablejsapi=1` stays as it is, since the page's script expects the real player.
+
+`tests/node/media.spec.ts` covers each rule.
+
+## Dictionary Transport
+
+`dictionary` serves a stylesheet or script as the difference from an earlier file of the same directory that the visitor's browser holds (RFC 9842, `src/proxy/dictionary.ts`).
+
+- **What becomes a dictionary.** Only a `GET` that the proxy would keep as a public page: no `Set-Cookie`, no `private` or `no-store`, no `Authorization`, whatever cookies the request carried. The dictionary is the origin's own earlier public bytes, so nothing personalised is ever eligible, and a visitor's request cannot make the proxy hold bytes it did not already serve to everyone.
+- **What a visitor can name.** `Available-Dictionary` carries a SHA-256. The proxy looks it up among the public files it holds. Naming a hash tells the visitor nothing beyond whether the proxy holds content that any visitor could fetch, and a miss answers with the plain file.
+- **Compression and secrets.** The input and the dictionary are both public static files, with no reflected request data and no cookie, so the length of an encoded answer reveals nothing a request could not read directly.
+- **Caches.** An encoded answer carries `Vary: Accept-Encoding, Available-Dictionary`, so a shared cache does not hand it to a browser without the dictionary. The plain answer carries the same `Vary` and `Use-As-Dictionary`.
+- **Cost.** The proxy keeps no encoded answers. Each request that names a held dictionary runs the `encoder`, whose cost belongs to the operator (a zstd level 19 encode of a large script takes seconds). Memory for dictionaries is bounded by `cacheBytes` and each body by `maxBytes`, and an encoder that throws or returns more bytes leaves the plain file.
+
+`tests/node/dictionary.spec.ts` covers each rule.
 
 ## Purge Endpoint
 

@@ -1,8 +1,10 @@
 import { createApp, createRouter, toWebHandler } from 'h3';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
+import { zstdDecompressSync } from 'node:zlib';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cdnClientUrl } from '../../src/cdn/location';
 import { toNodeListener } from '../../src/node/listener';
@@ -17,6 +19,7 @@ import bunApp from './readme/bun';
 import { spool as catalogue, course as catalogueCourse, home } from './readme/catalogue';
 import { spool as cdn } from './readme/cdn';
 import denoApp from './readme/deno';
+import { proxy as dictionaryProxy } from './readme/dictionary';
 import { app as express } from './readme/express';
 import { notice, stock } from './readme/freshness';
 import { course } from './readme/graph';
@@ -27,6 +30,7 @@ import { GET as nextRoute } from './readme/next-route';
 import { server as nodeHttp } from './readme/node-http';
 import nuxtMiddleware from './readme/nuxt-middleware';
 import nuxtRoute from './readme/nuxt-route';
+import { rewriteProxy } from './readme/rewrites';
 import { canary, shadowed } from './readme/shadow';
 import { about as staticAbout } from './readme/static';
 import { news } from './readme/template';
@@ -280,7 +284,8 @@ describe('the README strategy and configuration examples run', () => {
 			expect(encoder).toHaveBeenCalledWith(expect.any(Uint8Array), {
 				format: 'webp',
 				quality: 80,
-				width: 1600
+				width: 1600,
+				budgetMs: 10_000
 			});
 			const slow = await proxy(new Request('https://site.test/', { headers: { ect: '3g' } }));
 			expect(await slow.text()).toContain(
@@ -290,6 +295,87 @@ describe('the README strategy and configuration examples run', () => {
 			expect(await fast.text()).toContain('<video autoplay src="a.mp4">');
 			expect({ ...proxy.video }).toEqual({ pages: 1, rewritten: 1 });
 			expect(proxy.images.converted).toBe(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('rewrites: the proxy rewrites a page, answers a listed width and encodes a PNG both ways', async () => {
+		const png = new Uint8Array(10_000).fill(7);
+		png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		const imgs = [1, 2, 3, 4].map((n) => `<img src="/p${n}.png">`).join('');
+		const page = `<html><head></head><body>${imgs}<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Tour"></iframe></body></html>`;
+		const encoder = vi.fn(async (input: Uint8Array, options: { lossless?: boolean }) => ({
+			bytes: new Uint8Array(input.length / (options.lossless ? 8 : 4))
+		}));
+		const seen: string[] = [];
+		vi.stubGlobal('fetch', async (request: Request) => {
+			seen.push(request.url);
+			return new URL(request.url).pathname.endsWith('.png')
+				? new Response(png, { headers: { 'content-type': 'image/png' } })
+				: new Response(page, { headers: { 'content-type': 'text/html' } });
+		});
+		try {
+			const proxy = rewriteProxy(encoder);
+			const html = await (await proxy(new Request('https://site.test/'))).text();
+			expect(html).toContain(
+				'<img src="/p1.png" srcset="/p1.png?spool-w=480 480w, /p1.png?spool-w=960 960w, /p1.png?spool-w=1440 1440w" sizes="(min-width: 60em) 50vw, 100vw">'
+			);
+			expect(html.match(/loading="lazy"/g)).toHaveLength(1);
+			expect(html).toContain('<iframe title="Tour" srcdoc="');
+			expect(html).not.toContain('ytimg');
+			const image = await proxy(
+				new Request('https://site.test/p1.png?spool-w=960', {
+					headers: { accept: 'image/webp', 'sec-ch-width': '2000' }
+				})
+			);
+			expect(seen.at(-1)).toBe('https://origin.example.edu/p1.png');
+			expect(image.headers.get('x-spool-image')).toBe('10000->1250; q=80; w=960');
+			expect(
+				encoder.mock.calls.map(([, options]) => Boolean(options.lossless)).sort()
+			).toEqual([false, true]);
+			expect({ ...proxy.images }).toMatchObject({ converted: 1, lazied: 1, responsive: 4 });
+			expect(proxy.embeds.rewritten).toBe(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('dictionary: a stylesheet is registered, then served as dcz against the one the request names', async () => {
+		const css = (rule: string) => new TextEncoder().encode(rule.repeat(400));
+		const files: Record<string, Uint8Array> = {
+			'/css/a.css': css('.card{margin:0 auto;padding:12px}'),
+			'/css/b.css': css('.card{margin:0 auto;padding:14px}')
+		};
+		vi.stubGlobal('fetch', async (request: Request) => {
+			const body = files[new URL(request.url).pathname];
+			return body
+				? new Response(body as BodyInit, { headers: { 'content-type': 'text/css' } })
+				: new Response('none', { status: 404 });
+		});
+		try {
+			const first = await dictionaryProxy(new Request('https://site.test/css/a.css'));
+			expect(first.headers.get('use-as-dictionary')).toBe(
+				'match="/css/*", match-dest=("style")'
+			);
+			const hash = createHash('sha256')
+				.update(files['/css/a.css'] as Uint8Array)
+				.digest('base64');
+			const second = await dictionaryProxy(
+				new Request('https://site.test/css/b.css', {
+					headers: { 'accept-encoding': 'br, dcz', 'available-dictionary': `:${hash}:` }
+				})
+			);
+			expect(second.headers.get('content-encoding')).toBe('dcz');
+			const body = new Uint8Array(await second.arrayBuffer());
+			expect(
+				new Uint8Array(
+					zstdDecompressSync(body.subarray(40), {
+						dictionary: files['/css/a.css'] as Uint8Array
+					})
+				)
+			).toEqual(files['/css/b.css']);
+			expect({ ...dictionaryProxy.dictionary }).toMatchObject({ registered: 2, encoded: 1 });
 		} finally {
 			vi.unstubAllGlobals();
 		}
@@ -350,6 +436,8 @@ describe('the README matches the fixtures', () => {
 		['Proxy Mode', ['proxy-node.ts', '../../fixtures/readme/proxy-workers.ts']],
 		['Trimmed Stylesheets', ['trim.ts']],
 		['Images and Video', ['media.ts']],
+		['Page Rewrites', ['rewrites.ts']],
+		['Dictionary Transport', ['dictionary.ts']],
 		['Cloudflare Workers', ['../../fixtures/readme/workers.ts']],
 		['Cloudflare Pages Functions', ['cloudflare-pages.ts']],
 		['Hono', ['hono.ts']],

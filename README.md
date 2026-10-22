@@ -1480,9 +1480,10 @@ seen, never to a repeat or local view, and it is not part of the per-view headli
 ## 🎬 Images and Video
 
 A browser that has fetched an image cannot make it smaller, so conversion happens where the file is
-served. `@drupflare/spool/media` gives `spoolProxy` two options, both off until set. `images`
+served. `@drupflare/spool/media` gives `spoolProxy` three options, each off until set. `images`
 converts a JPEG or PNG response to WebP for a browser whose `Accept` lists it. `video` rewrites
-the `<video>` tags of an HTML response, such as adding `preload="none"`.
+the `<video>` tags of an HTML response, such as adding `preload="none"`. `embeds` swaps a YouTube
+or Vimeo iframe for a link that loads the player on click.
 
 ```ts
 import { type ImageEncoder } from '@drupflare/spool/media';
@@ -1515,6 +1516,10 @@ const module = await TinyImgModule.loadBytes(await readFile(wasm));
 export const encoder = tinyimgEncoder({ module, transform });
 ```
 
+Use tinyimg 1.1.1 or later. Version 1.1.0 and earlier drop the EXIF orientation tag without
+rotating the pixels, so a phone photo comes out sideways. `tinyimgEncoder` throws when the module
+reports an older version.
+
 Quality is 80, 65 for `Save-Data: on` and 70 for an `ECT` of `slow-2g`, `2g` or `3g`. The width
 comes from `Sec-CH-Width`, then `Sec-CH-Viewport-Width` times `Sec-CH-DPR`, then
 `width.fallback`. The proxy converts a `GET` that matches `paths` (JPEG and PNG names by default),
@@ -1528,6 +1533,13 @@ A converted response carries `Vary` for `Accept`, `Save-Data`, `Sec-CH-Width`, `
 `Accept-CH` for the three size hints and `ECT` unless `hints` is false, and the browser then
 sends them with later image requests to the same origin.
 
+`maxWidth` (2560) is the width for a request that carries no hint, and `false` removes it. `png`
+is `'lossy'` by default. `'lossless'` encodes every PNG without loss, and `'auto'` encodes a PNG
+under 200 KB both ways and serves the smaller file, which suits screenshots and flat graphics.
+Requests for the same file, quality and width share one encoder call while it runs. The proxy
+waits `timeoutMs` (10,000) for the encoder and then serves the origin's file, and the late result
+is cached for the next request. `timeoutMs: false` waits without limit.
+
 Drupal's video formatter has no `preload` setting, and `preload="none"` does not stop `autoplay`.
 `autoplay: 'defer'` removes the attribute, adds `controls` and marks the tag
 `data-spool-autoplay`. With `when: 'always'` the page the spool keeps carries the rewrite. With
@@ -1536,10 +1548,121 @@ Drupal's video formatter has no `preload` setting, and `preload="none"` does not
 copy of that page keeps the origin's tags.
 
 `proxy.images` counts `converted`, `bytesIn` and `bytesOut` (converted responses only),
-`cacheHits`, and `skipped` by reason. `proxy.video` counts `pages` and `rewritten`. Read the
-saving as `bytesIn - bytesOut` over real traffic on the site. A request for any other path counts
-under `skipped.path`, so that key follows total traffic.
+`cacheHits`, `coalesced`, `lazied`, `responsive`, and `skipped` by reason. `proxy.video` counts
+`pages` and `rewritten`. Read the saving as `bytesIn - bytesOut` over real traffic on the site. A
+request for any other path counts under `skipped.path`, so that key follows total traffic.
 [docs/security.md](docs/security.md#images-and-video) covers the decoder.
+
+### Page Rewrites
+
+Three options change the HTML the origin sends. Each edits start tags only and leaves every other
+byte as it was, and a rewritten page gets a weak `ETag`.
+
+```ts
+import { type ImageEncoder } from '@drupflare/spool/media';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export function rewriteProxy(encoder: ImageEncoder) {
+  return spoolProxy({
+    origin: 'https://origin.example.edu',
+    spool: { store: memoryStore() },
+    images: {
+      encoder,
+      png: 'auto',
+      maxWidth: 1920,
+      timeoutMs: 5000,
+      lazy: { skip: 3 },
+      responsive: { widths: [480, 960, 1440], sizes: '(min-width: 60em) 50vw, 100vw' }
+    },
+    embeds: { providers: ['youtube'], thumbnail: false }
+  });
+}
+```
+
+`lazy` adds `loading="lazy"` and `decoding="async"` to each `<img>` after the first `skip` (2 by
+default), and `iframes: true` does the same for `<iframe>`. It leaves a tag that has `loading`,
+`fetchpriority` or a lazy-loading library's `data-src`, a tag inside a `<header>` or `<noscript>`,
+and an image that a `<link rel="preload" as="image">` names. A browser that defers the largest
+image of a page paints it later, so `skip` is the only guard and the option is off until set. In a
+crawl of 70 pages per profile on 16 sites, the default `skip` of 2 made the largest image lazy on 2
+of 23 desktop pages and 2 of 20 phone pages that had an image as their largest element, and no
+`skip` from 2 to 4 reached zero on both profiles.
+
+`responsive` adds a `srcset` of `?spool-w=<width>` variants to a same-origin `<img>` that has none,
+one per entry of `widths` (320, 480, 640, 960, 1280 and 1920 by default), and a `sizes` of `100vw`
+unless the tag has one. The proxy removes `spool-w` before it asks the origin, answers only widths
+from the list and never sends a file larger than the origin's. Firefox and Safari send no
+`Sec-CH-Width`, and this is how they get a resized file. Name the layout width in `sizes`, since
+`100vw` makes the browser pick the widest candidate it can use. A tag with `srcset` or `data-src`,
+and any tag inside `<picture>`, stays as it is.
+
+`embeds` replaces a server-rendered YouTube or Vimeo `<iframe>` with one whose `srcdoc` holds a
+link to the player. YouTube shows its thumbnail (`thumbnail: false` shows a plain frame) and the
+player loads on click. A page that sends `Content-Security-Policy` is left alone unless
+`ignoreCsp` is true, and so is an embed with `enablejsapi=1`. `proxy.embeds` counts `pages`,
+`rewritten` and `skipped`. [docs/security.md](docs/security.md#embed-facades) covers the rules.
+
+### Dictionary Transport
+
+A visitor who holds an earlier stylesheet or script of a directory can fetch the next one as the
+difference from it. `dictionary` implements this for Chromium 130 and later
+([RFC 9842](https://www.rfc-editor.org/rfc/rfc9842)). The proxy marks public `.css` and `.js`
+responses with `Use-As-Dictionary` and answers a request that names one of them with
+`Content-Encoding: dcz`. spool has no compression library, so the caller supplies the `encoder`,
+and Node's `zlib` does zstd:
+
+```ts
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+import { promisify } from 'node:util';
+import { zstdCompress } from 'node:zlib';
+
+const compress = promisify(zstdCompress);
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  dictionary: {
+    encoder: async (dictionary, input) => new Uint8Array(await compress(input, { dictionary }))
+  }
+});
+```
+
+The `encoder` gets the dictionary, the new file and the coding (`'dcz'`, or `'dcb'` when `formats`
+lists it) and returns the compressed stream. spool adds the coding's header. An encoder that
+throws, or whose output is no smaller, leaves the plain file. Only responses the proxy would keep
+as public ones, with no cookie, ever become dictionaries. `proxy.dictionary` counts `registered`,
+`encoded`, `bytesIn`, `bytesOut` and `skipped`.
+[docs/security.md](docs/security.md#dictionary-transport) covers the exposure.
+
+`base` names the files that register as dictionaries, as a function of the pathname, a regular
+expression or a list of them. Without it the browser holds the latest file of each directory it
+fetched, and the sizing in [docs/impact.md](docs/impact.md#savings-today-and-at-maximum) shows that
+choice recovers little. With it the browser holds only the files you name, one per directory, and
+every other file of the directory is encoded against the base the request names.
+`scripts/measure/dictionary-size.ts` records the best base of each directory of a site.
+
+### Defaults
+
+Every option is absent by default. The table shows what a feature does once its parent option is
+set and how to change it.
+
+| Feature                                    | Option              | Default once the parent is set              | Leave or enter                                        |
+| ------------------------------------------ | ------------------- | ------------------------------------------- | ----------------------------------------------------- |
+| WebP conversion, `304` and `X-Spool-Image` | `images`            | on, needs an `encoder`                      | leave `images` out                                    |
+| `Accept-CH` hints and `Vary`               | `images.hints`      | on                                          | `hints: false`                                        |
+| Quality by `Save-Data` and `ECT`           | `images.quality`    | 80, 65 and 70                               | give all three one number                             |
+| Width ceiling for a request with no width  | `images.maxWidth`   | 2560                                        | `maxWidth: false`, or another number                  |
+| Shared encodes and the encoder time limit  | `images.timeoutMs`  | 10,000 ms, identical encodes share one call | `timeoutMs: false` removes the limit                  |
+| PNG mode                                   | `images.png`        | `'lossy'`                                   | `'auto'` or `'lossless'`                              |
+| `loading="lazy"` on images and iframes     | `images.lazy`       | off                                         | `lazy: {}` or `{ skip, iframes }`                     |
+| `srcset` variants                          | `images.responsive` | off                                         | `responsive: {}` or `{ widths, sizes }`               |
+| `preload="none"` on video                  | `video.preload`     | `'none'`                                    | `preload: false`                                      |
+| Video autoplay deferral                    | `video.autoplay`    | off                                         | `autoplay: 'defer'`                                   |
+| YouTube and Vimeo facades                  | `embeds`            | off                                         | `embeds: {}` or `{ providers, thumbnail, ignoreCsp }` |
+| Dictionary transport                       | `dictionary`        | off                                         | `dictionary: { encoder }`                             |
+| Which files become dictionaries            | `dictionary.base`   | every `.css` and `.js` response             | `base: /\/base\.js$/`, a list or a function           |
 
 ---
 
