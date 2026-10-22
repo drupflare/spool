@@ -61,6 +61,12 @@ const num = (row: Row, key: string): number | undefined =>
 
 const str = (row: Row, key: string): string => String(row[key] ?? '');
 
+/** whether other containers used more than `limit` ms of CPU per second over the window of `row` */
+export function isContaminated(row: Row, limit = CONTAMINATION_MS_PER_S): boolean {
+	const other = num(row, 'otherCpuMs') ?? num(row, 'otherContainersCpuMs') ?? 0;
+	return !(other / ((num(row, 'elapsedMs') as number) / 1000) <= limit);
+}
+
 const sumValues = (value: unknown): number | undefined =>
 	typeof value === 'object' && value !== null
 		? Object.values(value as Record<string, number>).reduce((s, v) => s + v, 0)
@@ -99,8 +105,7 @@ export function raplRun(
 	const idleArm = options.idleArm ?? 'idle';
 	const limit = options.contamination ?? CONTAMINATION_MS_PER_S;
 	const seconds = (row: Row) => (num(row, 'elapsedMs') as number) / 1000;
-	const other = (row: Row) => num(row, 'otherCpuMs') ?? num(row, 'otherContainersCpuMs') ?? 0;
-	const kept = rows.filter((row) => other(row) / seconds(row) <= limit);
+	const kept = rows.filter((row) => !isContaminated(row, limit));
 	const idle = new Map<number, number>();
 	for (const row of kept) {
 		if (str(row, 'arm') === idleArm) {
