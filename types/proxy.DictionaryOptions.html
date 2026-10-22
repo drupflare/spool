@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">DictionaryOptions</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#base">base</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">RegExp</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> (<span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">pathname</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span>)<span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cachebytes">cacheBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#encoder">encoder</a><span class="tsd-signature-symbol">:</span> <a href="proxy.DictionaryEncoder.html" class="tsd-signature-type tsd-kind-type-alias">DictionaryEncoder</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#formats">formats</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="proxy.DictionaryFormat.html" class="tsd-signature-type tsd-kind-type-alias">DictionaryFormat</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#match">match</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxbytes">maxBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L22">src/proxy/dictionary.ts:22</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L22">src/proxy/dictionary.ts:22</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -43,42 +43,42 @@ expression or a list of them; default every one <code>match</code> accepts. The 
 against a base the request names.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L33">src/proxy/dictionary.ts:33</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L33">src/proxy/dictionary.ts:33</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cachebytes"><code class="tsd-tag">Optional</code><span>cache<wbr/>Bytes</span><a href="#cachebytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">cacheBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>bytes of dictionaries kept in memory, the least recently used going first; default 16 MiB</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L39">src/proxy/dictionary.ts:39</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L39">src/proxy/dictionary.ts:39</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="encoder"><span>encoder</span><a href="#encoder" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">encoder</span><span class="tsd-signature-symbol">:</span> <a href="proxy.DictionaryEncoder.html" class="tsd-signature-type tsd-kind-type-alias">DictionaryEncoder</a></div>
 <div class="tsd-comment tsd-typography"><p>produces the compressed stream; see <a href="proxy.DictionaryEncoder.html" class="tsd-kind-type-alias">DictionaryEncoder</a></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L24">src/proxy/dictionary.ts:24</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L24">src/proxy/dictionary.ts:24</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="formats"><code class="tsd-tag">Optional</code><span>formats</span><a href="#formats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">formats</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="proxy.DictionaryFormat.html" class="tsd-signature-type tsd-kind-type-alias">DictionaryFormat</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>the codings offered, in order of preference, when the request accepts them; default <code>['dcz']</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L37">src/proxy/dictionary.ts:37</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L37">src/proxy/dictionary.ts:37</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="match"><code class="tsd-tag">Optional</code><span>match</span><a href="#match" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">match</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">RegExp</span></div>
 <div class="tsd-comment tsd-typography"><p>the paths that become and use dictionaries, tested against the pathname; default <code>/\.(?:css|m?js)$/i</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L26">src/proxy/dictionary.ts:26</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L26">src/proxy/dictionary.ts:26</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxbytes"><code class="tsd-tag">Optional</code><span>max<wbr/>Bytes</span><a href="#maxbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>largest body kept as a dictionary or encoded, in bytes; default 2 MiB</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/64a1c0399727da7264fb4c546f3e73575edf09d0/src/proxy/dictionary.ts#L35">src/proxy/dictionary.ts:35</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/proxy/dictionary.ts#L35">src/proxy/dictionary.ts:35</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
