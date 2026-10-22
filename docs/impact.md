@@ -152,6 +152,140 @@ Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at e
 | Microsoft Azure                    | $0.087 per GB |                   $1.32 |                                    $0.60 |                                        $0.79 |                                     $0.99 |
 | Google Cloud (Premium Tier)        | $0.12 per GiB |                   $1.70 |                                    $0.77 |                                        $1.02 |                                     $1.27 |
 
+## Savings Today and at Maximum
+
+The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of 0.194 kWh/GB, with no origin term, since a smaller file is the same request.
+
+Two corpora carry the figures and they are never added together. The image-crawl corpus is 70 desktop pages on 16 public sites, each loaded with an empty cache (reading `measurements/image-crawl`). The trim corpus is 75 internal pages on 10 Drupal sites of the trim reading, which is where the aggregate churn was measured. A page's saving is the sum of its levers, and a site's figure is the mean over its pages.
+
+| Lever                                                                    | Corpus                | Pages with a saving | Median page      | Median of pages that save | Median site      | Mean               |
+| ------------------------------------------------------------------------ | --------------------- | ------------------- | ---------------- | ------------------------- | ---------------- | ------------------ |
+| WebP at native size under the 2560 px ceiling (images)                   | image-crawl, 16 sites | 59% of 70           | 65.5 KB (45.7 J) | 398.0 KB (278 J)          | 248.6 KB (174 J) | 1,211.8 KB (846 J) |
+| Resize to the rendered width, Chromium with hints (images)               | image-crawl, 16 sites | 43% of 70           | 0.0 KB (0 J)     | 151.1 KB (105 J)          | 19.7 KB (13.8 J) | 206.8 KB (144 J)   |
+| Video preload none, for videos that do not autoplay (video)              | image-crawl, 16 sites | 3% of 70            | 0.0 KB (0 J)     | 16.5 KB (11.5 J)          | 0.0 KB (0 J)     | 0.5 KB (0.330 J)   |
+| Video autoplay deferred (video, option)                                  | image-crawl, 16 sites | 10% of 70           | 0.0 KB (0 J)     | 31.1 KB (21.7 J)          | 0.0 KB (0 J)     | 112.1 KB (78.3 J)  |
+| YouTube and Vimeo facade, pages with no CSP (embeds, option)             | image-crawl, 16 sites | 9% of 70            | 0.0 KB (0 J)     | 3,076.1 KB (2,148 J)      | 0.0 KB (0 J)     | 276.9 KB (193 J)   |
+| Trimmed stylesheets (trim, option)                                       | trim, 10 Drupal sites | 60% of 75           | 3.2 KB (2.21 J)  | 27.6 KB (19.3 J)          | 13.8 KB (9.61 J) | 15.2 KB (10.6 J)   |
+| New aggregates against the text of earlier pages, a ceiling (dictionary) | trim, 10 Drupal sites | 80% of 75           | 94.9 KB (66.3 J) | 126.0 KB (88.0 J)         | 94.7 KB (66.1 J) | 131.6 KB (91.9 J)  |
+
+Images are the one lever with a median page above zero. Resizing, video, embeds and the trim reach a minority of pages, so their median page is at or near zero, and a few image-heavy or embed-heavy pages carry every mean. The share of pages with any saving and the median site describe the typical case. The mean is the figure to multiply by a view count.
+
+The dictionary row is a ceiling. It compresses each new aggregate against the concatenated text of every earlier page (the last 1 MiB), which a browser does not hold: it holds the dictionaries the server marked, and it sends one of them. The row says what the repeated bytes in new aggregates are worth, and nothing about how many of them a real dictionary choice recovers.
+
+The 356 new files of 10 Drupal sites in the dictionary-size reading (the home page and four internal pages of each, same-origin CSS and JavaScript, bytes only, L1) show how much of that ceiling a real choice recovers. Every arm is measured against brotli 11 alone, and a file that gains nothing goes out plain.
+
+| Dictionary choice                                                        | Coding          | Median site, share of brotli 11 bytes saved | All files | Median internal page | Internal pages saving over 5% |
+| ------------------------------------------------------------------------ | --------------- | ------------------------------------------: | --------: | -------------------: | ----------------------------: |
+| Oracle: the best earlier file of the same kind                           | dcz (zstd 19)   |                                       41.4% |     48.8% |              74.3 KB |                      27 of 29 |
+| Oracle: the best earlier file of the same kind                           | dcb (brotli 11) |                                       42.0% |     49.7% |              74.6 KB |                      28 of 29 |
+| Browser: the latest earlier file of the same directory                   | dcz (zstd 19)   |                                        2.0% |     27.2% |               1.0 KB |                       9 of 29 |
+| Browser: the latest earlier file of the same directory                   | dcb (brotli 11) |                                        3.3% |     28.2% |               1.8 KB |                      13 of 29 |
+| Server base, used once the visit has fetched it                          | dcz (zstd 19)   |                                        3.9% |     14.2% |               0.4 KB |                      14 of 29 |
+| Server base, used once the visit has fetched it                          | dcb (brotli 11) |                                        5.1% |     14.3% |               0.4 KB |                      15 of 29 |
+| Server base held from an earlier visit, chosen with the page measured    | dcz (zstd 19)   |                                       29.9% |     47.4% |              36.3 KB |                      22 of 29 |
+| Server base held from an earlier visit, chosen with the page measured    | dcb (brotli 11) |                                       30.3% |     47.6% |              36.4 KB |                      23 of 29 |
+| Server base held from an earlier visit, chosen without the page measured | dcz (zstd 19)   |                                       32.6% |     60.1% |              36.3 KB |                      24 of 29 |
+| Server base held from an earlier visit, chosen without the page measured | dcb (brotli 11) |                                       32.8% |     60.3% |              36.4 KB |                      26 of 29 |
+
+A browser that picks the latest earlier file of the same directory saves 2.0% at the median site with `dcz`. A server that marks one base file per directory saves 3.9% on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves 32.6%, with the base chosen without the page measured, and 29.9% with it. The oracle saves 41.4% and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures.
+
+| Corpus                | Figure      | Built levers         | With the dictionary ceiling |
+| --------------------- | ----------- | -------------------- | --------------------------- |
+| image-crawl, 16 sites | Median page | 227.6 KB (159 J)     | 227.6 KB (159 J)            |
+| image-crawl, 16 sites | Median site | 517.6 KB (362 J)     | 517.6 KB (362 J)            |
+| image-crawl, 16 sites | Mean        | 1,808.1 KB (1,263 J) | 1,808.1 KB (1,263 J)        |
+| trim, 10 Drupal sites | Median page | 3.2 KB (2.21 J)      | 126.0 KB (88.0 J)           |
+| trim, 10 Drupal sites | Median site | 13.8 KB (9.61 J)     | 114.6 KB (80.0 J)           |
+| trim, 10 Drupal sites | Mean        | 15.2 KB (10.6 J)     | 146.7 KB (102 J)            |
+
+The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. Views are the two scales this page uses: 100 million and 420 million a year. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with.
+
+| Corpus                | First-view share (L3) | Figure      | Built, 100 million views (MWh) | Ceiling, 100 million views (MWh) | Built, 420 million views (MWh) | Ceiling, 420 million views (MWh) |
+| --------------------- | --------------------- | ----------- | -----------------------------: | -------------------------------: | -----------------------------: | -------------------------------: |
+| image-crawl, 16 sites | Low, 45%              | Median page |                           1.99 |                             1.99 |                           8.36 |                             8.36 |
+| image-crawl, 16 sites | Low, 45%              | Median site |                           4.53 |                             4.53 |                           19.0 |                             19.0 |
+| image-crawl, 16 sites | Low, 45%              | Mean        |                           15.8 |                             15.8 |                           66.4 |                             66.4 |
+| image-crawl, 16 sites | Central, 60%          | Median page |                           2.65 |                             2.65 |                           11.1 |                             11.1 |
+| image-crawl, 16 sites | Central, 60%          | Median site |                           6.03 |                             6.03 |                           25.3 |                             25.3 |
+| image-crawl, 16 sites | Central, 60%          | Mean        |                           21.0 |                             21.0 |                           88.4 |                             88.4 |
+| image-crawl, 16 sites | High, 75%             | Median page |                           3.31 |                             3.31 |                           13.9 |                             13.9 |
+| image-crawl, 16 sites | High, 75%             | Median site |                           7.53 |                             7.53 |                           31.6 |                             31.6 |
+| image-crawl, 16 sites | High, 75%             | Mean        |                           26.3 |                             26.3 |                            110 |                              110 |
+| trim, 10 Drupal sites | Low, 45%              | Median page |                         0.0277 |                             1.10 |                          0.116 |                             4.63 |
+| trim, 10 Drupal sites | Low, 45%              | Median site |                          0.120 |                             1.00 |                          0.506 |                             4.21 |
+| trim, 10 Drupal sites | Low, 45%              | Mean        |                          0.133 |                             1.28 |                          0.558 |                             5.39 |
+| trim, 10 Drupal sites | Central, 60%          | Median page |                         0.0368 |                             1.47 |                          0.155 |                             6.16 |
+| trim, 10 Drupal sites | Central, 60%          | Median site |                          0.160 |                             1.33 |                          0.673 |                             5.60 |
+| trim, 10 Drupal sites | Central, 60%          | Mean        |                          0.177 |                             1.71 |                          0.742 |                             7.17 |
+| trim, 10 Drupal sites | High, 75%             | Median page |                         0.0460 |                             1.83 |                          0.193 |                             7.70 |
+| trim, 10 Drupal sites | High, 75%             | Median site |                          0.200 |                             1.67 |                          0.841 |                             7.00 |
+| trim, 10 Drupal sites | High, 75%             | Mean        |                          0.221 |                             2.14 |                          0.928 |                             8.97 |
+
+Local views add a second ceiling that does not depend on any lever above: a local view replaces the whole repeat view if every file in it is answered locally. The median whole repeat view is 66.3 KB (46.3 J, L2). An optimized HTTP cache already keeps the static files of a repeat view, so most of that figure is the baseline fix's saving and not spool's. It is the upper bound on what a local repeat view could remove.
+
+| Local share of views | Repeat-view ceiling, 100 million views (MWh) | Repeat-view ceiling, 420 million views (MWh) |
+| -------------------- | -------------------------------------------: | -------------------------------------------: |
+| Meaningful, 30%      |                                        0.386 |                                         1.62 |
+| Major, 65%           |                                        0.837 |                                         3.51 |
+| Transformative, 90%  |                                         1.16 |                                         4.87 |
+
+### Metered Figures Beside the Ledger
+
+The ledger above is attributional (L2): bytes at a fixed rate. The table below holds meter readings (L1) of what individual steps cost the machine that runs them. They come from the package counter of paisley-park, a Ryzen 9 9900X, and from the iPhone battery gauge for the phone row. They leave out the display, the network and every machine between the two ends, so they do not add to the ledger and are not a second way to compute it. Each cell is the median of the kept windows with the minimum and maximum in brackets, in joules or watts above the idle draw of the same round unless the row says package watts.
+
+| Quantity                                              | Arm                                                                  |                   Median (min to max) | Windows                                       | Layer |
+| ----------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------: | --------------------------------------------- | ----- |
+| J saved per local view against optimized HTTP caching | paisley-park desktop, Chromium                                       |  0.80 (difference of the arm medians) | 16 kept, 0 dropped                            | L1    |
+| J saved per local view against optimized HTTP caching | iPhone 14 Pro, Wi-Fi, whole-phone counter                            | 0.088 (difference of the arm medians) | 3 rounds                                      | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, original JPEG or PNG                            |                   58.6 (57.0 to 62.8) | 6 kept, 0 dropped                             | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, WebP at native size                             |                   81.7 (79.5 to 88.1) | 6 kept, 0 dropped                             | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, WebP resized to the rendered width              |                   46.3 (45.8 to 47.2) | 6 kept, 0 dropped                             | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, original JPEG or PNG                       |                511.1 (458.5 to 526.6) | 6 kept, 0 dropped                             | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP at native size                        |                487.3 (471.1 to 496.0) | 6 kept, 0 dropped                             | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP resized to the rendered width         |                451.6 (420.9 to 456.7) | 6 kept, 0 dropped                             | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, native size                            |                   0.57 (0.56 to 0.58) | 6 kept, 0 dropped                             | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, rendered width                         |                   0.44 (0.44 to 0.45) | 6 kept, 0 dropped                             | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, fresh Node process per pass, native size              |                   0.64 (0.63 to 0.65) | 6 kept, 0 dropped                             | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, native size                            |                   6.94 (6.79 to 7.04) | 6 kept, 0 dropped                             | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, rendered width                         |                   5.32 (5.26 to 5.42) | 6 kept, 0 dropped                             | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, fresh Node process per pass, native size              |                   7.74 (7.64 to 7.81) | 6 kept, 0 dropped                             | L1    |
+| package W, no browser running                         | idle windows of the kept rounds (median per round, then over rounds) |                   18.6 (18.6 to 18.7) | 6 kept, 0 dropped, 6 more by the idle control | L1    |
+| package W                                             | a quiet visible page                                                 |                   18.7 (18.6 to 18.7) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| package W                                             | a page polling a local endpoint once a second                        |                   19.2 (19.2 to 19.3) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| package W                                             | a requestAnimationFrame loop moving one box                          |                   22.4 (22.2 to 22.6) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| W above the idle of the same round                    | a quiet visible page                                                 |                  0.03 (-0.01 to 0.06) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| W above the idle of the same round                    | a page polling a local endpoint once a second                        |                   0.61 (0.45 to 0.76) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| W above the idle of the same round                    | a requestAnimationFrame loop moving one box                          |                   3.79 (3.53 to 4.05) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
+| mJ per page load above idle (one aggregate file)      | brotli 11, 432,066 B on the wire                                     |                769.4 (760.6 to 815.3) | 6 kept, 0 dropped                             | L1    |
+| mJ per page load above idle (one aggregate file)      | dcz against a stored dictionary, 105,331 B on the wire               |                686.1 (633.4 to 741.5) | 6 kept, 0 dropped                             | L1    |
+
+A window is dropped when other containers on the host used more than 100 ms of CPU per second of it. In the image-encode reading 0 of its windows were dropped, in image-decode 0, and in dictionary-load 0. The rule sees only containers. It missed a container that started inside a window until the rig was changed to count one from zero, and it never sees a host process.
+
+Format-only WebP does not lower decode energy. Through `createImageBitmap`, a WebP at its native size cost 1.39 times the energy of the original JPEG or PNG, and the WebP resized to the rendered width cost 0.79 times. Through an `<img>` shown at its CSS width the native WebP was 0.95 times the original (its range overlaps the original), and the resized WebP 0.88 times (below every original window). That arm waits two animation frames per image and takes 33.3 ms an image against 1.8 ms for the bitmap path, so most of its window is frame waiting and its variants differ by less. The byte saving of a format-only conversion therefore comes with a decode cost on the pure decode path, and the decode figure favours WebP only for a file that was also resized. All of this is the 40 crawled images of the set, 6 rounds, one Chromium on one desktop.
+
+Converting an image costs 0.57 J with the module loaded (about 20 ms of one busy thread, 6.94 J per MB of input over a set of 40 images, 6 rounds). A fresh Node process per pass costs 0.64 J, 12% more. Resizing to the rendered width first costs 0.44 J. The proxy caches each result, so a conversion is paid once per image and variant. How many views repay it needs a metered joule figure per byte transferred, which no reading here carries, so the page states no break-even.
+
+A visible page with no timers drew 0.03 W above the idle of its round. A once-a-second poll to a local endpoint added 0.61 W and a `requestAnimationFrame` loop moving one box added 3.8 W (227 J a minute). Of 4 rounds, 2 are kept: in rounds 1 and 2 (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the 12 idle windows of the run the draw ran from 18.4 W to 67.6 W, and the CPU rule dropped 0 of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on 2 windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.
+
+Chromium 151.0.7922.34 negotiates compression dictionary transport on the box: the page's request for the target carried Available-Dictionary, its Accept-Encoding listed dcb and dcz, and the origin answered dcz. The pair is two JavaScript aggregates of one Drupal site, a dictionary of 1,131,781 B and a target of 1,719,688 B. The target is 432,066 B on the wire as brotli 11 and 105,331 B as dcz, 76% fewer. A page load that fetched the target cost 769.4 mJ above idle as brotli and 686.1 mJ as dcz, 11% lower over 6 rounds of 60 loads (the dcz arm's range sits below the brotli arm's). The figure counts the browser's decode and the loopback transfer. It leaves out the network, and the server's encode, which this origin did once at start-up. The pair comes from the churned JavaScript aggregates, where the delta is large, so its byte saving sits above the 29.9% that the dictionary-size reading gives at the median site for a base the visitor already holds. One pair in one browser shows that dcz decode costs no more than brotli decode here. It says nothing about how many visitors hold a dictionary.
+
+### Lazy Loading Before the First Scroll
+
+Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The crawl loaded pages twice, once as the origin sent them and once with `loading="lazy"` added by the proxy's rewrite. Both loads went through the same Playwright route, so neither had a browser cache. The columns are image bytes requested before the first scroll. This is not part of the tables above, which count bytes any visitor receives. The first rows are the first crawl, with the first rule and `skip` 2. The other rows are three later crawls of up to five pages per site, one per `skip`, with the rule that also leaves an image with `fetchpriority`, one that a preload link names and one inside a `<header>`.
+
+| Rule               | Profile          | Pages loaded twice | Median page before the first scroll, as sent | With the rewrite | Pages that loaded less | Median of those pages | Pages with an image as the largest element | Rewrite put lazy on that element |
+| ------------------ | ---------------- | -----------------: | -------------------------------------------: | ---------------: | ---------------------: | --------------------: | -----------------------------------------: | -------------------------------: |
+| skip 2, first rule | Desktop, 1440 px |                 43 |                                   1,334.1 KB |       1,334.2 KB |                    56% |               10.4 KB |                                         13 |                                0 |
+| skip 2, first rule | Pixel 7          |                 43 |                                   1,372.5 KB |       1,102.8 KB |                    63% |               11.6 KB |                                         14 |                                1 |
+| skip 2             | Desktop, 1440 px |                 70 |                                     983.4 KB |         935.8 KB |                    53% |                8.7 KB |                                         23 |                                2 |
+| skip 2             | Pixel 7          |                 70 |                                     964.7 KB |         772.2 KB |                    54% |               11.3 KB |                                         20 |                                2 |
+| skip 3             | Desktop, 1440 px |                 70 |                                     983.6 KB |         936.0 KB |                    59% |                8.6 KB |                                         23 |                                1 |
+| skip 3             | Pixel 7          |                 70 |                                     965.0 KB |         761.1 KB |                    53% |               11.5 KB |                                         20 |                                2 |
+| skip 4             | Desktop, 1440 px |                 70 |                                     983.6 KB |         936.0 KB |                    56% |                4.6 KB |                                         23 |                                1 |
+| skip 4             | Pixel 7          |                 70 |                                   1,059.3 KB |       1,059.5 KB |                    63% |                7.0 KB |                                         20 |                                0 |
+
+The last column counts pages where the rewrite put `loading="lazy"` on the element the browser reported as the largest contentful paint, and the origin had not. Any count above zero is a page whose load the rewrite can slow, so the option stays off by default. No value of skip tested reached zero on both profiles. Skip 4 left the fewest, 1 of 23 desktop pages and 0 of 20 Pixel 7 pages with the largest element made lazy, and skip 2 left 2 of 23 desktop pages and 2 of 20 Pixel 7 pages.
+
 ## How the Figures Are Made
 
 Every number on this page comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
@@ -652,6 +786,19 @@ The RAPL runs happen on a Linux host with the package counter readable, inside t
 node scripts/measure/rapl.ts run compute-server --raw out/compute-server.jsonl
 node scripts/measure/rapl.ts publish compute-server --raw out/compute-server.jsonl
 ```
+
+The four metered readings of the savings section use the same runner. `image-decode` and `image-encode` read an image set that `image-crawl.ts` builds from a crawl run with `--save`. `dictionary-load` reads two aggregate files of one site that you supply, and `idle-activity` needs no input. Run the four one at a time on a quiet host.
+
+```sh
+bun scripts/measure/image-crawl.ts --save out/crawl-files
+bun scripts/measure/image-crawl.ts set --from out/crawl-files --reading measurements/image-crawl/<date>.json --to out/set --count 40 --max-mb 25 --tinyimg <dir>
+node scripts/measure/rapl.ts run idle-activity --raw out/idle-activity.jsonl --rounds 4 --window-s 300 --idle-s 60
+node scripts/measure/rapl.ts run image-decode --raw out/image-decode.jsonl --images out/set --rounds 6 --passes 6 --idle-s 30
+node scripts/measure/rapl.ts run image-encode --raw out/image-encode.jsonl --images out/set --tinyimg <dir> --rounds 6 --passes 3 --idle-s 30
+node scripts/measure/rapl.ts run dictionary-load --raw out/dictionary-load.jsonl --dict-file <base> --target-file <target> --rounds 6 --navs 60 --idle-s 30
+```
+
+Each `run` is followed by a `publish` of the same name, as above. `<dir>` holds `node_modules/@gmitch215/tinyimg` at 1.1.1.
 
 The vendor prices are inputs in `src/report/inputs.ts` with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.
 

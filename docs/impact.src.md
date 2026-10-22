@@ -98,6 +98,58 @@ Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at e
 
 {{table:trim-prices}}
 
+## Savings Today and at Maximum
+
+The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of {{value:swdTotal}} kWh/GB, with no origin term, since a smaller file is the same request.
+
+Two corpora carry the figures and they are never added together. The image-crawl corpus is {{value:ledgerCrawlPages}} desktop pages on {{value:ledgerCrawlSites}} public sites, each loaded with an empty cache (reading `measurements/image-crawl`). The trim corpus is {{value:ledgerTrimPages}} internal pages on {{value:ledgerTrimSites}} Drupal sites of the trim reading, which is where the aggregate churn was measured. A page's saving is the sum of its levers, and a site's figure is the mean over its pages.
+
+{{table:ledger-levers}}
+
+Images are the one lever with a median page above zero. Resizing, video, embeds and the trim reach a minority of pages, so their median page is at or near zero, and a few image-heavy or embed-heavy pages carry every mean. The share of pages with any saving and the median site describe the typical case. The mean is the figure to multiply by a view count.
+
+The dictionary row is a ceiling. It compresses each new aggregate against the concatenated text of every earlier page (the last 1 MiB), which a browser does not hold: it holds the dictionaries the server marked, and it sends one of them. The row says what the repeated bytes in new aggregates are worth, and nothing about how many of them a real dictionary choice recovers.
+
+The {{value:dictFiles}} new files of {{value:dictSites}} Drupal sites in the dictionary-size reading (the home page and four internal pages of each, same-origin CSS and JavaScript, bytes only, L1) show how much of that ceiling a real choice recovers. Every arm is measured against brotli 11 alone, and a file that gains nothing goes out plain.
+
+{{table:ledger-dictionary}}
+
+A browser that picks the latest earlier file of the same directory saves {{value:dictBrowser}} at the median site with `dcz`. A server that marks one base file per directory saves {{value:dictVisit}} on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves {{value:dictOut}}, with the base chosen without the page measured, and {{value:dictHeld}} with it. The oracle saves {{value:dictOracle}} and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures.
+
+{{table:ledger-first-view}}
+
+The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. Views are the two scales this page uses: 100 million and 420 million a year. One retired server-year is {{value:serverYear}} MWh (L2), the unit to compare each cell with.
+
+{{table:ledger-mwh}}
+
+Local views add a second ceiling that does not depend on any lever above: a local view replaces the whole repeat view if every file in it is answered locally. The median whole repeat view is {{value:ledgerWholeKb}} ({{value:ledgerWholeJ}} J, L2). An optimized HTTP cache already keeps the static files of a repeat view, so most of that figure is the baseline fix's saving and not spool's. It is the upper bound on what a local repeat view could remove.
+
+{{table:ledger-repeat}}
+
+### Metered Figures Beside the Ledger
+
+The ledger above is attributional (L2): bytes at a fixed rate. The table below holds meter readings (L1) of what individual steps cost the machine that runs them. They come from the package counter of paisley-park, a Ryzen 9 9900X, and from the iPhone battery gauge for the phone row. They leave out the display, the network and every machine between the two ends, so they do not add to the ledger and are not a second way to compute it. Each cell is the median of the kept windows with the minimum and maximum in brackets, in joules or watts above the idle draw of the same round unless the row says package watts.
+
+{{table:ledger-metered}}
+
+A window is dropped when other containers on the host used more than 100 ms of CPU per second of it. In the image-encode reading {{value:encodeDropped}} of its windows were dropped, in image-decode {{value:decodeDropped}}, and in dictionary-load {{value:dictLoadDropped}}. The rule sees only containers. It missed a container that started inside a window until the rig was changed to count one from zero, and it never sees a host process.
+
+Format-only WebP does not lower decode energy. Through `createImageBitmap`, a WebP at its native size cost {{value:decodeBitmapNative}} times the energy of the original JPEG or PNG, and the WebP resized to the rendered width cost {{value:decodeBitmapResized}} times. Through an `<img>` shown at its CSS width the native WebP was {{value:decodeImgNative}} times the original ({{value:decodeImgNativeText}}), and the resized WebP {{value:decodeImgResized}} times ({{value:decodeImgResizedText}}). That arm waits two animation frames per image and takes {{value:decodeImgMs}} ms an image against {{value:decodeBitmapMs}} ms for the bitmap path, so most of its window is frame waiting and its variants differ by less. The byte saving of a format-only conversion therefore comes with a decode cost on the pure decode path, and the decode figure favours WebP only for a file that was also resized. All of this is the {{value:decodeImages}} crawled images of the set, {{value:decodeRounds}} rounds, one Chromium on one desktop.
+
+Converting an image costs {{value:encodeWarm}} J with the module loaded (about {{value:encodeWarmMs}} ms of one busy thread, {{value:encodePerMb}} J per MB of input over a set of {{value:encodeImages}} images, {{value:encodeRounds}} rounds). A fresh Node process per pass costs {{value:encodeCold}} J, {{value:encodeColdOver}}% more. Resizing to the rendered width first costs {{value:encodeResized}} J. The proxy caches each result, so a conversion is paid once per image and variant. How many views repay it needs a metered joule figure per byte transferred, which no reading here carries, so the page states no break-even.
+
+A visible page with no timers drew {{value:activityQuietExtra}} W above the idle of its round. A once-a-second poll to a local endpoint added {{value:activityPoll}} W and a `requestAnimationFrame` loop moving one box added {{value:activityRaf}} W ({{value:activityRafMinute}} J a minute). {{value:activityRoundsText}}
+
+{{value:dictLoadText}}
+
+### Lazy Loading Before the First Scroll
+
+Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The crawl loaded pages twice, once as the origin sent them and once with `loading="lazy"` added by the proxy's rewrite. Both loads went through the same Playwright route, so neither had a browser cache. The columns are image bytes requested before the first scroll. This is not part of the tables above, which count bytes any visitor receives. The first rows are the first crawl, with the first rule and `skip` 2. The other rows are three later crawls of up to five pages per site, one per `skip`, with the rule that also leaves an image with `fetchpriority`, one that a preload link names and one inside a `<header>`.
+
+{{table:ledger-lazy}}
+
+The last column counts pages where the rewrite put `loading="lazy"` on the element the browser reported as the largest contentful paint, and the origin had not. Any count above zero is a page whose load the rewrite can slow, so the option stays off by default. {{value:lazyVerdict}}
+
 ## How the Figures Are Made
 
 Every number on this page comes from a reading in [`measurements/`](../measurements/README.md) or from an input in `src/report/inputs.ts`. `bun run impact` regenerates the page from those, and `bun run impact:check` fails when the committed page differs from what the readings produce. Edit `docs/impact.src.md`, never `docs/impact.md`.
@@ -422,6 +474,19 @@ The RAPL runs happen on a Linux host with the package counter readable, inside t
 node scripts/measure/rapl.ts run compute-server --raw out/compute-server.jsonl
 node scripts/measure/rapl.ts publish compute-server --raw out/compute-server.jsonl
 ```
+
+The four metered readings of the savings section use the same runner. `image-decode` and `image-encode` read an image set that `image-crawl.ts` builds from a crawl run with `--save`. `dictionary-load` reads two aggregate files of one site that you supply, and `idle-activity` needs no input. Run the four one at a time on a quiet host.
+
+```sh
+bun scripts/measure/image-crawl.ts --save out/crawl-files
+bun scripts/measure/image-crawl.ts set --from out/crawl-files --reading measurements/image-crawl/<date>.json --to out/set --count 40 --max-mb 25 --tinyimg <dir>
+node scripts/measure/rapl.ts run idle-activity --raw out/idle-activity.jsonl --rounds 4 --window-s 300 --idle-s 60
+node scripts/measure/rapl.ts run image-decode --raw out/image-decode.jsonl --images out/set --rounds 6 --passes 6 --idle-s 30
+node scripts/measure/rapl.ts run image-encode --raw out/image-encode.jsonl --images out/set --tinyimg <dir> --rounds 6 --passes 3 --idle-s 30
+node scripts/measure/rapl.ts run dictionary-load --raw out/dictionary-load.jsonl --dict-file <base> --target-file <target> --rounds 6 --navs 60 --idle-s 30
+```
+
+Each `run` is followed by a `publish` of the same name, as above. `<dir>` holds `node_modules/@gmitch215/tinyimg` at 1.1.1.
 
 The vendor prices are inputs in `src/report/inputs.ts` with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.
 

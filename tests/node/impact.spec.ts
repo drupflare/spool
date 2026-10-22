@@ -16,7 +16,17 @@ import {
 	table,
 	unusedFigures
 } from '../../scripts/impact';
-import type { Measurement } from '../../src/report/index';
+import {
+	addLevers,
+	crawlLevers,
+	imageSavings,
+	lazyUnscrolled,
+	ledgerJoules,
+	ledgerMWh,
+	leverStats,
+	trimLevers,
+	type Measurement
+} from '../../src/report/index';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -126,5 +136,148 @@ describe('formatting', () => {
 	it('prints a spread with its range and builds aligned tables', () => {
 		expect(range({ median: 1, min: 0.5, max: 2, n: 3 })).toBe('1.00 (0.500 to 2.00)');
 		expect(table(['a', 'b'], [['1', '2']], [1])).toBe('| a | b |\n| --- | ---: |\n| 1 | 2 |');
+	});
+});
+
+describe('the savings ledger', () => {
+	const image = (
+		page: string,
+		bytes: number,
+		arms: Record<string, { bytes: number } | null> | null
+	) => ({
+		kind: 'image',
+		site: 'https://a.test/',
+		profile: 'desktop',
+		page,
+		bytes,
+		format: 'jpeg',
+		arms
+	});
+	const pageRow = (page: string, over: Record<string, unknown> = {}) => ({
+		kind: 'page',
+		site: 'https://a.test/',
+		profile: 'desktop',
+		variant: 'original',
+		page,
+		ok: true,
+		imageBytesLoad: 0,
+		imageBytesScroll: 0,
+		videoBytes: 0,
+		videoTags: [],
+		iframes: [],
+		lcp: null,
+		...over
+	});
+
+	it('takes the smaller of the original and each arm, and never counts a larger one as a saving', () => {
+		expect(
+			imageSavings([
+				image('/', 1000, {
+					native: { bytes: 400 },
+					ceiling: null,
+					resized: { bytes: 100 }
+				}),
+				image('/', 1000, {
+					native: { bytes: 1200 },
+					ceiling: null,
+					resized: { bytes: 900 }
+				}),
+				image('/', 500, null)
+			] as never)
+		).toEqual({ format: 600, resize: 400 + 0, lossless: 0 });
+	});
+
+	it('builds one entry per page with the levers added page by page', () => {
+		const rows = [
+			pageRow('/a', { videoBytes: 500, videoTags: [{ autoplay: false }] }),
+			pageRow('/b', { videoBytes: 700, videoTags: [{ autoplay: true }] }),
+			pageRow('/c', {
+				iframes: [
+					{ host: 'www.youtube.com', bytes: 100_000 },
+					{ host: 'ads.test', bytes: 5000 }
+				]
+			}),
+			image('/a', 1000, { native: { bytes: 400 } }),
+			{ kind: 'embed', provider: 'youtube', arm: 'facade', bytes: 20_000, docBytes: 1000 }
+		];
+		const levers = crawlLevers(rows as never);
+		const byId = Object.fromEntries(levers.map((l) => [l.id, l.bytes]));
+		expect(byId['images-format']).toEqual([600, 0, 0]);
+		expect(byId['video-preload']).toEqual([500, 0, 0]);
+		expect(byId['video-defer']).toEqual([0, 700, 0]);
+		expect(byId.embeds).toEqual([0, 0, 79_000]);
+		expect(addLevers(levers)?.bytes).toEqual([1100, 700, 79_000]);
+		expect(addLevers([])).toBeNull();
+	});
+
+	it('reports the share of pages that save, the medians and the mean, and a site mean per site', () => {
+		const stats = leverStats(['a', 'a', 'b', 'b', 'b'], [0, 100, 0, 0, 300]);
+		expect(stats).toEqual({
+			pages: 5,
+			withSaving: 2,
+			medianPage: 0,
+			medianEligible: 200,
+			medianSite: (50 + 100) / 2,
+			mean: 80
+		});
+		expect(leverStats(['a'], [0])?.medianEligible).toBeNull();
+		expect(leverStats([], [])).toBeNull();
+	});
+
+	it('pairs the lazy and original loads and counts an LCP image the rewrite made lazy', () => {
+		const rows = [
+			pageRow('/a', { imageBytesLoad: 900, lcp: { tag: 'IMG', loading: null } }),
+			pageRow('/a', {
+				variant: 'lazy',
+				imageBytesLoad: 400,
+				lcp: { tag: 'IMG', loading: 'lazy' }
+			}),
+			pageRow('/b', { imageBytesLoad: 100 }),
+			pageRow('/b', { variant: 'lazy', imageBytesLoad: 300 }),
+			pageRow('/c', { variant: 'lazy', imageBytesLoad: 5 })
+		];
+		const lazy = lazyUnscrolled(rows as never);
+		expect(lazy.pairs).toBe(2);
+		expect(lazy.bytes).toEqual([500, 0]);
+		expect(lazy.lcpImagePages).toBe(1);
+		expect(lazy.lcpLazyPages).toBe(1);
+		expect(lazyUnscrolled(rows as never, 'phone').pairs).toBe(0);
+	});
+
+	it('prices bytes at the SWD rate and converts joules to megawatt-hours', () => {
+		expect(ledgerJoules(1e9)).toBeCloseTo(0.194 * 3.6e6, -3);
+		expect(ledgerMWh(3.6e9, 1, 1)).toBe(1);
+		expect(ledgerMWh(10, 100e6, 0.6)).toBeCloseTo((10 * 100e6 * 0.6) / 3.6e9, 10);
+	});
+
+	it('keeps the trim savings and the aggregate ceiling per internal page', () => {
+		const trimmed = [
+			{
+				site: 's',
+				pages: [
+					{ kind: 'home', saved: { br5Saved: 99 } },
+					{ kind: 'internal', saved: { br5Saved: 10 } }
+				]
+			}
+		];
+		const crawl = [
+			{
+				site: 's',
+				pages: [
+					{
+						kind: 'internal',
+						ok: true,
+						newAgg: { transfer: 1000, zstdAlone: 500, zstdDict: 100 }
+					},
+					{
+						kind: 'internal',
+						ok: true,
+						newAgg: { transfer: 1000, zstdAlone: 0, zstdDict: 0 }
+					}
+				]
+			}
+		];
+		const levers = trimLevers(trimmed as never, crawl as never);
+		expect(levers.map((l) => l.bytes)).toEqual([[10], [800, 0]]);
 	});
 });

@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 import {
+	DICTIONARY_ARMS,
 	DOCUMENT_BYTES,
 	FIRST_VIEW_SHARE,
 	FREE_TIER_VIEWS,
@@ -17,18 +18,26 @@ import {
 	SERVER_WATTS,
 	SWD_V4,
 	TIERS,
+	activityFigures,
+	addLevers,
 	attributionalJoules,
 	bandwidthUsd,
 	capacityMWh,
 	classifyOrigin,
 	coverageFigures,
+	crawlLevers,
 	dataCentreJoules,
 	deviceCpuFigures,
+	dictionaryArms,
 	egressUsd,
 	freeTierCeiling,
 	inferenceFigures,
 	joulesPerView,
 	joulesPerViewWithOrigin,
+	lazyUnscrolled,
+	ledgerJoules,
+	ledgerMWh,
+	leverStats,
 	median,
 	monthlyGb,
 	onWireFigures,
@@ -48,15 +57,19 @@ import {
 	serversAfter,
 	spread,
 	trimFigures,
+	trimLevers,
 	viewsChannelMWh,
+	windowCounts,
 	zeroNetworkFigures,
 	type ByteSplit,
+	type DictionaryArm,
 	type Fit,
 	type Measurement,
 	type OpFigures,
 	type OriginClass,
 	type Quartiles,
-	type Spread
+	type Spread,
+	type WindowCount
 } from '../src/report/index';
 import { isMain } from './measure/lib';
 
@@ -1273,6 +1286,480 @@ export function buildFigures(readings: Readings): Figures {
 				['JavaScript', iqr(coverage.jsLoad, share), iqr(coverage.jsScroll, share)]
 			],
 			[1, 2]
+		);
+	}
+	// #endregion
+
+	// #region savings ledger
+	{
+		const crawl = latest(readings, 'image-crawl', null);
+		const crawlLeversList = crawlLevers(crawl.rows);
+		const drupalLevers = trimLevers(
+			latest(readings, 'trim', 'trimmed').rows,
+			latest(readings, 'trim', null).rows
+		);
+		const lazy = lazyUnscrolled(crawl.rows);
+		const kb = (n: number) => `${fixed(n / 1000, 1)} KB`;
+		const both = (n: number) => `${kb(n)} (${sig(ledgerJoules(n))} J)`;
+		const labels: Record<string, string> = {
+			'images-format': 'WebP at native size under the 2560 px ceiling (images)',
+			'images-resize': 'Resize to the rendered width, Chromium with hints (images)',
+			'video-preload': 'Video preload none, for videos that do not autoplay (video)',
+			'video-defer': 'Video autoplay deferred (video, option)',
+			embeds: 'YouTube and Vimeo facade, pages with no CSP (embeds, option)',
+			'css-trim': 'Trimmed stylesheets (trim, option)',
+			'aggregate-dictionary':
+				'New aggregates against the text of earlier pages, a ceiling (dictionary)'
+		};
+		const corpusName = { crawl: 'image-crawl, 16 sites', trim: 'trim, 10 Drupal sites' };
+		const rows = [...crawlLeversList, ...drupalLevers].map((l) => {
+			const s = leverStats(l.sites, l.bytes);
+			return { lever: l, stats: s };
+		});
+		t['ledger-levers'] = table(
+			[
+				'Lever',
+				'Corpus',
+				'Pages with a saving',
+				'Median page',
+				'Median of pages that save',
+				'Median site',
+				'Mean'
+			],
+			rows.map(({ lever, stats }) => [
+				labels[lever.id] ?? lever.id,
+				corpusName[lever.corpus],
+				stats
+					? `${fixed((stats.withSaving / stats.pages) * 100)}% of ${stats.pages}`
+					: 'none',
+				stats ? both(stats.medianPage) : 'none',
+				stats?.medianEligible != null ? both(stats.medianEligible) : 'none',
+				stats ? both(stats.medianSite) : 'none',
+				stats ? both(stats.mean) : 'none'
+			]),
+			[]
+		);
+		const built = (lv: typeof crawlLeversList) =>
+			addLevers(lv.filter((l) => l.status !== 'max'));
+		const maximum = (lv: typeof crawlLeversList) => addLevers(lv);
+		const corpora = [
+			{
+				name: corpusName.crawl,
+				today: built(crawlLeversList),
+				max: maximum(crawlLeversList)
+			},
+			{ name: corpusName.trim, today: built(drupalLevers), max: maximum(drupalLevers) }
+		];
+		const statOf = (
+			c: (typeof corpora)[number],
+			which: 'medianPage' | 'medianSite' | 'mean'
+		) => {
+			const today = c.today && leverStats(c.today.sites, c.today.bytes);
+			const max = c.max && leverStats(c.max.sites, c.max.bytes);
+			return { today: today ? today[which] : 0, max: max ? max[which] : 0 };
+		};
+		const names = {
+			medianPage: 'Median page',
+			medianSite: 'Median site',
+			mean: 'Mean'
+		} as const;
+		t['ledger-first-view'] = table(
+			['Corpus', 'Figure', 'Built levers', 'With the dictionary ceiling'],
+			corpora.flatMap((c) =>
+				(['medianPage', 'medianSite', 'mean'] as const).map((which) => {
+					const s = statOf(c, which);
+					return [c.name, names[which], both(s.today), both(s.max)];
+				})
+			)
+		);
+		const shares = [
+			['Low', FIRST_VIEW_SHARE.low.value],
+			['Central', FIRST_VIEW_SHARE.central.value],
+			['High', FIRST_VIEW_SHARE.high.value]
+		] as const;
+		const mwh = (bytes: number, views: number, share: number) =>
+			sig(ledgerMWh(ledgerJoules(bytes), views, share));
+		t['ledger-mwh'] = table(
+			[
+				'Corpus',
+				'First-view share (L3)',
+				'Figure',
+				'Built, 100 million views (MWh)',
+				'Ceiling, 100 million views (MWh)',
+				'Built, 420 million views (MWh)',
+				'Ceiling, 420 million views (MWh)'
+			],
+			corpora.flatMap((c) =>
+				shares.flatMap(([tier, share]) =>
+					(['medianPage', 'medianSite', 'mean'] as const).map((which) => {
+						const s = statOf(c, which);
+						return [
+							c.name,
+							`${tier}, ${fixed(share * 100)}%`,
+							names[which],
+							mwh(s.today, 100e6, share),
+							mwh(s.max, 100e6, share),
+							mwh(s.today, 420e6, share),
+							mwh(s.max, 420e6, share)
+						];
+					})
+				)
+			),
+			[3, 4, 5, 6]
+		);
+		const whole = Number(v.revisitWholeMedian.replace(/,/g, ''));
+		t['ledger-repeat'] = table(
+			[
+				'Local share of views',
+				'Repeat-view ceiling, 100 million views (MWh)',
+				'Repeat-view ceiling, 420 million views (MWh)'
+			],
+			Object.entries(TIERS).map(([name, z]) => [
+				`${tierName(name)}, ${fixed(z * 100)}%`,
+				mwh(whole, 100e6, z),
+				mwh(whole, 420e6, z)
+			]),
+			[1, 2]
+		);
+		const total = (xs: readonly number[]) => xs.reduce((s, x) => s + x, 0);
+		v.ledgerCrawlSites = fixed(new Set(crawlLeversList[0]?.sites).size);
+		v.ledgerCrawlPages = fixed(crawlLeversList[0]?.sites.length ?? 0);
+		v.ledgerTrimSites = fixed(new Set(drupalLevers[0]?.sites).size);
+		v.ledgerTrimPages = fixed(drupalLevers[0]?.sites.length ?? 0);
+		v.ledgerWholeKb = kb(whole);
+		v.ledgerWholeJ = sig(ledgerJoules(whole));
+		const lazyRuns: Array<{
+			label: string;
+			skip: number | null;
+			rows: ReturnType<typeof latest>['rows'];
+		}> = [
+			{ label: 'skip 2, first rule', skip: null, rows: crawl.rows },
+			...[2, 3, 4].map((skip) => ({
+				label: `skip ${skip}`,
+				skip,
+				rows: latest(readings, 'image-crawl', `lazy-skip${skip}`).rows
+			}))
+		];
+		const profiles = ['desktop', 'phone'] as const;
+		t['ledger-lazy'] = table(
+			[
+				'Rule',
+				'Profile',
+				'Pages loaded twice',
+				'Median page before the first scroll, as sent',
+				'With the rewrite',
+				'Pages that loaded less',
+				'Median of those pages',
+				'Pages with an image as the largest element',
+				'Rewrite put lazy on that element'
+			],
+			lazyRuns.flatMap((run) =>
+				profiles.map((profile) => {
+					const pair = lazyUnscrolled(run.rows, profile);
+					const stats = leverStats(pair.sites, pair.bytes);
+					return [
+						run.label,
+						profile === 'phone' ? 'Pixel 7' : 'Desktop, 1440 px',
+						fixed(pair.pairs),
+						kb(median(pair.baseLoad)),
+						kb(median(pair.lazyLoad)),
+						`${fixed(((stats?.withSaving ?? 0) / Math.max(1, pair.pairs)) * 100)}%`,
+						stats?.medianEligible != null ? kb(stats.medianEligible) : 'none',
+						fixed(pair.lcpImagePages),
+						fixed(pair.lcpLazyPages)
+					];
+				})
+			),
+			[2, 3, 4, 5, 6, 7, 8]
+		);
+		const tested = lazyRuns.flatMap((run) =>
+			run.skip === null
+				? []
+				: [
+						{
+							skip: run.skip,
+							desktop: lazyUnscrolled(run.rows, 'desktop'),
+							phone: lazyUnscrolled(run.rows, 'phone')
+						}
+					]
+		);
+		const safe = tested.find((r) => r.desktop.lcpLazyPages === 0 && r.phone.lcpLazyPages === 0);
+		const residual = (r: (typeof tested)[number]) =>
+			`${r.desktop.lcpLazyPages} of ${r.desktop.lcpImagePages} desktop pages and ${r.phone.lcpLazyPages} of ${r.phone.lcpImagePages} Pixel 7 pages`;
+		const lowest = [...tested].sort(
+			(a, b) =>
+				a.desktop.lcpLazyPages +
+				a.phone.lcpLazyPages -
+				(b.desktop.lcpLazyPages + b.phone.lcpLazyPages)
+		)[0];
+		v.lazyVerdict = safe
+			? `Skip ${safe.skip} is the lowest value tested with no such page on either profile (${residual(safe)} had an image as the largest element).`
+			: `No value of skip tested reached zero on both profiles. Skip ${lowest?.skip} left the fewest, ${lowest ? residual(lowest) : 'none'} with the largest element made lazy, and skip 2 left ${tested[0] ? residual(tested[0]) : 'none'}.`;
+		const dict = dictionaryArms(latest(readings, 'dictionary-size', null).rows);
+		const armLabels: Record<DictionaryArm, string> = {
+			oracle: 'Oracle: the best earlier file of the same kind',
+			browser: 'Browser: the latest earlier file of the same directory',
+			serverVisit: 'Server base, used once the visit has fetched it',
+			serverHeld: 'Server base held from an earlier visit, chosen with the page measured',
+			serverOut: 'Server base held from an earlier visit, chosen without the page measured'
+		};
+		const share = (x: number) => `${fixed(x * 100, 1)}%`;
+		t['ledger-dictionary'] = table(
+			[
+				'Dictionary choice',
+				'Coding',
+				'Median site, share of brotli 11 bytes saved',
+				'All files',
+				'Median internal page',
+				'Internal pages saving over 5%'
+			],
+			DICTIONARY_ARMS.flatMap((arm) =>
+				(['zstd', 'br'] as const).map((codec) => {
+					const s = dict.arms[arm][codec];
+					return [
+						armLabels[arm],
+						codec === 'zstd' ? 'dcz (zstd 19)' : 'dcb (brotli 11)',
+						share(s.medianSite),
+						share(s.pooled),
+						kb(s.medianPageBytes),
+						`${s.pagesOver5} of ${s.pages}`
+					];
+				})
+			),
+			[2, 3, 4, 5]
+		);
+		v.dictFiles = fixed(dict.files);
+		v.dictSites = fixed(dict.sites);
+		v.dictBrowser = share(dict.arms.browser.zstd.medianSite);
+		v.dictVisit = share(dict.arms.serverVisit.zstd.medianSite);
+		v.dictOut = share(dict.arms.serverOut.zstd.medianSite);
+		v.dictHeld = share(dict.arms.serverHeld.zstd.medianSite);
+		v.dictOracle = share(dict.arms.oracle.zstd.medianSite);
+		void lazy;
+	}
+	// #endregion
+
+	// #region metered readings
+	{
+		const scale = (s: Spread, k: number): Spread => ({
+			...s,
+			median: s.median * k,
+			min: s.min * k,
+			max: s.max * k
+		});
+		const windows = (c: WindowCount | undefined): string =>
+			c === undefined
+				? 'none'
+				: `${c.kept} kept, ${c.dropped} dropped${c.idleControl > 0 ? `, ${c.idleControl} more by the idle control` : ''}`;
+		const total = (counts: Record<string, WindowCount>, names: string[]): WindowCount =>
+			names.reduce<WindowCount>(
+				(sum, name) => ({
+					kept: sum.kept + (counts[name]?.kept ?? 0),
+					dropped: sum.dropped + (counts[name]?.dropped ?? 0),
+					idleControl: sum.idleControl + (counts[name]?.idleControl ?? 0)
+				}),
+				{ kept: 0, dropped: 0, idleControl: 0 }
+			);
+		const rows: string[][] = [];
+		const add = (quantity: string, armName: string, value: string, windowsText: string) =>
+			rows.push([quantity, armName, value, windowsText, 'L1']);
+		const ratio = (a: number, b: number) => fixed(a / b, 2);
+
+		const viewsReading = latest(readings, 'rapl', 'views');
+		add(
+			'J saved per local view against optimized HTTP caching',
+			'paisley-park desktop, Chromium',
+			`${v.desktopSaving} (difference of the arm medians)`,
+			windows(total(windowCounts(viewsReading.rows), ['network', 'spool']))
+		);
+		add(
+			'J saved per local view against optimized HTTP caching',
+			'iPhone 14 Pro, Wi-Fi, whole-phone counter',
+			`${v.phoneSaving} (difference of the arm medians)`,
+			`${v.phoneRounds} rounds`
+		);
+
+		const decodeReading = latest(readings, 'rapl', 'image-decode');
+		const decode = raplRun(decodeReading.rows);
+		const decodeCounts = windowCounts(decodeReading.rows);
+		const decodeLabel: Record<string, string> = {
+			bitmap: '`createImageBitmap`',
+			img: '`<img>` at its CSS width'
+		};
+		for (const method of ['bitmap', 'img']) {
+			for (const variant of ['original', 'native', 'resized']) {
+				const name = `${method}-${variant}`;
+				add(
+					'mJ per image decoded above idle',
+					`${decodeLabel[method]}, ${variant === 'original' ? 'original JPEG or PNG' : variant === 'native' ? 'WebP at native size' : 'WebP resized to the rendered width'}`,
+					range(mj(arm(decode, name).joules), (x) => fixed(x, 1)),
+					windows(decodeCounts[name])
+				);
+			}
+		}
+		const decodeJ = (name: string) => arm(decode, name).joules.median;
+		v.decodeBitmapNative = ratio(decodeJ('bitmap-native'), decodeJ('bitmap-original'));
+		v.decodeBitmapResized = ratio(decodeJ('bitmap-resized'), decodeJ('bitmap-original'));
+		v.decodeImgNative = ratio(decodeJ('img-native'), decodeJ('img-original'));
+		v.decodeImgResized = ratio(decodeJ('img-resized'), decodeJ('img-original'));
+		v.decodeImages = fixed(Number(decodeReading.method.images));
+		v.decodeRounds = fixed(arm(decode, 'bitmap-original').windows);
+		v.decodeImgMs = fixed(arm(decode, 'img-original').ms, 1);
+		v.decodeBitmapMs = fixed(arm(decode, 'bitmap-original').ms, 1);
+		const against = (name: string) => {
+			const a = arm(decode, name).joules;
+			const o = arm(decode, 'img-original').joules;
+			return a.max < o.min
+				? 'below every original window'
+				: a.min > o.max
+					? 'above every original window'
+					: 'its range overlaps the original';
+		};
+		v.decodeImgNativeText = against('img-native');
+		v.decodeImgResizedText = against('img-resized');
+		const dropped = (counts: Record<string, WindowCount>) =>
+			Object.values(counts).reduce((sum, c) => sum + c.dropped, 0);
+		v.decodeDropped = fixed(dropped(decodeCounts));
+
+		const encodeReading = latest(readings, 'rapl', 'image-encode');
+		const encode = raplRun(encodeReading.rows);
+		const encodeCounts = windowCounts(encodeReading.rows);
+		const encodeLabel: Record<string, string> = {
+			'warm-native': 'tinyimg 1.1.1, module loaded, native size',
+			'warm-resized': 'tinyimg 1.1.1, module loaded, rendered width',
+			'cold-native': 'tinyimg 1.1.1, fresh Node process per pass, native size'
+		};
+		const encodeRow = (name: string) =>
+			encodeReading.rows.find((r) => r.arm === name) as Record<string, number>;
+		for (const name of ['warm-native', 'warm-resized', 'cold-native']) {
+			add(
+				'J per conversion to WebP above idle',
+				encodeLabel[name] as string,
+				range(arm(encode, name).joules, (x) => fixed(x, 2)),
+				windows(encodeCounts[name])
+			);
+		}
+		for (const name of ['warm-native', 'warm-resized', 'cold-native']) {
+			const r = encodeRow(name);
+			add(
+				'J per MB of input above idle',
+				encodeLabel[name] as string,
+				range(
+					scale(
+						arm(encode, name).joules,
+						(r.n as number) / ((r.bytesIn as number) / 1e6)
+					),
+					(x) => fixed(x, 2)
+				),
+				windows(encodeCounts[name])
+			);
+		}
+		const encodeJ = (name: string) => arm(encode, name).joules.median;
+		v.encodeWarm = fixed(encodeJ('warm-native'), 2);
+		v.encodeWarmMs = fixed(arm(encode, 'warm-native').ms);
+		v.encodeCold = fixed(encodeJ('cold-native'), 2);
+		v.encodeColdOver = fixed(
+			((encodeJ('cold-native') - encodeJ('warm-native')) / encodeJ('warm-native')) * 100
+		);
+		v.encodeResized = fixed(encodeJ('warm-resized'), 2);
+		v.encodeImages = fixed(Number(encodeReading.method.images));
+		v.encodePerMb = fixed(
+			(encodeJ('warm-native') * (encodeRow('warm-native').n as number)) /
+				((encodeRow('warm-native').bytesIn as number) / 1e6),
+			2
+		);
+		v.encodeRounds = fixed(arm(encode, 'warm-native').windows);
+		v.encodeDropped = fixed(dropped(encodeCounts));
+
+		const activityReading = latest(readings, 'rapl', 'idle-activity');
+		const activity = activityFigures(activityReading.rows);
+		const activityLabel: Record<string, string> = {
+			quiet: 'a quiet visible page',
+			poll: 'a page polling a local endpoint once a second',
+			raf: 'a requestAnimationFrame loop moving one box'
+		};
+		const none = 'no reading: every window was dropped';
+		if (activity.idleWatts)
+			add(
+				'package W, no browser running',
+				'idle windows of the kept rounds (median per round, then over rounds)',
+				range(activity.idleWatts, (x) => fixed(x, 1)),
+				windows(activity.counts.idle)
+			);
+		for (const name of ['quiet', 'poll', 'raf']) {
+			const a = activity.arms[name];
+			add(
+				'package W',
+				activityLabel[name] as string,
+				a ? range(a.watts, (x) => fixed(x, 1)) : none,
+				windows(activity.counts[name])
+			);
+		}
+		for (const name of ['quiet', 'poll', 'raf']) {
+			const a = activity.arms[name];
+			add(
+				'W above the idle of the same round',
+				activityLabel[name] as string,
+				a ? range(a.extraWatts, (x) => fixed(x, 2)) : none,
+				windows(activity.counts[name])
+			);
+		}
+		const extra = (name: string) => activity.arms[name]?.extraWatts.median;
+		v.activityPoll =
+			extra('poll') === undefined ? 'no reading' : fixed(extra('poll') as number, 2);
+		v.activityRaf =
+			extra('raf') === undefined ? 'no reading' : fixed(extra('raf') as number, 1);
+		v.activityRafMinute =
+			extra('raf') === undefined ? 'no reading' : fixed((extra('raf') as number) * 60);
+		const activityRounds = Number(activityReading.method.rounds);
+		const noisy = activity.noisyRounds.map((r) => r + 1).join(' and ') || 'none';
+		const idleWindows = activityReading.rows
+			.filter((r) => r.arm === 'idle')
+			.map((r) => (r.pkgJ as number) / ((r.elapsedMs as number) / 1000));
+		const idleDropped = activity.counts.idle?.dropped ?? 0;
+
+		const quietExtra = activity.arms.quiet?.extraWatts.median;
+		v.activityQuietExtra = quietExtra === undefined ? 'no reading' : fixed(quietExtra, 2);
+		v.activityRoundsText = `Of ${activityRounds} rounds, ${activityRounds - activity.noisyRounds.length} are kept: in round${activity.noisyRounds.length === 1 ? '' : 's'} ${noisy} (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the ${idleWindows.length} idle windows of the run the draw ran from ${fixed(Math.min(...idleWindows), 1)} W to ${fixed(Math.max(...idleWindows), 1)} W, and the CPU rule dropped ${idleDropped} of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on ${activity.arms.poll?.windows ?? 0} windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.`;
+
+		const dictReading = latest(readings, 'rapl', 'dictionary-load');
+		const probe = dictReading.rows.find((r) => r.arm === 'negotiation') as Record<
+			string,
+			unknown
+		>;
+		const dictWindows = dictReading.rows.filter((r) => r.arm !== 'negotiation');
+		const dictRun = raplRun(dictWindows);
+		const dictCounts = windowCounts(dictWindows);
+		v.dictLoadDropped = fixed(dropped(dictCounts));
+		const chromium = String(probe.chromium);
+		if (probe.negotiated !== true) {
+			v.dictLoadText = `Chromium ${chromium} did not negotiate compression dictionary transport on the box: the origin saw ${probe.withDictionaryHeader} requests with Available-Dictionary and served ${probe.dczServed} dcz responses, so no energy windows were run. That is the reading.`;
+		} else {
+			const plain = arm(dictRun, 'plain');
+			const dict = arm(dictRun, 'dictionary');
+			const brotliBytes = probe.targetBrotliBytes as number;
+			const dczBytes = probe.targetDczBytes as number;
+			for (const [name, f] of [
+				['plain', plain],
+				['dictionary', dict]
+			] as const) {
+				add(
+					'mJ per page load above idle (one aggregate file)',
+					name === 'plain'
+						? `brotli 11, ${fixed(brotliBytes)} B on the wire`
+						: `dcz against a stored dictionary, ${fixed(dczBytes)} B on the wire`,
+					range(mj(f.joules), (x) => fixed(x, 1)),
+					windows(dictCounts[name])
+				);
+			}
+			const lower = (1 - dict.joules.median / plain.joules.median) * 100;
+			v.dictLoadText = `Chromium ${chromium} negotiates compression dictionary transport on the box: the page's request for the target carried Available-Dictionary, its Accept-Encoding listed dcb and dcz, and the origin answered dcz. The pair is two JavaScript aggregates of one Drupal site, a dictionary of ${fixed(probe.dictBytes as number)} B and a target of ${fixed(probe.targetBytes as number)} B. The target is ${fixed(brotliBytes)} B on the wire as brotli 11 and ${fixed(dczBytes)} B as dcz, ${fixed((1 - dczBytes / brotliBytes) * 100)}% fewer. A page load that fetched the target cost ${fixed(plain.joules.median * 1000, 1)} mJ above idle as brotli and ${fixed(dict.joules.median * 1000, 1)} mJ as dcz, ${fixed(lower)}% lower over ${fixed(dict.windows)} rounds of ${dictReading.method['loads per window']} loads (the dcz arm's range ${dict.joules.max < plain.joules.min ? 'sits below' : 'overlaps'} the brotli arm's). The figure counts the browser's decode and the loopback transfer. It leaves out the network, and the server's encode, which this origin did once at start-up. The pair comes from the churned JavaScript aggregates, where the delta is large, so its byte saving sits above the ${v.dictHeld} that the dictionary-size reading gives at the median site for a base the visitor already holds. One pair in one browser shows that dcz decode costs no more than brotli decode here. It says nothing about how many visitors hold a dictionary.`;
+		}
+
+		t['ledger-metered'] = table(
+			['Quantity', 'Arm', 'Median (min to max)', 'Windows', 'Layer'],
+			rows,
+			[2]
 		);
 	}
 	// #endregion
