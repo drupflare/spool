@@ -1,6 +1,7 @@
 import { ProtocolError } from '../protocol/errors.js';
-import { tagsOf, type Tag } from '../trim/tokens.js';
+import type { Tag } from '../trim/tokens.js';
 import type { MediaSignals } from './headers.js';
+import { appendAttributes, applyEdits, find, setValue, tagsNamed, type Edit } from './html.js';
 
 /**
  * What `spoolProxy({ video })` does to `<video>` start tags. `preload` is the value to set, or
@@ -39,62 +40,31 @@ export function resolveVideoOptions(options: VideoOptions = {}): ResolvedVideoOp
 	return resolved;
 }
 
-type Edit = { at: number; to: number; text: string };
-
-function commentRanges(html: string): Array<[number, number]> {
-	const ranges: Array<[number, number]> = [];
-	let at = html.indexOf('<!--');
-	while (at >= 0) {
-		const close = html.indexOf('-->', at + 4);
-		const end = close < 0 ? html.length : close + 3;
-		ranges.push([at, end]);
-		at = html.indexOf('<!--', end);
-	}
-	return ranges;
-}
-
-/** the edit that gives the attribute `a` the value `value`, keeping its quote style */
-function setValue(html: string, a: { start: number; end: number }, value: string): Edit {
-	const raw = html.slice(a.start, a.end);
-	const prefix = /^[^=\s]+\s*=\s*/.exec(raw);
-	if (!prefix) return { at: a.end, to: a.end, text: `="${value}"` };
-	const quote = raw[prefix[0].length];
-	const q = quote === '"' || quote === "'" ? quote : '';
-	return { at: a.start + prefix[0].length, to: a.end, text: `${q}${value}${q}` };
-}
-
 function editsFor(html: string, tag: Tag, options: ResolvedVideoOptions): Edit[] {
 	const edits: Edit[] = [];
-	const find = (name: string) => tag.attributes.find((a) => a.name === name);
-	const autoplay = find('autoplay');
+	const autoplay = find(tag, 'autoplay');
 	const defer = options.autoplay === 'defer' && autoplay !== undefined;
 	const target = defer ? (options.preload === 'metadata' ? 'metadata' : 'none') : options.preload;
 	const added: string[] = [];
 
 	if (defer) {
-		if (find('data-spool-autoplay')) {
+		if (find(tag, 'data-spool-autoplay')) {
 			let from = autoplay.start;
 			while (from > tag.start && /\s/.test(html[from - 1] as string)) from--;
 			edits.push({ at: from, to: autoplay.end, text: '' });
 		} else {
 			edits.push({ at: autoplay.start, to: autoplay.end, text: 'data-spool-autoplay' });
 		}
-		if (!find('controls')) added.push('controls');
+		if (!find(tag, 'controls')) added.push('controls');
 	}
 	if (target !== false) {
-		const preload = find('preload');
+		const preload = find(tag, 'preload');
 		if (!preload) added.push(`preload="${target}"`);
 		else if (preload.value.trim().toLowerCase() !== target) {
 			edits.push(setValue(html, preload, target));
 		}
 	}
-	if (added.length > 0) {
-		const floor = tag.attributes.at(-1)?.end ?? tag.start + 1 + tag.name.length;
-		const slash = html[tag.end - 1] === '/' && floor < tag.end;
-		const at = slash ? tag.end - 1 : tag.end;
-		const gap = /\s/.test(html[at - 1] as string) ? '' : ' ';
-		edits.push({ at, to: at, text: `${gap}${added.join(' ')}` });
-	}
+	if (added.length > 0) edits.push(appendAttributes(html, tag, added));
 	return edits;
 }
 
@@ -115,20 +85,13 @@ export function rewriteVideo(
 		resolved.when === 'always' ||
 		(resolved.when === 'save-data' ? signals.saveData : signals.slow || signals.saveData);
 	if (!applies) return { html, rewritten: 0 };
-	const comments = commentRanges(html);
-	let out = '';
-	let from = 0;
+	const edits: Edit[] = [];
 	let rewritten = 0;
-	for (const tag of tagsOf(html)) {
-		if (tag.name !== 'video' || html[tag.end] !== '>') continue;
-		if (comments.some(([start, end]) => tag.start >= start && tag.start < end)) continue;
-		const edits = editsFor(html, tag, resolved).sort((a, b) => a.at - b.at);
-		if (edits.length === 0) continue;
+	for (const tag of tagsNamed(html, 'video')) {
+		const tagEdits = editsFor(html, tag, resolved);
+		if (tagEdits.length === 0) continue;
 		rewritten++;
-		for (const edit of edits) {
-			out += html.slice(from, edit.at) + edit.text;
-			from = edit.to;
-		}
+		edits.push(...tagEdits);
 	}
-	return { html: out + html.slice(from), rewritten };
+	return { html: applyEdits(html, edits), rewritten };
 }

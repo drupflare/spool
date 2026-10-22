@@ -1,6 +1,14 @@
 import { ProtocolError } from '../protocol/errors.js';
 import { sourceHash } from '../trim/manifest.js';
 import { mergeList, signalsOf } from './headers.js';
+import { resolveLazyOptions, type LazyOptions, type ResolvedLazyOptions } from './lazy.js';
+import {
+	RESPONSIVE_PARAM,
+	resolveResponsiveOptions,
+	takeWidth,
+	type ResolvedResponsiveOptions,
+	type ResponsiveOptions
+} from './responsive.js';
 
 /** what an {@link ImageEncoder} is asked to produce */
 export type ImageEncodeOptions = {
@@ -9,6 +17,13 @@ export type ImageEncodeOptions = {
 	quality: number;
 	/** the widest the output may be, in pixels; absent means the source width */
 	width?: number;
+	/** encode without loss, so `quality` has no effect; absent means lossy */
+	lossless?: boolean;
+	/**
+	 * the time the encoder may spend, in milliseconds; absent means no limit. It is a hint for an
+	 * encoder that can trade quality for time, and the proxy stops waiting at this time either way
+	 */
+	budgetMs?: number;
 };
 
 /** what an {@link ImageEncoder} returns */
@@ -30,6 +45,8 @@ export type TinyimgTransformOptions = {
 	quality: number;
 	width?: number;
 	fit?: 'scale-down';
+	lossless?: boolean;
+	budgetMs?: number;
 };
 
 /**
@@ -46,16 +63,44 @@ export type TinyimgBinding<M = unknown> = {
 	) => Promise<{ bytes(): Uint8Array }>;
 };
 
+/** the oldest tinyimg that turns an EXIF-rotated JPEG upright; 1.1.0 and earlier leave it sideways */
+export const TINYIMG_MIN_VERSION = [1, 1, 1] as const;
+
+/** the version text of a module that reports one older than {@link TINYIMG_MIN_VERSION}, else null */
+function tooOld(module: unknown): string | null {
+	const version = (module as { version?: unknown } | null)?.version;
+	if (!Array.isArray(version) || version.length !== 3 || !version.every(Number.isInteger)) {
+		return null;
+	}
+	for (const [at, need] of TINYIMG_MIN_VERSION.entries()) {
+		const have = version[at] as number;
+		if (have !== need) return have < need ? version.join('.') : null;
+	}
+	return null;
+}
+
 /**
  * An {@link ImageEncoder} over tinyimg. It passes `fit: 'scale-down'` when a width is set, which
- * keeps tinyimg from upscaling, and returns the bytes of the result.
+ * keeps tinyimg from upscaling, passes `lossless` and `budgetMs` when the proxy sets them, and
+ * returns the bytes of the result. A module whose `version` is older than
+ * {@link TINYIMG_MIN_VERSION} is refused with a `ProtocolError`, since converting an EXIF-rotated
+ * JPEG with it would serve the picture sideways. A module that reports no version is accepted.
  */
 export function tinyimgEncoder<M>(binding: TinyimgBinding<M>): ImageEncoder {
-	return async (input, { format, quality, width }) => {
+	const old = tooOld(binding.module);
+	if (old !== null) {
+		throw new ProtocolError(
+			'bad-route',
+			`tinyimg ${old} leaves an EXIF-rotated JPEG sideways; use ${TINYIMG_MIN_VERSION.join('.')} or later`
+		);
+	}
+	return async (input, { format, quality, width, lossless, budgetMs }) => {
 		const out = await binding.transform(binding.module, input, {
 			format,
 			quality,
-			...(width === undefined ? {} : { width, fit: 'scale-down' as const })
+			...(width === undefined ? {} : { width, fit: 'scale-down' as const }),
+			...(lossless ? { lossless: true } : {}),
+			...(budgetMs === undefined ? {} : { budgetMs })
 		});
 		return { bytes: out.bytes() };
 	};
@@ -99,6 +144,12 @@ export function memoryImageCache(maxBytes: number): ImageCache {
 	};
 }
 
+/** how a PNG becomes WebP; see `ImageOptions.png` */
+export type PngMode = 'lossy' | 'auto' | 'lossless';
+
+/** the largest PNG, in bytes, that `png: 'auto'` encodes both ways */
+export const PNG_AUTO_BYTES = 200_000;
+
 /** what `spoolProxy({ images })` takes */
 export type ImageOptions = {
 	/** converts the bytes; see {@link tinyimgEncoder} */
@@ -109,8 +160,39 @@ export type ImageOptions = {
 	minBytes?: number;
 	/** largest origin file converted, in bytes; default 15,000,000 */
 	maxBytes?: number;
-	/** `fallback` is the width ceiling for a request that names none; default no resize */
+	/** `fallback` is the width ceiling for a request that names none; default `maxWidth`, and it wins over `maxWidth` when both are set */
 	width?: { fallback?: number };
+	/**
+	 * The width ceiling, 1 to 16384, for a request that carries no width hint; default 2560, `false`
+	 * for none. A `Sec-CH-Width` or a viewport and DPR pair wins over it. An image narrower than the
+	 * ceiling keeps its size.
+	 */
+	maxWidth?: number | false;
+	/**
+	 * How long the proxy waits for the encoder, in milliseconds; default 10,000, `false` to wait
+	 * without limit. When the time runs out the visitor gets the origin's bytes, and the encoder is
+	 * left to finish: a result that arrives late is cached for the next request.
+	 */
+	timeoutMs?: number | false;
+	/**
+	 * How a PNG becomes WebP; default `'lossy'`. `'lossless'` encodes every PNG without loss, and
+	 * `'auto'` encodes a PNG under 200 KB both ways and serves the smaller (a screenshot or a flat
+	 * graphic is often smaller lossless, a photograph in a PNG is not). A JPEG is always lossy. The
+	 * mode is part of the cache key and the ETag of a PNG that is not `'lossy'`.
+	 */
+	png?: PngMode;
+	/**
+	 * Adds a `srcset` of `?spool-w=<width>` variants to same-origin `<img>` tags in HTML, so a
+	 * browser that sends no `Sec-CH-Width` (Firefox, Safari) still asks for a smaller file; default
+	 * `false`, no page is touched for it. See `rewriteResponsive`.
+	 */
+	responsive?: ResponsiveOptions | false;
+	/**
+	 * Adds `loading="lazy"` and `decoding="async"` to `<img>` tags in HTML after the first `skip`
+	 * (default 2), and `loading="lazy"` to `<iframe>` tags with `iframes`; default `false`, no page
+	 * is touched for it. See `rewriteLazy`.
+	 */
+	lazy?: LazyOptions | false;
 	/** add `Accept-CH` to HTML responses so the browser sends the width hints; default true */
 	hints?: boolean;
 	/** converted bytes by content hash; default an in-memory cache of 64 MiB, `false` for none */
@@ -125,7 +207,12 @@ export type ResolvedImageOptions = {
 	quality: { default: number; saveData: number; slow: number };
 	minBytes: number;
 	maxBytes: number;
+	/** `fallback` is `width.fallback` when set, else `maxWidth` */
 	width: { fallback?: number };
+	timeoutMs: number | false;
+	png: PngMode;
+	responsive: ResolvedResponsiveOptions | false;
+	lazy: ResolvedLazyOptions | false;
 	hints: boolean;
 	paths: RegExp;
 };
@@ -136,20 +223,28 @@ export type ImageStats = {
 	bytesIn: number;
 	bytesOut: number;
 	cacheHits: number;
+	/** requests that waited for an encode another request had already started */
+	coalesced: number;
+	/** `<img>` and `<iframe>` tags that got `loading="lazy"` */
+	lazied: number;
+	/** `<img>` tags that got a `srcset` of `spool-w` variants */
+	responsive: number;
 	/**
 	 * Requests and responses left as they were, by the first test that failed: `path`, `accept`,
 	 * `range`, `authorization`, `status`, `type`, `set-cookie`, `size-min`, `size-max`, `larger`
-	 * (the encoder's output was not smaller), `failed` (the encoder threw) and `not-modified`
-	 * (answered 304 without encoding).
+	 * (the encoder's output was not smaller), `failed` (the encoder threw), `timeout` (the encoder
+	 * ran past `timeoutMs`) and `not-modified` (answered 304 without encoding).
 	 */
 	skipped: Record<string, number>;
 };
 
-/** the state `spoolProxy` keeps for `images`: checked options, the cache and the counters */
+/** the state `spoolProxy` keeps for `images`: checked options, the cache, the running encodes and the counters */
 export type ImageConverter = {
 	readonly options: ResolvedImageOptions;
 	readonly cache: ImageCache | undefined;
 	readonly stats: ImageStats;
+	/** encodes in flight by cache key, so identical requests share one encoder call */
+	readonly running: Map<string, Promise<Uint8Array>>;
 };
 
 /** the Vary entries a converted image answers with */
@@ -171,6 +266,8 @@ export const IMAGE_HINTS: readonly string[] = [
 ];
 
 const MAX_WIDTH = 16384;
+const DEFAULT_MAX_WIDTH = 2560;
+const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_CACHE_BYTES = 64 * 1024 * 1024;
 
 function integerIn(value: number, low: number, high: number, name: string): number {
@@ -201,15 +298,29 @@ export function resolveImageOptions(options: ImageOptions): ResolvedImageOptions
 		throw new ProtocolError('bad-route', 'images minBytes must not exceed maxBytes');
 	}
 	const fallback = options.width?.fallback;
+	const ceiling = options.maxWidth === undefined ? DEFAULT_MAX_WIDTH : options.maxWidth;
+	const checked = ceiling === false ? false : integerIn(ceiling, 1, MAX_WIDTH, 'maxWidth');
+	const timeout = options.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : options.timeoutMs;
+	const png = options.png ?? 'lossy';
+	if (png !== 'lossy' && png !== 'auto' && png !== 'lossless') {
+		throw new ProtocolError('bad-route', "images png must be 'lossy', 'auto' or 'lossless'");
+	}
 	return {
 		encoder: options.encoder,
 		quality,
 		minBytes,
 		maxBytes,
 		width:
-			fallback === undefined
-				? {}
-				: { fallback: integerIn(fallback, 1, MAX_WIDTH, 'width.fallback') },
+			fallback !== undefined
+				? { fallback: integerIn(fallback, 1, MAX_WIDTH, 'width.fallback') }
+				: checked === false
+					? {}
+					: { fallback: checked },
+		timeoutMs:
+			timeout === false ? false : integerIn(timeout, 1, Number.MAX_SAFE_INTEGER, 'timeoutMs'),
+		png,
+		responsive: options.responsive ? resolveResponsiveOptions(options.responsive) : false,
+		lazy: options.lazy ? resolveLazyOptions(options.lazy) : false,
 		hints: options.hints !== false,
 		paths: options.paths ?? /\.(?:jpe?g|png)$/i
 	};
@@ -224,7 +335,17 @@ export function createImageConverter(options: ImageOptions): ImageConverter {
 			options.cache === false
 				? undefined
 				: (options.cache ?? memoryImageCache(DEFAULT_CACHE_BYTES)),
-		stats: { converted: 0, bytesIn: 0, bytesOut: 0, cacheHits: 0, skipped: {} }
+		stats: {
+			converted: 0,
+			bytesIn: 0,
+			bytesOut: 0,
+			cacheHits: 0,
+			coalesced: 0,
+			lazied: 0,
+			responsive: 0,
+			skipped: {}
+		},
+		running: new Map()
 	};
 }
 
@@ -289,6 +410,18 @@ export function imageRequest(converter: ImageConverter, request: Request): boole
 	return true;
 }
 
+/**
+ * The query string the origin should see for `url`: with `responsive` set and a pathname that
+ * `paths` matches, every `spool-w` parameter is removed, so the origin never sees a parameter
+ * only the proxy reads; otherwise `url.search` as it is.
+ */
+export function originSearch(converter: ImageConverter, url: URL): string {
+	const { responsive, paths } = converter.options;
+	if (!responsive || !url.search.includes(RESPONSIVE_PARAM)) return url.search;
+	paths.lastIndex = 0;
+	return paths.test(url.pathname) ? takeWidth(url.search, responsive.widths).search : url.search;
+}
+
 function skipBecause(converter: ImageConverter, why: string): false {
 	skip(converter, why);
 	return false;
@@ -316,16 +449,90 @@ function matches(header: string | null, etag: string): boolean {
 }
 
 /**
+ * The encoded bytes for `key`, or `'failed'` when the encoder threw or returned nothing, or
+ * `'timeout'` when it ran past `timeoutMs`. A request for a key that is already encoding waits for
+ * that encode instead of starting another. The encode caches its own result when it finishes, so
+ * one that outlives its waiters still serves the next request.
+ */
+async function encode(
+	converter: ImageConverter,
+	key: string,
+	bytes: Uint8Array,
+	quality: number,
+	width: number | undefined,
+	mode: PngMode
+): Promise<Uint8Array | 'failed' | 'timeout'> {
+	const { options, stats, cache, running } = converter;
+	let task = running.get(key);
+	if (task) {
+		stats.coalesced++;
+	} else {
+		const budget = options.timeoutMs === false ? {} : { budgetMs: options.timeoutMs };
+		const run = async (lossless: boolean) =>
+			(
+				await options.encoder(bytes, {
+					format: 'webp',
+					quality,
+					...(width === undefined ? {} : { width }),
+					...(lossless ? { lossless: true } : {}),
+					...budget
+				})
+			).bytes;
+		const started = (async () => {
+			let out: Uint8Array;
+			if (mode === 'auto') {
+				// a failed arm loses to the other; both failing fails the encode
+				const arms = await Promise.allSettled([run(false), run(true)]);
+				const made = arms.flatMap((arm) =>
+					arm.status === 'fulfilled' && arm.value.length > 0 ? [arm.value] : []
+				);
+				if (made.length === 0) throw new Error('the encoder returned no bytes');
+				out = made.reduce((best, next) => (next.length < best.length ? next : best));
+			} else {
+				out = await run(mode === 'lossless');
+				if (out.length === 0) throw new Error('the encoder returned no bytes');
+			}
+			cache?.set(key, out);
+			return out;
+		})();
+		task = started;
+		running.set(key, started);
+		const clear = () => {
+			if (running.get(key) === started) running.delete(key);
+		};
+		started.then(clear, clear);
+	}
+	const limit = options.timeoutMs;
+	if (limit === false) {
+		return task.catch(() => 'failed' as const);
+	}
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const expired = new Promise<'timeout'>((resolve) => {
+		timer = setTimeout(() => resolve('timeout'), limit);
+	});
+	try {
+		return await Promise.race([task, expired]);
+	} catch {
+		return 'failed';
+	} finally {
+		if (timer !== undefined) clearTimeout(timer);
+	}
+}
+
+/**
  * Answers one origin response to a request that passed {@link imageRequest}: a `200` JPEG or PNG
  * that sets no cookie and is between `minBytes` and `maxBytes` becomes WebP, and anything else
  * comes back as it was. The conversion keeps the origin's `Cache-Control`, merges {@link IMAGE_VARY}
  * into `Vary`, sets a weak `ETag` from the origin bytes, the quality and the width, and answers
  * `304` when the request's `If-None-Match` matches it. `X-Spool-Image` reads
- * `<bytesIn>-><bytesOut>; q=<quality>; w=<width or 0>`.
+ * `<bytesIn>-><bytesOut>; q=<quality>; w=<width or 0>`. With `responsive`, a listed `spool-w` in the
+ * request URL lowers the width to at most that value; an unlisted one is ignored. A PNG follows
+ * `png`.
  *
  * The origin is fetched for every request, so a visitor only ever gets the bytes the origin sent
- * that visitor. An encoder that throws, or output that is not smaller, serves the origin's bytes
- * with a `200`. The response never fails because of the conversion.
+ * that visitor. An encoder that throws, runs past `timeoutMs`, or produces output that is not
+ * smaller serves the origin's bytes with a `200`. The response never fails because of the
+ * conversion. Simultaneous requests for the same bytes, quality and width share one encoder call.
  */
 export async function convertImage(
 	converter: ImageConverter,
@@ -353,9 +560,20 @@ export async function convertImage(
 	if (bytes.length < options.minBytes) return skipWith(converter, 'size-min', original());
 	if (bytes.length > options.maxBytes) return skipWith(converter, 'size-max', original());
 
-	const { quality, width } = imageVariant(request.headers, options);
+	const variant = imageVariant(request.headers, options);
+	const { quality } = variant;
+	let { width } = variant;
+	if (options.responsive) {
+		const asked = takeWidth(new URL(request.url).search, options.responsive.widths).width;
+		if (asked !== undefined) width = width === undefined ? asked : Math.min(width, asked);
+	}
+	// only a PNG has a mode, and `auto` stays lossy above the size it encodes both ways
+	const mode: PngMode =
+		type === 'image/png' && (options.png !== 'auto' || bytes.length < PNG_AUTO_BYTES)
+			? options.png
+			: 'lossy';
 	const hash = await sourceHash(bytes);
-	const etag = `W/"${hex(hash)}-${quality}-${width ?? 0}"`;
+	const etag = `W/"${hex(hash)}-${quality}-${width ?? 0}${mode === 'lossy' ? '' : `-${mode}`}"`;
 	const headers = new Headers(upstream.headers);
 	headers.set('content-type', 'image/webp');
 	headers.delete('content-length');
@@ -367,24 +585,14 @@ export async function convertImage(
 		return new Response(null, { status: 304, headers });
 	}
 
-	const key = `${hash}|${quality}|${width ?? 0}`;
+	const key = `${hash}|${quality}|${width ?? 0}${mode === 'lossy' ? '' : `|${mode}`}`;
 	let out = cache?.get(key);
 	if (out) {
 		stats.cacheHits++;
 	} else {
-		try {
-			out = (
-				await options.encoder(bytes, {
-					format: 'webp',
-					quality,
-					...(width === undefined ? {} : { width })
-				})
-			).bytes;
-		} catch {
-			return skipWith(converter, 'failed', original());
-		}
-		if (out.length === 0) return skipWith(converter, 'failed', original());
-		cache?.set(key, out);
+		const result = await encode(converter, key, bytes, quality, width, mode);
+		if (typeof result === 'string') return skipWith(converter, result, original());
+		out = result;
 	}
 	if (out.length >= bytes.length) return skipWith(converter, 'larger', original());
 	headers.set('x-spool-image', `${bytes.length}->${out.length}; q=${quality}; w=${width ?? 0}`);

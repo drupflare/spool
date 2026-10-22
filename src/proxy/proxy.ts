@@ -1,12 +1,21 @@
+import {
+	resolveEmbedOptions,
+	rewriteEmbeds,
+	type EmbedOptions,
+	type EmbedStats
+} from '../media/embeds.js';
 import { makePrivate, mergeList, signalsOf } from '../media/headers.js';
 import {
 	convertImage,
 	createImageConverter,
 	IMAGE_HINTS,
 	imageRequest,
+	originSearch,
 	type ImageOptions,
 	type ImageStats
 } from '../media/image.js';
+import { rewriteLazy } from '../media/lazy.js';
+import { rewriteResponsive } from '../media/responsive.js';
 import { resolveVideoOptions, rewriteVideo, type VideoOptions } from '../media/video.js';
 import { PATHS } from '../protocol/config.js';
 import { writeEnvelope } from '../protocol/envelope.js';
@@ -30,6 +39,7 @@ import {
 	trimKey,
 	type TrimManifest
 } from '../trim/index.js';
+import { createDictionaries, type DictionaryOptions, type DictionaryStats } from './dictionary.js';
 import {
 	decline,
 	htmlCharset,
@@ -100,7 +110,10 @@ export type ProxyOptions = {
 	trim?: TrimManifest;
 	/**
 	 * Converts JPEG and PNG responses to WebP for a browser that accepts it, at the quality and
-	 * width the request's headers call for; see `ImageOptions`. Without it no image is touched.
+	 * width the request's headers call for, up to a width ceiling of 2560 pixels when the request
+	 * names none. Identical simultaneous requests share one encoder call, and an encoder that runs
+	 * past 10 seconds is abandoned for that request. See `ImageOptions`. Without it no image is
+	 * touched.
 	 */
 	images?: ImageOptions;
 	/**
@@ -108,6 +121,18 @@ export type ProxyOptions = {
 	 * Without it no page is touched for video.
 	 */
 	video?: VideoOptions;
+	/**
+	 * Replaces server-rendered YouTube and Vimeo `<iframe>` embeds with a link that loads the
+	 * player on click; see `EmbedOptions`. A page that sends a `Content-Security-Policy` is left
+	 * alone. Without it no embed is touched.
+	 */
+	embeds?: EmbedOptions;
+	/**
+	 * Serves a stylesheet or script as `dcz` or `dcb` against an earlier public file of the same
+	 * directory the visitor already holds (RFC 9842, Chromium 130 and later); see
+	 * `DictionaryOptions`. Without it no response is marked or encoded.
+	 */
+	dictionary?: DictionaryOptions;
 };
 
 /** what the proxy counted since it started: trimmed answers, hash mismatches and guard firings */
@@ -129,6 +154,10 @@ export type SpoolProxy = {
 	readonly images: Readonly<ImageStats>;
 	/** live counters; all zero when `video` is not set */
 	readonly video: Readonly<VideoStats>;
+	/** live counters; all zero when `embeds` is not set */
+	readonly embeds: Readonly<EmbedStats>;
+	/** live counters; all zero when `dictionary` is not set */
+	readonly dictionary: Readonly<DictionaryStats>;
 };
 
 type Page = { text: string; tags: string[] };
@@ -202,9 +231,60 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		bytesIn: 0,
 		bytesOut: 0,
 		cacheHits: 0,
+		coalesced: 0,
+		lazied: 0,
+		responsive: 0,
 		skipped: {}
 	};
-	const readsHtml = Boolean(trim || video || images?.options.hints);
+	const dictionaries = options.dictionary
+		? createDictionaries(options.dictionary, gate)
+		: undefined;
+	const embeds = options.embeds ? resolveEmbedOptions(options.embeds) : undefined;
+	const embedStats: EmbedStats = { pages: 0, rewritten: 0, skipped: {} };
+	const lazy = images?.options.lazy || undefined;
+	const responsive = images?.options.responsive || undefined;
+	const readsHtml = Boolean(
+		trim || video || embeds || lazy || responsive || images?.options.hints
+	);
+
+	/** the embed, responsive and lazy rewrites, which do not depend on the visitor; only the live path counts them */
+	function rewriteMarkup(
+		text: string,
+		headers: Headers,
+		pageUrl: string,
+		count: boolean
+	): string {
+		let out = text;
+		if (embeds) {
+			const result = rewriteEmbeds(out, embeds, {
+				csp: headers.has('content-security-policy')
+			});
+			out = result.html;
+			if (count) {
+				if (result.rewritten > 0) {
+					embedStats.pages++;
+					embedStats.rewritten += result.rewritten;
+				}
+				for (const [why, n] of Object.entries(result.skipped)) {
+					embedStats.skipped[why] = (embedStats.skipped[why] ?? 0) + n;
+				}
+			}
+		}
+		if (responsive && images) {
+			const result = rewriteResponsive(out, responsive, {
+				pageUrl,
+				paths: images.options.paths
+			});
+			out = result.html;
+			if (count) imageStats.responsive += result.rewritten;
+		}
+		if (lazy) {
+			const result = rewriteLazy(out, lazy);
+			out = result.html;
+			if (count) imageStats.lazied += result.rewritten;
+		}
+		return out;
+	}
 
 	function note(kind: 'guard' | 'mismatch', detail: Record<string, unknown>): void {
 		if (!options.spool.sink) return;
@@ -263,7 +343,8 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			headers.delete('if-none-match');
 			headers.delete('if-modified-since');
 		}
-		return new Request(new URL(url.pathname + stripTrimParam(url.search), base), {
+		const search = images ? originSearch(images, url) : url.search;
+		return new Request(new URL(url.pathname + stripTrimParam(search), base), {
 			method: request.method,
 			headers,
 			redirect: 'manual',
@@ -355,6 +436,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		if (!data && video?.when === 'always') {
 			text = rewriteVideo(text, video, { saveData: false, slow: false }).html;
 		}
+		if (!data) text = rewriteMarkup(text, response.headers, ctx.url.href, false);
 		if (text.length > gate.maxBytes) {
 			throw new ProtocolError('bad-artifact', `${path} is not kept (size)`);
 		}
@@ -506,6 +588,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 						}
 					}
 				}
+				verdict = rewriteMarkup(verdict, upstream.headers, url.href, true);
 				if (images?.options.hints) mergeList(headers, 'accept-ch', IMAGE_HINTS);
 				if (verdict !== text) weaken(headers);
 				const body = verdict === text ? bytes : utf8 ? verdict : toBytes(verdict);
@@ -524,6 +607,9 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			writeEnvelope(headers, { clear: ['*'] });
 		if (request.method !== 'GET' && request.method !== 'HEAD') {
 			return new Response(upstream.body, init);
+		}
+		if (dictionaries?.applies(request, upstream)) {
+			return dictionaries.apply(request, new Response(upstream.body, init));
 		}
 
 		const hit = matchRoute(routes, url.pathname) as { route: Route };
@@ -562,5 +648,18 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		return spool.decorate(request, new Response(text, init));
 	}
 
-	return Object.assign(handle, { spool, trim: stats, images: imageStats, video: videoStats });
+	return Object.assign(handle, {
+		spool,
+		trim: stats,
+		images: imageStats,
+		video: videoStats,
+		embeds: embedStats,
+		dictionary: dictionaries?.stats ?? {
+			registered: 0,
+			encoded: 0,
+			bytesIn: 0,
+			bytesOut: 0,
+			skipped: {}
+		}
+	});
 }
