@@ -20,6 +20,15 @@ import {
 	type PowerSample
 } from './lib.ts';
 import { buildAll } from './rapl-data.ts';
+import {
+	ACTIVITY_ARMS,
+	DECODE_METHODS,
+	DECODE_VARIANTS,
+	fileFor,
+	loadTinyimg,
+	readSet,
+	runEncodeChild
+} from './rapl-media.ts';
 import { ARM_ASSET, SW_ARMS, requestsFor, type SwArm } from './rapl-sw.ts';
 
 /** the experiments, which are also the file suffixes under `measurements/rapl/` */
@@ -30,7 +39,11 @@ export const EXPERIMENTS = [
 	'projection',
 	'inference',
 	'power-state',
-	'sw-request'
+	'sw-request',
+	'image-decode',
+	'image-encode',
+	'dictionary-load',
+	'idle-activity'
 ] as const;
 
 export type Experiment = (typeof EXPERIMENTS)[number];
@@ -51,6 +64,9 @@ export const PAISLEY: Record<string, string | number> = {
 
 const CONTAINER =
 	'container mcr.microsoft.com/playwright:v1.62.1-noble, --cpus 8 --memory 6g, Node 24.18.1, node:sqlite 3.53.1';
+const CHROMIUM =
+	'Chromium (new headless), container mcr.microsoft.com/playwright:v1.62.1-noble, --memory 6g';
+const CONTAINER_TINY = 'container mcr.microsoft.com/playwright:v1.62.1-noble, --cpus 2 --memory 2g';
 const INSTRUMENT =
 	'RAPL package-0 energy counter (intel-rapl sysfs, read-only bind into the container)';
 const EXCLUSIONS = ['windows where other containers used more than 100 ms of CPU per second'];
@@ -78,6 +94,11 @@ export type Config = {
 	set: 'sweep' | 'timer';
 	model: string;
 	ollama: string;
+	images: string;
+	tinyimg: string;
+	dictFile: string;
+	targetFile: string;
+	passes: number;
 };
 
 const DEFAULT_ROUNDS: Record<Experiment, number> = {
@@ -87,7 +108,11 @@ const DEFAULT_ROUNDS: Record<Experiment, number> = {
 	projection: 8,
 	inference: 5,
 	'power-state': 4,
-	'sw-request': 8
+	'sw-request': 8,
+	'image-decode': 6,
+	'image-encode': 6,
+	'dictionary-load': 6,
+	'idle-activity': 4
 };
 
 export function parse(argv: string[]) {
@@ -111,6 +136,11 @@ export function parse(argv: string[]) {
 			set: { type: 'string', default: 'sweep' },
 			model: { type: 'string', default: 'llama3.1:8b' },
 			ollama: { type: 'string', default: 'http://host.docker.internal:11434' },
+			images: { type: 'string', default: '/rig/images' },
+			tinyimg: { type: 'string', default: '/rig/tinyimg' },
+			'dict-file': { type: 'string', default: '/rig/dict/base.bin' },
+			'target-file': { type: 'string', default: '/rig/dict/target.bin' },
+			passes: { type: 'string', default: '6' },
 			gpu: { type: 'string' },
 			'machine-json': { type: 'string' },
 			'timer-raw': { type: 'string' },
@@ -147,7 +177,12 @@ export function parse(argv: string[]) {
 		requests: Number(values.requests),
 		set: values.set === 'timer' ? 'timer' : 'sweep',
 		model: values.model as string,
-		ollama: values.ollama as string
+		ollama: values.ollama as string,
+		images: values.images as string,
+		tinyimg: values.tinyimg as string,
+		dictFile: values['dict-file'] as string,
+		targetFile: values['target-file'] as string,
+		passes: Number(values.passes)
 	};
 	return {
 		command,
@@ -645,6 +680,321 @@ async function runSwRequest(config: Config, meter: Meter) {
 	origin.kill();
 }
 
+// #region media experiments
+
+const MEDIA_PORT = 8961;
+
+/** starts the media origin and resolves once it answers; rejects when the origin exits first */
+export async function mediaOrigin(env: Record<string, string> = {}): Promise<ChildProcess> {
+	const origin = spawn('node', [join(HERE, 'rapl-media.ts')], {
+		stdio: 'inherit',
+		env: { ...process.env, PORT: String(MEDIA_PORT), ...env }
+	});
+	let exited = null as number | null;
+	origin.on('exit', (code) => (exited = code ?? -1));
+	for (let i = 0; i < 40; i++) {
+		if (exited !== null)
+			throw new Error(`the media origin exited ${exited} before it listened`);
+		try {
+			await mediaStats();
+			return origin;
+		} catch {
+			await sleep(250);
+		}
+	}
+	origin.kill();
+	throw new Error('the media origin did not answer /__stats within 10 s');
+}
+
+const mediaStats = async () => stats(MEDIA_PORT);
+
+/** package joules per minute for a visible page that is quiet, polls once a second, or runs a requestAnimationFrame loop */
+async function runIdleActivity(config: Config, meter: Meter) {
+	const origin = await mediaOrigin();
+	const base = `http://127.0.0.1:${MEDIA_PORT}`;
+	for (let round = 0; round < config.rounds; round++) {
+		const arms = rotate([...ACTIVITY_ARMS], round);
+		for (const name of ['idle', arms[0], arms[1], 'idle', arms[2], 'idle']) {
+			if (name === 'idle') {
+				await idleWindow(meter, config, round);
+				continue;
+			}
+			const browser = await launch();
+			const page: Page = await (await browser.newContext()).newPage();
+			await page.goto(`${base}/${name}`);
+			await page.waitForTimeout(8000);
+			const o0 = await mediaStats();
+			const c0 = (await page.evaluate(() => (window as any).__count)) as number;
+			const w = await meter.window(() => sleep(config.windowS * 1000));
+			const c1 = (await page.evaluate(() => (window as any).__count)) as number;
+			const o1 = await mediaStats();
+			const visibility = await page.evaluate(() => document.visibilityState);
+			emit(config, {
+				arm: name,
+				round,
+				n: 0,
+				windowS: config.windowS,
+				elapsedMs: w.elapsedMs,
+				pkgJ: w.pkgJ,
+				load0: w.load0,
+				load1: w.load1,
+				pageEvents: c1 - c0,
+				originPings: o1.ping - o0.ping,
+				originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+				visibility,
+				otherCpuMs: w.others
+			});
+			await browser.close();
+		}
+	}
+	origin.kill();
+}
+
+/** package joules per image converted by tinyimg in Node on one busy thread, with the module loaded (warm) or loaded in a fresh process per pass (cold) */
+async function runImageEncode(config: Config, meter: Meter) {
+	const set = readSet(config.images);
+	const tiny = await loadTinyimg(config.tinyimg);
+	const inputs = set.images.map((image) => readFileSync(join(config.images, image.original)));
+	const bytesPerPass = inputs.reduce((sum, input) => sum + input.length, 0);
+	const warm = async (resized: boolean) => {
+		let out = 0;
+		let encodeMs = 0;
+		for (const [i, input] of inputs.entries()) {
+			const image = set.images[i];
+			const t0 = performance.now();
+			const result = await tiny.transform(tiny.module, input, {
+				format: 'webp',
+				quality: set.quality,
+				...(resized && image ? { width: image.resizedWidth, fit: 'scale-down' } : {})
+			});
+			encodeMs += performance.now() - t0;
+			out += result.bytes().length;
+		}
+		return { out, encodeMs };
+	};
+	for (let round = 0; round < config.rounds; round++) {
+		for (const name of rotate(['warm-native', 'warm-resized', 'cold-native', 'idle'], round)) {
+			if (name === 'idle') {
+				await idleWindow(meter, config, round);
+				continue;
+			}
+			if (name === 'cold-native') {
+				await sleep(2000);
+				const w = await meter.window(async () => {
+					const runs: Array<Record<string, number>> = [];
+					for (let p = 0; p < config.passes; p++)
+						runs.push(await runEncodeChild(config.images, config.tinyimg));
+					return runs;
+				});
+				const runs = w.result;
+				emit(config, {
+					arm: name,
+					round,
+					n: set.images.length * config.passes,
+					images: set.images.length,
+					passes: config.passes,
+					bytesIn: bytesPerPass * config.passes,
+					bytesOut: runs.reduce((sum, r) => sum + (r.bytesOut ?? 0), 0),
+					encodeMs: runs.reduce((sum, r) => sum + (r.encodeMs ?? 0), 0),
+					loadMs: runs.reduce((sum, r) => sum + (r.loadMs ?? 0), 0),
+					elapsedMs: w.elapsedMs,
+					pkgJ: w.pkgJ,
+					load0: w.load0,
+					load1: w.load1,
+					otherCpuMs: w.others
+				});
+				continue;
+			}
+			const resized = name === 'warm-resized';
+			await warm(resized);
+			await sleep(2000);
+			const w = await meter.window(async () => {
+				let out = 0;
+				let encodeMs = 0;
+				for (let p = 0; p < config.passes; p++) {
+					const r = await warm(resized);
+					out += r.out;
+					encodeMs += r.encodeMs;
+				}
+				return { out, encodeMs };
+			});
+			emit(config, {
+				arm: name,
+				round,
+				n: set.images.length * config.passes,
+				images: set.images.length,
+				passes: config.passes,
+				bytesIn: bytesPerPass * config.passes,
+				bytesOut: w.result.out,
+				encodeMs: w.result.encodeMs,
+				elapsedMs: w.elapsedMs,
+				pkgJ: w.pkgJ,
+				load0: w.load0,
+				load1: w.load1,
+				otherCpuMs: w.others
+			});
+		}
+	}
+}
+
+/** package joules per image decoded in Chromium (createImageBitmap, and an <img> shown at its CSS width): the original, the WebP at native size, the WebP at the rendered width */
+async function runImageDecode(config: Config, meter: Meter) {
+	const set = readSet(config.images);
+	const origin = await mediaOrigin({ IMAGES: config.images });
+	const base = `http://127.0.0.1:${MEDIA_PORT}`;
+	const arms = DECODE_METHODS.flatMap((method) =>
+		DECODE_VARIANTS.map((variant) => ({ method, variant, name: `${method}-${variant}` }))
+	);
+	for (let round = 0; round < config.rounds; round++) {
+		for (const name of rotate(['idle', ...arms.map((a) => a.name)], round, 3)) {
+			if (name === 'idle') {
+				await idleWindow(meter, config, round);
+				continue;
+			}
+			const arm = arms.find((a) => a.name === name) as (typeof arms)[number];
+			const files = set.images.map((image) => ({ file: fileFor(image, arm.variant) }));
+			const widths = set.images.map((image) => image.cssWidth);
+			const bytes = set.images.reduce(
+				(sum, image) =>
+					sum +
+					(arm.variant === 'original'
+						? image.bytes
+						: arm.variant === 'native'
+							? image.webpBytes
+							: image.resizedBytes),
+				0
+			);
+			const browser = await launch();
+			const page: Page = await (await browser.newContext()).newPage();
+			await page.goto(`${base}/decode`);
+			await page.evaluate((f) => (window as any).prepare(f), files);
+			await page.evaluate((a) => (window as any).decodeAll(a.method, a.widths, 1), {
+				method: arm.method,
+				widths
+			});
+			await page.waitForTimeout(2000);
+			const w = await meter.window(() =>
+				page.evaluate(
+					(a) =>
+						(window as any).decodeAll(a.method, a.widths, a.passes) as Promise<number>,
+					{
+						method: arm.method,
+						widths,
+						passes: config.passes
+					}
+				)
+			);
+			emit(config, {
+				arm: name,
+				method: arm.method,
+				variant: arm.variant,
+				round,
+				n: w.result,
+				images: set.images.length,
+				passes: config.passes,
+				bytes: bytes * config.passes,
+				elapsedMs: w.elapsedMs,
+				pkgJ: w.pkgJ,
+				load0: w.load0,
+				load1: w.load1,
+				otherCpuMs: w.others
+			});
+			await browser.close();
+		}
+	}
+	origin.kill();
+}
+
+/** package joules per page load that fetches one aggregate file delivered as plain brotli or as dcz against a stored dictionary, after checking that Chromium negotiates the transport at all */
+async function runDictionaryLoad(config: Config, meter: Meter) {
+	const origin = await mediaOrigin({
+		DICT_FILE: config.dictFile,
+		TARGET_FILE: config.targetFile
+	});
+	const base = `http://127.0.0.1:${MEDIA_PORT}`;
+	const probe = await launch();
+	const probePage: Page = await (await probe.newContext()).newPage();
+	await probePage.goto(`${base}/dict-page`);
+	await probePage.waitForTimeout(2500);
+	await probePage.goto(`${base}/page?n=0`);
+	await probePage.waitForFunction(() => (window as any).__done === true, null, {
+		timeout: 60_000
+	});
+	const bytesRead = await probePage.evaluate(() => (window as any).__bytes as number);
+	const seen = await mediaStats();
+	const negotiated = seen.dcz > 0;
+	emit(config, {
+		arm: 'negotiation',
+		round: 0,
+		n: 0,
+		negotiated,
+		chromium: probe.version(),
+		withDictionaryHeader: seen.withDictionaryHeader,
+		dczServed: seen.dcz,
+		acceptEncoding: seen.acceptEncodings,
+		bytesRead,
+		dictBytes: seen.dictBytes,
+		targetBytes: seen.targetBytes,
+		targetBrotliBytes: seen.targetBrotliBytes,
+		targetDczBytes: seen.targetDczBytes,
+		elapsedMs: 0,
+		pkgJ: 0,
+		load0: meter.load(),
+		load1: meter.load(),
+		otherCpuMs: 0
+	});
+	await probe.close();
+	if (negotiated) {
+		for (let round = 0; round < config.rounds; round++) {
+			for (const name of rotate(['plain', 'dictionary', 'idle'], round)) {
+				if (name === 'idle') {
+					await idleWindow(meter, config, round);
+					continue;
+				}
+				const browser = await launch();
+				const page: Page = await (await browser.newContext()).newPage();
+				if (name === 'dictionary') {
+					await page.goto(`${base}/dict-page`);
+					await page.waitForTimeout(2500);
+				}
+				const loaded = () =>
+					page.waitForFunction(() => (window as any).__done === true, null, {
+						timeout: 60_000
+					});
+				await page.goto(`${base}/page?n=-1`);
+				await loaded();
+				await page.waitForTimeout(1500);
+				const o0 = await mediaStats();
+				const w = await meter.window(async () => {
+					for (let i = 1; i <= config.navs; i++) {
+						await page.goto(`${base}/page?n=${i}`, { waitUntil: 'load' });
+						await loaded();
+					}
+				});
+				const o1 = await mediaStats();
+				emit(config, {
+					arm: name,
+					round,
+					n: config.navs,
+					elapsedMs: w.elapsedMs,
+					pkgJ: w.pkgJ,
+					load0: w.load0,
+					load1: w.load1,
+					originDcz: o1.dcz - o0.dcz,
+					originBrotli: o1.brotli - o0.brotli,
+					originWithDictionaryHeader: o1.withDictionaryHeader - o0.withDictionaryHeader,
+					originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+					otherCpuMs: w.others
+				});
+				await browser.close();
+			}
+		}
+	}
+	origin.kill();
+}
+
+// #endregion
+
 /** Q1c: a local model behind the origin; the GPU is sampled on the host, see `publish --gpu` */
 async function runInference(config: Config, meter: Meter) {
 	const port = 8941;
@@ -1108,6 +1458,112 @@ export function publishDraft(
 			rows: raw.map((r) => stripRow(r))
 		};
 	}
+	if (experiment === 'idle-activity') {
+		return {
+			...base,
+			question:
+				'package joules per minute for a visible page in headless Chromium that is quiet, one that polls a local endpoint once a second, and one that runs a requestAnimationFrame loop',
+			machine,
+			software: { browser: CHROMIUM, origin: 'Node http server in the same container' },
+			method: {
+				arms: {
+					quiet: 'a static page with no timers',
+					poll: 'setInterval every 1000 ms, fetch() of a 204 endpoint',
+					raf: 'a requestAnimationFrame loop that moves a composited 80 px box'
+				},
+				'window s': meta.windowS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows':
+					'three per round (start, middle, end), no browser running; the drift between them is in the rows',
+				'arm order':
+					'rotated per round, an idle window before the first arm, between the second and third, and after the last',
+				settle: 'the page loaded, then 8 s before the window opens',
+				visibility: 'every row records document.visibilityState at the end of its window'
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'image-encode') {
+		return {
+			...base,
+			question:
+				'package joules per image converted to WebP by tinyimg in Node on one busy thread, with the module loaded and in a fresh process, and per megabyte of input',
+			machine,
+			software: {
+				tinyimg: String(meta.tinyimg ?? 'unknown'),
+				runtime: 'Node 24 in the container, --cpus 2',
+				container: CONTAINER_TINY
+			},
+			method: {
+				images: meta.images,
+				'passes per window': meta.passes,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				quality: meta.quality,
+				arms: {
+					'warm-native':
+						'module loaded and warmed up, every image encoded at native size, repeated for the passes',
+					'warm-resized':
+						'the same with the width set to the image rendered width (fit scale-down)',
+					'cold-native':
+						'one fresh Node process per pass that loads the module and encodes the set once; the window covers the process start, the load and the encode'
+				},
+				'arm order': 'rotated per round',
+				source: 'JPEG and PNG files first seen by measurements/image-crawl, copied to the box'
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'image-decode') {
+		return {
+			...base,
+			question:
+				'package joules per image decoded in headless Chromium: the original JPEG or PNG, the WebP at native size and the WebP resized to the rendered width, by createImageBitmap and by an <img> shown at its CSS width',
+			machine,
+			software: { browser: CHROMIUM, origin: 'Node http server in the same container' },
+			method: {
+				images: meta.images,
+				'passes per window': meta.passes,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				bitmap: 'createImageBitmap(blob) then close(), blobs fetched before the window',
+				img: 'a new <img> at the CSS width of the image, src a fresh object URL, await decode(), two animation frames, remove',
+				'arm order': 'rotated per round',
+				source: 'JPEG and PNG files first seen by measurements/image-crawl, the WebP files made by tinyimg at quality 80'
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'dictionary-load') {
+		return {
+			...base,
+			question:
+				'whether Chromium negotiates compression dictionary transport, and the package joules per page load that fetches one real aggregate file delivered as brotli 11 or as dcz against a stored dictionary',
+			machine,
+			software: {
+				browser: CHROMIUM,
+				origin: 'Node http server in the same container; dcz is a 40-byte header plus zstd level 19 with the dictionary as raw content'
+			},
+			method: {
+				'loads per window': meta.navs,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				arms: {
+					plain: 'no dictionary stored; the file arrives as brotli 11',
+					dictionary:
+						'the dictionary file was fetched with Use-As-Dictionary first; the target arrives as dcz'
+				},
+				negotiation:
+					'a first row (arm negotiation) records whether the origin saw Available-Dictionary and served dcz; the windows run only when it did',
+				files: 'a real pair of JavaScript aggregates from one Drupal site, a dictionary and the aggregate served on a later page of the same visit; the page fetches the target and reads its bytes without running it',
+				'why not a stylesheet':
+					'no stylesheet pair of the sizing corpus had a dictionary that beat plain brotli by a margin the encode could show; the churned JavaScript aggregates did',
+				cache: 'every load asks for a new query string, which the dictionary match ignores, so no load is a cache hit'
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
 	if (experiment === 'compute-server') {
 		return {
 			...base,
@@ -1280,6 +1736,13 @@ if (isMain(import.meta.url)) {
 			governor: config.governor,
 			started: new Date().toISOString()
 		};
+		meta.passes = config.passes;
+		if (config.experiment === 'image-decode' || config.experiment === 'image-encode') {
+			const set = readSet(config.images);
+			meta.images = set.images.length;
+			meta.quality = set.quality;
+			meta.tinyimg = set.tinyimg;
+		}
 		if (config.experiment === 'views') {
 			meta.pages = (
 				JSON.parse(readFileSync(join(config.mirror, 'manifest.json'), 'utf8')) as {
@@ -1295,7 +1758,11 @@ if (isMain(import.meta.url)) {
 			projection: runComputeBrowser,
 			inference: runInference,
 			'power-state': runPowerState,
-			'sw-request': runSwRequest
+			'sw-request': runSwRequest,
+			'image-decode': runImageDecode,
+			'image-encode': runImageEncode,
+			'dictionary-load': runDictionaryLoad,
+			'idle-activity': runIdleActivity
 		};
 		await runs[config.experiment](config, meter);
 		writeFileSync(`${config.raw}.DONE`, new Date().toISOString());

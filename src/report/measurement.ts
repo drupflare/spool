@@ -10,7 +10,9 @@ export const RIGS = [
 	'iphone',
 	'payload',
 	'trim',
-	'link-assets'
+	'link-assets',
+	'image-crawl',
+	'dictionary-size'
 ] as const;
 
 /** one of {@link RIGS} */

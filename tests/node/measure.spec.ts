@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
@@ -6,8 +7,28 @@ import net, { type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import tls from 'node:tls';
+import { zstdDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { parse as parseDeviceCpu, psCpuSeconds } from '../../scripts/measure/device-cpu';
+import {
+	plan as dictionaryPlan,
+	dirOf,
+	parse as parseDictionary,
+	planArms,
+	type Candidate
+} from '../../scripts/measure/dictionary-size';
+import {
+	chooseSet,
+	exifOrientation,
+	plan as imageCrawlPlan,
+	kindOf,
+	parse as parseImageCrawl,
+	reduceUrl,
+	renderedWidth,
+	ssimLuma,
+	withOrientation,
+	type ImageRow
+} from '../../scripts/measure/image-crawl';
 import { armsFor, plan as iphonePlan, parse as parseIphone } from '../../scripts/measure/iphone';
 import {
 	batteryFromRegistry,
@@ -63,11 +84,19 @@ import {
 	PAISLEY,
 	conditions,
 	inferenceRows,
+	mediaOrigin,
 	parse as parseRapl,
 	publishDraft,
 	plan as raplPlan,
 	stripRow
 } from '../../scripts/measure/rapl';
+import {
+	ACTIVITY_ARMS,
+	availableDictionary,
+	dczBody,
+	dczHeader,
+	startMediaOrigin
+} from '../../scripts/measure/rapl-media';
 import {
 	ARM_ASSET,
 	ASSET_BYTES,
@@ -95,7 +124,8 @@ import {
 } from '../../scripts/measure/wire-proxy';
 import { ARMS, parse as parseZeroNetwork } from '../../scripts/measure/zero-network';
 import type { TimedView } from '../../src/protocol/index';
-import { parseMeasurement, type Measurement } from '../../src/report/index';
+import { parseMeasurement, raplRun, type Measurement } from '../../src/report/index';
+import { activityFigures, dictionaryArms, windowCounts } from '../../src/report/ledger';
 
 const draft = (over: Partial<Draft> = {}): Draft => ({
 	rig: 'device-cpu',
@@ -144,7 +174,11 @@ describe('window maths', () => {
 		expect(parseUsageUsec('')).toBe(0);
 		const before = { aaa111: 1000, bbb222: 2000, ccc333: 0 };
 		const after = { aaa111: 4000, bbb222: 2500, ccc333: 10, ddd444: 9 };
-		expect(otherCpuMs(before, after, 'aaa111abcdef')).toEqual({ bbb222: 0.5, ccc333: 0.01 });
+		expect(otherCpuMs(before, after, 'aaa111abcdef')).toEqual({
+			bbb222: 0.5,
+			ccc333: 0.01,
+			ddd444: 0.009
+		});
 		expect(otherCpuMs(before, after, 'x', (id) => id === 'bbb222')).toEqual({ bbb222: 0.5 });
 	});
 
@@ -950,5 +984,534 @@ describe('the link-assets rig', () => {
 		});
 		expect(HEADER_ARMS.length * WORKER_ARMS.length).toBe(6);
 		expect(HEADLESS.chromium).toBe(false);
+	});
+});
+
+// a 40 by 20 JPEG, red left half and blue right half, 372 bytes, made by tinyimg 1.1.1 from a PNG
+const FIXTURE_JPEG = Buffer.from(
+	'/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAUACgDAREAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAYHCP/EABgQAQADAQAAAAAAAAAAAAAAAAAHRYPC/8QAFwEBAQEBAAAAAAAAAAAAAAAAAAgJB//EABgRAQADAQAAAAAAAAAAAAAAAAAIRYPD/9oADAMBAAIRAxEAPwDnRwxqmAgZVq9eFxxluMOyOZDVW3JALjR0A31hy2LAQMq1evC44y3GHZHMhqrbkgFxo6Ab6w5bFgIGVavXhccZbjDsjmQ1VtyQC40dAP/Z',
+	'base64'
+);
+
+describe('the image-crawl rig', () => {
+	const plane = (width: number, height: number, at: (x: number, y: number) => number) =>
+		Float32Array.from({ length: width * height }, (_, i) =>
+			at(i % width, Math.floor(i / width))
+		);
+	const gradient = plane(64, 48, (x, y) => (x * 3 + y * 2) % 256);
+
+	it('scores identical pixels as 1 and a changed block as less', () => {
+		expect(ssimLuma(gradient, gradient, 64, 48)).toBe(1);
+		const flat = plane(32, 32, () => 0);
+		expect(ssimLuma(flat, flat, 32, 32)).toBe(1);
+		const changed = Float32Array.from(gradient);
+		for (let y = 8; y < 16; y++)
+			for (let x = 8; x < 16; x++)
+				changed[y * 64 + x] = 255 - (changed[y * 64 + x] as number);
+		const score = ssimLuma(gradient, changed, 64, 48);
+		expect(score).toBeLessThan(1);
+		expect(score).toBeGreaterThan(0.9);
+		expect(ssimLuma(changed, gradient, 64, 48)).toBe(score);
+		const noise = plane(64, 48, (x, y) => (x * 7919 + y * 104729) % 251);
+		expect(ssimLuma(gradient, noise, 64, 48)).toBeLessThan(score);
+	});
+
+	it('scores a plane narrower than one block', () => {
+		const a = plane(5, 3, (x) => x * 40);
+		expect(ssimLuma(a, a, 5, 3)).toBe(1);
+		expect(
+			ssimLuma(
+				a,
+				plane(5, 3, () => 255),
+				5,
+				3
+			)
+		).toBeLessThan(1);
+	});
+
+	it('reads the image format from the first bytes', () => {
+		const bytes = (...values: number[]) => Uint8Array.from(values);
+		expect(kindOf(FIXTURE_JPEG)).toBe('jpeg');
+		expect(kindOf(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe('png');
+		expect(kindOf(new TextEncoder().encode('GIF89a......'))).toBe('gif');
+		expect(kindOf(new TextEncoder().encode('RIFF\0\0\0\0WEBPVP8 '))).toBe('webp');
+		expect(kindOf(new TextEncoder().encode('\0\0\0\x1cftypavif'))).toBe('avif');
+		expect(kindOf(new TextEncoder().encode('  <svg xmlns="x"/>'))).toBe('svg');
+		expect(kindOf(new TextEncoder().encode('<?xml version="1.0"?><svg/>'))).toBe('svg');
+		expect(kindOf(new TextEncoder().encode('hello'))).toBe('other');
+	});
+
+	it('writes and reads the EXIF orientation of a JPEG and leaves its bytes', () => {
+		expect(exifOrientation(FIXTURE_JPEG)).toBeNull();
+		for (const orientation of [1, 2, 3, 4, 5, 6, 7, 8]) {
+			const rotated = withOrientation(FIXTURE_JPEG, orientation);
+			expect(exifOrientation(rotated), String(orientation)).toBe(orientation);
+			expect(rotated.length).toBe(FIXTURE_JPEG.length + 36);
+			expect([...rotated.subarray(0, 2)]).toEqual([0xff, 0xd8]);
+			expect([...rotated.subarray(38)]).toEqual([...FIXTURE_JPEG.subarray(2)]);
+		}
+	});
+
+	const tinyimg = process.env.SPOOL_TINYIMG;
+
+	it.skipIf(!tinyimg)(
+		'converts an EXIF-rotated JPEG upright (needs SPOOL_TINYIMG, a folder with tinyimg 1.1.1 installed)',
+		async () => {
+			const { join } = await import('node:path');
+			const { pathToFileURL } = await import('node:url');
+			const root = join(tinyimg as string, 'node_modules/@gmitch215/tinyimg');
+			const lib = await import(pathToFileURL(join(root, 'dist/index.js')).href);
+			const module = await lib.TinyImgModule.loadBytes(
+				readFileSync(join(root, 'dist/tinyimg.wasm'))
+			);
+			const dims = async (bytes: Uint8Array) => {
+				const out = await lib.transform(module, bytes, { format: 'webp', quality: 80 });
+				return [out.width, out.height];
+			};
+			expect(await dims(FIXTURE_JPEG)).toEqual([40, 20]);
+			expect(await dims(withOrientation(FIXTURE_JPEG, 6))).toEqual([20, 40]);
+			expect(await dims(withOrientation(FIXTURE_JPEG, 1))).toEqual([40, 20]);
+		}
+	);
+
+	it('picks the rendered width only when it is narrower than the file, and strips query values', () => {
+		expect(renderedWidth(400, 2, 1200)).toBe(800);
+		expect(renderedWidth(400.2, 1, 1200)).toBe(401);
+		expect(renderedWidth(600, 2, 1200)).toBeUndefined();
+		expect(renderedWidth(null, 1, 1200)).toBeUndefined();
+		expect(renderedWidth(0, 1, 1200)).toBeUndefined();
+		expect(reduceUrl('https://a.test/x.jpg?itok=abc&w=3#frag')).toBe(
+			'https://a.test/x.jpg?itok&w'
+		);
+		expect(reduceUrl('https://a.test/x.jpg')).toBe('https://a.test/x.jpg');
+	});
+
+	const row = (n: number, over: Partial<ImageRow> = {}): ImageRow => ({
+		kind: 'image',
+		site: `https://s${n % 3}.test/`,
+		profile: 'desktop',
+		page: '/',
+		url: `https://s.test/${n}.jpg`,
+		phase: 'load',
+		format: 'jpeg',
+		bytes: 100_000 + n,
+		sha1: `sha${n}`,
+		cssWidth: 300,
+		cssHeight: 200,
+		naturalWidth: 1200,
+		naturalHeight: 800,
+		dpr: 1,
+		arms: null,
+		...over
+	});
+
+	it('chooses a set of distinct JPEG and PNG files with a known rendered size, under the byte cap', () => {
+		const rows = [
+			...Array.from({ length: 30 }, (_, n) => row(n)),
+			row(100, { sha1: 'sha1' }),
+			row(101, { format: 'avif' }),
+			row(102, { cssWidth: null }),
+			row(103, { bytes: 1000 }),
+			row(104, { cssWidth: 1500 }),
+			row(105, { sha1: null })
+		];
+		const set = chooseSet(rows, 12, 1_000_000);
+		expect(set).toHaveLength(9);
+		expect(new Set(set.map((r) => r.sha1)).size).toBe(set.length);
+		expect(set.reduce((sum, r) => sum + r.bytes, 0)).toBeLessThanOrEqual(1_000_000);
+		expect(
+			set.every((r) => r.format === 'jpeg' && r.cssWidth !== null && r.bytes >= 30_000)
+		).toBe(true);
+		expect(chooseSet(rows, 5, 10_000_000)).toHaveLength(5);
+		expect(chooseSet([], 5, 1000)).toEqual([]);
+	});
+
+	it('prints a plan with the pages per site, the profiles and the file it would write', () => {
+		const parsed = parseImageCrawl([
+			'--dry-run',
+			'--sites',
+			'mit,yale',
+			'--profiles',
+			'phone',
+			'--pages',
+			'2'
+		]);
+		const plan = imageCrawlPlan(parsed);
+		expect(plan.sites).toEqual(['https://www.yale.edu/', 'https://www.mit.edu/']);
+		expect(plan).toMatchObject({
+			profiles: ['phone'],
+			internalPagesPerSite: 2,
+			lazyPagesPerSite: 3,
+			pageLoadsPerSite: 6,
+			convert: true
+		});
+		expect(plan.output).toMatch(/^measurements\/image-crawl\/\d{4}-\d{2}-\d{2}\.json$/);
+		expect(parseImageCrawl(['--profiles', 'tv,desktop']).profiles).toEqual(['desktop']);
+	});
+});
+
+describe('the media experiments of the RAPL runner', () => {
+	it('rejects with the origin exit code when the origin dies before it listens', async () => {
+		await expect(
+			mediaOrigin({
+				DICT_FILE: '/nonexistent/base.bin',
+				TARGET_FILE: '/nonexistent/target.bin'
+			})
+		).rejects.toThrow('the media origin exited 1 before it listened');
+	});
+
+	it('parses the four new experiments with their default rounds', () => {
+		expect(parseRapl(['run', 'idle-activity']).config).toMatchObject({
+			rounds: 4,
+			windowS: 20
+		});
+		expect(parseRapl(['run', 'image-decode']).config).toMatchObject({
+			rounds: 6,
+			passes: 6,
+			images: '/rig/images'
+		});
+		expect(
+			parseRapl(['run', 'image-encode', '--passes', '3', '--rounds', '2']).config
+		).toMatchObject({
+			rounds: 2,
+			passes: 3,
+			tinyimg: '/rig/tinyimg'
+		});
+		expect(parseRapl(['run', 'dictionary-load']).config).toMatchObject({
+			dictFile: '/rig/dict/base.bin',
+			targetFile: '/rig/dict/target.bin'
+		});
+		expect(() => parseRapl(['run', 'idle'])).toThrow(/experiment must be one of/);
+		expect(ACTIVITY_ARMS).toEqual(['quiet', 'poll', 'raf']);
+	});
+
+	it('publishes a run of each as a valid schema-1 file with the method written down', () => {
+		const rows = [
+			{
+				arm: 'idle',
+				round: 0,
+				n: 0,
+				elapsedMs: 1000,
+				pkgJ: 19.4,
+				load0: 0,
+				load1: 0,
+				otherCpuMs: { abc: 1 }
+			}
+		];
+		const meta = {
+			rounds: 1,
+			idleS: 60,
+			windowS: 300,
+			passes: 6,
+			navs: 300,
+			images: 40,
+			quality: 80,
+			tinyimg: '1.1.1',
+			range: 1
+		};
+		for (const experiment of [
+			'idle-activity',
+			'image-encode',
+			'image-decode',
+			'dictionary-load'
+		] as const) {
+			const draft = publishDraft(experiment, rows, meta);
+			expect(draft.rig).toBe('rapl');
+			expect(draft.rows).toEqual([{ ...rows[0], otherCpuMs: 1 }]);
+			expect(Object.keys(draft.method).length).toBeGreaterThan(3);
+			expect(() => parseMeasurement({ schema: 1, ...draft })).not.toThrow();
+		}
+	});
+
+	it('frames a dcz body with the 40-byte header and decodes with zstd and the dictionary', () => {
+		const dictionary = Buffer.from('.a{color:red}'.repeat(300));
+		const input = Buffer.from('.a{color:red}'.repeat(300) + '.b{margin:0}'.repeat(100));
+		const body = dczBody(dictionary, input);
+		expect(dczHeader(dictionary)).toHaveLength(40);
+		expect([...body.subarray(0, 8)]).toEqual([0x5e, 0x2a, 0x4d, 0x18, 0x20, 0, 0, 0]);
+		expect(body.subarray(8, 40).toString('hex')).toBe(
+			createHash('sha256').update(dictionary).digest('hex')
+		);
+		expect(zstdDecompressSync(body.subarray(40), { dictionary })).toEqual(input);
+		expect(availableDictionary(dictionary)).toMatch(/^:[A-Za-z0-9+/]{43}=:$/);
+	});
+
+	it('serves dcz only to a request that names the dictionary, and counts what it saw', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'media-'));
+		const { writeFileSync } = await import('node:fs');
+		const dict = Buffer.from('.a{color:red}'.repeat(400));
+		const target = Buffer.from('.a{color:red}'.repeat(400) + '.z{top:0}'.repeat(50));
+		writeFileSync(join(dir, 'base.css'), dict);
+		writeFileSync(join(dir, 'target.css'), target);
+		const server = startMediaOrigin({
+			port: 0,
+			dictionary: { dict: join(dir, 'base.css'), target: join(dir, 'target.css') }
+		});
+		await new Promise((r) => server.once('listening', r));
+		const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+		const get = (path: string, headers: Record<string, string> = {}) =>
+			new Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }>(
+				(resolve) => {
+					http.get(base + path, { headers }, (res) => {
+						const chunks: Buffer[] = [];
+						res.on('data', (c: Buffer) => chunks.push(c));
+						res.on('end', () =>
+							resolve({
+								status: res.statusCode ?? 0,
+								headers: res.headers,
+								body: Buffer.concat(chunks)
+							})
+						);
+					});
+				}
+			);
+		const marked = await get('/dl/base');
+		expect(marked.headers['use-as-dictionary']).toBe('match="/dl/*"');
+		const plain = await get('/dl/target?n=1', { 'accept-encoding': 'br' });
+		expect(plain.headers['content-encoding']).toBe('br');
+		const named = await get('/dl/target?n=2', {
+			'accept-encoding': 'br, dcz',
+			'available-dictionary': availableDictionary(dict)
+		});
+		expect(named.headers['content-encoding']).toBe('dcz');
+		expect(zstdDecompressSync(named.body.subarray(40), { dictionary: dict })).toEqual(target);
+		const wrong = await get('/dl/target?n=3', {
+			'accept-encoding': 'br, dcz',
+			'available-dictionary': availableDictionary(target)
+		});
+		expect(wrong.headers['content-encoding']).toBe('br');
+		const stats = JSON.parse((await get('/__stats')).body.toString());
+		expect(stats).toMatchObject({
+			dictRequests: 1,
+			targetRequests: 3,
+			withDictionaryHeader: 2,
+			dcz: 1,
+			brotli: 2
+		});
+		expect(stats.dictBytes).toBe(dict.length);
+		expect(stats.targetBytes).toBe(target.length);
+		for (const arm of ACTIVITY_ARMS) {
+			const page = await get(`/${arm}`);
+			expect(page.status).toBe(200);
+			expect(page.body.toString()).toContain('window.__count');
+		}
+		expect((await get('/ping')).status).toBe(204);
+		expect((await get('/nothing')).status).toBe(404);
+		server.close();
+	});
+});
+
+describe('the dictionary-size rig', () => {
+	const file = (kind: Candidate['kind'], dir: string, br11 = 100, page = 0): Candidate => ({
+		kind,
+		dir,
+		br11,
+		page
+	});
+
+	it('names the directory of a URL with its trailing slash', () => {
+		expect(dirOf('https://a.test/sites/default/files/js/js_x.js?v=1')).toBe(
+			'/sites/default/files/js/'
+		);
+		expect(dirOf('https://a.test/app.css')).toBe('/');
+	});
+
+	it('picks each arm from earlier files only, and the base from the whole group', () => {
+		const files = [
+			file('css', '/a/'),
+			file('css', '/a/'),
+			file('css', '/b/'),
+			file('css', '/a/'),
+			file('js', '/a/')
+		];
+		const table = new Map([
+			['1|0', 50],
+			['3|0', 40],
+			['3|1', 60],
+			['0|1', 70],
+			['0|3', 60],
+			['1|3', 45],
+			['2|0', 10],
+			['2|1', 20],
+			['3|2', 5]
+		]);
+		const { plans, bases } = planArms(files, (f, c) => table.get(`${f}|${c}`) ?? 90);
+		expect(bases).toEqual([{ kind: 'css', dir: '/a/', base: 0, files: 3, meanZstd: 45 }]);
+		expect(plans).toEqual([
+			{ oracle: null, browser: null, serverVisit: null, serverHeld: null, serverOut: null },
+			{ oracle: 0, browser: 0, serverVisit: 0, serverHeld: 0, serverOut: null },
+			{ oracle: 0, browser: null, serverVisit: null, serverHeld: null, serverOut: null },
+			{ oracle: 2, browser: 1, serverVisit: 0, serverHeld: 0, serverOut: null },
+			{ oracle: null, browser: null, serverVisit: null, serverHeld: null, serverOut: null }
+		]);
+	});
+
+	it('chooses the held-out base without the files of the page being measured', () => {
+		const files = [
+			file('js', '/d/', 100, 0),
+			file('js', '/d/', 100, 0),
+			file('js', '/d/', 100, 1),
+			file('js', '/d/', 100, 2)
+		];
+		const table = new Map([
+			['1|0', 5],
+			['2|0', 5],
+			['3|0', 5],
+			['3|2', 10],
+			['2|3', 50]
+		]);
+		const { plans } = planArms(files, (f, c) => table.get(`${f}|${c}`) ?? 90);
+		expect(plans.map((p) => p.serverHeld)).toEqual([null, 0, 0, 0]);
+		expect(plans.map((p) => p.serverOut)).toEqual([2, 2, 0, 0]);
+	});
+
+	it('gives a base fetched later to the files before it only as a held dictionary', () => {
+		const files = [file('js', '/d/'), file('js', '/d/'), file('js', '/d/')];
+		const { plans, bases } = planArms(files, (f, c) => (c === 2 ? 10 : 80) + f);
+		expect(bases.map((b) => b.base)).toEqual([2]);
+		expect(plans.map((p) => p.serverVisit)).toEqual([null, null, null]);
+		expect(plans.map((p) => p.serverHeld)).toEqual([2, 2, null]);
+	});
+
+	it('caps a delta at the brotli size when it scores a base', () => {
+		const files = [file('css', '/a/'), file('css', '/a/'), file('css', '/a/')];
+		const table = new Map([
+			['1|0', 500],
+			['2|0', 10]
+		]);
+		const { bases } = planArms(files, (f, c) => table.get(`${f}|${c}`) ?? 60);
+		expect(bases).toEqual([{ kind: 'css', dir: '/a/', base: 0, files: 3, meanZstd: 55 }]);
+	});
+
+	it('sums savings against brotli 11 with a fallback, by site and by internal page', () => {
+		const row = (
+			site: string,
+			page: number,
+			pageKind: string,
+			br11: number,
+			browser: number | null
+		) => ({
+			kind: 'file',
+			site,
+			page,
+			pageKind,
+			br11,
+			oracle: { from: 'x', zstd: br11 / 2, br: null },
+			browser: { from: browser === null ? null : 'x', zstd: browser, br: browser },
+			serverVisit: { from: null, zstd: null, br: null },
+			serverHeld: { from: null, zstd: null, br: null }
+		});
+		const rows = [
+			{ kind: 'page', site: 'a' },
+			row('a', 0, 'home', 1000, null),
+			row('a', 1, 'internal', 100, 40),
+			row('a', 1, 'internal', 100, 150),
+			row('a', 2, 'internal', 100, 99),
+			row('b', 0, 'home', 400, 100),
+			row('b', 1, 'internal', 200, 100)
+		];
+		const result = dictionaryArms(rows);
+		expect(result).toMatchObject({ sites: 2, files: 6, br11Bytes: 1900 });
+		const browser = result.arms.browser.zstd;
+		expect(browser.pooled).toBeCloseTo((60 + 1 + 300 + 100) / 1900, 10);
+		expect(browser.medianSite).toBeCloseTo((61 / 1300 + 400 / 600) / 2, 10);
+		expect(browser.pages).toBe(3);
+		expect(browser.medianPageBytes).toBe(60);
+		expect(browser.pagesOver5).toBe(2);
+		expect(result.arms.oracle.zstd.pooled).toBe(0.5);
+		expect(result.arms.oracle.br.pooled).toBe(0);
+		expect(result.arms.serverVisit.zstd).toMatchObject({
+			pooled: 0,
+			medianSite: 0,
+			pagesOver5: 0
+		});
+	});
+
+	it('plans a dry run over the trim sites with the four arms and the output path', () => {
+		const plan = dictionaryPlan(parseDictionary(['--sites', 'yale,asu', '--pages', '2']));
+		expect(plan.sites).toEqual(['https://www.asu.edu/', 'https://www.yale.edu/']);
+		expect(plan.arms).toEqual(['oracle', 'browser', 'serverVisit', 'serverHeld', 'serverOut']);
+		expect(plan.output).toMatch(/^measurements\/dictionary-size\/\d{4}-\d{2}-\d{2}\.json$/);
+		expect(parseDictionary(['--experiment', 'x']).experiment).toBe('x');
+	});
+});
+
+describe('the contamination rule of the metered readings', () => {
+	const win = (arm: string, round: number, watts: number, other = 15, seconds = 10) => ({
+		arm,
+		round,
+		elapsedMs: seconds * 1000,
+		pkgJ: watts * seconds,
+		otherCpuMs: other * seconds
+	});
+	const rows = [
+		{ arm: 'negotiation', round: 0, elapsedMs: 0, pkgJ: 0, otherCpuMs: 0 },
+		win('idle', 0, 18),
+		win('quiet', 0, 18),
+		win('idle', 0, 40),
+		win('poll', 0, 30),
+		win('idle', 0, 19),
+		win('idle', 1, 18),
+		win('quiet', 1, 18.5),
+		win('idle', 1, 18.5),
+		win('poll', 1, 19.5),
+		win('raf', 1, 40, 250),
+		win('idle', 1, 18),
+		win('idle', 2, 18),
+		win('quiet', 2, 18),
+		win('idle', 2, 18),
+		win('poll', 2, 19),
+		win('raf', 2, 22),
+		win('idle', 2, 18)
+	];
+
+	it('counts kept and dropped windows per arm and leaves a probe row out', () => {
+		expect(windowCounts(rows)).toEqual({
+			idle: { kept: 9, dropped: 0, idleControl: 0 },
+			quiet: { kept: 3, dropped: 0, idleControl: 0 },
+			poll: { kept: 3, dropped: 0, idleControl: 0 },
+			raf: { kept: 1, dropped: 1, idleControl: 0 }
+		});
+		expect(windowCounts(rows, 10).idle).toEqual({ kept: 0, dropped: 9, idleControl: 0 });
+	});
+
+	it('drops a round whose idle windows disagree and the windows over the CPU limit', () => {
+		const result = activityFigures(rows);
+		expect(result.noisyRounds).toEqual([0]);
+		expect(result.counts).toEqual({
+			idle: { kept: 6, dropped: 0, idleControl: 3 },
+			quiet: { kept: 2, dropped: 0, idleControl: 1 },
+			poll: { kept: 2, dropped: 0, idleControl: 1 },
+			raf: { kept: 1, dropped: 1, idleControl: 0 }
+		});
+		expect(result.idleWatts).toMatchObject({ median: 18, n: 2 });
+		expect(result.arms.quiet?.windows).toBe(2);
+		expect(result.arms.quiet?.extraWatts.median).toBeCloseTo(0.25, 10);
+		expect(result.arms.poll?.extraWatts.median).toBeCloseTo(1.25, 10);
+		expect(result.arms.raf).toMatchObject({ windows: 1 });
+		expect(result.arms.raf?.extraWatts.median).toBeCloseTo(4, 10);
+	});
+
+	it('reports an arm with no kept window as null', () => {
+		const result = activityFigures([
+			win('idle', 0, 18),
+			win('idle', 0, 18),
+			win('raf', 0, 40, 250),
+			win('idle', 1, 18),
+			win('raf', 1, 41, 400)
+		]);
+		expect(result.arms.raf).toBeNull();
+		expect(result.counts.raf).toEqual({ kept: 0, dropped: 2, idleControl: 0 });
+		expect(
+			activityFigures([win('idle', 0, 18, 500), win('quiet', 0, 18)]).arms.quiet
+		).toBeNull();
+	});
+
+	it('drops a window by the same rule in raplRun and in the counts', () => {
+		const run = raplRun(
+			rows.filter((r) => r.arm !== 'negotiation').map((r) => ({ ...r, n: 1 })),
+			{ contamination: 100 }
+		);
+		expect(run.dropped).toBe(windowCounts(rows).raf?.dropped);
 	});
 });

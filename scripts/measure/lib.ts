@@ -68,7 +68,11 @@ export function parseUsageUsec(stat: string): number {
 	return Number(/usage_usec (\d+)/.exec(stat)?.[1] ?? 0);
 }
 
-/** the CPU other containers used over a window, in milliseconds, from two cgroup snapshots */
+/**
+ * The CPU other containers used over a window, in milliseconds, from two cgroup snapshots. A
+ * container that started inside the window counts from zero; one that stopped inside it leaves no
+ * second snapshot and is not counted.
+ */
 export function otherCpuMs(
 	before: Record<string, number>,
 	after: Record<string, number>,
@@ -77,9 +81,8 @@ export function otherCpuMs(
 ): Record<string, number> {
 	const out: Record<string, number> = {};
 	for (const [id, usec] of Object.entries(after)) {
-		const start = before[id];
-		if (start === undefined || selfId.startsWith(id) || (only && !only(id))) continue;
-		out[id] = (usec - start) / 1000;
+		if (selfId.startsWith(id) || (only && !only(id))) continue;
+		out[id] = (usec - (before[id] ?? 0)) / 1000;
 	}
 	return out;
 }
