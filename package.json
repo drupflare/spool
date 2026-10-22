@@ -91,7 +91,7 @@
 	},
 	"devDependencies": {
 		"@azure/functions": "^4.16.5",
-		"@cloudflare/vitest-pool-workers": "^0.22.0",
+		"@cloudflare/vitest-pool-workers": "^0.23.0",
 		"@cloudflare/workers-types": "^5.20260811.1",
 		"@google-cloud/functions-framework": "^5.0.5",
 		"@hapi/hapi": "^21.4.10",
