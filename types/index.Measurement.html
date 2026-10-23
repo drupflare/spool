@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">Measurement</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#date">date</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exclusions">exclusions</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#instrument">instrument</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#layer">layer</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Extract</span><span class="tsd-signature-symbol">&lt;</span><a href="index.Layer.html" class="tsd-signature-type tsd-kind-type-alias">Layer</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;L1&quot;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#machine">machine</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#method">method</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#question">question</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rig">rig</a><span class="tsd-signature-symbol">:</span> <a href="index.Rig.html" class="tsd-signature-type tsd-kind-type-alias">Rig</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rows">rows</a><span class="tsd-signature-symbol">:</span> <a href="index.Row.html" class="tsd-signature-type tsd-kind-type-alias">Row</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#schema">schema</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">typeof</span> <a href="../variables/index.MEASUREMENT_SCHEMA.html" class="tsd-signature-type tsd-kind-variable">MEASUREMENT_SCHEMA</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#software">software</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L28">src/report/measurement.ts:28</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L28">src/report/measurement.ts:28</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -45,67 +45,67 @@
 <div class="tsd-comment tsd-typography"><p>the run date, UTC, <code>YYYY-MM-DD</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L32">src/report/measurement.ts:32</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L32">src/report/measurement.ts:32</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="exclusions"><span>exclusions</span><a href="#exclusions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">exclusions</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>rules for rows a reader must drop, with the reason</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L44">src/report/measurement.ts:44</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L44">src/report/measurement.ts:44</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="instrument"><span>instrument</span><a href="#instrument" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">instrument</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>what read the numbers</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L37">src/report/measurement.ts:37</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L37">src/report/measurement.ts:37</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="layer"><span>layer</span><a href="#layer" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">layer</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Extract</span><span class="tsd-signature-symbol">&lt;</span><a href="index.Layer.html" class="tsd-signature-type tsd-kind-type-alias">Layer</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;L1&quot;</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L33">src/report/measurement.ts:33</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L33">src/report/measurement.ts:33</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="machine"><span>machine</span><a href="#machine" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">machine</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>the hardware, with at least a <code>name</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L39">src/report/measurement.ts:39</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L39">src/report/measurement.ts:39</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="method"><span>method</span><a href="#method" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">method</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>windows, rounds, arm order, pacing and any emulation</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L42">src/report/measurement.ts:42</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L42">src/report/measurement.ts:42</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="question"><span>question</span><a href="#question" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">question</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>what the run answers</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L35">src/report/measurement.ts:35</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L35">src/report/measurement.ts:35</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="rig"><span>rig</span><a href="#rig" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">rig</span><span class="tsd-signature-symbol">:</span> <a href="index.Rig.html" class="tsd-signature-type tsd-kind-type-alias">Rig</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L30">src/report/measurement.ts:30</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L30">src/report/measurement.ts:30</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="rows"><span>rows</span><a href="#rows" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">rows</span><span class="tsd-signature-symbol">:</span> <a href="index.Row.html" class="tsd-signature-type tsd-kind-type-alias">Row</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L45">src/report/measurement.ts:45</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L45">src/report/measurement.ts:45</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="schema"><span>schema</span><a href="#schema" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">schema</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">typeof</span> <a href="../variables/index.MEASUREMENT_SCHEMA.html" class="tsd-signature-type tsd-kind-variable">MEASUREMENT_SCHEMA</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L29">src/report/measurement.ts:29</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L29">src/report/measurement.ts:29</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="software"><span>software</span><a href="#software" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">software</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fb572b9ab52fcce54421121cc5526225f4ec66da/src/report/measurement.ts#L40">src/report/measurement.ts:40</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/report/measurement.ts#L40">src/report/measurement.ts:40</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
