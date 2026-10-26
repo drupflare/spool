@@ -31,8 +31,13 @@ against every page and script, behind a hash check and a per-page guard, and nev
 PNG to WebP through a caller-supplied encoder and rewrites `<video>` tags, with no client change.
 `images` also takes `maxWidth`, `timeoutMs`, `png`, `lazy` and `responsive`, `embeds` swaps YouTube and
 Vimeo iframes for a click-to-load link, and `dictionary` serves public CSS and JS as `dcz` against an
-earlier file of the same directory (RFC 9842); every one is off until set and none touches the worker. Not built yet: the capacity and institution reports (P8) and the drupflare adapter (P9),
-both pinned to drupflare v1.0.4.
+earlier file of the same directory (RFC 9842); every one is off until set and none touches the worker. The drupflare adapter (P9) exists in `drupflare/worker` (`src/site/spool.ts`) as a `spoolProxy`
+integration on `@drupflare/spool ^0.2.0` for eligible public traffic: a request with a cookie or an
+`Authorization` header bypasses spool, so the authenticated `cfw_page` and fragment integration is a
+separate capability that does not exist yet. spool is on by default for paid sites (the `SPOOL`
+lever overrides it), and its `images`, `video` and `embeds` features are on once it is; its six
+pass conditions are not re-verified. Not built yet: the capacity and institution reports (P8).
+v0.2.0 is released; v0.3 is planned in `~/.claude/plans/review-the-updated-plan-idempotent-hamming.md`.
 
 ## Load-bearing facts, each measured
 
@@ -58,9 +63,12 @@ document size; `docs/impact.md` prints every site.
 paisley-park's RAPL counter reads about 0.8 J saved per view on a desktop against optimized HTTP
 caching. Report both, labelled.
 
-**A URL with a query string is never answered from a path's artifact.** The worker sends a
-navigation or `data` GET with a query to the network, and `spoolProxy` declines it; `/news?page=2`
-is a different page from `/news`.
+**A URL with a query string is never answered from a path's artifact, unless the route declares a
+`query` schema.** The worker sends a navigation or `data` GET with a query to the network, and
+`spoolProxy` declines it; `/news?page=2` is a different page from `/news`. A public `template`,
+`projection` or `data` route with `query` holds the whole collection and a proof of it. The worker
+answers a query locally only when every parameter is in the schema and the proof verifies, and
+sends anything else to the network (`src/protocol/query.ts`).
 
 ## Rules
 

@@ -212,6 +212,22 @@ Tag names are readable. A tag appears unsealed in the `need` query of a sync req
 
 Use opaque ids for anything sensitive, for example a random id or an HMAC of the principal. Record and projection ids are IndexedDB keys, so they sit in clear at rest too. A principal route syncs with `need`, which names only the tags that page reads and not the whole diff. The cursor also shows the site's global write rate.
 
+## Inline Artifact Data
+
+With `inlineMaxBytes` above `0`, a public `template` page carries its own artifact in a `<script type="application/spool+json" data-spool-artifact>` element. The data is what `/.spool/artifact` would send to anyone without cookies: the server builds it for a request with no cookies, never for a principal route, and leaves it out when the route would be declined. Escaping `<`, `>`, `&`, U+2028 and U+2029 as `\uXXXX` keeps the text from ending the element or opening another tag.
+
+The worker does not trust an element because it is in the page. It takes the last one, hashes its text and compares the hash with the `h` field of `Spool-Artifact`, which only the server's response headers carry. Markup a visitor or an editor puts in the page body cannot match that hash. The worker then runs `parseArtifact` and checks that the `id` is the path it asked for, the scope is `public` and the strategy is the route's own. A page that fails any step stores nothing, and the worker fetches the artifact as before. Script on the origin already reads whatever the page holds, so the element adds no reach beyond the data the endpoint serves to everyone.
+
+An `assembly` page in proxy mode needs no element. The body is the artifact, and the worker stores it only when the hash of the body without the client tag equals `h`. See [The Body Carries the Artifact](protocol.md#the-body-carries-the-artifact).
+
+## Query Routes
+
+A route that declares `query` answers filters, sorts and pages of a collection on the device. The route is public. `defineRoute` refuses `query` on a `principal` route (`tests/unit/route.spec.ts`, `tests/node/strategies.spec.ts`), so a query never runs over a sealed copy and the device never holds a per-principal collection for it. The collection is what `/.spool/artifact` sends to anyone without cookies. A query the device answers is not sent to the origin, so the origin does not learn the filter. The view event carries the route's pattern and never the query string.
+
+The proof is an integrity check of what the server sent. `datasetProof` records the item count and a SHA-256 of the canonical JSON, the server builds no artifact whose proof does not match (`verifyProof`, `src/server/spool.ts`), and the worker computes it again from the stored copy before each answer (`shapeQuery` in `src/protocol/query.ts`, called by `renderLocal`). A copy that is partial, truncated by an interrupted write or edited after it was stored fails the check. The worker then drops it and sends the request to the network (`tests/node/strategies.spec.ts`, `tests/unit/query.spec.ts`). The proof does not say the array is the whole collection: that is the route's declaration, and an incomplete array with its own matching proof would answer queries with too few rows. It is not authorisation and not a signature. Script on the origin, or anything else that can write the store, can change the items and the proof together, and the worker would answer from them. A server response that carried a wrong collection would carry a matching proof. Authorisation stays on the server, and the page runtime and the worker are no more trusted with the collection than with any other public artifact.
+
+A copy that is stale under the route's freshness contract is refreshed first on a `hard` route and shown first on a `soft` one, as for the path itself. A query string the schema does not declare, a repeated `sort` or an unlisted one, a number filter that is not a number, and a page past the last go to the network, which answers them as it always did. Nothing is stored under a URL with a query string, so a query string cannot add entries to the store or make one path hold more than one copy.
+
 ## Script Delivery
 
 By default the server serves the page runtime itself at `/.spool/<version>/client.js` with `Cache-Control: public, max-age=31536000, immutable`. That path suits `script-src 'self'` and trusts no host beyond the site's own (`tests/unit/server.spec.ts`).
@@ -286,8 +302,13 @@ Seven rules bound what reaches it (`src/media/image.ts`, `src/media/responsive.t
 - **Content-Security-Policy.** The facade needs an inline style and, for YouTube, `i.ytimg.com` for the thumbnail, and the click needs the player host in `frame-src`. A response that sends the header is left alone and counted as `skipped.csp`. `ignoreCsp: true` takes the operator's word that the policy allows all three.
 - **The thumbnail.** The visitor's browser asks `i.ytimg.com` for it without a click, which tells Google's image host about the visit and nothing else. `thumbnail: false` removes that request, and Vimeo's facade makes none.
 - **Scripted players.** A URL with `enablejsapi=1` stays as it is, since the page's script expects the real player.
+- **Ambient loops.** An embed that plays on its own by design stays as it is and counts as `skipped.ambient`: a URL with `background=1`, a URL with `autoplay=1` beside `mute=1`, `muted=1` or `loop=1`, and an iframe whose `class` or `id` holds the word hero, ambient, background or banner. A facade there would swap a decorative loop for a link.
 
 `tests/node/media.spec.ts` covers each rule.
+
+## Activity Hook
+
+`window.spool.activity.register` is page code. It runs with the page's own privileges and holds only the `pause` and `resume` functions the site hands it, an optional element and a time. It reads no page content, stores nothing and sends nothing, and it never touches `setInterval`, `requestAnimationFrame`, `fetch`, audio, WebRTC or an element the site did not name. A function that throws is caught and reported once with `console.warn`, and the other loops go on. The worker is not involved, so the hook works without a service worker and adds nothing to the wire.
 
 ## Dictionary Transport
 

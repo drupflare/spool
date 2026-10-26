@@ -69,11 +69,13 @@ Two more paths are not in `PATHS`.
 
 ### Field Grammar
 
-| Header             | Grammar                                                                                                                                                                                                                                             |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spool-artifact`   | fields split on `;`, each `name=value` with a name at least one character long. `id` and `v` are required. `scope` is `public` or `principal`. `id` and each `deps` entry are percent-encoded. Unknown field names are ignored. `deps` is optional. |
-| `spool-invalidate` | entries split on `,`. Each entry splits at its last `=`. The tag is percent-encoded and the version is an integer.                                                                                                                                  |
-| `spool-clear`      | tokens split on `,`, each percent-encoded. `*` is `CLEAR_ALL`.                                                                                                                                                                                      |
+| Header             | Grammar                                                                                                                                                                                                                                                                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spool-artifact`   | fields split on `;`, each `name=value` with a name at least one character long. `id` and `v` are required. `scope` is `public` or `principal`. `id` and each `deps` entry are percent-encoded. `h` is 43 base64url characters; `decodeEnvelope` drops any other value and keeps the rest. Unknown field names are ignored. `deps` is optional. |
+| `spool-invalidate` | entries split on `,`. Each entry splits at its last `=`. The tag is percent-encoded and the version is an integer.                                                                                                                                                                                                                             |
+| `spool-clear`      | tokens split on `,`, each percent-encoded. `*` is `CLEAR_ALL`.                                                                                                                                                                                                                                                                                 |
+
+`h` is the only field added since v0.2. A v0.2 worker reads `id`, `scope`, `deps` and `v` by name and ignores `h`, so `Spool-Protocol` stays `1` (`tests/unit/envelope.spec.ts` parses the new header the v0.2 way).
 
 `decodeEnvelope` treats an absent header as an absent field and throws `ProtocolError` with code `bad-header` on a malformed one. The worker reads a response through `decodeEnvelopeOrClear`. When `decodeEnvelope` throws, the worker ignores every spool header of that response except `Spool-Clear`, which it reads on its own. A valid `Spool-Clear` still applies, a malformed one counts as `*`, and a response whose `Spool-Protocol` names another version is ignored. `encodeEnvelope` refuses a `partition` that does not match the pattern.
 
@@ -116,15 +118,15 @@ A page the worker renders from an artifact has no network response of its own, s
 
 `Envelope` (`src/protocol/envelope.ts`) is every spool header of a response, decoded.
 
-| Field        | Header              | Type                           | Meaning                                                                                   |
-| ------------ | ------------------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
-| `protocol`   | `spool-protocol`    | integer                        | the protocol version the sender speaks                                                    |
-| `artifact`   | `spool-artifact`    | `{ id, scope, deps, version }` | this response is the artifact for `id` at cursor `version`, built from the tags in `deps` |
-| `invalidate` | `spool-invalidate`  | tag to version                 | tags that changed, each with the cursor at its last change                                |
-| `clear`      | `spool-clear`       | list of strings                | partition ids to wipe, or `*` for everything                                              |
-| `vector`     | `spool-vector`      | integer                        | the server's cursor                                                                       |
-| `seen`       | `spool-vector-seen` | integer                        | echo of the request's cursor; `invalidate` is the complete diff since it                  |
-| `partition`  | `spool-partition`   | string                         | the partition the response belongs to                                                     |
+| Field        | Header              | Type                                  | Meaning                                                                                                                                                                              |
+| ------------ | ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `protocol`   | `spool-protocol`    | integer                               | the protocol version the sender speaks                                                                                                                                               |
+| `artifact`   | `spool-artifact`    | `{ id, scope, deps, version, hash? }` | this response is the artifact for `id` at cursor `version`, built from the tags in `deps`; `hash` is described under [The Body Carries the Artifact](#the-body-carries-the-artifact) |
+| `invalidate` | `spool-invalidate`  | tag to version                        | tags that changed, each with the cursor at its last change                                                                                                                           |
+| `clear`      | `spool-clear`       | list of strings                       | partition ids to wipe, or `*` for everything                                                                                                                                         |
+| `vector`     | `spool-vector`      | integer                               | the server's cursor                                                                                                                                                                  |
+| `seen`       | `spool-vector-seen` | integer                               | echo of the request's cursor; `invalidate` is the complete diff since it                                                                                                             |
+| `partition`  | `spool-partition`   | string                                | the partition the response belongs to                                                                                                                                                |
 
 ### What decorate Sends
 
@@ -154,6 +156,7 @@ The worker (`early` and `observe` in `src/sw/runtime.ts`, `applyEnvelope` in `sr
 - `Spool-Invalidate` raises tag versions. It always applies.
 - The cursor and the sync clock advance only when the response carries `Spool-Vector-Seen` equal to the value the worker sent, carries `Spool-Vector`, and has no `Age` header. A copy a shared cache replays cannot extend freshness.
 - `Spool-Artifact` on a navigation (or on a `data` route read) makes the worker fetch `/.spool/artifact?path=<id>` when it holds no artifact for `id`, has not been told to leave that path to the network (a `204` declined), the route matches, the strategy is not `static` and the scope matches. For a `static` route the worker keeps the response itself, bytes and headers, when the advertised id equals the path and the scope is `public`.
+- A navigation response that names a hash in `Spool-Artifact` may hold the artifact itself, and the worker then stores it without the request above. See [The Body Carries the Artifact](#the-body-carries-the-artifact).
 - A principal artifact is fetched only when the response's `Spool-Partition` equals the partition the worker holds.
 - A `/.spool/sync` answer is read the same way before the worker uses it (`fetchSync`, `src/sw/runtime.ts`). A `Spool-Partition` that differs from the held partition swaps the store, and an answer with none wipes the principal store as a session that ended. A sync answer therefore ends a sign-in or sign-out the worker never saw.
 - A response's security headers are not part of the envelope, and the worker keeps them as well. See [Security Headers](#security-headers).
@@ -300,6 +303,37 @@ Example for a template route, built from the format `parseArtifact` accepts (the
 ```
 
 The artifact answer for `/node/7` in `tests/unit/server.spec.ts` is the same shape without `records`: `deps` is `["node:7"]` and `body` is `{ "data": { "id": "7" } }`.
+
+### The Body Carries the Artifact
+
+A navigation to a public route the worker holds nothing for costs a second request, `/.spool/artifact`. When the page body already contains the artifact, the server says so with `h` in `Spool-Artifact`, the base64url SHA-256 (no padding) of the UTF-8 text the body carries, and the worker stores the artifact from the response it already has (`derive`, `src/sw/runtime.ts`). Two routes use it.
+
+| Route             | What `h` hashes                                                                                                                    | What the worker stores                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| public `assembly` | the shell as the proxy builds it, before the client tag goes in (`DecorateOptions.assembled`)                                      | `{ id, scope: "public", strategy: "assembly", deps, vector: v, body: { shell } }`, with `deps` and `v` from the header |
+| public `template` | the text of the inline element, see below, which is the artifact JSON with `<`, `>`, `&` and U+2028 and U+2029 written as `\uXXXX` | the artifact parsed from that text, which `parseArtifact` validates                                                    |
+
+The worker reads a clone of the response after it has handed the response to the page, so the page never waits for it. It decodes the body as UTF-8 and refuses invalid bytes. For an `assembly` route it removes the first copy of its configured client tag, hashes what is left, and compares. For a `template` route it takes the last inline element, hashes its text and compares. Any mismatch, a missing `h`, a body over `MAX_STATIC_BYTES`, an unreadable body (compressed bytes with no decoding, another charset), a route in shadow mode, a route the server declined, a principal route, a status other than `200`, or a redirect leaves nothing stored, and the worker asks `/.spool/artifact` as before. A stored artifact is charged to the ledger with `requests: 0`: its `bytes` are `0` for an assembly page, which moved no extra bytes, and the element's size for a template page.
+
+The proxy passes `assembled` only for a public `assembly` page whose body it holds exactly as `/.spool/artifact` would build it. A page rewritten for a visitor signal (`video` with `when: 'save-data'` or `'slow'`) is declined as `private`, so it has no `Spool-Artifact` at all. The proxy's stored copy and the page the visitor got are then the same text, which also removes the second origin fetch of every cold view.
+
+**Inline element.** With `inlineMaxBytes` above `0` on `createSpool`, `decorate` appends this element before the last `</body>` of a public `template` page, or at the end when the page has none, and names the hash of its text in `Spool-Artifact`.
+
+```html
+<script
+  type="application/spool+json"
+  data-spool-artifact
+>
+  {"protocol":1,"id":"/n/1",...}
+</script>
+```
+
+- The text is the artifact JSON from the same code `/.spool/artifact` runs (`buildArtifact`), built for a request with no cookies and `Accept: application/json`, so it is public data. It is left out when the route would be declined, when the build fails, or when the escaped text is over `inlineMaxBytes` bytes.
+- `<`, `>`, `&`, U+2028 and U+2029 are written as `\uXXXX`, so the text cannot contain `</script` and `JSON.parse` returns the original.
+- Only a `GET` answered `200` as HTML without `Content-Encoding` is changed, and its `ETag` becomes weak. A principal route and an `assembly` route never get the element.
+- The worker takes the last element and requires its hash to equal `h`, its `id` to equal the path, its scope to be `public` and its strategy to be the route's `template`.
+- `normalise` removes the element, so shadow comparison and `equivalent` ignore it.
+- The default is `0`. Every network view of the page pays the element's bytes and one more `load`, whether or not the visitor runs a worker, and a view the worker could have skipped has no way to ask. The first-payload reading (`measurements/first-payload/`) has the numbers.
 
 ## Beacon
 
@@ -452,6 +486,14 @@ p >= k * E / (k * D + o)
 
 `E` is the entry's compressed bytes and `D` the bytes of the document it replaces, `k` is `JOULES_PER_BYTE` and `o` is `ORIGIN_JOULES`. Both come from the energy model ([impact.md](impact.md)): `k` is SWD v4's 0.194 kWh/GB over decimal gigabytes (L2), and `o` is the modelled origin request (L1). `chooseEntries` keeps the candidates at or above their own break-even, best expected net joules first (`p * (k * D + o) - k * E`), while their entry bytes fit under the cap. A candidate that does not fit is skipped and a smaller one may still go.
 
+A share that was estimated from counts is uncertain, so a candidate may carry `n`, the observations behind its `p`, and `createSpool` takes `catalogueConfidence`, `z`, a number of standard deviations (1.28 is one-sided 90%). Where `z` is above 0 and a candidate has an `n`, the rule above and the order use the lower Wilson bound of the share instead of `p`. Here `\hat p` is the candidate's `p`, `n` its observations and `z` the option:
+
+```math
+p_{\mathrm{low}} = \frac{\hat p + \frac{z^2}{2n} - z\sqrt{\frac{\hat p(1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}
+```
+
+A candidate with no `n`, and every candidate when `z` is 0 (the default), keeps its `p`. `lowerBound` in `src/protocol/navigation.ts` computes it, and `NavModel` there keeps first-order counts with decay and a prior, returning a `p` and the weight to pass as `n`.
+
 | Part                     | Where it is set                                                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | candidates and their `p` | the route's `catalogue(ctx)`, for the page the visitor is on: `{ path, p }` pairs from the site's own `nextShare`, link position or a fixed prior |
@@ -461,6 +503,20 @@ p >= k * E / (k * D + o)
 | the most pages built     | `MAX_CATALOGUE_BUILD` candidates, best `p` first, whatever the route returns                                                                      |
 
 A candidate is skipped when its path has a query string or a fragment, sits under `/.spool/`, is the page asked about, matches no route, matches a `static` or `assembly` route, or has a `p` outside 0 to 1. A route whose `catalogue` throws, or whose entries fail to build, sends nothing and the flush still answers as it would without it.
+
+Each candidate goes through the same checks in this order, and any "no" leaves it out of the bundle:
+
+```mermaid
+flowchart TD
+    A[Candidate from catalogue] --> B{Allowed by the path and route rules}
+    B -- no --> X[Left out]
+    B -- yes --> C[Build the artifact and measure E]
+    C --> D{p or its lower bound reaches break-even}
+    D -- no --> X
+    D -- yes --> E{Entry bytes fit under the cap}
+    E -- no --> X
+    E -- yes --> F[Sent in the bundle]
+```
 
 ### Asking and Delivery
 
@@ -516,7 +572,38 @@ Examples from `matchPattern`: `/a/:b` matches `/a/x%20y` with `{ "b": "x y" }`, 
 
 ## Query Strings
 
-An artifact is keyed by path alone, so the worker never answers a navigation or a `data` read that has a query string (`classify`, `src/sw/router.ts`). A navigation with a query goes to the network. A `data` read with a query is handled as an ordinary subresource. A `static` route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: `/app.js?v=2` is a different file from `/app.js`, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose `Spool-Artifact` id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's `version` like any other. The proxy treats a request with a query string as ineligible and forwards it untouched.
+An artifact is keyed by path alone, so the worker answers a navigation or a `data` read that has a query string only on a route that declares `query` (see [Query Routes](#query-routes)). On every other route (`classify`, `src/sw/router.ts`) a navigation with a query goes to the network, and a `data` read with a query is handled as an ordinary subresource. A `static` route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: `/app.js?v=2` is a different file from `/app.js`, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose `Spool-Artifact` id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's `version` like any other. The proxy treats a request with a query string as ineligible and forwards it untouched, whatever the routes behind it declare.
+
+### Query Routes
+
+A public `template`, `projection` or `data` route may declare `query` (`QuerySchema`, `src/protocol/query.ts`). `defineRoute` throws `ProtocolError` with code `bad-route` for a `principal` route, any other strategy, an option other than these four, or a value outside the rules.
+
+| Option     | Rule                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list`     | a non-empty string, not `proof` or `query`: the key of the loaded data that holds the whole collection                                      |
+| `filter`   | optional object from a parameter name to `string` or `number`. A name is non-empty and is not `sort` or `page`. The field has the same name |
+| `sort`     | optional list of field names, each non-empty and not `sort` or `page`                                                                       |
+| `pageSize` | optional positive safe integer: the items per page. Absent, the route is one page of everything                                             |
+
+The only new wire fact is `query` in the worker's route entry (`SerializedRoute.query`), a copy of the validated schema. The artifact format, the envelope, `/.spool/artifact` and `/.spool/sync` are unchanged.
+
+**The proof.** A query route's `load` returns an object that holds the collection, an array, at `list` and carries `proof: { count, digest }`. `datasetProof(items)` makes it: `count` is the array's length and `digest` is the base64url SHA-256, without padding, of `canonicalJson(items)`. `canonicalJson` writes JSON with object keys in code-unit order at every depth, no whitespace, and `toJSON` followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is `undefined` and writes `null` for one in an array, as `JSON.stringify` does. `createSpool` builds the artifact only when `verifyProof` holds, which needs an array at `list`, a `proof` object whose `count` equals the array's length, and a `digest` that matches. Otherwise it throws `ProtocolError` with code `bad-artifact`, and `/.spool/artifact` answers `400`. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.
+
+**Evaluation.** `evaluateQuery(schema, data, search)` takes the loaded data and the request's query string, with or without its `?`, and returns `{ items, total, page, pages }` or `null`. It returns `null` when:
+
+- the data is not an object, `list` is not an own key holding an array, or an item is not an object
+- a parameter is neither a `filter` name, `sort` nor `page`
+- a `number` filter has a value that is empty, blank or not a finite number
+- `sort` is given twice, or is not exactly a listed field or `-` plus a listed field
+- `page` is given twice or is not a positive integer without a leading zero, or lies past the last page. Page 1 of an empty result is valid. With no `pageSize` there is one page
+
+Otherwise it filters, sorts and pages in that order. A `string` filter compares the field as text (a string, number or boolean value matches its text), and a `number` filter matches a number field by value. Different parameters combine with and, and the values of a repeated parameter combine with or. A sort is stable, so ties keep the stored order for both directions. It compares numbers by value and strings by code unit, with no locale and no case folding (so it differs from a byte-ordered database only above U+FFFF, which `tests/node/query.spec.ts` shows against SQLite), and orders numbers before strings before any other value. `total` counts the items after filtering, and an empty query string selects everything: page 1.
+
+**Rendering.** `shapeQuery` checks the proof, evaluates the query and returns the stored data with the array at `list` replaced by the page's items and one key added, `query`: `{ total, page, pages }`. The compiled template receives that object. A `projection` renderer receives an artifact whose `body.data` is that object, and a `data` route answers with it as JSON. A URL without a query string renders the stored data as it is.
+
+**The worker.** `classify` treats a navigation, or for a `data` route a GET, that has a query string on a route that declares `query` like one without it. The artifact is the path's own: `Spool-Artifact` names the pathname for a query URL, `/.spool/artifact?path=` takes no query string and answers `404 no route` for one that has it, and the worker never stores an artifact or a security header set under a URL with a query string. A query is answered locally when the artifact is held and fresh under the route's freshness contract, so a stale `hard` route syncs first as it does for the path, its proof verifies, and `evaluateQuery` returns a result. Anything else goes to the network as it would without `query`. A copy that fails its proof is dropped, so the next network view provisions the collection again. A cold query URL goes to the network, and the advertised artifact of its path is provisioned like any other. The view event is an ordinary one with the route's pattern and the reason the path's artifact gives. In shadow mode the worker compares the local render with the network answer for the same URL.
+
+**Provisioning.** The collection is an ordinary artifact, so the rule in [Provisioning](#provisioning) weighs its bytes against its expected reuse, and the route's `provision` field sets the priors.
 
 ## Freshness
 

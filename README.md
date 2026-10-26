@@ -37,6 +37,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Proxy Mode](#-proxy-mode)
 - [Trimmed Stylesheets](#-trimmed-stylesheets)
 - [Images and Video](#-images-and-video)
+- [Capacity Reports](#-capacity-reports)
 - [Out of Scope](#-out-of-scope)
 - [Browser Support](#-browser-support)
 - [Subpath Exports](#-subpath-exports)
@@ -194,6 +195,41 @@ script fails to load, the page works as it did before.
 The script registers `/spool-sw.js` and exposes `window.spool.ready`, which resolves to the client
 handle or to `null` where service workers do not exist. To bundle the runtime yourself, import
 `register` from `@drupflare/spool/client`.
+
+### Activity Hooks
+
+A loop that keeps running while nobody can see its output costs the visitor's device power. The
+page runtime exposes `window.spool.activity.register`, which lets a page hand spool a `pause` and
+a `resume` for one of its own loops. Spool calls `pause` while the loop's `target` is off screen
+and after the page has been hidden for `hiddenAfterMs`, and calls `resume` when neither holds.
+
+```ts
+import { createActivity } from '@drupflare/spool/client';
+
+const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+let frame = 0;
+
+const draw = () => {
+  canvas.style.transform = `translateX(${(performance.now() / 10) % 200}px)`;
+  frame = requestAnimationFrame(draw);
+};
+
+draw();
+
+export const stop = createActivity().register(
+  { pause: () => cancelAnimationFrame(frame), resume: draw },
+  { target: canvas, hiddenAfterMs: 10_000 }
+);
+```
+
+`target` is optional, and without it only the hidden-page rule applies. `hiddenAfterMs` defaults to
+10000, and 0 pauses at once. `register` returns a function that stops watching and resumes the loop
+if it is paused. Spool does not touch `setInterval`, `requestAnimationFrame`, `fetch`, audio,
+WebRTC or any element the page did not name, and a `pause` or `resume` that throws is logged once.
+Where `IntersectionObserver` is missing the target counts as on screen. On the one desktop
+measured, the off-screen pause lowered power for a page whose frame loop kept running, and the
+hidden-page pause showed no saving for a once-a-second poll. Both readings are in
+[docs/impact.md](docs/impact.md#metered-figures-beside-the-ledger).
 
 ---
 
@@ -862,6 +898,13 @@ export const news = defineRoute('/news/:slug', {
 
 A template that names a field it does not trust for markup fails when the route is declared.
 
+A public `template` route can carry its own data in the page. `inlineMaxBytes` on `createSpool`
+sets the largest artifact, in bytes, that `handle` and `decorate` write into the HTML as an
+escaped `<script type="application/spool+json">` element. The worker reads it from the response
+and skips the `/.spool/artifact` request. It is 0, which is off, because every network view of the
+page carries the element, used or not. The page the visitor sees and the shadow comparison ignore
+it.
+
 ### Static Files
 
 A `static` route has no `load` and no template. The application serves the file as it always did,
@@ -930,9 +973,78 @@ records included, against what a local view saves: reuse times future views time
 avoids, less the cost of the request. When that is not positive it answers `204` with
 `Spool-Provision: declined`, and the worker leaves that path to the network until it restarts.
 The priors are scenario assumptions: set them from your own telemetry in `provision`, or per route
-as above. A `data` route weighs against its own size, so it needs reuse times future views above
+as above. A `data` route weighs against its own size, so its reuse times future views must exceed
+one. The defaults of 0.5 and 2 give exactly one, which breaks even, and the route is left out.
 
-1. With the defaults of 0.5 and 2 it breaks even and is left out.
+### Query Routes
+
+A URL with a query string goes to the network. A public `template`, `projection` or `data` route
+can declare the query strings it answers, and the device then answers a new filter, sort or page of
+a collection it already holds with no request.
+
+```ts
+import { datasetProof, defineRoute } from '@drupflare/spool/server';
+
+const people = [
+  { name: 'Ada', department: 'math', age: 36 },
+  { name: 'Bo', department: 'cs', age: 25 }
+];
+
+export const directory = defineRoute('/people', {
+  strategy: 'template',
+  template: {
+    source:
+      '<h1>{{#if query}}Page {{query.page}} of {{query.pages}}{{else}}Everyone{{/if}}</h1><ul>{{#each people}}<li>{{name}}</li>{{/each}}</ul>'
+  },
+  depends: () => ['people'],
+  load: async () => ({ people, proof: await datasetProof(people) }),
+  query: {
+    list: 'people',
+    filter: { department: 'string', age: 'number' },
+    sort: ['name', 'age'],
+    pageSize: 20
+  },
+  provision: { reuse: 0.8, futureViews: 6 }
+});
+```
+
+`list` names the key of the loaded data that holds the whole collection, an array of flat objects.
+Each key of `filter` is a query parameter that keeps the items whose field of the same name equals
+it, read as a `string` or a `number`. A repeated parameter matches any of its values, and different
+parameters combine with and. `sort` lists the fields the `sort` parameter may name, and `-name`
+sorts descending. Ties keep the stored order. Strings compare by UTF-16 code unit, with no locale
+and no case folding, so the application's own sort has to agree. A database that compares bytes,
+such as SQLite by default, agrees except for characters above U+FFFF, and a case-insensitive or
+locale collation does not. `pageSize` sets the items per page and `page` counts from 1; without it
+the route is one page of everything. A route with `principal` scope, or any
+other strategy, cannot declare `query`.
+
+`load` returns the array at `list` and a `proof` made by `datasetProof`. The server refuses to
+build the artifact when the proof is missing or does not match the array. The worker computes the
+proof again from the stored copy before it answers a query. The proof shows that the device holds
+the array the server sent. That the array is the whole collection is the route's declaration:
+`list` has to hold every item the application's own answer could draw from, or a filter returns
+fewer rows than the server would.
+
+The template, or the renderer of a `projection` route, receives the stored data with the array
+replaced by the page's items and one added key, `query`, holding `{ total, page, pages }`. `total`
+counts the items after filtering. A `data` route answers with that same object as JSON. The URL
+without a query string renders the stored data as it is and has no `query` key, which is what
+`{{#if query}}` tests above.
+
+The worker answers locally only when the artifact for the path is held and fresh under the route's
+freshness contract, the proof matches and the query is one the route declares. Everything else goes
+to the network as before: a parameter the route does not name, a number filter that is not a
+finite number, a `sort` given twice or not listed, a `page` that is not a positive integer or
+lies past the last page, and an item that is not an object. A copy that fails its proof is dropped
+and fetched whole again. The worker never stores anything under a URL with a query string, and in
+shadow mode it compares its render with the network answer for the same URL.
+
+A query route's artifact is the whole collection, so it is large. The provisioning rule weighs it
+like any other artifact, and `provision` on the route sets the priors. A collection repays its
+transfer after `entryBreakEven(bytes, documentBytes)` local answers per device: a 40 KB collection
+that replaces 17 KB documents needs 2.3 (L2). Pages of one visit come from one held copy until a
+sync replaces it, so paging never mixes two versions on a device.
 
 ---
 
@@ -1072,8 +1184,19 @@ is larger. An entry is data for a `template`, `projection` or `data` route and n
 The site supplies the candidates. A route's `catalogue` returns the pages a visitor on it may open
 next, each with the share expected to. Take the share from your own `nextShare` over the sink
 (each `spool.view` names the route the visitor came from), from link position, or from a fixed
-prior. `documentBytes` on the entry's route says what a hit saves, and the provisioning prior is
+prior. Pass `{ first: true }` to `nextShare` to count only first views, which is what an entry
+saves: the share over all views ran 1.5 to 7 times high in the bins that decide an entry in a replay
+of public visitors ([docs/impact.md](docs/impact.md#next-page-prediction)). `documentBytes` on the entry's route says what a hit saves, and the provisioning prior is
 used when it is absent.
+
+A share taken from counts can carry `n`, the observations behind it. `catalogueConfidence` on
+`createSpool` is a number of standard deviations, and with it above 0 an entry whose guess has an
+`n` is judged on the lower confidence bound of its `p`, so a share seen on 5 visits stops counting
+as one seen on 5,000. It defaults to 0, which judges every guess on its `p`. `NavModel` in
+`@drupflare/spool/protocol` keeps first-order counts with decay and a prior and returns a `p` with
+the weight to pass as `n`. In a replay of 989,818 public visitors, a model like that earned more
+per provisioned kilobyte than the most popular page
+([docs/impact.md](docs/impact.md#next-page-prediction)).
 
 ```ts
 import { createSpool, defineRoute } from '@drupflare/spool/server';
@@ -1312,7 +1435,11 @@ requests keep the browser's own path.
 or anything else that speaks HTTP. It returns a Fetch handler. The proxy answers `/.spool/*` and
 `/spool-sw.js`. Every other request goes to the origin with its method, headers and body, and a
 redirect is passed on, not followed. A page the proxy may keep is decorated like a `createSpool`
-response, so the worker stores it and answers later views with no request.
+response, so the worker stores it and answers later views with no request. A cold visit costs one
+origin fetch: the proxy names a hash of the page in `Spool-Artifact`, and the worker keeps the
+page it already received as the artifact when its own hash matches. On any mismatch it asks
+`/.spool/artifact` as before. In the first-payload reading (L1, a synthetic 11,145-byte page) a
+cold visit made 1 request and 1 origin fetch where it made 2 and 2 before.
 
 `spool` takes the options `createSpool` takes, minus `routes`. The proxy adds one public
 `assembly` route that matches every path (`/**`) and uses the origin's finished HTML as the
@@ -1420,7 +1547,8 @@ in the instance: a restart forgets them, and each instance of a scaled-out proxy
 A whole page is a large artifact, and the provisioning rule declines one that costs more than the
 priors say it saves, so set `provision` on the spool for large pages. A `Content-Security-Policy`
 that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
-always goes to the origin. [Trimmed Stylesheets](#-trimmed-stylesheets) covers the `trim` option
+always goes to the origin, because the proxy holds finished HTML and has no collection to filter;
+[Query Routes](#query-routes) apply to `createSpool` only. [Trimmed Stylesheets](#-trimmed-stylesheets) covers the `trim` option
 and [Images and Video](#-images-and-video) the `images` and `video` options.
 
 ---
@@ -1600,8 +1728,11 @@ and any tag inside `<picture>`, stays as it is.
 `embeds` replaces a server-rendered YouTube or Vimeo `<iframe>` with one whose `srcdoc` holds a
 link to the player. YouTube shows its thumbnail (`thumbnail: false` shows a plain frame) and the
 player loads on click. A page that sends `Content-Security-Policy` is left alone unless
-`ignoreCsp` is true, and so is an embed with `enablejsapi=1`. `proxy.embeds` counts `pages`,
-`rewritten` and `skipped`. [docs/security.md](docs/security.md#embed-facades) covers the rules.
+`ignoreCsp` is true, and so is an embed with `enablejsapi=1`. An embed that plays on its own by
+design stays too: a URL with `background=1`, or with `autoplay=1` beside `mute`, `muted` or `loop`,
+and an iframe whose `class` or `id` names a hero, ambient, background or banner. In a crawl of the
+server-rendered pages of 52 sites (L1, `measurements/embed-markup`), 2 of 4 Vimeo iframes were
+background loops. `proxy.embeds` counts `pages`, `rewritten` and `skipped` by reason. [docs/security.md](docs/security.md#embed-facades) covers the rules.
 
 ### Dictionary Transport
 
@@ -1641,7 +1772,56 @@ expression or a list of them. Without it the browser holds the latest file of ea
 fetched, and the sizing in [docs/impact.md](docs/impact.md#savings-today-and-at-maximum) shows that
 choice recovers little. With it the browser holds only the files you name, one per directory, and
 every other file of the directory is encoded against the base the request names.
-`scripts/measure/dictionary-size.ts` records the best base of each directory of a site.
+
+`chooseBases` picks the bases from a crawl. It takes the site's stylesheets and scripts with their
+compressed sizes and a `delta` function that returns the size of one file compressed against
+another. For each directory and file kind it returns the file whose deltas against the others, each
+capped at the other file's plain size, add up smallest. A directory with one file has no base, and a
+tie goes to the URL that sorts first. `baseMatcher` turns the choices into a `base` function.
+
+```ts
+import { promisify } from 'node:util';
+import { brotliCompressSync, zstdCompress } from 'node:zlib';
+import { baseMatcher, chooseBases, spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+const compress = promisify(zstdCompress);
+
+const crawl = [
+  { url: 'https://origin.example.edu/css/a.css', kind: 'style', text: '.a{color:red}.b{margin:0}' },
+  {
+    url: 'https://origin.example.edu/css/b.css',
+    kind: 'style',
+    text: '.a{color:red}.c{margin:1px}'
+  },
+  {
+    url: 'https://origin.example.edu/css/c.css',
+    kind: 'style',
+    text: '.a{color:red}.d{margin:2px}'
+  }
+] as const;
+
+const bytes = (index: number) => Buffer.from(crawl[index]?.text ?? '');
+
+const choices = await chooseBases(
+  crawl.map(({ url, kind, text }) => ({ url, kind, plain: brotliCompressSync(text).length })),
+  async (file, dictionary) =>
+    (await compress(bytes(file), { dictionary: bytes(dictionary) })).length
+);
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  dictionary: {
+    encoder: async (dictionary, input) => new Uint8Array(await compress(input, { dictionary })),
+    base: baseMatcher(choices)
+  }
+});
+```
+
+On the 10 Drupal sites of the reading, a base chosen this way and already held by the browser saves
+30% of the stylesheet and script bytes at the median site (L1, [docs/impact.md](docs/impact.md#savings-today-and-at-maximum)).
+`scripts/measure/dictionary-size.ts` records the same choice for a site's crawl.
 
 ### Defaults
 
@@ -1663,6 +1843,56 @@ set and how to change it.
 | YouTube and Vimeo facades                  | `embeds`            | off                                         | `embeds: {}` or `{ providers, thumbnail, ignoreCsp }` |
 | Dictionary transport                       | `dictionary`        | off                                         | `dictionary: { encoder }`                             |
 | Which files become dictionaries            | `dictionary.base`   | every `.css` and `.js` response             | `base: /\/base\.js$/`, a list or a function           |
+
+---
+
+## 📈 Capacity Reports
+
+`@drupflare/spool/report` turns peak work and an institution's own limits into three separate
+results: potential, financial and physical. None is added to another, and any can be empty.
+
+`capacityPlan` takes intervals of demand per resource with the part spool avoided, and what one
+node serves per second within the latency target. It returns the nodes needed before and after,
+as whole numbers, and how many could retire. `perNode.busyMs` is the milliseconds of handler work
+a node does per second, such as 1000 times its cores times a target utilisation. `spares`, `floor`,
+`regions` and `minPerRegion` raise the answer for redundancy, and a resource with no `avoided`, such
+as memory, does not shrink. `intervalsFromWork` builds the intervals from the `WorkSample`s the
+work series records.
+
+`institutionReport` adds the plan, an `observed` before and after of the same workload from
+production telemetry, an invoice total before and after, and a ledger of retired equipment. The
+plan says what could change, `observed` what changed, the invoices what was paid, and the ledger
+what was removed. The physical result reads only the ledger, and an entry needs the evidence for
+its removal. With no ledger the statement reads `No physical capacity saving demonstrated.`
+
+```ts
+import { capacityPlan, institutionReport } from '@drupflare/spool/report';
+
+const plan = capacityPlan(
+  [
+    {
+      start: Date.UTC(2026, 8, 1, 14),
+      seconds: 300,
+      demand: { busyMs: 9000 },
+      avoided: { busyMs: 6300 }
+    },
+    {
+      start: Date.UTC(2026, 8, 1, 14, 5),
+      seconds: 300,
+      demand: { busyMs: 7000 },
+      avoided: { busyMs: 4900 }
+    }
+  ],
+  { perNode: { busyMs: 700 }, spares: 1, floor: 2 }
+);
+
+export const report = institutionReport({ plan, planLayer: 'L3' });
+```
+
+The example needs 14 nodes without spool and 5 with it, a potential of 9, at layer L3 because the
+numbers are made up. `channelRows` lists the metered, attributional, capacity and avoided-demand
+channels as separate rows, and nothing in the module sums them. [docs/impact.md](docs/impact.md#channels)
+says what each one counts.
 
 ---
 
@@ -1698,20 +1928,20 @@ loads per view and reports the view as such.
 
 ## 🧭 Subpath Exports
 
-| Import                                   | What is in it                                                        |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| `@drupflare/spool`                       | the protocol and report modules                                      |
-| `@drupflare/spool/protocol`              | envelopes, artifacts, patterns, templates, the manifest, view events |
-| `@drupflare/spool/server`                | `createSpool`, `defineRoute`, sinks, identity and work series        |
-| `@drupflare/spool/node`                  | `toNodeListener`, `toRequest`, `writeResponse`                       |
-| `@drupflare/spool/proxy`                 | `spoolProxy`, the tag readers and the eligibility verdict            |
-| `@drupflare/spool/stores`                | `memoryStore` and the `VersionStore` type                            |
-| `@drupflare/spool/stores/durable-object` | `durableObjectStore` and the `SpoolVersions` class                   |
-| `@drupflare/spool/sw`                    | `serve`, for a site that bundles its own worker                      |
-| `@drupflare/spool/client`                | `register` and the page handle                                       |
-| `@drupflare/spool/report`                | the energy model                                                     |
-| `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                       |
-| `@drupflare/spool/media`                 | `tinyimgEncoder`, `imageVariant` and `rewriteVideo`                  |
+| Import                                   | What is in it                                                                 |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `@drupflare/spool`                       | the protocol and report modules                                               |
+| `@drupflare/spool/protocol`              | envelopes, artifacts, patterns, templates, the manifest, view events          |
+| `@drupflare/spool/server`                | `createSpool`, `defineRoute`, `datasetProof`, sinks, identity and work series |
+| `@drupflare/spool/node`                  | `toNodeListener`, `toRequest`, `writeResponse`                                |
+| `@drupflare/spool/proxy`                 | `spoolProxy`, `chooseBases`, the tag readers and the eligibility verdict      |
+| `@drupflare/spool/stores`                | `memoryStore` and the `VersionStore` type                                     |
+| `@drupflare/spool/stores/durable-object` | `durableObjectStore` and the `SpoolVersions` class                            |
+| `@drupflare/spool/sw`                    | `serve`, for a site that bundles its own worker                               |
+| `@drupflare/spool/client`                | `register` and the page handle                                                |
+| `@drupflare/spool/report`                | the energy model, capacity plans and institution reports                      |
+| `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                                |
+| `@drupflare/spool/media`                 | `tinyimgEncoder`, `imageVariant` and `rewriteVideo`                           |
 
 ---
 

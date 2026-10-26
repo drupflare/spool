@@ -8,7 +8,12 @@ import { zstdDecompressSync } from 'node:zlib';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cdnClientUrl } from '../../src/cdn/location';
 import { toNodeListener } from '../../src/node/listener';
-import { decodeEnvelope, interpretTemplate, parseManifest } from '../../src/protocol/index';
+import {
+	datasetProof,
+	decodeEnvelope,
+	interpretTemplate,
+	parseManifest
+} from '../../src/protocol/index';
 import { createSpool } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
 import { VERSION } from '../../src/version';
@@ -30,6 +35,7 @@ import { GET as nextRoute } from './readme/next-route';
 import { server as nodeHttp } from './readme/node-http';
 import nuxtMiddleware from './readme/nuxt-middleware';
 import nuxtRoute from './readme/nuxt-route';
+import { directory } from './readme/query';
 import { rewriteProxy } from './readme/rewrites';
 import { canary, shadowed } from './readme/shadow';
 import { about as staticAbout } from './readme/static';
@@ -188,6 +194,20 @@ describe('the README strategy and configuration examples run', () => {
 		expect(html).toContain('<p>Staff</p>');
 		expect(html).toContain('<div><p>Trusted markup</p></div>');
 		expect(html).toContain('<li>0 a</li><li>1 b</li>');
+	});
+
+	it('query routes: the artifact carries the collection and its proof, and the config carries the schema', async () => {
+		const artifact = await artifactOf(directory, '/people');
+		const data = artifact['body'].data as { people: unknown[]; proof: unknown };
+		expect(data.people).toHaveLength(2);
+		expect(data.proof).toEqual(await datasetProof(data.people));
+		const spool = createSpool({ routes: [directory], store: memoryStore() });
+		expect(spool.config.routes[0]?.query).toEqual({
+			list: 'people',
+			filter: { department: 'string', age: 'number' },
+			sort: ['name', 'age'],
+			pageSize: 20
+		});
 	});
 
 	it('freshness: the declared bounds replace the defaults', () => {
@@ -390,6 +410,7 @@ describe('the README strategy and configuration examples run', () => {
 describe('the README matches the fixtures', () => {
 	const readme = readFileSync(join(root, 'README.md'), 'utf8');
 	const specifiers: Record<string, string> = {
+		'@drupflare/spool/client': '../../../src/client/index',
 		'@drupflare/spool/protocol': '../../../src/protocol/index',
 		'@drupflare/spool/proxy': '../../../src/proxy/index',
 		'@drupflare/spool/report': '../../../src/report/index',
@@ -420,9 +441,11 @@ describe('the README matches the fixtures', () => {
 	const cases: Array<[string, string[]]> = [
 		['Declare Routes', ['routes.ts', 'store.ts', 'spool.ts']],
 		['Page Runtime', ['cdn.ts']],
+		['Activity Hooks', ['activity.ts']],
 		['Strategies', ['assembly.ts']],
 		['Static Files', ['static.ts']],
 		['Projection and Data Routes', ['projection.ts', 'sw.ts']],
+		['Query Routes', ['query.ts']],
 		['Authenticated Data', ['authenticated.ts']],
 		['Catalogue', ['catalogue.ts']],
 		['Collectors', ['collectors.ts']],
@@ -437,7 +460,8 @@ describe('the README matches the fixtures', () => {
 		['Trimmed Stylesheets', ['trim.ts']],
 		['Images and Video', ['media.ts']],
 		['Page Rewrites', ['rewrites.ts']],
-		['Dictionary Transport', ['dictionary.ts']],
+		['Dictionary Transport', ['dictionary.ts', 'dictionary-bases.ts']],
+		['Capacity Reports', ['capacity.ts']],
 		['Cloudflare Workers', ['../../fixtures/readme/workers.ts']],
 		['Cloudflare Pages Functions', ['cloudflare-pages.ts']],
 		['Hono', ['hono.ts']],
