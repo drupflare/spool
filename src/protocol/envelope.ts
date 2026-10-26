@@ -23,6 +23,8 @@ export type EnvelopeArtifact = {
 	deps: string[];
 	/** the vector cursor the artifact reflects */
 	version: number;
+	/** base64url SHA-256 of the artifact's shell as the page body carries it, minus the client tag */
+	hash?: string;
 };
 
 /** every spool header of a response, decoded; an absent header is an absent field */
@@ -40,6 +42,7 @@ export type Envelope = {
 };
 
 const PARTITION = /^[A-Za-z0-9_-]{1,128}$/;
+const HASH = /^[A-Za-z0-9_-]{43}$/;
 
 function bad(message: string): never {
 	throw new ProtocolError('bad-header', message);
@@ -72,12 +75,17 @@ export function encodeEnvelope(envelope: Envelope): Record<string, string> {
 	};
 	const { artifact, invalidate, clear, vector, seen, partition } = envelope;
 	if (artifact) {
-		out[HEADERS.artifact] = [
+		const fields = [
 			`id=${encodeURIComponent(artifact.id)}`,
 			`scope=${artifact.scope}`,
 			`deps=${artifact.deps.map(encodeURIComponent).join(',')}`,
 			`v=${artifact.version}`
-		].join('; ');
+		];
+		if (artifact.hash !== undefined) {
+			if (!HASH.test(artifact.hash)) return bad('hash must be a base64url token');
+			fields.push(`h=${artifact.hash}`);
+		}
+		out[HEADERS.artifact] = fields.join('; ');
 	}
 	const changed = Object.entries(invalidate ?? {});
 	if (changed.length > 0) {
@@ -152,6 +160,8 @@ export function decodeEnvelope(headers: Headers): Envelope {
 			deps: list(fields.get('deps') ?? '').map((d) => decode(d, 'Spool-Artifact deps')),
 			version: integer(version, 'Spool-Artifact v')
 		};
+		const hash = fields.get('h');
+		if (hash !== undefined && HASH.test(hash)) out.artifact.hash = hash;
 	}
 
 	const invalidate = headers.get(HEADERS.invalidate);

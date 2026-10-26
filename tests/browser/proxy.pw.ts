@@ -119,8 +119,8 @@ for (const kind of ['node', 'php'] as Kind[]) {
 			await page.goto(`${fx.front}${p2}`);
 			await expect(page.locator('#note')).toHaveText('edited 2');
 			await quiet();
-			expect(seen()).toEqual(['/.spool/sync', p2, '/.spool/artifact']);
-			expect(fx.originHits).toEqual([p2, p2]);
+			expect(seen()).toEqual(['/.spool/sync', p2]);
+			expect(fx.originHits).toEqual([p2]);
 		});
 
 		test('a purge for a tag every page carries makes every page refetch', async ({ page }) => {
@@ -130,19 +130,10 @@ for (const kind of ['node', 'php'] as Kind[]) {
 			reset();
 			for (const path of paths()) await page.goto(`${fx.front}${path}`);
 			await quiet();
-			// each artifact fetch is background provisioning and can land after the next page
 			const [sync, ...rest] = seen();
 			expect(sync).toBe('/.spool/sync');
-			expect(rest.sort()).toEqual(
-				paths()
-					.flatMap((path) => [path, '/.spool/artifact'])
-					.sort()
-			);
-			expect([...fx.originHits].sort()).toEqual(
-				paths()
-					.flatMap((path) => [path, path])
-					.sort()
-			);
+			expect(rest.sort()).toEqual(paths());
+			expect([...fx.originHits].sort()).toEqual(paths());
 		});
 
 		test('a change the proxy sees on any visitor request reaches the warm browser at its next sync', async ({
@@ -160,18 +151,40 @@ for (const kind of ['node', 'php'] as Kind[]) {
 			await page.goto(`${fx.front}${p1}`);
 			await expect(page.locator('#note')).toHaveText('original');
 			await quiet();
-			expect(seen()).toEqual(['/.spool/sync', p1, '/.spool/artifact']);
+			expect(seen()).toEqual(['/.spool/sync', p1]);
 			await page.goto(`${fx.front}${p3}`);
 			await expect(page.locator('#note')).toHaveText('edited 3');
 			await quiet();
-			expect(seen()).toEqual([
-				'/.spool/sync',
+			expect(seen()).toEqual(['/.spool/sync', p1, p3]);
+			expect(fx.originHits).toEqual([p1, p3]);
+		});
+
+		test('a cold page is stored from its own response, with no artifact request, and the next view is local', async ({
+			page,
+			browserName
+		}) => {
+			const [p1, p2] = paths() as [string, string];
+			await page.goto(`${fx.front}${p1}`);
+			await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+			await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
+			for (const path of [p1, p2]) {
+				await page.goto(`${fx.front}${path}`);
+				await expect.poll(async () => (await status(page)).artifacts).toContain(path);
+			}
+			await quiet();
+			expect(fx.proxyHits.filter((path) => path === '/.spool/artifact')).toEqual([]);
+			expect(fx.originHits.filter((path) => paths().includes(path)).sort()).toEqual([
 				p1,
-				'/.spool/artifact',
-				p3,
-				'/.spool/artifact'
+				p1,
+				p2
 			]);
-			expect(fx.originHits).toEqual([p1, p1, p3, p3]);
+
+			reset();
+			await page.goto(`${fx.front}${p2}`);
+			await expect(page.locator('h1')).toHaveText('Page 2');
+			expect(fx.originHits).toEqual([]);
+			expect(seen()).toEqual([]);
+			if (browserName !== 'webkit') expect(fx.proxyHits).toEqual([]);
 		});
 
 		test('a cookie-bearing page is never served locally', async ({ page, context }) => {

@@ -1,15 +1,18 @@
+import { stripInline } from './inline.js';
+
 /** what to blank out before comparing; each pattern is replaced wherever it matches */
 export type NormaliseOptions = { ignore?: readonly RegExp[] };
 
 const IGNORED = '\u0000';
 
 /**
- * Reduces markup to what two renders of the same page must share: comments removed, runs of
- * whitespace collapsed to one space, whitespace between tags dropped, and every `ignore` match
- * blanked (a per-render nonce, say). It does not reorder attributes or fix tag soup.
+ * Reduces markup to what two renders of the same page must share: comments and the inline
+ * artifact element removed, runs of whitespace collapsed to one space, whitespace between tags
+ * dropped, and every `ignore` match blanked (a per-render nonce, say). It does not reorder
+ * attributes or fix tag soup.
  */
 export function normalise(html: string, options: NormaliseOptions = {}): string {
-	let out = html.replace(/<!--[\s\S]*?-->/g, '');
+	let out = stripInline(html).replace(/<!--[\s\S]*?-->/g, '');
 	for (const pattern of options.ignore ?? []) {
 		const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
 		out = out.replace(new RegExp(pattern.source, flags), IGNORED);

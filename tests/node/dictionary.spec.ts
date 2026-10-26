@@ -3,8 +3,11 @@ import { zstdCompressSync, zstdDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { ProtocolError } from '../../src/protocol/index';
 import {
+	baseMatcher,
+	chooseBases,
 	frameDictionaryBody,
 	spoolProxy,
+	type BaseCandidate,
 	type DictionaryEncoder,
 	type DictionaryOptions
 } from '../../src/proxy/index';
@@ -416,5 +419,181 @@ describe('option validation and framing', () => {
 		});
 		expect(unnamed.headers.has('content-encoding')).toBe(false);
 		expect(s.proxy.dictionary.encoded).toBe(1);
+	});
+});
+
+describe('choosing bases from a crawl', () => {
+	const candidate = (path: string, kind: BaseCandidate['kind'] = 'style', plain = 100) => ({
+		url: `${HOST}${path}`,
+		kind,
+		plain
+	});
+	/** a delta table: each entry is [file, dictionary, delta] over candidate indexes */
+	const table = (entries: Array<[number, number, number]>) => {
+		const sizes = new Map(entries.map(([f, c, d]): [string, number] => [`${f}|${c}`, d]));
+		return (f: number, c: number) => sizes.get(`${f}|${c}`) as number;
+	};
+
+	it('picks the member with the smallest sum of deltas and reports the mean of the others', async () => {
+		const files = ['a', 'b', 'c', 'd'].map((n) => candidate(`/css/${n}.css`));
+		const delta = table([
+			[0, 1, 50],
+			[0, 2, 10],
+			[0, 3, 60],
+			[1, 0, 40],
+			[1, 2, 20],
+			[1, 3, 60],
+			[2, 0, 40],
+			[2, 1, 50],
+			[2, 3, 60],
+			[3, 0, 40],
+			[3, 1, 50],
+			[3, 2, 30]
+		]);
+		expect(await chooseBases(files, delta)).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/c.css`, files: 4, meanDelta: 20 }
+		]);
+	});
+
+	it('breaks a tie toward the URL that sorts first, whatever the input order', async () => {
+		const files = [candidate('/css/c.css'), candidate('/css/a.css'), candidate('/css/b.css')];
+		const flat = () => 30;
+		const forward = await chooseBases(files, flat);
+		expect(forward).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/a.css`, files: 3, meanDelta: 30 }
+		]);
+		expect(await chooseBases([...files].reverse(), flat)).toEqual(forward);
+	});
+
+	it('gives each directory and kind its own choice, sorted, and no base to a lone file', async () => {
+		const files = [
+			candidate('/theme/y.css'),
+			candidate('/js/lib.js', 'script'),
+			candidate('/solo/one.js', 'script'),
+			candidate('/css/b.css'),
+			candidate('/theme/x.css'),
+			candidate('/css/a.css'),
+			candidate('/js/app.js', 'script'),
+			candidate('/css/b.js', 'script'),
+			candidate('/css/a.js', 'script')
+		];
+		expect(await chooseBases(files, () => 10)).toEqual([
+			{
+				kind: 'script',
+				directory: '/css/',
+				url: `${HOST}/css/a.js`,
+				files: 2,
+				meanDelta: 10
+			},
+			{
+				kind: 'style',
+				directory: '/css/',
+				url: `${HOST}/css/a.css`,
+				files: 2,
+				meanDelta: 10
+			},
+			{
+				kind: 'script',
+				directory: '/js/',
+				url: `${HOST}/js/app.js`,
+				files: 2,
+				meanDelta: 10
+			},
+			{
+				kind: 'style',
+				directory: '/theme/',
+				url: `${HOST}/theme/x.css`,
+				files: 2,
+				meanDelta: 10
+			}
+		]);
+	});
+
+	it('caps each member at its plain size, so a poor delta cannot make a base', async () => {
+		const delta = table([
+			[0, 1, 90],
+			[2, 1, 30],
+			[0, 2, 25],
+			[1, 2, 40],
+			[1, 0, 40],
+			[2, 0, 40]
+		]);
+		const capped = [
+			candidate('/css/a.css', 'style', 20),
+			candidate('/css/b.css'),
+			candidate('/css/c.css')
+		];
+		expect(await chooseBases(capped, delta)).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/b.css`, files: 3, meanDelta: 25 }
+		]);
+		const uncapped = [
+			candidate('/css/a.css', 'style', 1000),
+			candidate('/css/b.css'),
+			candidate('/css/c.css')
+		];
+		expect(await chooseBases(uncapped, delta)).toEqual([
+			{
+				kind: 'style',
+				directory: '/css/',
+				url: `${HOST}/css/c.css`,
+				files: 3,
+				meanDelta: 32.5
+			}
+		]);
+	});
+
+	it('awaits an async delta, asks for each ordered pair of a group once and never for a lone file', async () => {
+		let calls = 0;
+		const delta = async () => {
+			calls++;
+			return 30;
+		};
+		const files = [
+			candidate('/css/a.css'),
+			candidate('/css/b.css'),
+			candidate('/css/c.css'),
+			candidate('/solo/x.css')
+		];
+		expect(await chooseBases(files, delta)).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/a.css`, files: 3, meanDelta: 30 }
+		]);
+		expect(calls).toBe(6);
+		calls = 0;
+		expect(await chooseBases([candidate('/solo/x.css')], delta)).toEqual([]);
+		expect(calls).toBe(0);
+	});
+
+	it('matches the exact pathnames of the chosen bases and ignores their query strings', () => {
+		const matcher = baseMatcher([
+			{
+				kind: 'style',
+				directory: '/css/',
+				url: `${HOST}/css/a.css?v=3`,
+				files: 2,
+				meanDelta: 10
+			},
+			{ kind: 'script', directory: '/js/', url: `${HOST}/js/app.js`, files: 2, meanDelta: 10 }
+		]);
+		expect(['/css/a.css', '/js/app.js'].map((p) => matcher(p))).toEqual([true, true]);
+		const others = ['/css/b.css', '/css/a.css/', '/css/a.css.map', '/js/app.js/', '/css/', '/'];
+		expect(others.map((p) => matcher(p))).toEqual([false, false, false, false, false, false]);
+	});
+
+	it('registers only the chosen base when its matcher is the dictionary base', async () => {
+		const choices = await chooseBases(
+			[candidate('/css/a.css'), candidate('/css/b.css')],
+			table([
+				[1, 0, 10],
+				[0, 1, 50]
+			])
+		);
+		const s = rig({ base: baseMatcher(choices) });
+		s.replies.set('/css/a.css', CSS_REPLY(css('a')));
+		s.replies.set('/css/b.css', CSS_REPLY(css('b')));
+		const base = await s.call('/css/a.css');
+		expect(base.headers.get('use-as-dictionary')).toBe('match="/css/*", match-dest=("style")');
+		const other = await s.call('/css/b.css');
+		expect(other.headers.has('use-as-dictionary')).toBe(false);
+		expect(s.proxy.dictionary.registered).toBe(1);
 	});
 });

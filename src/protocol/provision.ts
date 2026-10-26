@@ -1,4 +1,5 @@
 import type { ProvisionConfig } from './config.js';
+import { lowerBound } from './navigation.js';
 
 /** a cost in the two units the model keeps apart: bytes moved and requests made */
 export type Cost = { bytes: number; requests: number };
@@ -133,6 +134,8 @@ export type EntryCandidate = {
 	path: string;
 	/** the predicted share of devices that will open the page, 0 to 1 */
 	p: number;
+	/** the observations behind `p`; with a `z` it lowers `p` to a confidence bound, so a share seen once does not count as one seen a thousand times */
+	weight?: number;
 	/** compressed bytes of the entry */
 	entryBytes: number;
 	/** bytes of the document the entry replaces */
@@ -141,10 +144,16 @@ export type EntryCandidate = {
 
 const sound = (n: number) => Number.isFinite(n) && n >= 0;
 
+/** the share the decision uses: `p`, or its lower confidence bound at `z` when the candidate says how many observations back it */
+function shareOf(c: EntryCandidate, z: number): number {
+	return c.weight !== undefined && z > 0 ? lowerBound(c.p, c.weight, z) : c.p;
+}
+
 /** expected joules of shipping an entry: `p * (k*D + o) - k*E` */
-function expectedNet(c: EntryCandidate): number {
+function expectedNet(c: EntryCandidate, z: number): number {
 	return (
-		c.p * (JOULES_PER_BYTE * c.documentBytes + ORIGIN_JOULES) - JOULES_PER_BYTE * c.entryBytes
+		shareOf(c, z) * (JOULES_PER_BYTE * c.documentBytes + ORIGIN_JOULES) -
+		JOULES_PER_BYTE * c.entryBytes
 	);
 }
 
@@ -152,12 +161,15 @@ function expectedNet(c: EntryCandidate): number {
  * The candidates worth shipping: those whose `p` is at least their break-even, best expected net
  * first, kept while their entry bytes fit under `capBytes`. A candidate that does not fit is
  * skipped and a smaller one may still go. A path is chosen once. A candidate with a `p` outside 0
- * to 1 or a negative or non-finite size is never chosen.
+ * to 1 or a negative or non-finite size is never chosen. With `z` above 0, a candidate that has a
+ * `weight` is judged on the lower confidence bound of its `p` (the Wilson bound at `z`), and the
+ * order follows the net at that bound; one with no `weight` keeps its `p`.
  */
 export function chooseEntries(
 	candidates: readonly EntryCandidate[],
-	options: { capBytes: number }
+	options: { capBytes: number; z?: number }
 ): EntryCandidate[] {
+	const z = options.z ?? 0;
 	const paying = candidates
 		.filter(
 			(c) =>
@@ -165,11 +177,12 @@ export function chooseEntries(
 				sound(c.documentBytes) &&
 				c.p >= 0 &&
 				c.p <= 1 &&
-				c.p >= entryBreakEven(c.entryBytes, c.documentBytes)
+				shareOf(c, z) >= entryBreakEven(c.entryBytes, c.documentBytes)
 		)
 		.sort(
 			(a, b) =>
-				expectedNet(b) - expectedNet(a) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
+				expectedNet(b, z) - expectedNet(a, z) ||
+				(a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
 		);
 	const out: EntryCandidate[] = [];
 	const seen = new Set<string>();

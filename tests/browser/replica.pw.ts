@@ -1,8 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
-import { LOADS_PATH, normalise, VIEW_PATH } from '../../src/protocol/index';
-import { viewsOf } from '../../src/server/index';
+import {
+	datasetProof,
+	evaluateQuery,
+	LOADS_PATH,
+	normalise,
+	VIEW_PATH,
+	type QuerySchema
+} from '../../src/protocol/index';
+import { createSpool, defineRoute, viewsOf } from '../../src/server/index';
+import { memoryStore } from '../../src/stores/index';
 import { VERSION } from '../../src/version';
-import { BOUND, startFixture, type Fixture } from './fixture';
+import { BOUND, listen, startFixture, type Fixture, type Hit } from './fixture';
 
 const PATHS = ['/n/1', '/n/2', '/n/3', '/hard/1', '/soft/1', '/asm/about'];
 
@@ -252,4 +260,164 @@ test('closing IndexedDB on pagehide makes the connection unusable', async ({ pag
 		return { before, after: attempt() };
 	});
 	expect(result).toEqual({ before: 'open', after: 'InvalidStateError' });
+});
+
+test.describe('a template page that carries its artifact', () => {
+	const IDS = ['1', '2', '3'];
+	const layout = (title: string, body: string) =>
+		`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><nav>${IDS.map((id) => `<a href="/i/${id}">/i/${id}</a>`).join(' ')}</nav><main><h1>${title}</h1><p>${body}</p></main></body></html>`;
+	let origin: string;
+	let stop: () => Promise<void>;
+	const log: Hit[] = [];
+	const own = () =>
+		log
+			.map((h) => h.path)
+			.filter((path) => path !== '/spool-sw.js' && path !== '/.spool/beacon');
+
+	test.beforeAll(async () => {
+		const spool = createSpool({
+			routes: [
+				defineRoute('/i/:id', {
+					strategy: 'template',
+					template: { source: layout('{{title}}', '{{body}}') },
+					depends: (ctx) => [`node:${ctx.params['id']}`],
+					load: (ctx) => ({
+						title: `inline ${ctx.params['id']}`,
+						body: '<small> & text'
+					}),
+					freshness: { maxStale: 3600, mode: 'soft' }
+				})
+			],
+			store: memoryStore(),
+			inlineMaxBytes: 2048
+		});
+		const app = (request: Request) => {
+			const id = /^\/i\/(\d+)$/.exec(new URL(request.url).pathname)?.[1];
+			return id
+				? new Response(layout(`inline ${id}`, '&lt;small&gt; &amp; text'), {
+						headers: { 'content-type': 'text/html; charset=utf-8' }
+					})
+				: new Response('not found', { status: 404 });
+		};
+		const started = await listen(log, spool, app);
+		origin = started.origin;
+		stop = started.stop;
+	});
+
+	test.afterAll(() => stop());
+
+	test('is stored from the navigation with no artifact request, and the next view is local', async ({
+		page,
+		browserName
+	}) => {
+		await page.goto(`${origin}/i/1`);
+		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
+		await page.goto(`${origin}/i/2`);
+		await expect.poll(async () => (await status(page)).artifacts).toContain('/i/2');
+		await new Promise((r) => setTimeout(r, 600));
+		expect(log.map((h) => h.path)).not.toContain('/.spool/artifact');
+		expect(own().filter((path) => path === '/i/2')).toEqual(['/i/2']);
+
+		log.length = 0;
+		await page.goto(`${origin}/i/2`);
+		await expect(page.locator('h1')).toHaveText('inline 2');
+		await expect(page.locator('main p')).toHaveText('<small> & text');
+		expect(own()).toEqual([]);
+		if (browserName !== 'webkit') expect(log.map((h) => h.path)).toEqual([]);
+	});
+});
+
+test.describe('a query route', () => {
+	const ROWS = [
+		{ name: 'Ada', department: 'math' },
+		{ name: 'Bo', department: 'cs' },
+		{ name: 'Cy', department: 'math' },
+		{ name: 'Di', department: 'art' },
+		{ name: 'Ed', department: 'math' }
+	];
+	const query: QuerySchema = {
+		list: 'people',
+		filter: { department: 'string' },
+		sort: ['name'],
+		pageSize: 2
+	};
+	const layout = (summary: string, items: string) =>
+		`<!doctype html><html><head><meta charset="utf-8"><title>People</title></head><body><main><h1>People</h1><p id="summary">${summary}</p><ul>${items}</ul></main></body></html>`;
+	let origin: string;
+	let stop: () => Promise<void>;
+	const log: Hit[] = [];
+	const own = () =>
+		log
+			.map((h) => `${h.path}${h.search}`)
+			.filter((path) => !['/spool-sw.js', '/.spool/beacon', '/cdn-cgi/rum'].includes(path));
+
+	test.beforeAll(async () => {
+		const spool = createSpool({
+			routes: [
+				defineRoute('/people', {
+					strategy: 'template',
+					template: {
+						source: layout(
+							'{{#if query}}{{query.page}} of {{query.pages}}, {{query.total}} found{{else}}all{{/if}}',
+							'{{#each people}}<li>{{name}}</li>{{/each}}'
+						)
+					},
+					depends: () => ['people'],
+					load: async () => ({ people: ROWS, proof: await datasetProof(ROWS) }),
+					query
+				})
+			],
+			store: memoryStore()
+		});
+		const app = (request: Request) => {
+			const url = new URL(request.url);
+			if (url.pathname !== '/people') return new Response('not found', { status: 404 });
+			const result =
+				url.search === '' ? null : evaluateQuery(query, { people: ROWS }, url.search);
+			const summary = result
+				? `${result.page} of ${result.pages}, ${result.total} found`
+				: 'all';
+			const items = (result ? result.items : ROWS)
+				.map((p) => `<li>${p['name']}</li>`)
+				.join('');
+			return new Response(layout(summary, items), {
+				headers: { 'content-type': 'text/html; charset=utf-8' }
+			});
+		};
+		const started = await listen(log, spool, app);
+		origin = started.origin;
+		stop = started.stop;
+	});
+
+	test.afterAll(() => stop());
+
+	test('answers a new filter, sort and page locally and sends an unknown parameter to the origin once', async ({
+		page,
+		browserName
+	}) => {
+		await page.goto(`${origin}/people`);
+		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
+		await page.goto(`${origin}/people`);
+		await expect.poll(async () => (await status(page)).artifacts).toContain('/people');
+		await new Promise((r) => setTimeout(r, 600));
+
+		log.length = 0;
+		await page.goto(`${origin}/people?department=math&sort=name&page=2`);
+		await expect(page.locator('#summary')).toHaveText('2 of 2, 3 found');
+		await expect(page.locator('li')).toHaveText(['Ed']);
+		await page.goto(`${origin}/people?department=math&sort=-name`);
+		await expect(page.locator('#summary')).toHaveText('1 of 2, 3 found');
+		await expect(page.locator('li')).toHaveText(['Ed', 'Cy']);
+		expect(own()).toEqual([]);
+		if (browserName !== 'webkit') expect(log.map((h) => h.path)).toEqual([]);
+
+		log.length = 0;
+		await page.goto(`${origin}/people?colour=red`);
+		await expect(page.locator('#summary')).toHaveText('all');
+		await expect.poll(own).toEqual(['/people?colour=red']);
+		await new Promise((r) => setTimeout(r, 300));
+		expect(own()).toEqual(['/people?colour=red']);
+	});
 });

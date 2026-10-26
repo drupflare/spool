@@ -46,8 +46,8 @@ export function classify(config: SwConfig, request: Request, origin: string): Cl
 		return { kind: 'beacon' };
 	if (request.method !== 'GET') return { kind: 'pass' };
 	const hit = matchRoute(config.routes, url.pathname);
-	// an artifact is keyed by path alone, so a query string can never be answered from one
-	const queried = url.search !== '';
+	// an artifact is keyed by path alone, so only a route with a query schema answers a query
+	const queried = url.search !== '' && !hit?.route.query;
 	if (request.mode !== 'navigate') {
 		if (hit?.route.strategy === 'static' && !request.headers.has('range')) {
 			return { kind: 'static', route: hit.route, path: url.pathname + url.search };

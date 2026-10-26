@@ -27,6 +27,7 @@ export class Replica {
 	#tags = new Map<string, number>();
 	#cursor: number | null = null;
 	#syncedAt = 0;
+	#epoch = 0;
 	#site: HeaderSet | undefined;
 	#policies = new Map<string, HeaderSet>();
 	/** records and projections; untouched until a page that references them is stored or shown */
@@ -104,6 +105,11 @@ export class Replica {
 	/** every stored artifact id */
 	async ids(): Promise<string[]> {
 		return (await this.#all()).map((s) => s.artifact.id);
+	}
+
+	/** counts the wipes so far; a write that began before one and ends after it can tell and drop itself */
+	get epoch(): number {
+		return this.#epoch;
 	}
 
 	/** whether no dependency of `artifact` has changed since it was built */
@@ -220,6 +226,7 @@ export class Replica {
 
 	/** empties the replica; `cursor` is where it restarts */
 	async wipe(cursor: number | null = null): Promise<void> {
+		this.#epoch += 1;
 		this.#memory.clear();
 		await this.#storage.clearArtifacts();
 		await this.graph.clear();

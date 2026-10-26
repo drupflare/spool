@@ -1,10 +1,18 @@
 import { CLIENT_TAG_ATTR } from '../protocol/tag.js';
+import { browserActivityHost, createActivity } from './activity.js';
 import { crossOriginLoads, crossOriginOrigins } from './loads.js';
 import { register, type SpoolClient } from './register.js';
 
 const ready: Promise<SpoolClient | null> = register().catch(() => null);
 
-(globalThis as { spool?: { ready: Promise<SpoolClient | null> } }).spool = { ready };
+(
+	globalThis as {
+		spool?: {
+			ready: Promise<SpoolClient | null>;
+			activity: ReturnType<typeof createActivity>;
+		};
+	}
+).spool = { ready, activity: createActivity(browserActivityHost()) };
 
 void ready.then(async (client) => {
 	const id = await client?.view().catch(() => null);

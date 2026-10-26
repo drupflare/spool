@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import { toNodeListener } from '../../src/node/listener';
-import { decodeEnvelope, parseArtifact, ProtocolError } from '../../src/protocol/index';
+import { decodeEnvelope, parseArtifact, ProtocolError, shellHash } from '../../src/protocol/index';
 import {
 	cookieNames,
 	decline,
@@ -20,8 +20,11 @@ import {
 } from '../../src/proxy/index';
 import { memorySink } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
+import { createRuntime } from '../../src/sw/runtime';
+import { memoryStorage } from '../../src/sw/storage';
 import { buildTrimManifest } from '../../src/trim/index';
 import { closeServers, fakeOrigin, HTML, listen, type Reply } from './exercise';
+import { fakeCaches, nav } from './helpers';
 
 const HOST = 'https://site.test';
 const ORIGIN = 'https://origin.test';
@@ -254,6 +257,31 @@ describe('eligibility', () => {
 		const response = await s.call('/page?utm=1');
 		expect(response.headers.has('spool-artifact')).toBe(false);
 		expect(response.headers.has('spool-invalidate')).toBe(false);
+	});
+
+	it('passes no hop-by-hop header of the origin on, whatever the page is', async () => {
+		const s = setup();
+		const hops = {
+			connection: 'keep-alive',
+			'keep-alive': 'timeout=5',
+			'transfer-encoding': 'chunked',
+			te: 'trailers',
+			upgrade: 'h2c'
+		};
+		s.replies.set('/hop', { body: PAGE, headers: { 'content-type': HTML, ...hops } });
+		s.replies.set('/a.css', {
+			body: 'a{}',
+			headers: { 'content-type': 'text/css', ...hops }
+		});
+		for (const path of ['/hop', '/a.css']) {
+			const response = await s.call(path);
+			for (const name of Object.keys(hops)) {
+				expect(response.headers.has(name), `${path} ${name}`).toBe(false);
+			}
+			expect(response.headers.get('content-type')).toContain(
+				path === '/hop' ? 'html' : 'css'
+			);
+		}
 	});
 
 	it('declines a non-HTML asset without a drop', async () => {
@@ -1000,5 +1028,284 @@ describe('over a real origin', () => {
 		expect(response.status).toBe(201);
 		expect(await response.text()).toBe('made');
 		expect(seen).toBe('payload');
+	});
+});
+
+describe('the first payload', () => {
+	const T0 = 1_700_000_000_000;
+
+	/** a proxy and a worker runtime on one logged fetch; `wrap` rewrites the proxy's page responses */
+	function payload(
+		over: Partial<ProxyOptions> = {},
+		wrap?: (response: Response) => Response | Promise<Response>
+	) {
+		const s = setup(over);
+		const artifactRequests: string[] = [];
+		const fetchImpl = async (input: Request | string, init?: RequestInit) => {
+			const request = new Request(input as string, init);
+			const { pathname, search } = new URL(request.url);
+			if (pathname === '/.spool/artifact') artifactRequests.push(search);
+			const response = await s.proxy(request);
+			const own = pathname.startsWith('/.spool/') || pathname === '/spool-sw.js';
+			return wrap && !own ? wrap(response) : response;
+		};
+		const runtime = createRuntime({
+			config: s.proxy.spool.config,
+			storage: memoryStorage(),
+			fetch: fetchImpl,
+			caches: fakeCaches(),
+			origin: HOST,
+			now: () => T0
+		});
+		const drive = async (request: Request) => {
+			const waited: Promise<unknown>[] = [];
+			const pending = runtime.handle(request, (p) => void waited.push(p));
+			if (!pending) throw new Error('request was ignored');
+			const response = await pending;
+			await Promise.all(waited);
+			return response;
+		};
+		const built = async (path: string) =>
+			parseArtifact(await (await s.call(`/.spool/artifact?path=${path}`)).json());
+		return { ...s, runtime, artifactRequests, drive, built };
+	}
+
+	const rebody = (response: Response, body: BodyInit, headers: Record<string, string> = {}) => {
+		const next = new Headers(response.headers);
+		next.delete('content-length');
+		for (const [name, value] of Object.entries(headers)) next.set(name, value);
+		return new Response(body, { status: response.status, headers: next });
+	};
+
+	const MEDIA =
+		'<!doctype html><html><head><title>m</title></head><body><video src="a.mp4"></video>' +
+		'<iframe src="https://www.youtube.com/embed/abc123"></iframe></body></html>';
+
+	it('names the hash of the shell without the client tag', async () => {
+		const s = setup();
+		const response = await s.call('/page');
+		const hash = envelopeOf(response).artifact?.hash;
+		expect(hash).toBe(await shellHash(PAGE));
+		const tagged = await response.text();
+		expect(tagged).not.toBe(PAGE);
+		expect(tagged.replace(s.proxy.spool.config.clientTag, '')).toBe(PAGE);
+		expect(await shellHash(tagged.replace(s.proxy.spool.config.clientTag, ''))).toBe(hash);
+	});
+
+	it('names no hash for a data route, a principal route, a decline or a HEAD', async () => {
+		const s = setup({
+			routes: [{ pattern: '/api/**', strategy: 'data' }],
+			spool: {
+				store: memoryStore(),
+				identity: {
+					secret: 's',
+					resolve: (r) => (r.headers.has('x-user') ? { principal: 'u' } : null)
+				}
+			}
+		});
+		s.replies.set('/api/x', {
+			body: '{"a":1}',
+			headers: { 'content-type': 'application/json', 'cache-tag': 'x' }
+		});
+		const data = await s.call('/api/x');
+		expect(envelopeOf(data).artifact?.id).toBe('/api/x');
+		expect(envelopeOf(data).artifact?.hash).toBeUndefined();
+		expect(
+			envelopeOf(await s.call('/page', { method: 'HEAD' })).artifact?.hash
+		).toBeUndefined();
+		s.replies.set('/p', {
+			body: PAGE,
+			headers: { 'content-type': HTML, 'cache-control': 'private' }
+		});
+		expect(envelopeOf(await s.call('/p')).artifact).toBeUndefined();
+		expect(envelopeOf(await s.call('/page?x=1')).artifact).toBeUndefined();
+	});
+
+	it('names the hash only for a public assembly route when a principal route exists', async () => {
+		const s = setup({
+			routes: [{ pattern: '/me', scope: 'principal' }],
+			spool: {
+				store: memoryStore(),
+				identity: {
+					secret: 's',
+					resolve: (r) => (r.headers.has('cookie') ? { principal: 'u' } : null)
+				}
+			}
+		});
+		s.replies.set('/me', { body: PAGE, headers: { 'content-type': HTML, 'cache-tag': 'me' } });
+		const signed = await s.call('/me', { headers: { cookie: 'SESS=1' } });
+		expect(envelopeOf(signed).artifact).toMatchObject({ id: '/me', scope: 'principal' });
+		expect(envelopeOf(signed).artifact?.hash).toBeUndefined();
+		expect(envelopeOf(await s.call('/page')).artifact?.hash).toBeDefined();
+	});
+
+	it('keeps the navigation page as the artifact and asks the origin for it once', async () => {
+		const s = payload();
+		const first = await (await s.drive(nav('/page'))).text();
+		expect(s.hits.map((h) => new URL(h.request.url).pathname)).toEqual(['/page']);
+		expect(s.artifactRequests).toEqual([]);
+		const stored = await s.runtime.replica.get('/page');
+		expect(stored?.artifact).toEqual(await s.built('/page'));
+		expect(s.runtime.ledger.entries()).toMatchObject([
+			{ id: '/page', bytes: 0, requests: 0, views: 0 }
+		]);
+
+		s.hits.length = 0;
+		const second = await (await s.drive(nav('/page'))).text();
+		expect(s.hits).toHaveLength(0);
+		expect(s.artifactRequests).toEqual([]);
+		expect(second).toBe(first);
+		expect(s.runtime.ledger.entries()).toMatchObject([{ id: '/page', views: 1 }]);
+	});
+
+	const fixtures: Array<[string, Partial<ProxyOptions>, string, Reply]> = [
+		['a page with tags', {}, '/page', {}],
+		['a page with no tags', {}, '/plain', { body: PAGE }],
+		[
+			'a route that adds a tag',
+			{ routes: [{ pattern: '/news/:id', depends: () => ['extra', 't1'] }] },
+			'/news/7',
+			{ body: PAGE, headers: { 'content-type': HTML, 'cache-tag': 't1,t2,t1' } }
+		],
+		[
+			'a page the video and embed rewrites change',
+			{ video: {}, embeds: {} },
+			'/media',
+			{ body: MEDIA }
+		],
+		[
+			'a page in a shell the guard leaves alone',
+			{ ignore: [/t1/] },
+			'/ignored',
+			{ body: PAGE.replace('body', 'body t1') }
+		]
+	];
+
+	it.each(fixtures)(
+		'stores what /.spool/artifact returns for %s',
+		async (_name, over, path, reply) => {
+			const s = payload(over);
+			s.replies.set(path, {
+				headers: { 'content-type': HTML },
+				...reply
+			});
+			const view = await (await s.drive(nav(path))).text();
+			expect(s.hits).toHaveLength(1);
+			expect(s.artifactRequests).toEqual([]);
+			const stored = await s.runtime.replica.get(path);
+			expect(stored).toBeDefined();
+			expect(stored?.artifact).toEqual(await s.built(path));
+			if (path === '/media') {
+				expect(view).toContain('preload="none"');
+				expect(view).toContain('srcdoc');
+			}
+		}
+	);
+
+	const fallbacks: Array<[string, (response: Response) => Promise<Response> | Response]> = [
+		[
+			'a body that does not match the hash',
+			async (r) => rebody(r, (await r.text()).replace('body', 'bodz'))
+		],
+		[
+			'a header with no hash',
+			(r) =>
+				rebody(r, r.body as ReadableStream, {
+					'spool-artifact': (r.headers.get('spool-artifact') as string).replace(
+						/; h=[\w-]+/,
+						''
+					)
+				})
+		],
+		[
+			'a compressed body',
+			async (r) =>
+				rebody(r, gzipSync(await r.text()), {
+					'content-encoding': 'gzip'
+				})
+		],
+		[
+			'a body in another charset',
+			async (r) =>
+				rebody(
+					r,
+					Uint8Array.from(Buffer.from((await r.text()).replace('body', 'bédy'), 'latin1'))
+				)
+		]
+	];
+
+	it.each(fallbacks)('asks for the artifact once after %s', async (_name, wrap) => {
+		const s = payload({}, wrap);
+		await s.drive(nav('/page'));
+		expect(s.hits.map((h) => new URL(h.request.url).pathname)).toEqual(['/page', '/page']);
+		expect(s.artifactRequests).toEqual(['?path=%2Fpage']);
+		const stored = await s.runtime.replica.get('/page');
+		expect(stored?.artifact).toEqual(await s.built('/page'));
+		expect(s.runtime.ledger.entries()).toMatchObject([{ id: '/page', requests: 1 }]);
+		expect((s.runtime.ledger.entries()[0] as { bytes: number }).bytes).toBeGreaterThan(0);
+	});
+
+	it('asks for a page the origin answered for a signal that its copy lacks, and gets none', async () => {
+		const s = payload({ video: { when: 'save-data' } });
+		s.replies.set('/clip', { body: MEDIA });
+		const saving = await s.drive(nav('/clip', { headers: { 'save-data': 'on' } }));
+		expect(saving.headers.has('spool-artifact')).toBe(false);
+		expect(await saving.text()).toContain('preload="none"');
+		expect(s.artifactRequests).toEqual([]);
+		expect(await s.runtime.replica.get('/clip')).toBeUndefined();
+
+		const plain = await s.drive(nav('/clip'));
+		expect(envelopeOf(plain).artifact?.hash).toBeDefined();
+		expect(s.artifactRequests).toEqual([]);
+		expect((await s.runtime.replica.get('/clip'))?.artifact).toEqual(await s.built('/clip'));
+	});
+
+	it('leaves a route in shadow mode to the beacon, as without the hash', async () => {
+		const shadow = payload({ spool: { store: memoryStore(), mode: 'shadow' } });
+		await shadow.drive(nav('/page'));
+		expect(shadow.artifactRequests).toEqual([]);
+		const withHash = shadow.hits.length;
+		expect(withHash).toBe(2);
+		expect((await shadow.runtime.replica.get('/page'))?.artifact.id).toBe('/page');
+		const bare = payload({ spool: { store: memoryStore(), mode: 'shadow' } }, (r) =>
+			rebody(r, r.body as ReadableStream, {
+				'spool-artifact': (r.headers.get('spool-artifact') as string).replace(
+					/; h=[\w-]+/,
+					''
+				)
+			})
+		);
+		await bare.drive(nav('/page'));
+		expect(bare.hits).toHaveLength(withHash);
+		expect(await shadow.runtime.replica.get('/page')).toEqual(
+			await bare.runtime.replica.get('/page')
+		);
+	});
+
+	it('keeps nothing from a principal route a response advertises with a hash', async () => {
+		const s = payload(
+			{
+				routes: [{ pattern: '/me', scope: 'principal' }],
+				spool: {
+					store: memoryStore(),
+					identity: {
+						secret: 's',
+						resolve: (r) => (r.headers.has('cookie') ? { principal: 'u' } : null)
+					}
+				}
+			},
+			async (r) => {
+				const text = await r.text();
+				const shell = text.replace(/<script[^>]*data-spool-client[^>]*><\/script>/, '');
+				const header = r.headers.get('spool-artifact') as string;
+				return rebody(r, text, {
+					'spool-artifact': `${header}; h=${await shellHash(shell)}`
+				});
+			}
+		);
+		s.replies.set('/me', { body: PAGE, headers: { 'content-type': HTML, 'cache-tag': 'me' } });
+		await s.drive(nav('/me', { headers: { cookie: 'SESS=1' } }));
+		expect(s.artifactRequests).toEqual([]);
+		expect(await s.runtime.replica.get('/me')).toBeUndefined();
 	});
 });

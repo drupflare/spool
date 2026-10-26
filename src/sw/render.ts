@@ -1,6 +1,7 @@
 import type { Artifact } from '../protocol/artifact.js';
 import { renderAssembly } from '../protocol/assembly.js';
 import type { SwConfig } from '../protocol/config.js';
+import { shapeQuery } from '../protocol/query.js';
 import type { SerializedRoute } from '../protocol/route.js';
 import { injectClientTag } from '../protocol/tag.js';
 import { interpretTemplate } from '../protocol/template/interpret.js';
@@ -18,14 +19,26 @@ export type Rendered = { ok: true; html: string } | { ok: false; reason: string 
  * Builds the HTML for a stored artifact, or the JSON text of a `data` one. The result carries the same client tag the server
  * injects, so it equals the network render after normalisation. Any failure (a missing template,
  * an unfilled placeholder, a renderer that throws) is a refusal, never a partial page.
+ * With `search` and a route that declares `query`, the template or renderer gets the page's
+ * items in place of the collection, after the dataset proof checks out.
  */
 export async function renderLocal(
 	config: SwConfig,
 	route: SerializedRoute,
-	artifact: Artifact,
-	renderers: Renderers = {}
+	source: Artifact,
+	renderers: Renderers = {},
+	search?: string
 ): Promise<Rendered> {
 	try {
+		let artifact = source;
+		if (search !== undefined && search !== '' && route.query) {
+			if (source.strategy === 'assembly' || source.strategy === 'static') {
+				return { ok: false, reason: `${source.strategy} artifact cannot answer a query` };
+			}
+			const shaped = await shapeQuery(route.query, source.body.data, search);
+			if (!shaped.ok) return shaped;
+			artifact = { ...source, body: { data: shaped.data } };
+		}
 		const custom = Object.hasOwn(renderers, route.pattern)
 			? renderers[route.pattern]
 			: undefined;

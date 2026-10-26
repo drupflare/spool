@@ -1,3 +1,4 @@
+export { datasetProof } from '../protocol/query.js';
 export { defineRoute } from '../protocol/route.js';
 export * from './ga4.js';
 export * from './identity.js';

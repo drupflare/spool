@@ -353,9 +353,10 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		} as RequestInit);
 	}
 
-	/** the headers the browser gets: bodies arrive decoded, so the encoding and its length go */
+	/** the headers the browser gets: bodies arrive decoded, so the encoding and its length go, and so does what only described the hop to the proxy */
 	function tidy(source: Headers, url: URL): Headers {
 		const headers = new Headers(source);
+		for (const name of HOP_BY_HOP) headers.delete(name);
 		if (headers.has('content-encoding')) {
 			headers.delete('content-encoding');
 			headers.delete('content-length');
@@ -527,6 +528,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		if (url.pathname === PATHS.worker && request.method === 'GET') return spool.stub();
 
 		const converting = images !== undefined && imageRequest(images, request);
+		let visitorRewrite = false;
 		let upstream: Response;
 		try {
 			upstream = await call(forward(request, url, converting));
@@ -583,6 +585,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 						videoStats.rewritten += result.rewritten;
 						// a page rewritten for one visitor's connection is not another's copy
 						if (video.when !== 'always') {
+							visitorRewrite = true;
 							makePrivate(headers);
 							mergeList(headers, 'vary', ['Save-Data', 'ECT']);
 						}
@@ -645,7 +648,9 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			path: url.pathname,
 			page: Promise.resolve({ text, tags: effective })
 		});
-		return spool.decorate(request, new Response(text, init));
+		// a visitor-signal rewrite is not in the copy /.spool/artifact builds, so the worker asks for it
+		const same = !visitorRewrite && !data && !principal;
+		return spool.decorate(request, new Response(text, init), same ? { assembled: text } : {});
 	}
 
 	return Object.assign(handle, {

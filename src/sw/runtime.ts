@@ -6,9 +6,13 @@ import {
 	decodeEnvelope,
 	decodeEnvelopeOrClear,
 	HEADERS,
-	type Envelope
+	type Envelope,
+	type EnvelopeArtifact
 } from '../protocol/envelope.js';
+import { shellHash } from '../protocol/hash.js';
+import { readInline } from '../protocol/inline.js';
 import { manifestRoutes, parseManifest } from '../protocol/manifest.js';
+import { PROOF_MISMATCH } from '../protocol/query.js';
 import { matchRoute, type Retention, type SerializedRoute } from '../protocol/route.js';
 import { encodeHeld, parseSyncResponse, type SyncResponse } from '../protocol/sync.js';
 import {
@@ -665,12 +669,12 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		request: Request,
 		navigation: boolean,
 		after?: {
-			clone?: boolean;
+			clone?: boolean | ((response: Response, envelope: Envelope | undefined) => boolean);
 			provision?: boolean;
 			signedOut?: boolean;
 			/** the route a navigation or data read matched, so its own headers are kept */
 			route?: SerializedRoute;
-			run(copy: Response | null): Promise<void>;
+			run(copy: Response | null, envelope: Envelope | undefined): Promise<void>;
 		}
 	): Promise<Response> {
 		let outgoing = request;
@@ -695,11 +699,14 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		await early(envelope, navigation, after?.signedOut);
 		// a cacheable GET may be answered by the HTTP cache with no radio wake, so only these count
 		const moment = navigation || request.method !== 'GET';
-		const copy = after?.clone ? response.clone() : null;
+		const clone = after?.clone;
+		const copy = (typeof clone === 'function' ? clone(response, envelope) : clone)
+			? response.clone()
+			: null;
 		track(
 			(async () => {
 				try {
-					await after?.run(copy);
+					await after?.run(copy, envelope);
 				} catch {
 					// a view that cannot be recorded must not stop the response being observed
 				}
@@ -717,7 +724,13 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		return response;
 	}
 
-	async function decide(path: string, route: SerializedRoute, dry: boolean): Promise<Decision> {
+	/** `search` is the request's query string; the stored artifact is always the path's own */
+	async function decide(
+		path: string,
+		route: SerializedRoute,
+		dry: boolean,
+		search = ''
+	): Promise<Decision> {
 		let side = publicSide;
 		if (route.scope === 'principal') {
 			if (!host) return { reason: 'principal', staleSec: null };
@@ -804,8 +817,12 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			await rep.drop([path]);
 			return { reason: 'refused', staleSec: age };
 		}
-		const rendered = await renderLocal(config, route, plain.artifact, renderers);
-		if (!rendered.ok) return { reason: 'refused', staleSec: age };
+		const rendered = await renderLocal(config, route, plain.artifact, renderers, search);
+		if (!rendered.ok) {
+			// a collection that fails its proof is dropped, so the next network view fetches it whole
+			if (rendered.reason === PROOF_MISMATCH) await rep.drop([path]);
+			return { reason: 'refused', staleSec: age };
+		}
 		if (fromCatalogue) {
 			await rep.open(path);
 			if (REASON_TIER[reason] === 'local') reason = 'catalogue';
@@ -836,7 +853,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const gapMs = lastViewAt === null ? null : at - lastViewAt;
 		lastViewAt = at;
 		currentPath = route.catalogue ? path : null;
-		const decision = await decide(path, route, shadow);
+		const decision = await decide(path, route, shadow, new URL(request.url).search);
 
 		const from = referrerRoute(request.referrer);
 		const id = crypto.randomUUID();
@@ -882,10 +899,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		if (decision.html === undefined) {
 			const keeps = route.strategy === 'static';
 			const response = await passthrough(request, true, {
-				clone: keeps,
+				clone: keeps || ((res, envelope) => derivable(path, route, res, envelope)),
 				route,
-				run: async (copy) => {
+				run: async (copy, envelope) => {
 					if (keeps) await capture(path, route, copy);
+					else await derive(path, route, copy, envelope);
 					await record(null);
 				}
 			});
@@ -920,7 +938,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		path: string,
 		route: SerializedRoute
 	): Promise<Response> {
-		const decision = await decide(path, route, false);
+		const decision = await decide(path, route, false, new URL(request.url).search);
 		if (decision.html !== undefined) {
 			ledger.serve(path, decision.reason === 'catalogue');
 			const headers = new Headers(decision.headers);
@@ -1002,6 +1020,101 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		);
 		if (await replica.put(artifact, true)) {
 			ledger.spend(path, { bytes: bytes.byteLength, requests: 0 });
+		}
+	}
+
+	/** whether a cold navigation's body can stand in for the artifact its response advertises */
+	function derivable(
+		path: string,
+		route: SerializedRoute,
+		response: Response,
+		envelope: Envelope | undefined
+	): boolean {
+		const advertised = envelope?.artifact;
+		return (
+			(route.strategy === 'assembly' || route.strategy === 'template') &&
+			route.scope === 'public' &&
+			envelope?.protocol === PROTOCOL_VERSION &&
+			advertised?.hash !== undefined &&
+			advertised.id === path &&
+			advertised.scope === 'public' &&
+			modeFor(config, route) !== 'shadow' &&
+			!declined.has(path) &&
+			response.status === 200 &&
+			!response.redirected &&
+			/text\/html/i.test(response.headers.get('content-type') ?? '')
+		);
+	}
+
+	/**
+	 * The artifact a navigation body carries, or null. An `assembly` page is the artifact's shell
+	 * once the client tag is out, and a `template` page holds the artifact's JSON in its inline
+	 * element. Either must hash to the value `Spool-Artifact` named.
+	 */
+	async function carried(
+		path: string,
+		route: SerializedRoute,
+		text: string,
+		advertised: EnvelopeArtifact & { hash: string }
+	): Promise<{ artifact: Artifact; bytes: number } | null> {
+		if (route.strategy === 'template') {
+			const json = readInline(text);
+			if (json === null || (await shellHash(json)) !== advertised.hash) return null;
+			const artifact = parseArtifact(JSON.parse(json));
+			if (artifact.id !== path || artifact.scope !== 'public') return null;
+			if (artifact.strategy !== 'template') return null;
+			return { artifact, bytes: encoder.encode(json).length };
+		}
+		const at = text.indexOf(config.clientTag);
+		const shells =
+			at < 0 ? [text] : [text.slice(0, at) + text.slice(at + config.clientTag.length), text];
+		for (const shell of shells) {
+			if ((await shellHash(shell)) !== advertised.hash) continue;
+			return {
+				artifact: {
+					protocol: PROTOCOL_VERSION,
+					id: path,
+					scope: 'public',
+					strategy: 'assembly',
+					deps: [...new Set(advertised.deps)],
+					vector: advertised.version,
+					body: { shell }
+				},
+				bytes: 0
+			};
+		}
+		return null;
+	}
+
+	/**
+	 * Keeps the artifact a navigation's own body carries, when it matches the hash `Spool-Artifact`
+	 * named. Anything else leaves nothing stored, and the advertised artifact is then fetched as
+	 * before.
+	 */
+	async function derive(
+		path: string,
+		route: SerializedRoute,
+		copy: Response | null,
+		envelope: Envelope | undefined
+	): Promise<void> {
+		const advertised = envelope?.artifact;
+		if (!copy || !advertised?.hash || !derivable(path, route, copy, envelope)) return;
+		// a wipe while the body is read means the copy predates it, so it is not kept
+		const epoch = replica.epoch;
+		try {
+			const bytes = await readCapped(copy, MAX_STATIC_BYTES);
+			if (!bytes) return;
+			const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+			const found = await carried(path, route, text, {
+				...advertised,
+				hash: advertised.hash
+			});
+			if (!found || (await replica.get(path)) || replica.epoch !== epoch) return;
+			if (await replica.put(found.artifact, route.persist)) {
+				ledger.spend(path, { bytes: found.bytes, requests: 0 });
+			}
+		} catch {
+			// an unreadable body leaves the network fetch as the only way to the artifact
 		}
 	}
 

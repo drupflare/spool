@@ -123,6 +123,24 @@ describe('choosing catalogue entries', () => {
 		expect(chooseEntries([entry('/zero', 0, 5000)], { capBytes: 1e6 })).toEqual([]);
 	});
 
+	it('judges a candidate with a weight on the lower confidence bound of its share', () => {
+		// break-even for a 5000 B entry replacing 17,054 B is about 0.282; p 0.35 clears it as a point estimate
+		const seen = (path: string, weight: number) => ({ ...entry(path, 0.35, 5000), weight });
+		const options = { capBytes: 1e6, z: 1.28 };
+		expect(paths(chooseEntries([seen('/few', 20)], options))).toEqual([]);
+		expect(paths(chooseEntries([seen('/many', 2000)], options))).toEqual(['/many']);
+		expect(paths(chooseEntries([seen('/few', 20)], { capBytes: 1e6 }))).toEqual(['/few']);
+		expect(paths(chooseEntries([seen('/few', 20)], { capBytes: 1e6, z: 0 }))).toEqual(['/few']);
+		expect(paths(chooseEntries([entry('/bare', 0.35, 5000)], options))).toEqual(['/bare']);
+	});
+
+	it('orders weighted candidates by the net at their bound', () => {
+		const a = { ...entry('/a', 0.6, 4000), weight: 5 };
+		const b = { ...entry('/b', 0.5, 4000), weight: 5000 };
+		expect(paths(chooseEntries([a, b], { capBytes: 1e6 }))).toEqual(['/a', '/b']);
+		expect(paths(chooseEntries([a, b], { capBytes: 1e6, z: 1.28 }))).toEqual(['/b', '/a']);
+	});
+
 	it('never chooses an entry that cannot pay, at any size, document or share', () => {
 		const sizes = [0, 1, 80, 473, 2000, 7603, 17_054, 60_000];
 		const shares = [0, 0.01, 0.05, 0.226, 0.5, 0.96, 0.99, 1];

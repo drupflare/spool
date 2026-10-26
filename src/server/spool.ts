@@ -14,6 +14,8 @@ import {
 import { HEADERS, writeEnvelope, type Envelope } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
 import { collectRefs, createCollector } from '../protocol/graph.js';
+import { shellHash } from '../protocol/hash.js';
+import { escapeInline, inlineElement, placeInline } from '../protocol/inline.js';
 import { checkPattern } from '../protocol/pattern.js';
 import {
 	benefit,
@@ -22,6 +24,7 @@ import {
 	priorFrom,
 	type EntryCandidate
 } from '../protocol/provision.js';
+import { verifyProof } from '../protocol/query.js';
 import {
 	matchRoute,
 	serializeRoute,
@@ -83,8 +86,21 @@ export type SpoolOptions = {
 	provision?: ProvisionConfig;
 	/** the most compressed bytes of entries one catalogue bundle may carry; default 32 KiB */
 	catalogueBytes?: number;
+	/**
+	 * How cautious the catalogue is about a share it estimated: a guess with `n` observations is
+	 * judged on the lower confidence bound of its `p` at this many standard deviations (1.28 is
+	 * one-sided 90%). A guess with no `n` keeps its `p`. Default 0, which judges every guess on `p`.
+	 */
+	catalogueConfidence?: number;
 	/** measures an entry's compressed bytes for the catalogue; default Brotli, gzip where the runtime has no Brotli stream */
 	catalogueSize?: Sizer;
+	/**
+	 * The most bytes of escaped artifact JSON a public `template` page carries in the page itself,
+	 * so the worker stores it from the navigation and asks no `/.spool/artifact`. Every network view
+	 * of such a page pays for the bytes and one more `load`, whether or not the visitor has a
+	 * worker; a larger artifact is left out. Default 0, which is off; 2048 is the limit measured.
+	 */
+	inlineMaxBytes?: number;
 	/** how the worker treats same-origin subresources; default `cache` */
 	assets?: AssetMode;
 	/** same-origin paths whose request ends the session; the worker wipes the principal store first */
@@ -108,6 +124,13 @@ export type DecorateOptions = {
 	clear?: readonly string[];
 	/** also send `Clear-Site-Data: "storage"`, the browser's own wipe of everything the origin holds */
 	hardReset?: boolean;
+	/**
+	 * the shell text of this route's `assembly` artifact, as the body carries it before the client
+	 * tag goes in. `Spool-Artifact` then names its hash, and the worker keeps the page it already
+	 * received in place of asking `/.spool/artifact`. Ignored unless the route is a public
+	 * `assembly` route and the body is tagged HTML.
+	 */
+	assembled?: string;
 };
 
 /** what `createSpool` returns */
@@ -187,7 +210,15 @@ export function createSpool(options: SpoolOptions): Spool {
 	if (!(Number.isFinite(catalogueBytes) && catalogueBytes >= 0)) {
 		throw new ProtocolError('bad-route', 'catalogueBytes must be a non-negative number');
 	}
+	const catalogueConfidence = options.catalogueConfidence ?? 0;
+	if (!(Number.isFinite(catalogueConfidence) && catalogueConfidence >= 0)) {
+		throw new ProtocolError('bad-route', 'catalogueConfidence must be a non-negative number');
+	}
 	const measure = options.catalogueSize ?? compressedSize;
+	const inlineMax = options.inlineMaxBytes ?? 0;
+	if (!(Number.isFinite(inlineMax) && inlineMax >= 0)) {
+		throw new ProtocolError('bad-route', 'inlineMaxBytes must be a non-negative number');
+	}
 
 	const config: SwConfig = {
 		protocol: PROTOCOL_VERSION,
@@ -282,6 +313,12 @@ export function createSpool(options: SpoolOptions): Spool {
 		const ctx = context(request, new URL(path, url), hit.params, identity, collector);
 		const dependsOn = [...(await hit.route.depends(ctx))];
 		const loaded = await hit.route.load(ctx);
+		if (hit.route.query && !(await verifyProof(hit.route.query, loaded))) {
+			throw new ProtocolError(
+				'bad-artifact',
+				`${path}: a query route's load needs an array at "${hit.route.query.list}" and a matching proof`
+			);
+		}
 		const body = hit.route.strategy === 'assembly' ? loaded : { data: loaded };
 		const collected = collector.collect(vector);
 		const stored = new Set([...collected.records.map((r) => r.id)]);
@@ -338,6 +375,19 @@ export function createSpool(options: SpoolOptions): Spool {
 			);
 		}
 		return out;
+	}
+
+	/** the escaped artifact JSON of a public page, or null when it is over the limit or fails to build */
+	async function inlineText(url: URL): Promise<string | null> {
+		try {
+			const probe = new Request(url.href, { headers: { accept: 'application/json' } });
+			const built = await buildArtifact(probe, url, url.pathname, {}, true);
+			if (!('artifact' in built) || built.artifact.scope !== 'public') return null;
+			const text = escapeInline(JSON.stringify(built.artifact));
+			return new TextEncoder().encode(text).length <= inlineMax ? text : null;
+		} catch {
+			return null;
+		}
 	}
 
 	async function respondArtifact(request: Request, url: URL): Promise<Response> {
@@ -445,9 +495,20 @@ export function createSpool(options: SpoolOptions): Spool {
 						target.route.documentBytes ??
 						(target.route.strategy === 'data' ? entryBytes : prior.avoidedBytes);
 					built.set(guess.path, result);
-					pool.push({ path: guess.path, p: guess.p, entryBytes, documentBytes });
+					pool.push({
+						path: guess.path,
+						p: guess.p,
+						...(typeof guess.n === 'number' && guess.n > 0 && Number.isFinite(guess.n)
+							? { weight: guess.n }
+							: {}),
+						entryBytes,
+						documentBytes
+					});
 				}
-				const chosen = chooseEntries(pool, { capBytes: catalogueBytes });
+				const chosen = chooseEntries(pool, {
+					capBytes: catalogueBytes,
+					z: catalogueConfidence
+				});
 				const entries = chosen.flatMap((c) => built.get(c.path) ?? []);
 				const partition = entries.find((e) => e.partition !== undefined)?.partition;
 				return {
@@ -555,6 +616,13 @@ export function createSpool(options: SpoolOptions): Spool {
 		}
 		const kept =
 			hit?.route.strategy === 'static' || hit?.route.strategy === 'data' || isHtml(response);
+		const tag =
+			request.method === 'GET' &&
+			response.status === 200 &&
+			isHtml(response) &&
+			!response.headers.has('content-encoding');
+		const html = tag ? await response.text() : null;
+		let inline: string | null = null;
 		if (hit && kept && (hit.route.scope === 'public' || identity)) {
 			const ctx = context(request, url, hit.params, identity);
 			envelope.artifact = {
@@ -563,24 +631,28 @@ export function createSpool(options: SpoolOptions): Spool {
 				deps: [...(await hit.route.depends(ctx))],
 				version: before
 			};
+			const { assembled } = decorateOptions;
+			if (tag && hit.route.scope === 'public') {
+				if (hit.route.strategy === 'assembly' && assembled !== undefined) {
+					envelope.artifact.hash = await shellHash(assembled);
+				} else if (hit.route.strategy === 'template' && inlineMax > 0) {
+					inline = await inlineText(url);
+					if (inline !== null) envelope.artifact.hash = await shellHash(inline);
+				}
+			}
 		}
 		writeEnvelope(headers, envelope);
 		if (decorateOptions.hardReset) headers.set('clear-site-data', '"storage"');
 
-		const tag =
-			request.method === 'GET' &&
-			response.status === 200 &&
-			isHtml(response) &&
-			!response.headers.has('content-encoding');
-		if (!tag) {
+		if (html === null) {
 			return new Response(response.body, {
 				status: response.status,
 				statusText: response.statusText,
 				headers
 			});
 		}
-		const html = await response.text();
-		const tagged = injectClientTag(html, config.clientTag);
+		let tagged = injectClientTag(html, config.clientTag);
+		if (inline !== null) tagged = placeInline(tagged, inlineElement(inline));
 		if (tagged !== html) {
 			headers.delete('content-length');
 			const etag = headers.get('etag');

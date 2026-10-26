@@ -1,13 +1,21 @@
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import {
+	datasetProof,
 	defineRoute,
 	equivalent,
 	injectClientTag,
+	inlineElement,
+	parseArtifact,
 	placeholder,
+	PROOF_MISMATCH,
+	ProtocolError,
+	readInline,
+	shellHash,
 	viewsWithLoads,
 	type SwConfig
 } from '../../src/protocol/index';
-import { createSpool, memorySink, viewsOf } from '../../src/server/index';
+import { createSpool, memorySink, viewsOf, type SpoolOptions } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
 import { renderLocal } from '../../src/sw/render';
 import { classify } from '../../src/sw/router';
@@ -71,14 +79,23 @@ const routes = [
 	})
 ];
 
-function rig(options: { storage?: ReplicaStorage; fetchWrap?: (r: Response) => Response } = {}) {
+function rig(
+	options: {
+		storage?: ReplicaStorage;
+		fetchWrap?: (r: Response) => Response | Promise<Response>;
+		spool?: Partial<SpoolOptions>;
+		routes?: typeof routes;
+		app?: (request: Request) => Response | Promise<Response> | undefined;
+	} = {}
+) {
 	const store = memoryStore();
 	const sink = memorySink();
 	const spool = createSpool({
-		routes,
+		routes: options.routes ?? routes,
 		store,
 		sink,
 		beacons: ['/cdn-cgi/rum'],
+		...options.spool,
 		identity: {
 			secret: 's',
 			resolve: (r) => (r.headers.has('x-user') ? { principal: 'u' } : null)
@@ -91,6 +108,8 @@ function rig(options: { storage?: ReplicaStorage; fetchWrap?: (r: Response) => R
 	const received: Array<{ body: string; type: string | null; search: string }> = [];
 
 	const app = async (request: Request): Promise<Response> => {
+		const custom = options.app?.(request);
+		if (custom) return custom;
 		const { pathname, search } = new URL(request.url);
 		if (request.method === 'POST' && pathname === '/cdn-cgi/rum') {
 			received.push({
@@ -276,6 +295,237 @@ describe('a route served from the replica', () => {
 		await r.drive(nav('/soft/3'), custom);
 		const html = await (await r.drive(nav('/soft/3'), custom)).text();
 		expect(html).toContain('custom {"data":{"id":"3"}}');
+	});
+});
+
+describe('the artifact in the page', () => {
+	const inline = { inlineMaxBytes: 2048 };
+	const asked = 'GET /.spool/artifact';
+	const stored = async (r: ReturnType<typeof rig>, path: string) =>
+		(await r.runtime.replica.get(path))?.artifact;
+	const built = async (r: ReturnType<typeof rig>, path: string) =>
+		parseArtifact(
+			await (
+				(await r.spool.respond(
+					new Request(`${ORIGIN}/.spool/artifact?path=${path}`)
+				)) as Response
+			).json()
+		);
+	const html = (response: Response) =>
+		(response.headers.get('content-type') ?? '').includes('text/html');
+	const rewrite =
+		(
+			change: (text: string, response: Response) => BodyInit,
+			headers: Record<string, string> = {}
+		) =>
+		async (response: Response) => {
+			if (!html(response)) return response;
+			const next = new Headers(response.headers);
+			next.delete('content-length');
+			for (const [name, value] of Object.entries(headers)) next.set(name, value);
+			return new Response(change(await response.text(), response), {
+				status: response.status,
+				headers: next
+			});
+		};
+	const nasty = defineRoute('/nasty/:id', {
+		strategy: 'template',
+		template: tpl,
+		depends: dep,
+		load: () => ({
+			id: `</script><b>&amp;${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)}`
+		})
+	});
+	const big = defineRoute('/big/:id', {
+		strategy: 'template',
+		template: tpl,
+		depends: dep,
+		load: () => ({ id: 'x'.repeat(3000) })
+	});
+	const pages = (request: Request) => {
+		const [, first, second] = new URL(request.url).pathname.split('/');
+		return first === 'nasty' || first === 'big'
+			? new Response(body(second ?? ''), { headers: HTML })
+			: undefined;
+	};
+
+	it('stores the artifact a template page carries and asks for nothing', async () => {
+		const r = rig({ spool: inline });
+		const first = await visit(r, '/soft/1');
+		expect(r.log).toEqual(['GET /soft/1']);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+		const [entry] = r.runtime.ledger.entries();
+		expect(entry).toMatchObject({ id: '/soft/1', requests: 0, views: 0 });
+		expect((entry as { bytes: number }).bytes).toBeGreaterThan(0);
+		expect(first).toContain('data-spool-artifact');
+
+		r.log.length = 0;
+		const second = await visit(r, '/soft/1');
+		expect(r.log).toEqual([]);
+		expect(equivalent(second, first).equal).toBe(true);
+		expect(second).not.toContain('data-spool-artifact');
+	});
+
+	it('drops a captured page when the replica is wiped while its body is still being read', async () => {
+		let release: () => void = () => {};
+		const held = new Promise<void>((resolve) => (release = resolve));
+		const r = rig({
+			spool: inline,
+			fetchWrap: async (response) => {
+				if (!html(response) || !response.headers.has('spool-artifact')) return response;
+				const text = await response.text();
+				const headers = new Headers(response.headers);
+				headers.delete('content-length');
+				return new Response(
+					new ReadableStream({
+						async start(controller) {
+							await held;
+							controller.enqueue(new TextEncoder().encode(text));
+							controller.close();
+						}
+					}),
+					{ status: response.status, headers }
+				);
+			}
+		});
+		const pending = r.drive(nav('/soft/1'));
+		await new Promise((resolve) => setTimeout(resolve, 25));
+		await r.runtime.replica.wipe();
+		release();
+		await pending;
+		expect(r.log).toEqual(['GET /soft/1', asked]);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+	});
+
+	it('names the hash of the element text and keeps the element before the last body close', async () => {
+		const r = rig({ spool: inline });
+		const response = await r.drive(nav('/soft/1'));
+		const text = await response.text();
+		const element = readInline(text);
+		expect(element).not.toBeNull();
+		expect(response.headers.get('spool-artifact')).toContain(
+			`h=${await shellHash(element as string)}`
+		);
+		expect(text.indexOf(inlineElement(element as string))).toBe(
+			text.lastIndexOf('</body>') - inlineElement(element as string).length
+		);
+		expect(parseArtifact(JSON.parse(element as string)).id).toBe('/soft/1');
+	});
+
+	it('escapes the data so it cannot end the element, and the worker reads it back whole', async () => {
+		const r = rig({
+			spool: inline,
+			routes: [...routes, nasty],
+			app: pages
+		});
+		const text = await visit(r, '/nasty/1');
+		const element = readInline(text) as string;
+		expect(element).not.toMatch(/[<>&]/);
+		expect(element).not.toContain(String.fromCharCode(0x2028));
+		expect(element).not.toContain(String.fromCharCode(0x2029));
+		expect(text.match(/<\/script/gi)).toHaveLength(2);
+		const artifact = parseArtifact(JSON.parse(element));
+		expect(artifact.body).toEqual({
+			data: {
+				id: `</script><b>&amp;${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)}`
+			}
+		});
+		expect(r.log).toEqual(['GET /nasty/1']);
+		expect(await stored(r, '/nasty/1')).toEqual(await built(r, '/nasty/1'));
+	});
+
+	it('leaves an artifact over the limit out of the page', async () => {
+		const r = rig({ spool: inline, routes: [...routes, big], app: pages });
+		const response = await r.drive(nav('/big/1'));
+		expect(await response.text()).not.toContain('data-spool-artifact');
+		expect(response.headers.get('spool-artifact')).not.toContain('h=');
+		expect(r.log).toEqual(['GET /big/1', asked]);
+		expect(await stored(r, '/big/1')).toEqual(await built(r, '/big/1'));
+	});
+
+	it('puts nothing in a page with inlineMaxBytes 0', async () => {
+		const r = rig({ spool: { inlineMaxBytes: 0 } });
+		const response = await r.drive(nav('/soft/1'));
+		expect(await response.text()).not.toContain('data-spool-artifact');
+		expect(response.headers.get('spool-artifact')).not.toContain('h=');
+		expect(r.log).toEqual(['GET /soft/1', asked]);
+	});
+
+	it('refuses a limit that is not a non-negative number', () => {
+		for (const inlineMaxBytes of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+			expect(() => createSpool({ routes, store: memoryStore(), inlineMaxBytes })).toThrow(
+				ProtocolError
+			);
+		}
+	});
+
+	it('never puts an assembly page or a principal page in a page', async () => {
+		const r = rig({ spool: inline });
+		const assembly = await r.drive(nav('/page/about'));
+		expect(await assembly.text()).not.toContain('data-spool-artifact');
+		expect(assembly.headers.get('spool-artifact')).not.toContain('h=');
+		const account = await r.drive(nav('/acct', { headers: { 'x-user': 'u' } }));
+		expect(await account.text()).not.toContain('data-spool-artifact');
+		expect(account.headers.get('spool-artifact')).toContain('scope=principal');
+		expect(account.headers.get('spool-artifact')).not.toContain('h=');
+	});
+
+	const fallbacks: Array<[string, ReturnType<typeof rewrite>]> = [
+		[
+			'an element that does not match the hash',
+			rewrite((t) => t.replace('"id":"1"', '"id":"2"'))
+		],
+		[
+			'a later element the page did not get from the server',
+			rewrite(
+				(t) =>
+					`${t}${inlineElement(
+						JSON.stringify({
+							protocol: 1,
+							id: '/soft/1',
+							scope: 'public',
+							strategy: 'template',
+							deps: ['node:1'],
+							vector: 0,
+							body: { data: { id: 'evil' } }
+						})
+					)}`
+			)
+		],
+		[
+			'a header with no hash',
+			async (response) => {
+				const next = new Headers(response.headers);
+				next.set(
+					'spool-artifact',
+					(next.get('spool-artifact') ?? '').replace(/; h=[\w-]+/, '')
+				);
+				return new Response(response.body, { status: response.status, headers: next });
+			}
+		],
+		['a compressed body', rewrite((t) => gzipSync(t), { 'content-encoding': 'gzip' })],
+		[
+			'a body that is not UTF-8',
+			rewrite((t) => Buffer.concat([Buffer.from(t), Buffer.from([0xff])]))
+		]
+	];
+
+	it.each(fallbacks)('asks for the artifact once after %s', async (_name, wrap) => {
+		const r = rig({ spool: inline, fetchWrap: wrap });
+		await visit(r, '/soft/1');
+		expect(r.log).toEqual(['GET /soft/1', asked]);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+		expect(r.runtime.ledger.entries()).toMatchObject([{ id: '/soft/1', requests: 1 }]);
+	});
+
+	it('leaves a route in shadow mode to the beacon, as without the element', async () => {
+		const shadow = rig({ spool: { ...inline, mode: 'shadow' } });
+		await visit(shadow, '/soft/1');
+		const bare = rig({ spool: { inlineMaxBytes: 0, mode: 'shadow' } });
+		await visit(bare, '/soft/1');
+		expect(shadow.log).toEqual(bare.log);
+		expect(shadow.log).not.toContain(asked);
+		expect(await stored(shadow, '/soft/1')).toEqual(await stored(bare, '/soft/1'));
 	});
 });
 
@@ -776,6 +1026,39 @@ describe('classify', () => {
 		expect(classify(data, sub('/api/1'), ORIGIN).kind).toBe('data');
 		expect(classify(data, sub('/api/1?q=x'), ORIGIN).kind).toBe('asset');
 	});
+
+	it('lets a route that declares a query schema take a query string, and no other', () => {
+		const route = (pattern: string, strategy: 'template' | 'data', over = {}) => ({
+			pattern,
+			strategy,
+			scope: 'public' as const,
+			freshness: { maxStale: 60, mode: 'soft' as const },
+			persist: true,
+			offline: 'serve' as const,
+			sync: 'background' as const,
+			...over
+		});
+		const query = { list: 'rows' };
+		const queried = {
+			...config,
+			routes: [
+				route('/people', 'template', { query }),
+				route('/api/plain', 'data'),
+				route('/api/:id', 'data', { query }),
+				route('/plain', 'template')
+			]
+		};
+		expect(classify(queried, nav('/people?page=2'), ORIGIN)).toMatchObject({
+			kind: 'navigation',
+			path: '/people'
+		});
+		expect(classify(queried, sub('/api/1?page=2'), ORIGIN)).toMatchObject({
+			kind: 'data',
+			path: '/api/1'
+		});
+		expect(classify(queried, nav('/plain?page=2'), ORIGIN).kind).toBe('pass');
+		expect(classify(queried, sub('/api/plain?page=2'), ORIGIN).kind).toBe('asset');
+	});
 });
 
 describe('renderLocal', () => {
@@ -841,5 +1124,81 @@ describe('renderLocal', () => {
 			'/page/:slug': () => '<p>mine</p>'
 		});
 		expect(result).toEqual({ ok: true, html: tagged('<p>mine</p>') });
+	});
+
+	describe('with a query string', () => {
+		const people = defineRoute('/people', {
+			strategy: 'template',
+			template: {
+				source: '<html><head></head><body>{{query.total}}:{{#each rows}}{{n}}{{/each}}</body></html>'
+			},
+			load: () => ({}),
+			query: { list: 'rows', pageSize: 2 }
+		});
+		const queried = createSpool({ routes: [people], store: memoryStore() }).config;
+		const rows = [{ n: 'a' }, { n: 'b' }, { n: 'c' }];
+		const stored = async (over: object = {}) =>
+			artifact({
+				id: '/people',
+				body: { data: { rows, proof: await datasetProof(rows), ...over } }
+			});
+		const render = async (search: string | undefined, source = stored()) =>
+			renderLocal(queried, queried.routes[0]!, await source, {}, search);
+
+		it('renders the page of items and the page numbers the query selects', async () => {
+			expect(await render('?page=2')).toEqual({
+				ok: true,
+				html: injectClientTag(
+					'<html><head></head><body>3:c</body></html>',
+					queried.clientTag
+				)
+			});
+			expect(await render('?page=1')).toMatchObject({
+				html: expect.stringContaining('3:ab')
+			});
+		});
+
+		it('renders the stored data as it is with no query string or an empty one', async () => {
+			for (const search of [undefined, '']) {
+				expect(await render(search)).toMatchObject({
+					html: expect.stringContaining('<body>:abc</body>')
+				});
+			}
+		});
+
+		it('ignores a query string for a route that declares no schema', async () => {
+			const plain = await renderLocal(config, route('/soft/:id'), artifact(), {}, '?page=2');
+			expect(plain).toEqual({ ok: true, html: tagged(body('1')) });
+		});
+
+		it('refuses with the proof reason when the proof does not match, whatever the query says', async () => {
+			const proof = await datasetProof(rows);
+			for (const bad of [
+				{ proof: { ...proof, count: 2 } },
+				{ proof: { ...proof, digest: 'x' } }
+			]) {
+				expect(await render('?page=2', stored(bad))).toEqual({
+					ok: false,
+					reason: PROOF_MISMATCH
+				});
+				expect(await render('?colour=red', stored(bad))).toEqual({
+					ok: false,
+					reason: PROOF_MISMATCH
+				});
+			}
+		});
+
+		it('refuses a query the schema does not declare, and an artifact that is not data', async () => {
+			expect(await render('?colour=red')).toEqual({
+				ok: false,
+				reason: 'query is not one the route declares'
+			});
+			expect(await render('?page=3')).toMatchObject({ ok: false });
+			const assembly = artifact({ strategy: 'assembly', body: { shell: 's' } });
+			expect(await render('?page=2', Promise.resolve(assembly))).toEqual({
+				ok: false,
+				reason: 'assembly artifact cannot answer a query'
+			});
+		});
 	});
 });

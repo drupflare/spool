@@ -342,6 +342,50 @@ describe('which entries the server sends', () => {
 		}
 	});
 
+	it('judges a guess with n on the lower bound of its share when catalogueConfidence is set', async () => {
+		const build = (options: { catalogueConfidence?: number }) =>
+			createSpool({
+				routes: [
+					defineRoute('/home', {
+						strategy: 'template',
+						template: { source: SOURCE },
+						load: () => ({}),
+						catalogue: () => [
+							{ path: '/c/1', p: 0.03, n: 5 },
+							{ path: '/c/2', p: 0.03, n: 100_000 },
+							{ path: '/c/3', p: 0.03 }
+						]
+					}),
+					defineRoute('/c/:id', {
+						strategy: 'template',
+						template: { source: SOURCE },
+						load: () => ({})
+					})
+				],
+				store: memoryStore(),
+				catalogueSize: () => 300,
+				...options
+			});
+		expect((await idsIn(await askFor(build({}), ask))).sort()).toEqual([
+			'/c/1',
+			'/c/2',
+			'/c/3'
+		]);
+		const cautious = build({ catalogueConfidence: 1.28 });
+		expect((await idsIn(await askFor(cautious, ask))).sort()).toEqual(['/c/2', '/c/3']);
+	});
+
+	it('refuses a catalogueConfidence that is not a non-negative number', () => {
+		const routes = [
+			defineRoute('/a', { strategy: 'template', template: { source: '' }, load: () => ({}) })
+		];
+		for (const catalogueConfidence of [-1, Number.NaN, Infinity]) {
+			expect(() =>
+				createSpool({ routes, store: memoryStore(), catalogueConfidence })
+			).toThrow(/catalogueConfidence/);
+		}
+	});
+
 	it('skips a guess that is not a page the device can render from data', async () => {
 		const spool = createSpool({
 			routes: [

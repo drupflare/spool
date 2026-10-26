@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { equivalent, normalise } from '../../src/protocol/index';
+import { equivalent, inlineElement, normalise } from '../../src/protocol/index';
 
 describe('normalise', () => {
 	it('collapses whitespace, drops whitespace between tags and strips comments', () => {
@@ -13,6 +13,14 @@ describe('normalise', () => {
 			ignore: [/nonce="\w+"/]
 		});
 		expect(out).toBe('<a \u0000></a><b \u0000></b>');
+	});
+
+	it('treats the inline artifact element as absent', () => {
+		const plain = '<html><body><p>x</p></body></html>';
+		const inlined = `<html><body><p>x</p>${inlineElement('{"a":1}')}</body></html>`;
+		expect(normalise(inlined)).toBe(normalise(plain));
+		expect(equivalent(inlined, plain).equal).toBe(true);
+		expect(equivalent(inlined, '<html><body><p>y</p></body></html>').equal).toBe(false);
 	});
 
 	it('keeps text that differs', () => {

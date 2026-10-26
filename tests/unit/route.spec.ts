@@ -108,6 +108,98 @@ describe('defineRoute refusals', () => {
 	});
 });
 
+describe('defineRoute query', () => {
+	const query = {
+		list: 'people',
+		filter: { department: 'string', age: 'number' },
+		sort: ['name', 'age'],
+		pageSize: 20
+	};
+
+	it.each(['template', 'projection', 'data'] as const)(
+		'puts the schema of a public %s route in the serialized route, as a copy',
+		(strategy) => {
+			const declaration = (
+				strategy === 'template'
+					? template({ query } as never)
+					: { strategy, load: () => ({}), query }
+			) as RouteDeclaration;
+			const route = defineRoute('/people', declaration);
+			expect(route.query).toEqual(query);
+			const serial = serializeRoute(route);
+			expect(serial.query).toEqual(query);
+			expect(JSON.parse(JSON.stringify(serial))).toEqual(serial);
+			serial.query!.list = 'changed';
+			expect(route.query?.list).toBe('people');
+		}
+	);
+
+	it('takes a list alone, and leaves the key out of the serialized route when there is none', () => {
+		const route = defineRoute('/people', template({ query: { list: 'rows' } } as never));
+		expect(serializeRoute(route).query).toEqual({ list: 'rows' });
+		expect(serializeRoute(defineRoute('/people', template())).query).toBeUndefined();
+	});
+
+	const cases: Array<[string, Record<string, unknown>, RegExp]> = [
+		['a principal route', { scope: 'principal', query }, /public route/],
+		[
+			'an assembly route',
+			{ strategy: 'assembly', load: () => ({ shell: 's' }), query },
+			/cannot declare query/
+		],
+		['a static route', { strategy: 'static', load: undefined, query }, /cannot declare query/],
+		['a query that is not an object', { query: 'people' }, /must be an object/],
+		['a null query', { query: null }, /must be an object/],
+		['an array query', { query: [] }, /must be an object/],
+		['an unknown option', { query: { list: 'a', limit: 5 } }, /unknown query option "limit"/],
+		['no list', { query: { filter: {} } }, /query\.list/],
+		['an empty list', { query: { list: '' } }, /query\.list/],
+		['a list that is not a string', { query: { list: 3 } }, /query\.list/],
+		['the list named proof', { query: { list: 'proof' } }, /cannot be "proof"/],
+		['the list named query', { query: { list: 'query' } }, /cannot be "query"/],
+		[
+			'a filter that is not an object',
+			{ query: { list: 'a', filter: ['x'] } },
+			/query\.filter/
+		],
+		['a null filter', { query: { list: 'a', filter: null } }, /query\.filter/],
+		[
+			'a filter named sort',
+			{ query: { list: 'a', filter: { sort: 'string' } } },
+			/cannot name "sort"/
+		],
+		[
+			'a filter named page',
+			{ query: { list: 'a', filter: { page: 'number' } } },
+			/cannot name "page"/
+		],
+		[
+			'a filter with an empty name',
+			{ query: { list: 'a', filter: { '': 'string' } } },
+			/cannot name ""/
+		],
+		[
+			'a filter of another type',
+			{ query: { list: 'a', filter: { d: 'date' } } },
+			/"string" or "number"/
+		],
+		['a sort that is not a list', { query: { list: 'a', sort: 'name' } }, /query\.sort/],
+		['a sort field named page', { query: { list: 'a', sort: ['page'] } }, /cannot name "page"/],
+		['a sort field named sort', { query: { list: 'a', sort: ['sort'] } }, /cannot name "sort"/],
+		['an empty sort field', { query: { list: 'a', sort: [''] } }, /cannot name ""/],
+		['a sort field that is not a string', { query: { list: 'a', sort: [3] } }, /cannot name 3/],
+		['a zero pageSize', { query: { list: 'a', pageSize: 0 } }, /positive integer/],
+		['a fractional pageSize', { query: { list: 'a', pageSize: 1.5 } }, /positive integer/],
+		['a text pageSize', { query: { list: 'a', pageSize: '5' } }, /positive integer/]
+	];
+
+	it.each(cases)('rejects %s', (_name, override, message) => {
+		const declaration = template(override as Partial<RouteDeclaration>);
+		expect(() => defineRoute('/people', declaration)).toThrow(message);
+		expect(() => defineRoute('/people', declaration)).toThrow(ProtocolError);
+	});
+});
+
 describe('serializeRoute', () => {
 	it('keeps the data a service worker needs and drops functions and the template', () => {
 		const route = defineRoute('/a/:id', template({ freshness: { maxStale: 5, mode: 'hard' } }));

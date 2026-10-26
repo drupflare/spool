@@ -34,6 +34,68 @@ describe('the envelope codec', () => {
 		expect(roundTrip({ artifact }).artifact).toEqual(artifact);
 	});
 
+	it('round-trips the artifact hash as one more field', () => {
+		const hash = 'A'.repeat(42) + '_';
+		const artifact = { id: '/a', scope: 'public' as const, deps: ['t'], version: 3, hash };
+		const headers = encodeEnvelope({ artifact });
+		expect(headers['spool-artifact']).toBe(`id=%2Fa; scope=public; deps=t; v=3; h=${hash}`);
+		expect(roundTrip({ artifact }).artifact).toEqual(artifact);
+		const { hash: _hash, ...plain } = artifact;
+		expect(encodeEnvelope({ artifact: plain })['spool-artifact']).not.toContain('h=');
+		expect(roundTrip({ artifact: plain }).artifact).toEqual(plain);
+	});
+
+	it('refuses to encode a hash that is not 43 base64url characters', () => {
+		const artifact = { id: '/a', scope: 'public' as const, deps: [], version: 0 };
+		for (const hash of [
+			'',
+			'short',
+			'A'.repeat(44),
+			`${'A'.repeat(42)}=`,
+			`${'A'.repeat(42)};`
+		]) {
+			expect(() => encodeEnvelope({ artifact: { ...artifact, hash } }), hash).toThrow(
+				ProtocolError
+			);
+		}
+	});
+
+	it('leaves a malformed hash out and keeps the rest of the artifact', () => {
+		const headers = new Headers({
+			'spool-artifact': 'id=%2Fa; scope=public; deps=t; v=3; h=not a hash'
+		});
+		expect(decodeEnvelope(headers).artifact).toEqual({
+			id: '/a',
+			scope: 'public',
+			deps: ['t'],
+			version: 3
+		});
+	});
+
+	it('parses the new header the way a v0.2 worker does', () => {
+		// v0.2 read the fields id, scope, deps and v by name and ignored every other field
+		const legacy = (value: string) => {
+			const fields = new Map<string, string>();
+			for (const part of value.split(';')) {
+				const eq = part.indexOf('=');
+				fields.set(part.slice(0, eq).trim(), part.slice(eq + 1).trim());
+			}
+			return {
+				id: decodeURIComponent(fields.get('id') as string),
+				scope: fields.get('scope'),
+				deps: (fields.get('deps') ?? '')
+					.split(',')
+					.filter((d) => d !== '')
+					.map((d) => decodeURIComponent(d)),
+				version: Number(fields.get('v'))
+			};
+		};
+		const hash = 'B'.repeat(43);
+		const artifact = { id: '/a b', scope: 'public' as const, deps: ['x', 'y'], version: 9 };
+		const header = encodeEnvelope({ artifact: { ...artifact, hash } })['spool-artifact'];
+		expect(legacy(header as string)).toEqual({ ...artifact });
+	});
+
 	it('round-trips Spool-Invalidate with its versions', () => {
 		const invalidate = { 'node:1': 4, 'a=b,c': 9, __proto__x: 1 };
 		expect(roundTrip({ invalidate }).invalidate).toEqual(invalidate);

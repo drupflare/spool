@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createActivity, type ActivityHost } from '../../src/client/activity';
 import { closeOnPageHide } from '../../src/client/lifecycle';
 import { crossOriginLoads } from '../../src/client/loads';
 import { register } from '../../src/client/register';
@@ -193,5 +194,240 @@ describe('cross-origin loads', () => {
 			{ type: 'spool:view', path: '/p' },
 			{ type: 'spool:loads', view: 'abc', count: 3 }
 		]);
+	});
+});
+
+describe('activity', () => {
+	const el = () => ({}) as Element;
+
+	function loop(pauseThrows = false) {
+		const calls: string[] = [];
+		return {
+			calls,
+			controls: {
+				pause: () => {
+					calls.push('pause');
+					if (pauseThrows) throw new Error('boom');
+				},
+				resume: () => void calls.push('resume')
+			}
+		};
+	}
+
+	function fakeHost(startHidden = false, offScreenAtStart: Element[] = []) {
+		let hidden = startHidden;
+		let clock = 0;
+		let nextId = 1;
+		const visibility = new Set<() => void>();
+		const observers = new Map<Element, (onScreen: boolean) => void>();
+		const timers = new Map<number, { at: number; callback: () => void }>();
+		const host: ActivityHost = {
+			hidden: () => hidden,
+			onVisibilityChange(listener) {
+				visibility.add(listener);
+				return () => void visibility.delete(listener);
+			},
+			observe(target, listener) {
+				observers.set(target, listener);
+				listener(!offScreenAtStart.includes(target));
+				return () => void observers.delete(target);
+			},
+			setTimeout(callback, ms) {
+				const id = nextId++;
+				timers.set(id, { at: clock + ms, callback });
+				return id;
+			},
+			clearTimeout(handle) {
+				timers.delete(handle as number);
+			}
+		};
+		return {
+			host,
+			timers,
+			setHidden(next: boolean) {
+				hidden = next;
+				for (const listener of [...visibility]) listener();
+			},
+			setOnScreen(target: Element, onScreen: boolean) {
+				observers.get(target)?.(onScreen);
+			},
+			advance(ms: number) {
+				clock += ms;
+				for (const [id, timer] of [...timers]) {
+					if (timer.at > clock) continue;
+					timers.delete(id);
+					timer.callback();
+				}
+			}
+		};
+	}
+
+	function lcg(seed: number) {
+		let state = seed;
+		return () => {
+			state = (state * 16807) % 2147483647;
+			return state / 2147483647;
+		};
+	}
+
+	function expectAlternating(calls: string[], paused: boolean) {
+		calls.forEach((call, i) => expect(call).toBe(i % 2 === 0 ? 'pause' : 'resume'));
+		expect(calls.length % 2 === 1).toBe(paused);
+	}
+
+	it('alternates pause and resume and matches the rule after every event, over 20 seeded runs', () => {
+		let pauses = 0;
+		for (let run = 1; run <= 20; run++) {
+			const random = lcg(run);
+			const target = el();
+			const f = fakeHost();
+			const l = loop();
+			const hiddenAfterMs = [0, 250, 10_000].at(run % 3) ?? 0;
+			createActivity(f.host).register(l.controls, { target, hiddenAfterMs });
+			let clock = 0;
+			let hiddenSince: number | null = null;
+			let hidden = false;
+			let onScreen = true;
+			for (let step = 0; step < 60; step++) {
+				const roll = random();
+				if (roll < 0.3) {
+					hidden = !hidden;
+					hiddenSince = hidden ? clock : null;
+					f.setHidden(hidden);
+				} else if (roll < 0.55) {
+					onScreen = !onScreen;
+					f.setOnScreen(target, onScreen);
+				} else {
+					const ms = Math.floor(random() * 6000);
+					clock += ms;
+					f.advance(ms);
+				}
+				const hiddenPaused = hiddenSince !== null && clock - hiddenSince >= hiddenAfterMs;
+				expectAlternating(l.calls, !onScreen || hiddenPaused);
+			}
+			pauses += l.calls.filter((call) => call === 'pause').length;
+		}
+		expect(pauses).toBeGreaterThan(0);
+	});
+
+	it('pauses at once when hiddenAfterMs is 0 and leaves no timer behind', () => {
+		const f = fakeHost();
+		const l = loop();
+		createActivity(f.host).register(l.controls, { hiddenAfterMs: 0 });
+		f.setHidden(true);
+		expect(l.calls).toEqual(['pause']);
+		expect(f.timers.size).toBe(0);
+		f.setHidden(false);
+		expect(l.calls).toEqual(['pause', 'resume']);
+	});
+
+	it('waits 10000 ms by default before pausing a hidden page', () => {
+		const f = fakeHost();
+		const l = loop();
+		createActivity(f.host).register(l.controls);
+		f.setHidden(true);
+		f.advance(9999);
+		expect(l.calls).toEqual([]);
+		f.advance(1);
+		expect(l.calls).toEqual(['pause']);
+		f.setHidden(false);
+		expect(l.calls).toEqual(['pause', 'resume']);
+	});
+
+	it('pauses at once when the first report puts the target off screen', () => {
+		const target = el();
+		const f = fakeHost(false, [target]);
+		const l = loop();
+		createActivity(f.host).register(l.controls, { target });
+		expect(l.calls).toEqual(['pause']);
+		f.setOnScreen(target, true);
+		expect(l.calls).toEqual(['pause', 'resume']);
+	});
+
+	it('resumes only when neither the target nor the hidden page holds the loop paused', () => {
+		const target = el();
+		const f = fakeHost();
+		const l = loop();
+		createActivity(f.host).register(l.controls, { target, hiddenAfterMs: 0 });
+		f.setOnScreen(target, false);
+		f.setHidden(true);
+		expect(l.calls).toEqual(['pause']);
+		f.setOnScreen(target, true);
+		expect(l.calls).toEqual(['pause']);
+		f.setHidden(false);
+		expect(l.calls).toEqual(['pause', 'resume']);
+		f.setHidden(true);
+		f.setOnScreen(target, false);
+		f.setHidden(false);
+		expect(l.calls).toEqual(['pause', 'resume', 'pause']);
+		f.setOnScreen(target, true);
+		expect(l.calls).toEqual(['pause', 'resume', 'pause', 'resume']);
+	});
+
+	it('resumes a paused loop once on unregister, and a second unregister does nothing', () => {
+		const target = el();
+		const f = fakeHost(false, [target]);
+		const l = loop();
+		const unregister = createActivity(f.host).register(l.controls, {
+			target,
+			hiddenAfterMs: 0
+		});
+		expect(l.calls).toEqual(['pause']);
+		unregister();
+		unregister();
+		f.setOnScreen(target, true);
+		f.setHidden(true);
+		f.setHidden(false);
+		expect(l.calls).toEqual(['pause', 'resume']);
+		expect(f.timers.size).toBe(0);
+	});
+
+	it('unregister clears a pending hidden timer', () => {
+		const f = fakeHost();
+		const l = loop();
+		const unregister = createActivity(f.host).register(l.controls);
+		f.setHidden(true);
+		expect(f.timers.size).toBe(1);
+		unregister();
+		expect(f.timers.size).toBe(0);
+		f.advance(10_000);
+		expect(l.calls).toEqual([]);
+	});
+
+	it('catches a throwing pause, warns once, and keeps the loop going', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		try {
+			const target = el();
+			const f = fakeHost();
+			const l = loop(true);
+			createActivity(f.host).register(l.controls, { target });
+			f.setOnScreen(target, false);
+			f.setOnScreen(target, true);
+			f.setOnScreen(target, false);
+			expect(l.calls).toEqual(['pause', 'resume', 'pause']);
+			expect(warn).toHaveBeenCalledTimes(1);
+			expect(warn).toHaveBeenCalledWith('spool.activity', expect.any(Error));
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it('keeps two loops independent', () => {
+		const target = el();
+		const f = fakeHost();
+		const first = loop();
+		const second = loop();
+		const activity = createActivity(f.host);
+		activity.register(first.controls, { target });
+		activity.register(second.controls, { hiddenAfterMs: 0 });
+		f.setOnScreen(target, false);
+		expect(first.calls).toEqual(['pause']);
+		expect(second.calls).toEqual([]);
+		f.setHidden(true);
+		expect(first.calls).toEqual(['pause']);
+		expect(second.calls).toEqual(['pause']);
+		f.setOnScreen(target, true);
+		expect(first.calls).toEqual(['pause', 'resume']);
+		expect(second.calls).toEqual(['pause']);
 	});
 });
