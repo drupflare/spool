@@ -19,10 +19,12 @@ import {
 	SWD_V4,
 	TIERS,
 	activityFigures,
+	activityGains,
 	addLevers,
 	attributionalJoules,
 	bandwidthUsd,
 	capacityMWh,
+	channelRows,
 	classifyOrigin,
 	coverageFigures,
 	crawlLevers,
@@ -62,6 +64,7 @@ import {
 	windowCounts,
 	zeroNetworkFigures,
 	type ByteSplit,
+	type Channels,
 	type DictionaryArm,
 	type Fit,
 	type Measurement,
@@ -1038,6 +1041,157 @@ export function buildFigures(readings: Readings): Figures {
 		}),
 		[1, 2, 3, 4, 5]
 	);
+	const perView: Channels = {
+		metered: {
+			value: { joules: Number(v.desktopSaving) },
+			layer: 'L1',
+			source: 'desktop RAPL package energy against optimized HTTP caching'
+		},
+		attributional: {
+			value: { joules: joulesPerView() },
+			layer: 'L2',
+			source: 'Sustainable Web Design v4 over the document, plus one origin request'
+		},
+		capacity: null,
+		avoided: {
+			value: {
+				transferredBytes: bytes,
+				requests: 1,
+				serverCpuMs: null,
+				browserCpuMs: null,
+				dataCentreWorkMs: null,
+				peakNodes: null
+			},
+			layer: 'L1',
+			source: 'median repeat-view document, one request per local view'
+		}
+	};
+	t.channels = table(
+		['channel', 'measure', 'per local view', 'unit', 'label'],
+		channelRows(perView).map((r) => [
+			r.channel === 'avoided' ? 'avoided demand' : r.channel,
+			r.measure.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`),
+			r.unit === 'J' ? fixed(r.value, 2) : fixed(r.value),
+			r.unit,
+			r.layer
+		]),
+		[2]
+	);
+	// #endregion
+
+	// #region first payload and next-page replay
+	type FirstPayloadRow = {
+		arm: string;
+		round: number;
+		cold: {
+			requests: number;
+			artifactRequests: number;
+			bytes: { read: number; written: number };
+			backend: { originPageFetches?: number; loads?: number };
+		};
+	};
+	const firstPayload = latest(readings, 'first-payload');
+	const fpRows = (firstPayload.rows as unknown as FirstPayloadRow[]).filter((r) => r.round === 0);
+	const fpArm = (name: string) => fpRows.find((r) => r.arm === name) as FirstPayloadRow;
+	const fpWork = (r: FirstPayloadRow) =>
+		r.cold.backend.originPageFetches !== undefined
+			? `${r.cold.backend.originPageFetches} origin page ${r.cold.backend.originPageFetches === 1 ? 'fetch' : 'fetches'}`
+			: `${r.cold.backend.loads} load`;
+	t['first-payload'] = table(
+		[
+			'arm',
+			'requests, cold to local',
+			'/.spool/artifact requests',
+			'bytes in',
+			'bytes out',
+			'origin work'
+		],
+		fpRows.map((r) => [
+			r.arm,
+			fixed(r.cold.requests),
+			fixed(r.cold.artifactRequests),
+			fixed(r.cold.bytes.read),
+			fixed(r.cold.bytes.written),
+			fpWork(r)
+		]),
+		[1, 2, 3, 4]
+	);
+	v.fpRounds = fixed(Number(firstPayload.method.rounds));
+	v.fpOriginFetchesSaved = fixed(
+		(fpArm('assembly, off').cold.backend.originPageFetches as number) -
+			(fpArm('assembly, lever 1').cold.backend.originPageFetches as number)
+	);
+	v.fpLeverOneJ = fixed(
+		attributionalJoules(bytes) + ORIGIN_J.conventional.value * Number(v.fpOriginFetchesSaved),
+		1
+	);
+
+	type ReplayRow = {
+		arm: string;
+		entryBytes: number;
+		z: number;
+		firstSteps: number;
+		provisions: number;
+		hits: number;
+		hit1: number;
+		hit3: number;
+		netJ: number;
+		netJPerKB: number | null;
+	};
+	const replayReading = latest(readings, 'nav-replay');
+	const replayRows = (replayReading.rows as unknown as ReplayRow[]).filter((r) => r.z === 1.28);
+	t['nav-replay'] = table(
+		[
+			'arm',
+			'entry bytes',
+			'hit@1',
+			'hit@3',
+			'provisions',
+			'hits',
+			'net J',
+			'J per provisioned KB'
+		],
+		replayRows.map((r) => [
+			r.arm,
+			fixed(r.entryBytes),
+			fixed(r.hit1 / r.firstSteps, 3),
+			fixed(r.hit3 / r.firstSteps, 3),
+			fixed(r.provisions),
+			fixed(r.hits),
+			fixed(r.netJ),
+			r.netJPerKB === null ? 'none' : fixed(r.netJPerKB, 2)
+		]),
+		[1, 2, 3, 4, 5, 6, 7]
+	);
+	v.replayFirstSteps = fixed(replayRows[0]?.firstSteps ?? 0);
+	type CalibrationRow = {
+		kind?: string;
+		arm: string;
+		from: number;
+		to: number;
+		n: number;
+		predicted: number;
+		observed: number;
+	};
+	const calibrationRows = (replayReading.rows as unknown as CalibrationRow[]).filter(
+		(r) => r.kind === 'calibration'
+	);
+	const overconfident = calibrationRows.find(
+		(r) => r.arm === 'population-1' && r.from === 0.2 && r.to === 0.4
+	);
+	v.replayOverconfident = fixed(overconfident?.predicted ?? 0, 3);
+	v.replayOverconfidentSeen = fixed(overconfident?.observed ?? 0, 3);
+	t['nav-calibration'] = table(
+		['arm', 'probability bin', 'candidates', 'mean probability given', 'came next'],
+		calibrationRows.map((r) => [
+			r.arm,
+			`${fixed(r.from, 2)} to ${fixed(r.to, 2)}`,
+			fixed(r.n),
+			fixed(r.predicted, 3),
+			fixed(r.observed, 3)
+		]),
+		[2, 3, 4]
+	);
 	// #endregion
 
 	// #region bandwidth and requests
@@ -1535,6 +1689,13 @@ export function buildFigures(readings: Readings): Figures {
 		v.dictOut = share(dict.arms.serverOut.zstd.medianSite);
 		v.dictHeld = share(dict.arms.serverHeld.zstd.medianSite);
 		v.dictOracle = share(dict.arms.oracle.zstd.medianSite);
+		const held = dict.arms.serverHeld.zstd.medianSite;
+		const visit = dict.arms.serverVisit.zstd.medianSite;
+		t['dictionary-retention'] = table(
+			['visitors who still hold the base', 'median-site saving'],
+			[0.1, 0.3, 0.5, 0.7].map((h) => [pct(h), share(h * held + (1 - h) * visit)]),
+			[1]
+		);
 		void lazy;
 	}
 	// #endregion
@@ -1670,13 +1831,22 @@ export function buildFigures(readings: Readings): Figures {
 		);
 		v.encodeRounds = fixed(arm(encode, 'warm-native').windows);
 		v.encodeDropped = fixed(dropped(encodeCounts));
+		const breakEven = (encoded: string, decoded: string) => {
+			const saved = decodeJ('img-original') - decodeJ(decoded);
+			return saved > 0 ? fixed(Math.ceil(encodeJ(encoded) / saved)) : 'never';
+		};
+		v.encodeBreakEvenResized = breakEven('warm-resized', 'img-resized');
+		v.encodeBreakEvenNative = breakEven('warm-native', 'img-native');
+		v.transferJPerKb = fixed(attributionalJoules(1000), 2);
 
 		const activityReading = latest(readings, 'rapl', 'idle-activity');
 		const activity = activityFigures(activityReading.rows);
 		const activityLabel: Record<string, string> = {
 			quiet: 'a quiet visible page',
 			poll: 'a page polling a local endpoint once a second',
-			raf: 'a requestAnimationFrame loop moving one box'
+			raf: 'a requestAnimationFrame loop moving one box',
+			'raf-off-plain': 'the same loop with its box 3000 px down, off screen',
+			'raf-off-hook': 'the off-screen loop with the pause hook'
 		};
 		const none = 'no reading: every window was dropped';
 		if (activity.idleWatts)
@@ -1686,7 +1856,10 @@ export function buildFigures(readings: Readings): Figures {
 				range(activity.idleWatts, (x) => fixed(x, 1)),
 				windows(activity.counts.idle)
 			);
-		for (const name of ['quiet', 'poll', 'raf']) {
+		const activityArms = ['quiet', 'poll', 'raf', 'raf-off-plain', 'raf-off-hook'].filter(
+			(name) => activity.counts[name]
+		);
+		for (const name of activityArms) {
 			const a = activity.arms[name];
 			add(
 				'package W',
@@ -1695,7 +1868,7 @@ export function buildFigures(readings: Readings): Figures {
 				windows(activity.counts[name])
 			);
 		}
-		for (const name of ['quiet', 'poll', 'raf']) {
+		for (const name of activityArms) {
 			const a = activity.arms[name];
 			add(
 				'W above the idle of the same round',
@@ -1720,7 +1893,59 @@ export function buildFigures(readings: Readings): Figures {
 
 		const quietExtra = activity.arms.quiet?.extraWatts.median;
 		v.activityQuietExtra = quietExtra === undefined ? 'no reading' : fixed(quietExtra, 2);
-		v.activityRoundsText = `Of ${activityRounds} rounds, ${activityRounds - activity.noisyRounds.length} are kept: in round${activity.noisyRounds.length === 1 ? '' : 's'} ${noisy} (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the ${idleWindows.length} idle windows of the run the draw ran from ${fixed(Math.min(...idleWindows), 1)} W to ${fixed(Math.max(...idleWindows), 1)} W, and the CPU rule dropped ${idleDropped} of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on ${activity.arms.poll?.windows ?? 0} windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.`;
+		const idleRange = `${fixed(Math.min(...idleWindows), 1)} W to ${fixed(Math.max(...idleWindows), 1)} W`;
+		v.activityRoundsText =
+			activity.noisyRounds.length > 0
+				? `Of ${activityRounds} rounds, ${activityRounds - activity.noisyRounds.length} are kept: in round${activity.noisyRounds.length === 1 ? '' : 's'} ${noisy} (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the ${idleWindows.length} idle windows of the run the draw ran from ${idleRange}, and the CPU rule dropped ${idleDropped} of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on ${activity.arms.poll?.windows ?? 0} windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.`
+				: `All ${activityRounds} rounds are kept: no round's idle windows disagreed by more than 25%, and the CPU rule dropped ${idleDropped} windows. The ${idleWindows.length} idle windows ran from ${idleRange}. Each activity figure rests on ${activity.arms.poll?.windows ?? 0} windows, one per round, on one machine.`;
+		const gain = activityGains(activity.arms)[0];
+		const rafOff = activity.arms['raf-off-plain'];
+		const rafOffHook = activity.arms['raf-off-hook'];
+		const rafOffWindows = activityReading.rows
+			.filter((r) => r.arm === 'raf-off-plain')
+			.map((r) => (r.pkgJ as number) / ((r.elapsedMs as number) / 1000))
+			.sort((a, b) => a - b);
+		v.activityHookText =
+			gain && rafOff && rafOffHook
+				? `With its box off screen, the loop still drew ${fixed(rafOff.extraWatts.median, 2)} W above idle (${fixed(rafOff.extraWatts.min, 2)} to ${fixed(rafOff.extraWatts.max, 2)}). The same page with the pause hook drew ${fixed(rafOffHook.extraWatts.median, 2)} W (${fixed(rafOffHook.extraWatts.min, 2).replace('-0.00', '0.00')} to ${fixed(rafOffHook.extraWatts.max, 2)}). The hook removed ${fixed(gain.saved.median, 2)} W from the same page, and what is left above the quiet page is ${fixed(gain.residual, 2)} W. The top of the saving range, ${fixed(gain.saved.max, 1)} W, comes from one window of the plain arm that read ${fixed(rafOffWindows[rafOffWindows.length - 1] as number, 1)} W of package power in the first round while the other ${rafOffWindows.length - 1} read ${fixed(rafOffWindows[0] as number, 1)} to ${fixed(rafOffWindows[rafOffWindows.length - 2] as number, 1)} W. Its cause is not established, and the median does not depend on it. The saving applies to a page that keeps a frame loop running while its target is off screen, and says nothing about pages that have no such loop.`
+				: 'no reading of the off-screen arms';
+
+		const hiddenLabel: Record<string, string> = {
+			'quiet-hidden': 'a hidden page with no timers',
+			'poll-hidden-plain': 'a hidden page polling once a second',
+			'poll-hidden-hook': 'the hidden polling page with the pause hook'
+		};
+		const hiddenReading = latest(readings, 'rapl', 'idle-activity-hidden');
+		const hidden = activityFigures(hiddenReading.rows);
+		for (const name of Object.keys(hiddenLabel)) {
+			const a = hidden.arms[name];
+			add(
+				'package W',
+				hiddenLabel[name] as string,
+				a ? range(a.watts, (x) => fixed(x, 1)) : none,
+				windows(hidden.counts[name])
+			);
+		}
+		for (const name of Object.keys(hiddenLabel)) {
+			const a = hidden.arms[name];
+			add(
+				'W above the idle of the same round',
+				hiddenLabel[name] as string,
+				a ? range(a.extraWatts, (x) => fixed(x, 2)) : none,
+				windows(hidden.counts[name])
+			);
+		}
+		const hiddenGain = activityGains(hidden.arms, [
+			{ plain: 'poll-hidden-plain', hook: 'poll-hidden-hook', quiet: 'quiet-hidden' }
+		])[0];
+		const hiddenPlain = hiddenReading.rows.filter((r) => r.arm === 'poll-hidden-plain');
+		const hiddenEvents = hiddenPlain.map((r) => r.pageEvents as number).sort((a, b) => a - b);
+		const hiddenWindowS = Number(hiddenReading.method['window s']);
+		const hiddenRounds = Number(hiddenReading.method.rounds);
+		v.activityHiddenText =
+			hiddenGain && hidden.idleWatts
+				? `The hidden pair ran in headed Chromium under a virtual display, with a second tab brought to the front by the DevTools protocol so that the first tab reports \`hidden\` (every row records it, and a row that did not would have stopped the run). Background throttling did not stop the poll: the plain page's callback fired ${fixed(hiddenEvents[Math.floor(hiddenEvents.length / 2)] as number)} times in a ${hiddenWindowS} s window. Over ${hiddenRounds} rounds the idle windows ran at ${fixed(hidden.idleWatts.median, 1)} W. The hidden quiet page drew ${fixed(hidden.arms['quiet-hidden']?.extraWatts.median as number, 2)} W above idle, the plain poll ${fixed(hidden.arms['poll-hidden-plain']?.extraWatts.median as number, 2)} W and the poll with the hook, which clears its interval after the page has been hidden for 1 s, ${fixed(hidden.arms['poll-hidden-hook']?.extraWatts.median as number, 2)} W. The hook removed ${fixed(hiddenGain.saved.median, 2)} W from the same hidden page, with a range of ${fixed(hiddenGain.saved.min, 2)} to ${fixed(hiddenGain.saved.max, 2)} W, and the page with the hook drew ${fixed(hiddenGain.residual, 2)} W above the hidden quiet page. The range includes zero, so this page claims no saving from the hidden-page pause. It rests on one desktop, one browser and a once-a-second poll.`
+				: "The hook's pause after a page has been hidden has contract tests in three engines and no power reading.";
 
 		const dictReading = latest(readings, 'rapl', 'dictionary-load');
 		const probe = dictReading.rows.find((r) => r.arm === 'negotiation') as Record<

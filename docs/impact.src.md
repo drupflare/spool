@@ -98,6 +98,30 @@ Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at e
 
 {{table:trim-prices}}
 
+## First Payload
+
+A cold visit through `spoolProxy` used to fetch the page twice, once as the navigation and once more as the worker's artifact. The proxy now names a SHA-256 of the page in `Spool-Artifact`, and the worker keeps the page it already received when its own hash matches. The reading records the requests and bytes at the origin from the first controlled visit to the first strict local view, in Chromium on loopback, with {{value:fpRounds}} rounds per arm that came out identical (L1). The bytes are uncompressed counts of a synthetic page, so they show the shape of the saving and not its size.
+
+{{table:first-payload}}
+
+A template route can carry its artifact in the page with `inlineMaxBytes`. That saves the artifact request and nothing else, since the route loads once either way, and every network view of the page carries the element whether a worker was there to use it. It is off by default.
+
+For a proxied page the first lever removes {{value:fpOriginFetchesSaved}} origin page fetch and one document transfer from each cold visit. At the median document of the headline ({{value:revisitBytesInput}} B) that is {{value:fpLeverOneJ}} J (L2: the transfer at the SWD v4 rate plus one origin request). No reading says how many visits are cold.
+
+## Next-Page Prediction
+
+The catalogue ships the data of pages a visitor may open next when the share expected to open them repays the entry. This reading replays MSNBC (UCI dataset 133, CC BY 4.0): the ordered page categories of 989,818 visitors over one day in 1999, a median of 2 pages each. Visitors with an odd index are scored and the others build the counts. A scored step is a first view, a page the visitor had not opened, since a page already opened is held without a prediction ({{value:replayFirstSteps}} first views). Categories stand in for route classes, and the data has no URLs. Each arm provisions a candidate when its net joules are positive at a lower confidence bound of 1.28. Hits and provisions are counts (L1). Joules are L2 over three entry sizes: 473 B, a measured rendered-field entry; 2,048 B; and a 17,054 B document.
+
+{{table:nav-replay}}
+
+Whether the probabilities themselves are right is a separate question from whether the decisions pay. Each scored step bins every page the visitor had not opened by the probability an arm gave it, and the last column is how often that page came next.
+
+{{table:nav-calibration}}
+
+The all-views share (`population-1`) is over-confident exactly where decisions are made: in the 0.20 to 0.40 bin it gave {{value:replayOverconfident}} and the page came next {{value:replayOverconfidentSeen}} of the time. The cause is that it counts returning visits, and a visitor who has already opened a page is far more likely to return to it than one who has not, while an entry goes only to devices that have not. `population-first` counts only first views of the page, over every view from the page, and is calibrated or slightly conservative in the bins it fills. It earns more per provisioned kilobyte than either other arm at 473 B, and it provisions nothing at 2,048 B, so it nets less in total there. `nextShare(views, from, { first: true })` computes it from the sink.
+
+A first-order model over the population's counts earns more per provisioned kilobyte than the most popular page at 473 B and 2,048 B, and at 2,048 B the most popular page loses joules. Under a byte cap per catalogue that is the figure to rank by; without a cap, the most popular page provisions more entries and nets slightly more in total at 473 B. No arm provisions a whole document at a gain. Models that add each visitor's own history match the population model exactly, because a visitor here opens two pages. The data cannot show whether history over many days helps, so spool has no device-side learner. `NavModel` and the net rule are in `@drupflare/spool/protocol` for a site to train on its own telemetry.
+
 ## Savings Today and at Maximum
 
 The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of {{value:swdTotal}} kWh/GB, with no origin term, since a smaller file is the same request.
@@ -114,7 +138,9 @@ The {{value:dictFiles}} new files of {{value:dictSites}} Drupal sites in the dic
 
 {{table:ledger-dictionary}}
 
-A browser that picks the latest earlier file of the same directory saves {{value:dictBrowser}} at the median site with `dcz`. A server that marks one base file per directory saves {{value:dictVisit}} on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves {{value:dictOut}}, with the base chosen without the page measured, and {{value:dictHeld}} with it. The oracle saves {{value:dictOracle}} and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures.
+A browser that picks the latest earlier file of the same directory saves {{value:dictBrowser}} at the median site with `dcz`. A server that marks one base file per directory saves {{value:dictVisit}} on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves {{value:dictOut}}, with the base chosen without the page measured, and {{value:dictHeld}} with it. The oracle saves {{value:dictOracle}} and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures. A selector pays only where the base is still in the browser: it has to have been fetched, not evicted, and unchanged since. The table mixes the two measured arms at a share of visitors who hold it, a scenario over L1 bytes, so it brackets a deployed saving and does not predict one.
+
+{{table:dictionary-retention}}
 
 {{table:ledger-first-view}}
 
@@ -136,9 +162,13 @@ A window is dropped when other containers on the host used more than 100 ms of C
 
 Format-only WebP does not lower decode energy. Through `createImageBitmap`, a WebP at its native size cost {{value:decodeBitmapNative}} times the energy of the original JPEG or PNG, and the WebP resized to the rendered width cost {{value:decodeBitmapResized}} times. Through an `<img>` shown at its CSS width the native WebP was {{value:decodeImgNative}} times the original ({{value:decodeImgNativeText}}), and the resized WebP {{value:decodeImgResized}} times ({{value:decodeImgResizedText}}). That arm waits two animation frames per image and takes {{value:decodeImgMs}} ms an image against {{value:decodeBitmapMs}} ms for the bitmap path, so most of its window is frame waiting and its variants differ by less. The byte saving of a format-only conversion therefore comes with a decode cost on the pure decode path, and the decode figure favours WebP only for a file that was also resized. All of this is the {{value:decodeImages}} crawled images of the set, {{value:decodeRounds}} rounds, one Chromium on one desktop.
 
-Converting an image costs {{value:encodeWarm}} J with the module loaded (about {{value:encodeWarmMs}} ms of one busy thread, {{value:encodePerMb}} J per MB of input over a set of {{value:encodeImages}} images, {{value:encodeRounds}} rounds). A fresh Node process per pass costs {{value:encodeCold}} J, {{value:encodeColdOver}}% more. Resizing to the rendered width first costs {{value:encodeResized}} J. The proxy caches each result, so a conversion is paid once per image and variant. How many views repay it needs a metered joule figure per byte transferred, which no reading here carries, so the page states no break-even.
+Converting an image costs {{value:encodeWarm}} J with the module loaded (about {{value:encodeWarmMs}} ms of one busy thread, {{value:encodePerMb}} J per MB of input over a set of {{value:encodeImages}} images, {{value:encodeRounds}} rounds). A fresh Node process per pass costs {{value:encodeCold}} J, {{value:encodeColdOver}}% more. Resizing to the rendered width first costs {{value:encodeResized}} J. The proxy caches each result, so a conversion is paid once per image and variant. On the meter alone, the decode saving of an `<img>` repays a conversion after {{value:encodeBreakEvenResized}} views at the rendered width and {{value:encodeBreakEvenNative}} at native size (the conversion's joules over the original's decode joules less the variant's). That counts the device and the proxy and leaves the network out, which has no metered figure. One kilobyte moved is {{value:transferJPerKb}} J at the SWD v4 rate (L2), more than the decode saving of a view, so the proxy converts every image it can.
 
 A visible page with no timers drew {{value:activityQuietExtra}} W above the idle of its round. A once-a-second poll to a local endpoint added {{value:activityPoll}} W and a `requestAnimationFrame` loop moving one box added {{value:activityRaf}} W ({{value:activityRafMinute}} J a minute). {{value:activityRoundsText}}
+
+{{value:activityHookText}}
+
+{{value:activityHiddenText}}
 
 {{value:dictLoadText}}
 
@@ -405,11 +435,19 @@ The classified origins move little: ad calls total {{value:splitAdsBytes}} B at 
 
 Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
 
+## Channels
+
+Spool reports four channels side by side and never adds them. Metered figures are energy a meter read. Attributional figures spread a published intensity over bytes. Capacity counts nodes an institution stopped running. Avoided demand lists what stayed off the origin and the network, in its own units: bytes, requests and CPU time. A request removed at the device and so at the origin is one avoided transaction, counted once. A sum would mix a measurement with an allocation and count one removed request in more than one place, so the report type has no total and a test checks that.
+
+The table shows the channels for one local view. Capacity has no per-view row, because it counts retired nodes over a period. The CPU and data-centre fields of avoided demand are empty until a reading prices them.
+
+{{table:channels}}
+
 ## Capacity
 
 This channel is the ceiling. It counts infrastructure an institution can stop running because spool lowers peak work, and an institution reaches it when it acts on the numbers and removes servers. It assigns no energy to an individual request. It is conditional and discontinuous: a fleet sized by peak throughput shrinks only when peak work falls far enough to retire a whole node, and the channel counts only when equipment is actually removed.
 
-Spool reports it as three separate results, and any of them can read zero.
+Spool reports it as three separate results, and any of them can read zero. A fourth entry, `observed`, records what production telemetry saw change in the same workload over one period, which is neither what the model says could change nor what was removed.
 
 1. **Potential.** The capacity reduction computed from real peak traces and the latency SLO.
 2. **Financial.** A smaller hosting plan or fewer billed instances, from invoices.

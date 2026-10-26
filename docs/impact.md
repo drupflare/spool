@@ -152,6 +152,78 @@ Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at e
 | Microsoft Azure                    | $0.087 per GB |                   $1.32 |                                    $0.60 |                                        $0.79 |                                     $0.99 |
 | Google Cloud (Premium Tier)        | $0.12 per GiB |                   $1.70 |                                    $0.77 |                                        $1.02 |                                     $1.27 |
 
+## First Payload
+
+A cold visit through `spoolProxy` used to fetch the page twice, once as the navigation and once more as the worker's artifact. The proxy now names a SHA-256 of the page in `Spool-Artifact`, and the worker keeps the page it already received when its own hash matches. The reading records the requests and bytes at the origin from the first controlled visit to the first strict local view, in Chromium on loopback, with 5 rounds per arm that came out identical (L1). The bytes are uncompressed counts of a synthetic page, so they show the shape of the saving and not its size.
+
+| arm               | requests, cold to local | /.spool/artifact requests | bytes in | bytes out | origin work           |
+| ----------------- | ----------------------: | ------------------------: | -------: | --------: | --------------------- |
+| assembly, off     |                       2 |                         1 |    1,097 |    22,900 | 2 origin page fetches |
+| assembly, lever 1 |                       1 |                         0 |      644 |    11,540 | 1 origin page fetch   |
+| template, off     |                       2 |                         1 |    1,097 |     2,428 | 1 load                |
+| template, lever 2 |                       1 |                         0 |      644 |     2,344 | 1 load                |
+
+A template route can carry its artifact in the page with `inlineMaxBytes`. That saves the artifact request and nothing else, since the route loads once either way, and every network view of the page carries the element whether a worker was there to use it. It is off by default.
+
+For a proxied page the first lever removes 1 origin page fetch and one document transfer from each cold visit. At the median document of the headline (17,054 B) that is 12.4 J (L2: the transfer at the SWD v4 rate plus one origin request). No reading says how many visits are cold.
+
+## Next-Page Prediction
+
+The catalogue ships the data of pages a visitor may open next when the share expected to open them repays the entry. This reading replays MSNBC (UCI dataset 133, CC BY 4.0): the ordered page categories of 989,818 visitors over one day in 1999, a median of 2 pages each. Visitors with an odd index are scored and the others build the counts. A scored step is a first view, a page the visitor had not opened, since a page already opened is held without a prediction (354,425 first views). Categories stand in for route classes, and the data has no URLs. Each arm provisions a candidate when its net joules are positive at a lower confidence bound of 1.28. Hits and provisions are counts (L1). Joules are L2 over three entry sizes: 473 B, a measured rendered-field entry; 2,048 B; and a 17,054 B document.
+
+| arm              | entry bytes | hit@1 | hit@3 | provisions |    hits |     net J | J per provisioned KB |
+| ---------------- | ----------: | ----: | ----: | ---------: | ------: | --------: | -------------------: |
+| none             |         473 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| none             |       2,048 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| none             |      17,054 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| popularity       |         473 | 0.152 | 0.311 |  3,751,800 | 316,199 | 2,670,581 |                 1.50 |
+| popularity       |       2,048 | 0.152 | 0.311 |    202,025 |  17,760 |   -69,350 |                -0.17 |
+| popularity       |      17,054 | 0.152 | 0.311 |          0 |       0 |         0 |                 none |
+| population-1     |         473 | 0.227 | 0.468 |  1,931,666 | 259,025 | 2,564,864 |                 2.81 |
+| population-1     |       2,048 | 0.227 | 0.468 |    134,827 |  22,698 |    87,826 |                 0.32 |
+| population-1     |      17,054 | 0.227 | 0.468 |          0 |       0 |         0 |                 none |
+| population-first |         473 | 0.238 | 0.475 |  1,120,721 | 185,063 | 1,918,176 |                 3.62 |
+| population-first |       2,048 | 0.238 | 0.475 |          0 |       0 |         0 |                 none |
+| population-first |      17,054 | 0.238 | 0.475 |          0 |       0 |         0 |                 none |
+| device-1         |         473 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| device-1         |       2,048 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| device-1         |      17,054 | 0.000 | 0.000 |          0 |       0 |         0 |                 none |
+| blend-1          |         473 | 0.227 | 0.468 |  1,931,666 | 259,025 | 2,564,864 |                 2.81 |
+| blend-1          |       2,048 | 0.227 | 0.468 |    134,827 |  22,698 |    87,826 |                 0.32 |
+| blend-1          |      17,054 | 0.227 | 0.468 |          0 |       0 |         0 |                 none |
+| blend-2          |         473 | 0.227 | 0.468 |  1,931,666 | 259,025 | 2,564,864 |                 2.81 |
+| blend-2          |       2,048 | 0.227 | 0.468 |    134,827 |  22,698 |    87,826 |                 0.32 |
+| blend-2          |      17,054 | 0.227 | 0.468 |          0 |       0 |         0 |                 none |
+| oracle           |         473 | 1.000 | 1.000 |    354,425 | 354,425 | 4,265,565 |                25.44 |
+| oracle           |       2,048 | 1.000 | 1.000 |    354,425 | 354,425 | 3,875,705 |                 5.34 |
+| oracle           |      17,054 | 1.000 | 1.000 |    354,425 | 354,425 |   161,263 |                 0.03 |
+
+Whether the probabilities themselves are right is a separate question from whether the decisions pay. Each scored step bins every page the visitor had not opened by the probability an arm gave it, and the last column is how often that page came next.
+
+| arm              | probability bin | candidates | mean probability given | came next |
+| ---------------- | --------------- | ---------: | ---------------------: | --------: |
+| popularity       | 0.00 to 0.05    | 15,489,366 |                  0.026 |     0.007 |
+| popularity       | 0.05 to 0.10    |  9,248,548 |                  0.082 |     0.019 |
+| popularity       | 0.10 to 0.20    |  2,354,621 |                  0.131 |     0.028 |
+| population-1     | 0.00 to 0.05    | 24,788,029 |                  0.013 |     0.010 |
+| population-1     | 0.05 to 0.10    |  1,601,271 |                  0.072 |     0.047 |
+| population-1     | 0.10 to 0.20    |    607,834 |                  0.120 |     0.053 |
+| population-1     | 0.20 to 0.40    |     16,523 |                  0.259 |     0.039 |
+| population-first | 0.00 to 0.05    | 26,308,330 |                  0.010 |     0.011 |
+| population-first | 0.05 to 0.10    |    633,235 |                  0.072 |     0.083 |
+| blend-1          | 0.00 to 0.05    | 25,515,324 |                  0.011 |     0.010 |
+| blend-1          | 0.05 to 0.10    |  1,186,623 |                  0.071 |     0.057 |
+| blend-1          | 0.10 to 0.20    |    299,292 |                  0.121 |     0.079 |
+| blend-1          | 0.20 to 0.40    |     12,418 |                  0.248 |     0.048 |
+| blend-2          | 0.00 to 0.05    | 25,632,099 |                  0.010 |     0.010 |
+| blend-2          | 0.05 to 0.10    |  1,072,693 |                  0.070 |     0.060 |
+| blend-2          | 0.10 to 0.20    |    296,564 |                  0.121 |     0.080 |
+| blend-2          | 0.20 to 0.40    |     12,301 |                  0.249 |     0.048 |
+
+The all-views share (`population-1`) is over-confident exactly where decisions are made: in the 0.20 to 0.40 bin it gave 0.259 and the page came next 0.039 of the time. The cause is that it counts returning visits, and a visitor who has already opened a page is far more likely to return to it than one who has not, while an entry goes only to devices that have not. `population-first` counts only first views of the page, over every view from the page, and is calibrated or slightly conservative in the bins it fills. It earns more per provisioned kilobyte than either other arm at 473 B, and it provisions nothing at 2,048 B, so it nets less in total there. `nextShare(views, from, { first: true })` computes it from the sink.
+
+A first-order model over the population's counts earns more per provisioned kilobyte than the most popular page at 473 B and 2,048 B, and at 2,048 B the most popular page loses joules. Under a byte cap per catalogue that is the figure to rank by; without a cap, the most popular page provisions more entries and nets slightly more in total at 473 B. No arm provisions a whole document at a gain. Models that add each visitor's own history match the population model exactly, because a visitor here opens two pages. The data cannot show whether history over many days helps, so spool has no device-side learner. `NavModel` and the net rule are in `@drupflare/spool/protocol` for a site to train on its own telemetry.
+
 ## Savings Today and at Maximum
 
 The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of 0.194 kWh/GB, with no origin term, since a smaller file is the same request.
@@ -187,7 +259,14 @@ The 356 new files of 10 Drupal sites in the dictionary-size reading (the home pa
 | Server base held from an earlier visit, chosen without the page measured | dcz (zstd 19)   |                                       32.6% |     60.1% |              36.3 KB |                      24 of 29 |
 | Server base held from an earlier visit, chosen without the page measured | dcb (brotli 11) |                                       32.8% |     60.3% |              36.4 KB |                      26 of 29 |
 
-A browser that picks the latest earlier file of the same directory saves 2.0% at the median site with `dcz`. A server that marks one base file per directory saves 3.9% on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves 32.6%, with the base chosen without the page measured, and 29.9% with it. The oracle saves 41.4% and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures.
+A browser that picks the latest earlier file of the same directory saves 2.0% at the median site with `dcz`. A server that marks one base file per directory saves 3.9% on a first visit, because the base has to be fetched before it can serve as a dictionary. For a visitor whose browser already holds the base it saves 32.6%, with the base chosen without the page measured, and 29.9% with it. The oracle saves 41.4% and no browser reaches it. How many visitors hold a base is an L3 scenario that no reading here measures. A selector pays only where the base is still in the browser: it has to have been fetched, not evicted, and unchanged since. The table mixes the two measured arms at a share of visitors who hold it, a scenario over L1 bytes, so it brackets a deployed saving and does not predict one.
+
+| visitors who still hold the base | median-site saving |
+| -------------------------------- | -----------------: |
+| 10%                              |               6.5% |
+| 30%                              |              11.7% |
+| 50%                              |              16.9% |
+| 70%                              |              22.1% |
 
 | Corpus                | Figure      | Built levers         | With the dictionary ceiling |
 | --------------------- | ----------- | -------------------- | --------------------------- |
@@ -233,39 +312,53 @@ Local views add a second ceiling that does not depend on any lever above: a loca
 
 The ledger above is attributional (L2): bytes at a fixed rate. The table below holds meter readings (L1) of what individual steps cost the machine that runs them. They come from the package counter of paisley-park, a Ryzen 9 9900X, and from the iPhone battery gauge for the phone row. They leave out the display, the network and every machine between the two ends, so they do not add to the ledger and are not a second way to compute it. Each cell is the median of the kept windows with the minimum and maximum in brackets, in joules or watts above the idle draw of the same round unless the row says package watts.
 
-| Quantity                                              | Arm                                                                  |                   Median (min to max) | Windows                                       | Layer |
-| ----------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------: | --------------------------------------------- | ----- |
-| J saved per local view against optimized HTTP caching | paisley-park desktop, Chromium                                       |  0.80 (difference of the arm medians) | 16 kept, 0 dropped                            | L1    |
-| J saved per local view against optimized HTTP caching | iPhone 14 Pro, Wi-Fi, whole-phone counter                            | 0.088 (difference of the arm medians) | 3 rounds                                      | L1    |
-| mJ per image decoded above idle                       | `createImageBitmap`, original JPEG or PNG                            |                   58.6 (57.0 to 62.8) | 6 kept, 0 dropped                             | L1    |
-| mJ per image decoded above idle                       | `createImageBitmap`, WebP at native size                             |                   81.7 (79.5 to 88.1) | 6 kept, 0 dropped                             | L1    |
-| mJ per image decoded above idle                       | `createImageBitmap`, WebP resized to the rendered width              |                   46.3 (45.8 to 47.2) | 6 kept, 0 dropped                             | L1    |
-| mJ per image decoded above idle                       | `<img>` at its CSS width, original JPEG or PNG                       |                511.1 (458.5 to 526.6) | 6 kept, 0 dropped                             | L1    |
-| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP at native size                        |                487.3 (471.1 to 496.0) | 6 kept, 0 dropped                             | L1    |
-| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP resized to the rendered width         |                451.6 (420.9 to 456.7) | 6 kept, 0 dropped                             | L1    |
-| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, native size                            |                   0.57 (0.56 to 0.58) | 6 kept, 0 dropped                             | L1    |
-| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, rendered width                         |                   0.44 (0.44 to 0.45) | 6 kept, 0 dropped                             | L1    |
-| J per conversion to WebP above idle                   | tinyimg 1.1.1, fresh Node process per pass, native size              |                   0.64 (0.63 to 0.65) | 6 kept, 0 dropped                             | L1    |
-| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, native size                            |                   6.94 (6.79 to 7.04) | 6 kept, 0 dropped                             | L1    |
-| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, rendered width                         |                   5.32 (5.26 to 5.42) | 6 kept, 0 dropped                             | L1    |
-| J per MB of input above idle                          | tinyimg 1.1.1, fresh Node process per pass, native size              |                   7.74 (7.64 to 7.81) | 6 kept, 0 dropped                             | L1    |
-| package W, no browser running                         | idle windows of the kept rounds (median per round, then over rounds) |                   18.6 (18.6 to 18.7) | 6 kept, 0 dropped, 6 more by the idle control | L1    |
-| package W                                             | a quiet visible page                                                 |                   18.7 (18.6 to 18.7) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| package W                                             | a page polling a local endpoint once a second                        |                   19.2 (19.2 to 19.3) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| package W                                             | a requestAnimationFrame loop moving one box                          |                   22.4 (22.2 to 22.6) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| W above the idle of the same round                    | a quiet visible page                                                 |                  0.03 (-0.01 to 0.06) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| W above the idle of the same round                    | a page polling a local endpoint once a second                        |                   0.61 (0.45 to 0.76) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| W above the idle of the same round                    | a requestAnimationFrame loop moving one box                          |                   3.79 (3.53 to 4.05) | 2 kept, 0 dropped, 2 more by the idle control | L1    |
-| mJ per page load above idle (one aggregate file)      | brotli 11, 432,066 B on the wire                                     |                769.4 (760.6 to 815.3) | 6 kept, 0 dropped                             | L1    |
-| mJ per page load above idle (one aggregate file)      | dcz against a stored dictionary, 105,331 B on the wire               |                686.1 (633.4 to 741.5) | 6 kept, 0 dropped                             | L1    |
+| Quantity                                              | Arm                                                                  |                   Median (min to max) | Windows            | Layer |
+| ----------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------: | ------------------ | ----- |
+| J saved per local view against optimized HTTP caching | paisley-park desktop, Chromium                                       |  0.80 (difference of the arm medians) | 16 kept, 0 dropped | L1    |
+| J saved per local view against optimized HTTP caching | iPhone 14 Pro, Wi-Fi, whole-phone counter                            | 0.088 (difference of the arm medians) | 3 rounds           | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, original JPEG or PNG                            |                   58.6 (57.0 to 62.8) | 6 kept, 0 dropped  | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, WebP at native size                             |                   81.7 (79.5 to 88.1) | 6 kept, 0 dropped  | L1    |
+| mJ per image decoded above idle                       | `createImageBitmap`, WebP resized to the rendered width              |                   46.3 (45.8 to 47.2) | 6 kept, 0 dropped  | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, original JPEG or PNG                       |                511.1 (458.5 to 526.6) | 6 kept, 0 dropped  | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP at native size                        |                487.3 (471.1 to 496.0) | 6 kept, 0 dropped  | L1    |
+| mJ per image decoded above idle                       | `<img>` at its CSS width, WebP resized to the rendered width         |                451.6 (420.9 to 456.7) | 6 kept, 0 dropped  | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, native size                            |                   0.57 (0.56 to 0.58) | 6 kept, 0 dropped  | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, module loaded, rendered width                         |                   0.44 (0.44 to 0.45) | 6 kept, 0 dropped  | L1    |
+| J per conversion to WebP above idle                   | tinyimg 1.1.1, fresh Node process per pass, native size              |                   0.64 (0.63 to 0.65) | 6 kept, 0 dropped  | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, native size                            |                   6.94 (6.79 to 7.04) | 6 kept, 0 dropped  | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, module loaded, rendered width                         |                   5.32 (5.26 to 5.42) | 6 kept, 0 dropped  | L1    |
+| J per MB of input above idle                          | tinyimg 1.1.1, fresh Node process per pass, native size              |                   7.74 (7.64 to 7.81) | 6 kept, 0 dropped  | L1    |
+| package W, no browser running                         | idle windows of the kept rounds (median per round, then over rounds) |                   18.2 (18.0 to 18.5) | 32 kept, 0 dropped | L1    |
+| package W                                             | a quiet visible page                                                 |                   18.2 (18.1 to 18.4) | 8 kept, 0 dropped  | L1    |
+| package W                                             | a page polling a local endpoint once a second                        |                   18.7 (18.6 to 18.9) | 8 kept, 0 dropped  | L1    |
+| package W                                             | a requestAnimationFrame loop moving one box                          |                   21.8 (21.6 to 22.2) | 8 kept, 0 dropped  | L1    |
+| package W                                             | the same loop with its box 3000 px down, off screen                  |                   20.8 (20.7 to 28.8) | 8 kept, 0 dropped  | L1    |
+| package W                                             | the off-screen loop with the pause hook                              |                   18.3 (18.2 to 18.7) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | a quiet visible page                                                 |                  0.08 (-0.11 to 0.19) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | a page polling a local endpoint once a second                        |                   0.54 (0.14 to 0.78) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | a requestAnimationFrame loop moving one box                          |                   3.68 (3.42 to 3.82) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | the same loop with its box 3000 px down, off screen                  |                  2.71 (2.52 to 10.31) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | the off-screen loop with the pause hook                              |                  0.16 (-0.00 to 0.42) | 8 kept, 0 dropped  | L1    |
+| package W                                             | a hidden page with no timers                                         |                   18.4 (18.4 to 18.8) | 8 kept, 0 dropped  | L1    |
+| package W                                             | a hidden page polling once a second                                  |                   18.7 (18.6 to 18.9) | 8 kept, 0 dropped  | L1    |
+| package W                                             | the hidden polling page with the pause hook                          |                   18.4 (18.4 to 18.6) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | a hidden page with no timers                                         |                   0.37 (0.19 to 0.82) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | a hidden page polling once a second                                  |                   0.63 (0.43 to 0.70) | 8 kept, 0 dropped  | L1    |
+| W above the idle of the same round                    | the hidden polling page with the pause hook                          |                   0.35 (0.25 to 0.50) | 8 kept, 0 dropped  | L1    |
+| mJ per page load above idle (one aggregate file)      | brotli 11, 432,066 B on the wire                                     |                769.4 (760.6 to 815.3) | 6 kept, 0 dropped  | L1    |
+| mJ per page load above idle (one aggregate file)      | dcz against a stored dictionary, 105,331 B on the wire               |                686.1 (633.4 to 741.5) | 6 kept, 0 dropped  | L1    |
 
 A window is dropped when other containers on the host used more than 100 ms of CPU per second of it. In the image-encode reading 0 of its windows were dropped, in image-decode 0, and in dictionary-load 0. The rule sees only containers. It missed a container that started inside a window until the rig was changed to count one from zero, and it never sees a host process.
 
 Format-only WebP does not lower decode energy. Through `createImageBitmap`, a WebP at its native size cost 1.39 times the energy of the original JPEG or PNG, and the WebP resized to the rendered width cost 0.79 times. Through an `<img>` shown at its CSS width the native WebP was 0.95 times the original (its range overlaps the original), and the resized WebP 0.88 times (below every original window). That arm waits two animation frames per image and takes 33.3 ms an image against 1.8 ms for the bitmap path, so most of its window is frame waiting and its variants differ by less. The byte saving of a format-only conversion therefore comes with a decode cost on the pure decode path, and the decode figure favours WebP only for a file that was also resized. All of this is the 40 crawled images of the set, 6 rounds, one Chromium on one desktop.
 
-Converting an image costs 0.57 J with the module loaded (about 20 ms of one busy thread, 6.94 J per MB of input over a set of 40 images, 6 rounds). A fresh Node process per pass costs 0.64 J, 12% more. Resizing to the rendered width first costs 0.44 J. The proxy caches each result, so a conversion is paid once per image and variant. How many views repay it needs a metered joule figure per byte transferred, which no reading here carries, so the page states no break-even.
+Converting an image costs 0.57 J with the module loaded (about 20 ms of one busy thread, 6.94 J per MB of input over a set of 40 images, 6 rounds). A fresh Node process per pass costs 0.64 J, 12% more. Resizing to the rendered width first costs 0.44 J. The proxy caches each result, so a conversion is paid once per image and variant. On the meter alone, the decode saving of an `<img>` repays a conversion after 8 views at the rendered width and 25 at native size (the conversion's joules over the original's decode joules less the variant's). That counts the device and the proxy and leaves the network out, which has no metered figure. One kilobyte moved is 0.70 J at the SWD v4 rate (L2), more than the decode saving of a view, so the proxy converts every image it can.
 
-A visible page with no timers drew 0.03 W above the idle of its round. A once-a-second poll to a local endpoint added 0.61 W and a `requestAnimationFrame` loop moving one box added 3.8 W (227 J a minute). Of 4 rounds, 2 are kept: in rounds 1 and 2 (numbered from 1) the three idle windows of the round disagreed by more than 25%. Across the 12 idle windows of the run the draw ran from 18.4 W to 67.6 W, and the CPU rule dropped 0 of them: other containers' CPU stayed near 15 ms a second throughout. The cause is not established. A second project's build container ran on the box during this run, and the rule could not see a container that started or stopped inside a window. Each activity figure therefore rests on 2 windows, one per kept round, and should be re-run on a quiet box before it is quoted beyond this page.
+A visible page with no timers drew 0.08 W above the idle of its round. A once-a-second poll to a local endpoint added 0.54 W and a `requestAnimationFrame` loop moving one box added 3.7 W (221 J a minute). All 8 rounds are kept: no round's idle windows disagreed by more than 25%, and the CPU rule dropped 0 windows. The 32 idle windows ran from 17.9 W to 19.4 W. Each activity figure rests on 8 windows, one per round, on one machine.
+
+With its box off screen, the loop still drew 2.71 W above idle (2.52 to 10.31). The same page with the pause hook drew 0.16 W (0.00 to 0.42). The hook removed 2.55 W from the same page, and what is left above the quiet page is 0.08 W. The top of the saving range, 10.3 W, comes from one window of the plain arm that read 28.8 W of package power in the first round while the other 7 read 20.7 to 21.0 W. Its cause is not established, and the median does not depend on it. The saving applies to a page that keeps a frame loop running while its target is off screen, and says nothing about pages that have no such loop.
+
+The hidden pair ran in headed Chromium under a virtual display, with a second tab brought to the front by the DevTools protocol so that the first tab reports `hidden` (every row records it, and a row that did not would have stopped the run). Background throttling did not stop the poll: the plain page's callback fired 291 times in a 300 s window. Over 8 rounds the idle windows ran at 18.1 W. The hidden quiet page drew 0.37 W above idle, the plain poll 0.63 W and the poll with the hook, which clears its interval after the page has been hidden for 1 s, 0.35 W. The hook removed 0.28 W from the same hidden page, with a range of -0.07 to 0.46 W, and the page with the hook drew -0.02 W above the hidden quiet page. The range includes zero, so this page claims no saving from the hidden-page pause. It rests on one desktop, one browser and a once-a-second poll.
 
 Chromium 151.0.7922.34 negotiates compression dictionary transport on the box: the page's request for the target carried Available-Dictionary, its Accept-Encoding listed dcb and dcz, and the origin answered dcz. The pair is two JavaScript aggregates of one Drupal site, a dictionary of 1,131,781 B and a target of 1,719,688 B. The target is 432,066 B on the wire as brotli 11 and 105,331 B as dcz, 76% fewer. A page load that fetched the target cost 769.4 mJ above idle as brotli and 686.1 mJ as dcz, 11% lower over 6 rounds of 60 loads (the dcz arm's range sits below the brotli arm's). The figure counts the browser's decode and the loopback transfer. It leaves out the network, and the server's encode, which this origin did once at start-up. The pair comes from the churned JavaScript aggregates, where the delta is large, so its byte saving sits above the 29.9% that the dictionary-size reading gives at the median site for a base the visitor already holds. One pair in one browser shows that dcz decode costs no more than brotli decode here. It says nothing about how many visitors hold a dictionary.
 
@@ -705,11 +798,24 @@ The classified origins move little: ad calls total 36,470 B at 5 sites and analy
 
 Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
 
+## Channels
+
+Spool reports four channels side by side and never adds them. Metered figures are energy a meter read. Attributional figures spread a published intensity over bytes. Capacity counts nodes an institution stopped running. Avoided demand lists what stayed off the origin and the network, in its own units: bytes, requests and CPU time. A request removed at the device and so at the origin is one avoided transaction, counted once. A sum would mix a measurement with an allocation and count one removed request in more than one place, so the report type has no total and a test checks that.
+
+The table shows the channels for one local view. Capacity has no per-view row, because it counts retired nodes over a period. The CPU and data-centre fields of avoided demand are empty until a reading prices them.
+
+| channel        | measure           | per local view | unit     | label |
+| -------------- | ----------------- | -------------: | -------- | ----- |
+| metered        | energy            |           0.80 | J        | L1    |
+| attributional  | energy            |          12.37 | J        | L2    |
+| avoided demand | transferred bytes |         17,054 | B        | L1    |
+| avoided demand | requests          |              1 | requests | L1    |
+
 ## Capacity
 
 This channel is the ceiling. It counts infrastructure an institution can stop running because spool lowers peak work, and an institution reaches it when it acts on the numbers and removes servers. It assigns no energy to an individual request. It is conditional and discontinuous: a fleet sized by peak throughput shrinks only when peak work falls far enough to retire a whole node, and the channel counts only when equipment is actually removed.
 
-Spool reports it as three separate results, and any of them can read zero.
+Spool reports it as three separate results, and any of them can read zero. A fourth entry, `observed`, records what production telemetry saw change in the same workload over one period, which is neither what the model says could change nor what was removed.
 
 1. **Potential.** The capacity reduction computed from real peak traces and the latency SLO.
 2. **Financial.** A smaller hosting plan or fewer billed instances, from invoices.

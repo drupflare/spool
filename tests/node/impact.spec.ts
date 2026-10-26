@@ -53,6 +53,16 @@ describe('docs/impact.md', () => {
 		expect(tables['free-tier']).toContain('20.97M');
 	});
 
+	it('prints the four channels apart, with no total or sum row', () => {
+		const { tables } = buildFigures(loadReadings());
+		const channels = tables.channels as string;
+		const cells = channels.split('\n').flatMap((line) => line.split('|').map((c) => c.trim()));
+		for (const name of ['metered', 'attributional', 'avoided demand']) {
+			expect(cells).toContain(name);
+		}
+		expect(cells.filter((c) => /^(total|sum)\b/i.test(c))).toEqual([]);
+	});
+
 	it('prices bandwidth from the host table, with every host in each dollar table', () => {
 		const { tables, values } = buildFigures(loadReadings());
 		for (const name of ['host-prices', 'bandwidth-per-million', 'bandwidth-worked']) {
