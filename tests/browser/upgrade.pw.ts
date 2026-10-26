@@ -187,7 +187,11 @@ function watch(page: Page) {
 }
 
 test.describe('a site upgrading from v0.2 to v0.3', () => {
-	test.beforeEach(() => test.skip(!old, `needs the ${OLD_TAG} tag to extract the old release`));
+	test.beforeEach(() => {
+		const reason = `needs the ${OLD_TAG} tag to extract the old release`;
+		if (!old && process.env.CI) throw new Error(reason);
+		test.skip(!old, reason);
+	});
 
 	test('a v0.2 worker keeps working against a v0.3 server, query routes included', async ({
 		page
