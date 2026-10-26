@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><link rel="stylesheet" href="assets/custom.css"/><script defer src="assets/main.js"></script><script defer src="assets/custom.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="index.html" class="title">@drupflare/spool - v0.2.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -43,6 +43,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 <li><a href="#-proxy-mode">Proxy Mode</a></li>
 <li><a href="#-trimmed-stylesheets">Trimmed Stylesheets</a></li>
 <li><a href="#-images-and-video">Images and Video</a></li>
+<li><a href="#-capacity-reports">Capacity Reports</a></li>
 <li><a href="#-out-of-scope">Out of Scope</a></li>
 <li><a href="#-browser-support">Browser Support</a></li>
 <li><a href="#-subpath-exports">Subpath Exports</a></li>
@@ -126,6 +127,22 @@ script fails to load, the page works as it did before.</p>
 <p>The script registers <code>/spool-sw.js</code> and exposes <code>window.spool.ready</code>, which resolves to the client
 handle or to <code>null</code> where service workers do not exist. To bundle the runtime yourself, import
 <code>register</code> from <code>@drupflare/spool/client</code>.</p>
+<h3 id="activity-hooks" class="tsd-anchor-link">Activity Hooks<a href="#activity-hooks" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A loop that keeps running while nobody can see its output costs the visitor's device power. The
+page runtime exposes <code>window.spool.activity.register</code>, which lets a page hand spool a <code>pause</code> and
+a <code>resume</code> for one of its own loops. Spool calls <code>pause</code> while the loop's <code>target</code> is off screen
+and after the page has been hidden for <code>hiddenAfterMs</code>, and calls <code>resume</code> when neither holds.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createActivity</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/client&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">canvas</span><span class="hl-1"> = </span><span class="hl-9">document</span><span class="hl-1">.</span><span class="hl-0">querySelector</span><span class="hl-1">(</span><span class="hl-2">&#39;canvas&#39;</span><span class="hl-1">) </span><span class="hl-8">as</span><span class="hl-1"> </span><span class="hl-12">HTMLCanvasElement</span><span class="hl-1">;</span><br/><span class="hl-10">let</span><span class="hl-1"> </span><span class="hl-9">frame</span><span class="hl-1"> = </span><span class="hl-15">0</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-0">draw</span><span class="hl-1"> = () </span><span class="hl-10">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-9">canvas</span><span class="hl-1">.</span><span class="hl-9">style</span><span class="hl-1">.</span><span class="hl-9">transform</span><span class="hl-1"> = </span><span class="hl-2">`translateX(</span><span class="hl-10">${</span><span class="hl-5">(</span><span class="hl-9">performance</span><span class="hl-5">.</span><span class="hl-0">now</span><span class="hl-5">() </span><span class="hl-1">/</span><span class="hl-5"> </span><span class="hl-15">10</span><span class="hl-5">) </span><span class="hl-1">%</span><span class="hl-5"> </span><span class="hl-15">200</span><span class="hl-10">}</span><span class="hl-2">px)`</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-9">frame</span><span class="hl-1"> = </span><span class="hl-0">requestAnimationFrame</span><span class="hl-1">(</span><span class="hl-9">draw</span><span class="hl-1">);</span><br/><span class="hl-1">};</span><br/><br/><span class="hl-0">draw</span><span class="hl-1">();</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">stop</span><span class="hl-1"> = </span><span class="hl-0">createActivity</span><span class="hl-1">().</span><span class="hl-0">register</span><span class="hl-1">(</span><br/><span class="hl-1">  { </span><span class="hl-0">pause</span><span class="hl-9">:</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-0">cancelAnimationFrame</span><span class="hl-1">(</span><span class="hl-9">frame</span><span class="hl-1">), </span><span class="hl-9">resume:</span><span class="hl-1"> </span><span class="hl-9">draw</span><span class="hl-1"> },</span><br/><span class="hl-1">  { </span><span class="hl-9">target:</span><span class="hl-1"> </span><span class="hl-9">canvas</span><span class="hl-1">, </span><span class="hl-9">hiddenAfterMs:</span><span class="hl-1"> </span><span class="hl-15">10_000</span><span class="hl-1"> }</span><br/><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>target</code> is optional, and without it only the hidden-page rule applies. <code>hiddenAfterMs</code> defaults to
+10000, and 0 pauses at once. <code>register</code> returns a function that stops watching and resumes the loop
+if it is paused. Spool does not touch <code>setInterval</code>, <code>requestAnimationFrame</code>, <code>fetch</code>, audio,
+WebRTC or any element the page did not name, and a <code>pause</code> or <code>resume</code> that throws is logged once.
+Where <code>IntersectionObserver</code> is missing the target counts as on screen. On the one desktop
+measured, the off-screen pause lowered power for a page whose frame loop kept running, and the
+hidden-page pause showed no saving for a once-a-second poll. Both readings are in
+<a href="documents/impact.html#metered-figures-beside-the-ledger">docs/impact.md</a>.</p>
 <hr>
 <h2 id="🧩-runtimes" class="tsd-anchor-link">🧩 Runtimes<a href="#🧩-runtimes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Each example uses the <code>routes</code>, <code>page</code> and <code>spool</code> from <a href="#-quick-start">Quick Start</a>. The
@@ -601,6 +618,12 @@ version. A sync for the next page transfers the entries that page reads and that
 </code><button type="button">Copy</button></pre>
 
 <p>A template that names a field it does not trust for markup fails when the route is declared.</p>
+<p>A public <code>template</code> route can carry its own data in the page. <code>inlineMaxBytes</code> on <code>createSpool</code>
+sets the largest artifact, in bytes, that <code>handle</code> and <code>decorate</code> write into the HTML as an
+escaped <code>&lt;script type=&quot;application/spool+json&quot;&gt;</code> element. The worker reads it from the response
+and skips the <code>/.spool/artifact</code> request. It is 0, which is off, because every network view of the
+page carries the element, used or not. The page the visitor sees and the shadow comparison ignore
+it.</p>
 <h3 id="static-files" class="tsd-anchor-link">Static Files<a href="#static-files" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>A <code>static</code> route has no <code>load</code> and no template. The application serves the file as it always did,
 and <code>handle</code> or <code>decorate</code> marks the response for the worker, which keeps the bytes. A tag in
@@ -632,10 +655,48 @@ records included, against what a local view saves: reuse times future views time
 avoids, less the cost of the request. When that is not positive it answers <code>204</code> with
 <code>Spool-Provision: declined</code>, and the worker leaves that path to the network until it restarts.
 The priors are scenario assumptions: set them from your own telemetry in <code>provision</code>, or per route
-as above. A <code>data</code> route weighs against its own size, so it needs reuse times future views above</p>
-<ol>
-<li>With the defaults of 0.5 and 2 it breaks even and is left out.</li>
-</ol>
+as above. A <code>data</code> route weighs against its own size, so its reuse times future views must exceed
+one. The defaults of 0.5 and 2 give exactly one, which breaks even, and the route is left out.</p>
+<h3 id="query-routes" class="tsd-anchor-link">Query Routes<a href="#query-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A URL with a query string goes to the network. A public <code>template</code>, <code>projection</code> or <code>data</code> route
+can declare the query strings it answers, and the device then answers a new filter, sort or page of
+a collection it already holds with no request.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">datasetProof</span><span class="hl-1">, </span><span class="hl-9">defineRoute</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">people</span><span class="hl-1"> = [</span><br/><span class="hl-1">  { </span><span class="hl-9">name:</span><span class="hl-1"> </span><span class="hl-2">&#39;Ada&#39;</span><span class="hl-1">, </span><span class="hl-9">department:</span><span class="hl-1"> </span><span class="hl-2">&#39;math&#39;</span><span class="hl-1">, </span><span class="hl-9">age:</span><span class="hl-1"> </span><span class="hl-15">36</span><span class="hl-1"> },</span><br/><span class="hl-1">  { </span><span class="hl-9">name:</span><span class="hl-1"> </span><span class="hl-2">&#39;Bo&#39;</span><span class="hl-1">, </span><span class="hl-9">department:</span><span class="hl-1"> </span><span class="hl-2">&#39;cs&#39;</span><span class="hl-1">, </span><span class="hl-9">age:</span><span class="hl-1"> </span><span class="hl-15">25</span><span class="hl-1"> }</span><br/><span class="hl-1">];</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">directory</span><span class="hl-1"> = </span><span class="hl-0">defineRoute</span><span class="hl-1">(</span><span class="hl-2">&#39;/people&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-9">strategy:</span><span class="hl-1"> </span><span class="hl-2">&#39;template&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">template:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-9">source:</span><br/><span class="hl-1">      </span><span class="hl-2">&#39;&lt;h1&gt;{{#if query}}Page {{query.page}} of {{query.pages}}{{else}}Everyone{{/if}}&lt;/h1&gt;&lt;ul&gt;{{#each people}}&lt;li&gt;{{name}}&lt;/li&gt;{{/each}}&lt;/ul&gt;&#39;</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-0">depends</span><span class="hl-9">:</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> [</span><span class="hl-2">&#39;people&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-0">load</span><span class="hl-9">:</span><span class="hl-1"> </span><span class="hl-10">async</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({ </span><span class="hl-9">people</span><span class="hl-1">, </span><span class="hl-9">proof:</span><span class="hl-1"> </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">datasetProof</span><span class="hl-1">(</span><span class="hl-9">people</span><span class="hl-1">) }),</span><br/><span class="hl-1">  </span><span class="hl-9">query:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-9">list:</span><span class="hl-1"> </span><span class="hl-2">&#39;people&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">filter:</span><span class="hl-1"> { </span><span class="hl-9">department:</span><span class="hl-1"> </span><span class="hl-2">&#39;string&#39;</span><span class="hl-1">, </span><span class="hl-9">age:</span><span class="hl-1"> </span><span class="hl-2">&#39;number&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">    </span><span class="hl-9">sort:</span><span class="hl-1"> [</span><span class="hl-2">&#39;name&#39;</span><span class="hl-1">, </span><span class="hl-2">&#39;age&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">    </span><span class="hl-9">pageSize:</span><span class="hl-1"> </span><span class="hl-15">20</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-9">provision:</span><span class="hl-1"> { </span><span class="hl-9">reuse:</span><span class="hl-1"> </span><span class="hl-15">0.8</span><span class="hl-1">, </span><span class="hl-9">futureViews:</span><span class="hl-1"> </span><span class="hl-15">6</span><span class="hl-1"> }</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>list</code> names the key of the loaded data that holds the whole collection, an array of flat objects.
+Each key of <code>filter</code> is a query parameter that keeps the items whose field of the same name equals
+it, read as a <code>string</code> or a <code>number</code>. A repeated parameter matches any of its values, and different
+parameters combine with and. <code>sort</code> lists the fields the <code>sort</code> parameter may name, and <code>-name</code>
+sorts descending. Ties keep the stored order. Strings compare by UTF-16 code unit, with no locale
+and no case folding, so the application's own sort has to agree. A database that compares bytes,
+such as SQLite by default, agrees except for characters above U+FFFF, and a case-insensitive or
+locale collation does not. <code>pageSize</code> sets the items per page and <code>page</code> counts from 1; without it
+the route is one page of everything. A route with <code>principal</code> scope, or any
+other strategy, cannot declare <code>query</code>.</p>
+<p><code>load</code> returns the array at <code>list</code> and a <code>proof</code> made by <code>datasetProof</code>. The server refuses to
+build the artifact when the proof is missing or does not match the array. The worker computes the
+proof again from the stored copy before it answers a query. The proof shows that the device holds
+the array the server sent. That the array is the whole collection is the route's declaration:
+<code>list</code> has to hold every item the application's own answer could draw from, or a filter returns
+fewer rows than the server would.</p>
+<p>The template, or the renderer of a <code>projection</code> route, receives the stored data with the array
+replaced by the page's items and one added key, <code>query</code>, holding <code>{ total, page, pages }</code>. <code>total</code>
+counts the items after filtering. A <code>data</code> route answers with that same object as JSON. The URL
+without a query string renders the stored data as it is and has no <code>query</code> key, which is what
+<code>{{#if query}}</code> tests above.</p>
+<p>The worker answers locally only when the artifact for the path is held and fresh under the route's
+freshness contract, the proof matches and the query is one the route declares. Everything else goes
+to the network as before: a parameter the route does not name, a number filter that is not a
+finite number, a <code>sort</code> given twice or not listed, a <code>page</code> that is not a positive integer or
+lies past the last page, and an item that is not an object. A copy that fails its proof is dropped
+and fetched whole again. The worker never stores anything under a URL with a query string, and in
+shadow mode it compares its render with the network answer for the same URL.</p>
+<p>A query route's artifact is the whole collection, so it is large. The provisioning rule weighs it
+like any other artifact, and <code>provision</code> on the route sets the priors. A collection repays its
+transfer after <code>entryBreakEven(bytes, documentBytes)</code> local answers per device: a 40 KB collection
+that replaces 17 KB documents needs 2.3 (L2). Pages of one visit come from one held copy until a
+sync replaces it, so paging never mixes two versions on a device.</p>
 <hr>
 <h2 id="⏳-freshness-contracts" class="tsd-anchor-link">⏳ Freshness Contracts<a href="#⏳-freshness-contracts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Each route declares how long a stored page may go without validation. <code>maxStale</code> is in seconds.</p>
@@ -707,8 +768,18 @@ is larger. An entry is data for a <code>template</code>, <code>projection</code>
 <p>The site supplies the candidates. A route's <code>catalogue</code> returns the pages a visitor on it may open
 next, each with the share expected to. Take the share from your own <code>nextShare</code> over the sink
 (each <code>spool.view</code> names the route the visitor came from), from link position, or from a fixed
-prior. <code>documentBytes</code> on the entry's route says what a hit saves, and the provisioning prior is
+prior. Pass <code>{ first: true }</code> to <code>nextShare</code> to count only first views, which is what an entry
+saves: the share over all views ran 1.5 to 7 times high in the bins that decide an entry in a replay
+of public visitors (<a href="documents/impact.html#next-page-prediction">docs/impact.md</a>). <code>documentBytes</code> on the entry's route says what a hit saves, and the provisioning prior is
 used when it is absent.</p>
+<p>A share taken from counts can carry <code>n</code>, the observations behind it. <code>catalogueConfidence</code> on
+<code>createSpool</code> is a number of standard deviations, and with it above 0 an entry whose guess has an
+<code>n</code> is judged on the lower confidence bound of its <code>p</code>, so a share seen on 5 visits stops counting
+as one seen on 5,000. It defaults to 0, which judges every guess on its <code>p</code>. <code>NavModel</code> in
+<code>@drupflare/spool/protocol</code> keeps first-order counts with decay and a prior and returns a <code>p</code> with
+the weight to pass as <code>n</code>. In a replay of 989,818 public visitors, a model like that earned more
+per provisioned kilobyte than the most popular page
+(<a href="documents/impact.html#next-page-prediction">docs/impact.md</a>).</p>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createSpool</span><span class="hl-1">, </span><span class="hl-9">defineRoute</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">home</span><span class="hl-1"> = </span><span class="hl-0">defineRoute</span><span class="hl-1">(</span><span class="hl-2">&#39;/&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-9">strategy:</span><span class="hl-1"> </span><span class="hl-2">&#39;template&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">template:</span><span class="hl-1"> { </span><span class="hl-9">source:</span><span class="hl-1"> </span><span class="hl-2">&#39;&lt;h1&gt;Courses&lt;/h1&gt;&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-0">load</span><span class="hl-9">:</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({}),</span><br/><span class="hl-1">  </span><span class="hl-0">catalogue</span><span class="hl-9">:</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> [</span><br/><span class="hl-1">    { </span><span class="hl-9">path:</span><span class="hl-1"> </span><span class="hl-2">&#39;/courses/101&#39;</span><span class="hl-1">, </span><span class="hl-9">p:</span><span class="hl-1"> </span><span class="hl-15">0.3</span><span class="hl-1"> },</span><br/><span class="hl-1">    { </span><span class="hl-9">path:</span><span class="hl-1"> </span><span class="hl-2">&#39;/courses/102&#39;</span><span class="hl-1">, </span><span class="hl-9">p:</span><span class="hl-1"> </span><span class="hl-15">0.1</span><span class="hl-1"> }</span><br/><span class="hl-1">  ]</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">course</span><span class="hl-1"> = </span><span class="hl-0">defineRoute</span><span class="hl-1">(</span><span class="hl-2">&#39;/courses/:id&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-9">strategy:</span><span class="hl-1"> </span><span class="hl-2">&#39;template&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">template:</span><span class="hl-1"> { </span><span class="hl-9">source:</span><span class="hl-1"> </span><span class="hl-2">&#39;&lt;h1&gt;{{title}}&lt;/h1&gt;&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-0">depends</span><span class="hl-9">:</span><span class="hl-1"> (</span><span class="hl-9">ctx</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> [</span><span class="hl-2">`course:</span><span class="hl-10">${</span><span class="hl-9">ctx</span><span class="hl-5">.</span><span class="hl-9">params</span><span class="hl-5">[</span><span class="hl-2">&#39;id&#39;</span><span class="hl-5">]</span><span class="hl-10">}</span><span class="hl-2">`</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-0">load</span><span class="hl-9">:</span><span class="hl-1"> (</span><span class="hl-9">ctx</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({ </span><span class="hl-9">title:</span><span class="hl-1"> </span><span class="hl-2">`Course </span><span class="hl-10">${</span><span class="hl-9">ctx</span><span class="hl-5">.</span><span class="hl-9">params</span><span class="hl-5">[</span><span class="hl-2">&#39;id&#39;</span><span class="hl-5">]</span><span class="hl-10">}</span><span class="hl-2">`</span><span class="hl-1"> }),</span><br/><span class="hl-1">  </span><span class="hl-9">documentBytes:</span><span class="hl-1"> </span><span class="hl-15">17_000</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">spool</span><span class="hl-1"> = </span><span class="hl-0">createSpool</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">routes:</span><span class="hl-1"> [</span><span class="hl-9">home</span><span class="hl-1">, </span><span class="hl-9">course</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">catalogueBytes:</span><span class="hl-1"> </span><span class="hl-15">16_384</span><br/><span class="hl-1">});</span>
 </code><button type="button">Copy</button></pre>
 
@@ -830,7 +901,11 @@ requests keep the browser's own path.</p>
 or anything else that speaks HTTP. It returns a Fetch handler. The proxy answers <code>/.spool/*</code> and
 <code>/spool-sw.js</code>. Every other request goes to the origin with its method, headers and body, and a
 redirect is passed on, not followed. A page the proxy may keep is decorated like a <code>createSpool</code>
-response, so the worker stores it and answers later views with no request.</p>
+response, so the worker stores it and answers later views with no request. A cold visit costs one
+origin fetch: the proxy names a hash of the page in <code>Spool-Artifact</code>, and the worker keeps the
+page it already received as the artifact when its own hash matches. On any mismatch it asks
+<code>/.spool/artifact</code> as before. In the first-payload reading (L1, a synthetic 11,145-byte page) a
+cold visit made 1 request and 1 origin fetch where it made 2 and 2 before.</p>
 <p><code>spool</code> takes the options <code>createSpool</code> takes, minus <code>routes</code>. The proxy adds one public
 <code>assembly</code> route that matches every path (<code>/**</code>) and uses the origin's finished HTML as the
 artifact. <code>routes</code> lists overrides, such as a shorter freshness bound for one pattern. They
@@ -892,7 +967,8 @@ in the instance: a restart forgets them, and each instance of a scaled-out proxy
 A whole page is a large artifact, and the provisioning rule declines one that costs more than the
 priors say it saves, so set <code>provision</code> on the spool for large pages. A <code>Content-Security-Policy</code>
 that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
-always goes to the origin. <a href="#-trimmed-stylesheets">Trimmed Stylesheets</a> covers the <code>trim</code> option
+always goes to the origin, because the proxy holds finished HTML and has no collection to filter;
+<a href="#query-routes">Query Routes</a> apply to <code>createSpool</code> only. <a href="#-trimmed-stylesheets">Trimmed Stylesheets</a> covers the <code>trim</code> option
 and <a href="#-images-and-video">Images and Video</a> the <code>images</code> and <code>video</code> options.</p>
 <hr>
 <h2 id="🧹-trimmed-stylesheets" class="tsd-anchor-link">🧹 Trimmed Stylesheets<a href="#🧹-trimmed-stylesheets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
@@ -997,8 +1073,11 @@ and any tag inside <code>&lt;picture&gt;</code>, stays as it is.</p>
 <p><code>embeds</code> replaces a server-rendered YouTube or Vimeo <code>&lt;iframe&gt;</code> with one whose <code>srcdoc</code> holds a
 link to the player. YouTube shows its thumbnail (<code>thumbnail: false</code> shows a plain frame) and the
 player loads on click. A page that sends <code>Content-Security-Policy</code> is left alone unless
-<code>ignoreCsp</code> is true, and so is an embed with <code>enablejsapi=1</code>. <code>proxy.embeds</code> counts <code>pages</code>,
-<code>rewritten</code> and <code>skipped</code>. <a href="documents/security.html#embed-facades">docs/security.md</a> covers the rules.</p>
+<code>ignoreCsp</code> is true, and so is an embed with <code>enablejsapi=1</code>. An embed that plays on its own by
+design stays too: a URL with <code>background=1</code>, or with <code>autoplay=1</code> beside <code>mute</code>, <code>muted</code> or <code>loop</code>,
+and an iframe whose <code>class</code> or <code>id</code> names a hero, ambient, background or banner. In a crawl of the
+server-rendered pages of 52 sites (L1, <code>measurements/embed-markup</code>), 2 of 4 Vimeo iframes were
+background loops. <code>proxy.embeds</code> counts <code>pages</code>, <code>rewritten</code> and <code>skipped</code> by reason. <a href="documents/security.html#embed-facades">docs/security.md</a> covers the rules.</p>
 <h3 id="dictionary-transport" class="tsd-anchor-link">Dictionary Transport<a href="#dictionary-transport" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>A visitor who holds an earlier stylesheet or script of a directory can fetch the next one as the
 difference from it. <code>dictionary</code> implements this for Chromium 130 and later
@@ -1019,8 +1098,18 @@ as public ones, with no cookie, ever become dictionaries. <code>proxy.dictionary
 expression or a list of them. Without it the browser holds the latest file of each directory it
 fetched, and the sizing in <a href="documents/impact.html#savings-today-and-at-maximum">docs/impact.md</a> shows that
 choice recovers little. With it the browser holds only the files you name, one per directory, and
-every other file of the directory is encoded against the base the request names.
-<code>scripts/measure/dictionary-size.ts</code> records the best base of each directory of a site.</p>
+every other file of the directory is encoded against the base the request names.</p>
+<p><code>chooseBases</code> picks the bases from a crawl. It takes the site's stylesheets and scripts with their
+compressed sizes and a <code>delta</code> function that returns the size of one file compressed against
+another. For each directory and file kind it returns the file whose deltas against the others, each
+capped at the other file's plain size, add up smallest. A directory with one file has no base, and a
+tie goes to the URL that sorts first. <code>baseMatcher</code> turns the choices into a <code>base</code> function.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">promisify</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:util&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">brotliCompressSync</span><span class="hl-1">, </span><span class="hl-9">zstdCompress</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:zlib&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">baseMatcher</span><span class="hl-1">, </span><span class="hl-9">chooseBases</span><span class="hl-1">, </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">compress</span><span class="hl-1"> = </span><span class="hl-0">promisify</span><span class="hl-1">(</span><span class="hl-9">zstdCompress</span><span class="hl-1">);</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">crawl</span><span class="hl-1"> = [</span><br/><span class="hl-1">  { </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/a.css&#39;</span><span class="hl-1">, </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">, </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.b{margin:0}&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/b.css&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.c{margin:1px}&#39;</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/c.css&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.d{margin:2px}&#39;</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">] </span><span class="hl-8">as</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-0">bytes</span><span class="hl-1"> = (</span><span class="hl-9">index</span><span class="hl-1">: </span><span class="hl-12">number</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-9">Buffer</span><span class="hl-1">.</span><span class="hl-0">from</span><span class="hl-1">(</span><span class="hl-9">crawl</span><span class="hl-1">[</span><span class="hl-9">index</span><span class="hl-1">]?.</span><span class="hl-9">text</span><span class="hl-1"> ?? </span><span class="hl-2">&#39;&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">choices</span><span class="hl-1"> = </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">chooseBases</span><span class="hl-1">(</span><br/><span class="hl-1">  </span><span class="hl-9">crawl</span><span class="hl-1">.</span><span class="hl-0">map</span><span class="hl-1">(({ </span><span class="hl-9">url</span><span class="hl-1">, </span><span class="hl-9">kind</span><span class="hl-1">, </span><span class="hl-9">text</span><span class="hl-1"> }) </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({ </span><span class="hl-9">url</span><span class="hl-1">, </span><span class="hl-9">kind</span><span class="hl-1">, </span><span class="hl-9">plain:</span><span class="hl-1"> </span><span class="hl-0">brotliCompressSync</span><span class="hl-1">(</span><span class="hl-9">text</span><span class="hl-1">).</span><span class="hl-9">length</span><span class="hl-1"> })),</span><br/><span class="hl-1">  </span><span class="hl-10">async</span><span class="hl-1"> (</span><span class="hl-9">file</span><span class="hl-1">, </span><span class="hl-9">dictionary</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><br/><span class="hl-1">    (</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">compress</span><span class="hl-1">(</span><span class="hl-0">bytes</span><span class="hl-1">(</span><span class="hl-9">file</span><span class="hl-1">), { </span><span class="hl-9">dictionary:</span><span class="hl-1"> </span><span class="hl-0">bytes</span><span class="hl-1">(</span><span class="hl-9">dictionary</span><span class="hl-1">) })).</span><span class="hl-9">length</span><br/><span class="hl-1">);</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">proxy</span><span class="hl-1"> = </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">  </span><span class="hl-9">dictionary:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">encoder</span><span class="hl-9">:</span><span class="hl-1"> </span><span class="hl-10">async</span><span class="hl-1"> (</span><span class="hl-9">dictionary</span><span class="hl-1">, </span><span class="hl-9">input</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-10">new</span><span class="hl-1"> </span><span class="hl-0">Uint8Array</span><span class="hl-1">(</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">compress</span><span class="hl-1">(</span><span class="hl-9">input</span><span class="hl-1">, { </span><span class="hl-9">dictionary</span><span class="hl-1"> })),</span><br/><span class="hl-1">    </span><span class="hl-9">base:</span><span class="hl-1"> </span><span class="hl-0">baseMatcher</span><span class="hl-1">(</span><span class="hl-9">choices</span><span class="hl-1">)</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<p>On the 10 Drupal sites of the reading, a base chosen this way and already held by the browser saves
+30% of the stylesheet and script bytes at the median site (L1, <a href="documents/impact.html#savings-today-and-at-maximum">docs/impact.md</a>).
+<code>scripts/measure/dictionary-size.ts</code> records the same choice for a site's crawl.</p>
 <h3 id="defaults" class="tsd-anchor-link">Defaults<a href="#defaults" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>Every option is absent by default. The table shows what a feature does once its parent option is
 set and how to change it.</p>
@@ -1115,6 +1204,29 @@ set and how to change it.</p>
 </tbody>
 </table>
 <hr>
+<h2 id="📈-capacity-reports" class="tsd-anchor-link">📈 Capacity Reports<a href="#📈-capacity-reports" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>@drupflare/spool/report</code> turns peak work and an institution's own limits into three separate
+results: potential, financial and physical. None is added to another, and any can be empty.</p>
+<p><code>capacityPlan</code> takes intervals of demand per resource with the part spool avoided, and what one
+node serves per second within the latency target. It returns the nodes needed before and after,
+as whole numbers, and how many could retire. <code>perNode.busyMs</code> is the milliseconds of handler work
+a node does per second, such as 1000 times its cores times a target utilisation. <code>spares</code>, <code>floor</code>,
+<code>regions</code> and <code>minPerRegion</code> raise the answer for redundancy, and a resource with no <code>avoided</code>, such
+as memory, does not shrink. <code>intervalsFromWork</code> builds the intervals from the <code>WorkSample</code>s the
+work series records.</p>
+<p><code>institutionReport</code> adds the plan, an <code>observed</code> before and after of the same workload from
+production telemetry, an invoice total before and after, and a ledger of retired equipment. The
+plan says what could change, <code>observed</code> what changed, the invoices what was paid, and the ledger
+what was removed. The physical result reads only the ledger, and an entry needs the evidence for
+its removal. With no ledger the statement reads <code>No physical capacity saving demonstrated.</code></p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">capacityPlan</span><span class="hl-1">, </span><span class="hl-9">institutionReport</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/report&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">plan</span><span class="hl-1"> = </span><span class="hl-0">capacityPlan</span><span class="hl-1">(</span><br/><span class="hl-1">  [</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-9">start:</span><span class="hl-1"> </span><span class="hl-9">Date</span><span class="hl-1">.</span><span class="hl-0">UTC</span><span class="hl-1">(</span><span class="hl-15">2026</span><span class="hl-1">, </span><span class="hl-15">8</span><span class="hl-1">, </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-15">14</span><span class="hl-1">),</span><br/><span class="hl-1">      </span><span class="hl-9">seconds:</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">demand:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">9000</span><span class="hl-1"> },</span><br/><span class="hl-1">      </span><span class="hl-9">avoided:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">6300</span><span class="hl-1"> }</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-9">start:</span><span class="hl-1"> </span><span class="hl-9">Date</span><span class="hl-1">.</span><span class="hl-0">UTC</span><span class="hl-1">(</span><span class="hl-15">2026</span><span class="hl-1">, </span><span class="hl-15">8</span><span class="hl-1">, </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-15">14</span><span class="hl-1">, </span><span class="hl-15">5</span><span class="hl-1">),</span><br/><span class="hl-1">      </span><span class="hl-9">seconds:</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">demand:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">7000</span><span class="hl-1"> },</span><br/><span class="hl-1">      </span><span class="hl-9">avoided:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">4900</span><span class="hl-1"> }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">  ],</span><br/><span class="hl-1">  { </span><span class="hl-9">perNode:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">700</span><span class="hl-1"> }, </span><span class="hl-9">spares:</span><span class="hl-1"> </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-9">floor:</span><span class="hl-1"> </span><span class="hl-15">2</span><span class="hl-1"> }</span><br/><span class="hl-1">);</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">report</span><span class="hl-1"> = </span><span class="hl-0">institutionReport</span><span class="hl-1">({ </span><span class="hl-9">plan</span><span class="hl-1">, </span><span class="hl-9">planLayer:</span><span class="hl-1"> </span><span class="hl-2">&#39;L3&#39;</span><span class="hl-1"> });</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The example needs 14 nodes without spool and 5 with it, a potential of 9, at layer L3 because the
+numbers are made up. <code>channelRows</code> lists the metered, attributional, capacity and avoided-demand
+channels as separate rows, and nothing in the module sums them. <a href="documents/impact.html#channels">docs/impact.md</a>
+says what each one counts.</p>
+<hr>
 <h2 id="🚫-out-of-scope" class="tsd-anchor-link">🚫 Out of Scope<a href="#🚫-out-of-scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>spool never authorises on the client. The device holds only what the server already sent that
@@ -1175,7 +1287,7 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/server</code></td>
-<td><code>createSpool</code>, <code>defineRoute</code>, sinks, identity and work series</td>
+<td><code>createSpool</code>, <code>defineRoute</code>, <code>datasetProof</code>, sinks, identity and work series</td>
 </tr>
 <tr>
 <td><code>@drupflare/spool/node</code></td>
@@ -1183,7 +1295,7 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/proxy</code></td>
-<td><code>spoolProxy</code>, the tag readers and the eligibility verdict</td>
+<td><code>spoolProxy</code>, <code>chooseBases</code>, the tag readers and the eligibility verdict</td>
 </tr>
 <tr>
 <td><code>@drupflare/spool/stores</code></td>
@@ -1203,7 +1315,7 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/report</code></td>
-<td>the energy model</td>
+<td>the energy model, capacity plans and institution reports</td>
 </tr>
 <tr>
 <td><code>@drupflare/spool/trim</code></td>
@@ -1284,6 +1396,9 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <ul>
 <li><a href="#declare-routes"><span>Declare <wbr/>Routes</span></a></li></ul></li>
 <li><a href="#📦-page-runtime"><span>📦 <wbr/>Page <wbr/>Runtime</span></a></li>
+<li>
+<ul>
+<li><a href="#activity-hooks"><span>Activity <wbr/>Hooks</span></a></li></ul></li>
 <li><a href="#🧩-runtimes"><span>🧩 <wbr/>Runtimes</span></a></li>
 <li>
 <ul>
@@ -1316,7 +1431,8 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#records-and-projections"><span>Records and <wbr/>Projections</span></a></li>
 <li><a href="#templates"><span>Templates</span></a></li>
 <li><a href="#static-files"><span>Static <wbr/>Files</span></a></li>
-<li><a href="#projection-and-data-routes"><span>Projection and <wbr/>Data <wbr/>Routes</span></a></li></ul></li>
+<li><a href="#projection-and-data-routes"><span>Projection and <wbr/>Data <wbr/>Routes</span></a></li>
+<li><a href="#query-routes"><span>Query <wbr/>Routes</span></a></li></ul></li>
 <li><a href="#⏳-freshness-contracts"><span>⏳ <wbr/>Freshness <wbr/>Contracts</span></a></li>
 <li><a href="#🔐-authenticated-data"><span>🔐 <wbr/>Authenticated <wbr/>Data</span></a></li>
 <li><a href="#📚-catalogue"><span>📚 <wbr/>Catalogue</span></a></li>
@@ -1341,6 +1457,7 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#page-rewrites"><span>Page <wbr/>Rewrites</span></a></li>
 <li><a href="#dictionary-transport"><span>Dictionary <wbr/>Transport</span></a></li>
 <li><a href="#defaults"><span>Defaults</span></a></li></ul></li>
+<li><a href="#📈-capacity-reports"><span>📈 <wbr/>Capacity <wbr/>Reports</span></a></li>
 <li><a href="#🚫-out-of-scope"><span>🚫 <wbr/>Out of <wbr/>Scope</span></a></li>
 <li><a href="#🌐-browser-support"><span>🌐 <wbr/>Browser <wbr/>Support</span></a></li>
 <li><a href="#🧭-subpath-exports"><span>🧭 <wbr/>Subpath <wbr/>Exports</span></a></li>

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>protocol | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>protocol | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.2.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -165,7 +165,7 @@
 <tbody>
 <tr>
 <td><code>spool-artifact</code></td>
-<td>fields split on <code>;</code>, each <code>name=value</code> with a name at least one character long. <code>id</code> and <code>v</code> are required. <code>scope</code> is <code>public</code> or <code>principal</code>. <code>id</code> and each <code>deps</code> entry are percent-encoded. Unknown field names are ignored. <code>deps</code> is optional.</td>
+<td>fields split on <code>;</code>, each <code>name=value</code> with a name at least one character long. <code>id</code> and <code>v</code> are required. <code>scope</code> is <code>public</code> or <code>principal</code>. <code>id</code> and each <code>deps</code> entry are percent-encoded. <code>h</code> is 43 base64url characters; <code>decodeEnvelope</code> drops any other value and keeps the rest. Unknown field names are ignored. <code>deps</code> is optional.</td>
 </tr>
 <tr>
 <td><code>spool-invalidate</code></td>
@@ -177,6 +177,7 @@
 </tr>
 </tbody>
 </table>
+<p><code>h</code> is the only field added since v0.2. A v0.2 worker reads <code>id</code>, <code>scope</code>, <code>deps</code> and <code>v</code> by name and ignores <code>h</code>, so <code>Spool-Protocol</code> stays <code>1</code> (<code>tests/unit/envelope.spec.ts</code> parses the new header the v0.2 way).</p>
 <p><code>decodeEnvelope</code> treats an absent header as an absent field and throws <code>ProtocolError</code> with code <code>bad-header</code> on a malformed one. The worker reads a response through <code>decodeEnvelopeOrClear</code>. When <code>decodeEnvelope</code> throws, the worker ignores every spool header of that response except <code>Spool-Clear</code>, which it reads on its own. A valid <code>Spool-Clear</code> still applies, a malformed one counts as <code>*</code>, and a response whose <code>Spool-Protocol</code> names another version is ignored. <code>encodeEnvelope</code> refuses a <code>partition</code> that does not match the pattern.</p>
 <p>Examples from <code>encodeEnvelope</code>, the first for the artifact of <code>/node/3</code> at cursor 1 with the tag <code>node:3</code>, the second for a response to <code>Spool-Vector-Seen: 1</code> when the cursor is 2 and only <code>b</code> changed (<code>tests/unit/server.spec.ts</code>):</p>
 <pre><code class="text">Spool-Protocol: 1
@@ -256,8 +257,8 @@ Vary: Spool-Vector-Seen
 <tr>
 <td><code>artifact</code></td>
 <td><code>spool-artifact</code></td>
-<td><code>{ id, scope, deps, version }</code></td>
-<td>this response is the artifact for <code>id</code> at cursor <code>version</code>, built from the tags in <code>deps</code></td>
+<td><code>{ id, scope, deps, version, hash? }</code></td>
+<td>this response is the artifact for <code>id</code> at cursor <code>version</code>, built from the tags in <code>deps</code>; <code>hash</code> is described under <a href="#the-body-carries-the-artifact">The Body Carries the Artifact</a></td>
 </tr>
 <tr>
 <td><code>invalidate</code></td>
@@ -348,6 +349,7 @@ Vary: Spool-Vector-Seen
 <li><code>Spool-Invalidate</code> raises tag versions. It always applies.</li>
 <li>The cursor and the sync clock advance only when the response carries <code>Spool-Vector-Seen</code> equal to the value the worker sent, carries <code>Spool-Vector</code>, and has no <code>Age</code> header. A copy a shared cache replays cannot extend freshness.</li>
 <li><code>Spool-Artifact</code> on a navigation (or on a <code>data</code> route read) makes the worker fetch <code>/.spool/artifact?path=&lt;id&gt;</code> when it holds no artifact for <code>id</code>, has not been told to leave that path to the network (a <code>204</code> declined), the route matches, the strategy is not <code>static</code> and the scope matches. For a <code>static</code> route the worker keeps the response itself, bytes and headers, when the advertised id equals the path and the scope is <code>public</code>.</li>
+<li>A navigation response that names a hash in <code>Spool-Artifact</code> may hold the artifact itself, and the worker then stores it without the request above. See <a href="#the-body-carries-the-artifact">The Body Carries the Artifact</a>.</li>
 <li>A principal artifact is fetched only when the response's <code>Spool-Partition</code> equals the partition the worker holds.</li>
 <li>A <code>/.spool/sync</code> answer is read the same way before the worker uses it (<code>fetchSync</code>, <code>src/sw/runtime.ts</code>). A <code>Spool-Partition</code> that differs from the held partition swaps the store, and an answer with none wipes the principal store as a session that ended. A sync answer therefore ends a sign-in or sign-out the worker never saw.</li>
 <li>A response's security headers are not part of the envelope, and the worker keeps them as well. See <a href="#security-headers">Security Headers</a>.</li>
@@ -557,6 +559,43 @@ Vary: Spool-Vector-Seen
 </code><button type="button">Copy</button></pre>
 
 <p>The artifact answer for <code>/node/7</code> in <code>tests/unit/server.spec.ts</code> is the same shape without <code>records</code>: <code>deps</code> is <code>[&quot;node:7&quot;]</code> and <code>body</code> is <code>{ &quot;data&quot;: { &quot;id&quot;: &quot;7&quot; } }</code>.</p>
+<h3 id="the-body-carries-the-artifact" class="tsd-anchor-link">The Body Carries the Artifact<a href="#the-body-carries-the-artifact" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A navigation to a public route the worker holds nothing for costs a second request, <code>/.spool/artifact</code>. When the page body already contains the artifact, the server says so with <code>h</code> in <code>Spool-Artifact</code>, the base64url SHA-256 (no padding) of the UTF-8 text the body carries, and the worker stores the artifact from the response it already has (<code>derive</code>, <code>src/sw/runtime.ts</code>). Two routes use it.</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>What <code>h</code> hashes</th>
+<th>What the worker stores</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>public <code>assembly</code></td>
+<td>the shell as the proxy builds it, before the client tag goes in (<code>DecorateOptions.assembled</code>)</td>
+<td><code>{ id, scope: &quot;public&quot;, strategy: &quot;assembly&quot;, deps, vector: v, body: { shell } }</code>, with <code>deps</code> and <code>v</code> from the header</td>
+</tr>
+<tr>
+<td>public <code>template</code></td>
+<td>the text of the inline element, see below, which is the artifact JSON with <code>&lt;</code>, <code>&gt;</code>, <code>&amp;</code> and U+2028 and U+2029 written as <code>\uXXXX</code></td>
+<td>the artifact parsed from that text, which <code>parseArtifact</code> validates</td>
+</tr>
+</tbody>
+</table>
+<p>The worker reads a clone of the response after it has handed the response to the page, so the page never waits for it. It decodes the body as UTF-8 and refuses invalid bytes. For an <code>assembly</code> route it removes the first copy of its configured client tag, hashes what is left, and compares. For a <code>template</code> route it takes the last inline element, hashes its text and compares. Any mismatch, a missing <code>h</code>, a body over <code>MAX_STATIC_BYTES</code>, an unreadable body (compressed bytes with no decoding, another charset), a route in shadow mode, a route the server declined, a principal route, a status other than <code>200</code>, or a redirect leaves nothing stored, and the worker asks <code>/.spool/artifact</code> as before. A stored artifact is charged to the ledger with <code>requests: 0</code>: its <code>bytes</code> are <code>0</code> for an assembly page, which moved no extra bytes, and the element's size for a template page.</p>
+<p>The proxy passes <code>assembled</code> only for a public <code>assembly</code> page whose body it holds exactly as <code>/.spool/artifact</code> would build it. A page rewritten for a visitor signal (<code>video</code> with <code>when: 'save-data'</code> or <code>'slow'</code>) is declined as <code>private</code>, so it has no <code>Spool-Artifact</code> at all. The proxy's stored copy and the page the visitor got are then the same text, which also removes the second origin fetch of every cold view.</p>
+<p><strong>Inline element.</strong> With <code>inlineMaxBytes</code> above <code>0</code> on <code>createSpool</code>, <code>decorate</code> appends this element before the last <code>&lt;/body&gt;</code> of a public <code>template</code> page, or at the end when the page has none, and names the hash of its text in <code>Spool-Artifact</code>.</p>
+<pre><code class="html"><span class="hl-3">&lt;</span><span class="hl-4">script</span><br/><span class="hl-5">  </span><span class="hl-6">type</span><span class="hl-5">=</span><span class="hl-7">&quot;application/spool+json&quot;</span><br/><span class="hl-5">  </span><span class="hl-6">data-spool-artifact</span><br/><span class="hl-3">&gt;</span><br/><span class="hl-5">  {&quot;protocol&quot;:1,&quot;id&quot;:&quot;/n/1&quot;,...}</span><br/><span class="hl-3">&lt;/</span><span class="hl-4">script</span><span class="hl-3">&gt;</span>
+</code><button type="button">Copy</button></pre>
+
+<ul>
+<li>The text is the artifact JSON from the same code <code>/.spool/artifact</code> runs (<code>buildArtifact</code>), built for a request with no cookies and <code>Accept: application/json</code>, so it is public data. It is left out when the route would be declined, when the build fails, or when the escaped text is over <code>inlineMaxBytes</code> bytes.</li>
+<li><code>&lt;</code>, <code>&gt;</code>, <code>&amp;</code>, U+2028 and U+2029 are written as <code>\uXXXX</code>, so the text cannot contain <code>&lt;/script</code> and <code>JSON.parse</code> returns the original.</li>
+<li>Only a <code>GET</code> answered <code>200</code> as HTML without <code>Content-Encoding</code> is changed, and its <code>ETag</code> becomes weak. A principal route and an <code>assembly</code> route never get the element.</li>
+<li>The worker takes the last element and requires its hash to equal <code>h</code>, its <code>id</code> to equal the path, its scope to be <code>public</code> and its strategy to be the route's <code>template</code>.</li>
+<li><code>normalise</code> removes the element, so shadow comparison and <code>equivalent</code> ignore it.</li>
+<li>The default is <code>0</code>. Every network view of the page pays the element's bytes and one more <code>load</code>, whether or not the visitor runs a worker, and a view the worker could have skipped has no way to ask. The first-payload reading (<code>measurements/first-payload/</code>) has the numbers.</li>
+</ul>
 <h2 id="beacon" class="tsd-anchor-link">Beacon<a href="#beacon" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p><code>POST /.spool/beacon</code> takes the events the worker held, in one body, and answers with artifacts when the worker asked for some.</p>
 <h3 id="the-batch" class="tsd-anchor-link">The Batch<a href="#the-batch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
@@ -874,6 +913,11 @@ Vary: Spool-Vector-Seen
 </code><button type="button">Copy</button></pre>
 
 <p><code>E</code> is the entry's compressed bytes and <code>D</code> the bytes of the document it replaces, <code>k</code> is <code>JOULES_PER_BYTE</code> and <code>o</code> is <code>ORIGIN_JOULES</code>. Both come from the energy model (<a href="impact.html">impact.md</a>): <code>k</code> is SWD v4's 0.194 kWh/GB over decimal gigabytes (L2), and <code>o</code> is the modelled origin request (L1). <code>chooseEntries</code> keeps the candidates at or above their own break-even, best expected net joules first (<code>p * (k * D + o) - k * E</code>), while their entry bytes fit under the cap. A candidate that does not fit is skipped and a smaller one may still go.</p>
+<p>A share that was estimated from counts is uncertain, so a candidate may carry <code>n</code>, the observations behind its <code>p</code>, and <code>createSpool</code> takes <code>catalogueConfidence</code>, <code>z</code>, a number of standard deviations (1.28 is one-sided 90%). Where <code>z</code> is above 0 and a candidate has an <code>n</code>, the rule above and the order use the lower Wilson bound of the share instead of <code>p</code>. Here <code>\hat p</code> is the candidate's <code>p</code>, <code>n</code> its observations and <code>z</code> the option:</p>
+<pre><code class="math">p_{\mathrm{low}} = \frac{\hat p + \frac{z^2}{2n} - z\sqrt{\frac{\hat p(1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}
+</code><button type="button">Copy</button></pre>
+
+<p>A candidate with no <code>n</code>, and every candidate when <code>z</code> is 0 (the default), keeps its <code>p</code>. <code>lowerBound</code> in <code>src/protocol/navigation.ts</code> computes it, and <code>NavModel</code> there keeps first-order counts with decay and a prior, returning a <code>p</code> and the weight to pass as <code>n</code>.</p>
 <table>
 <thead>
 <tr>
@@ -905,6 +949,18 @@ Vary: Spool-Vector-Seen
 </tbody>
 </table>
 <p>A candidate is skipped when its path has a query string or a fragment, sits under <code>/.spool/</code>, is the page asked about, matches no route, matches a <code>static</code> or <code>assembly</code> route, or has a <code>p</code> outside 0 to 1. A route whose <code>catalogue</code> throws, or whose entries fail to build, sends nothing and the flush still answers as it would without it.</p>
+<p>Each candidate goes through the same checks in this order, and any &quot;no&quot; leaves it out of the bundle:</p>
+<pre><code class="mermaid">flowchart TD
+    A[Candidate from catalogue] --&gt; B{Allowed by the path and route rules}
+    B -- no --&gt; X[Left out]
+    B -- yes --&gt; C[Build the artifact and measure E]
+    C --&gt; D{p or its lower bound reaches break-even}
+    D -- no --&gt; X
+    D -- yes --&gt; E{Entry bytes fit under the cap}
+    E -- no --&gt; X
+    E -- yes --&gt; F[Sent in the bundle]
+</code><button type="button">Copy</button></pre>
+
 <h3 id="asking-and-delivery" class="tsd-anchor-link">Asking and Delivery<a href="#asking-and-delivery" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>The worker asks through the beacon batch it already sends. <code>BeaconBatch.catalogue</code> is <code>{ path, sweep: true }</code> for the last page whose route declares a catalogue (<code>SerializedRoute.catalogue</code>), at most once every <code>CATALOGUE_REASK_MS</code> for each path. The worker stores when it last asked for each of its <code>MAX_CATALOGUE_ASKED</code> latest paths beside its flush clocks, so a worker restart does not ask again. It rides the first chunk of a flush, and a due ask makes the next network moment flush when a spool event is held (see <a href="#when-a-flush-happens">When a Flush Happens</a>). A flush that holds only a site's own beacons and wants no artifact sends no batch, so the ask waits for a view. The server answers with the entries in <code>catalogue</code>, an array of artifacts, in the order chosen. The worker stores each one like a provisioned artifact, with its records and projections stored once in the graph, and marks it unopened. An entry for a route whose strategy or scope differs from the entry's is dropped, and so is one the device already holds.</p>
 <p>A request with <code>Save-Data: on</code> is sent no catalogue, but is still answered for <code>want</code>. The check reads the header of the beacon request, which the browser sets.</p>
@@ -960,7 +1016,49 @@ Vary: Spool-Vector-Seen
 <p>A bad pattern throws <code>ProtocolError</code> with code <code>bad-pattern</code>.</p>
 <p>Examples from <code>matchPattern</code>: <code>/a/:b</code> matches <code>/a/x%20y</code> with <code>{ &quot;b&quot;: &quot;x y&quot; }</code>, and does not match <code>/a/</code>. <code>/a//b</code>, <code>/**/a</code> and <code>/a/:b/:b</code> fail <code>checkPattern</code>.</p>
 <h2 id="query-strings" class="tsd-anchor-link">Query Strings<a href="#query-strings" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>An artifact is keyed by path alone, so the worker never answers a navigation or a <code>data</code> read that has a query string (<code>classify</code>, <code>src/sw/router.ts</code>). A navigation with a query goes to the network. A <code>data</code> read with a query is handled as an ordinary subresource. A <code>static</code> route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: <code>/app.js?v=2</code> is a different file from <code>/app.js</code>, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose <code>Spool-Artifact</code> id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's <code>version</code> like any other. The proxy treats a request with a query string as ineligible and forwards it untouched.</p>
+<p>An artifact is keyed by path alone, so the worker answers a navigation or a <code>data</code> read that has a query string only on a route that declares <code>query</code> (see <a href="#query-routes">Query Routes</a>). On every other route (<code>classify</code>, <code>src/sw/router.ts</code>) a navigation with a query goes to the network, and a <code>data</code> read with a query is handled as an ordinary subresource. A <code>static</code> route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: <code>/app.js?v=2</code> is a different file from <code>/app.js</code>, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose <code>Spool-Artifact</code> id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's <code>version</code> like any other. The proxy treats a request with a query string as ineligible and forwards it untouched, whatever the routes behind it declare.</p>
+<h3 id="query-routes" class="tsd-anchor-link">Query Routes<a href="#query-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A public <code>template</code>, <code>projection</code> or <code>data</code> route may declare <code>query</code> (<code>QuerySchema</code>, <code>src/protocol/query.ts</code>). <code>defineRoute</code> throws <code>ProtocolError</code> with code <code>bad-route</code> for a <code>principal</code> route, any other strategy, an option other than these four, or a value outside the rules.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list</code></td>
+<td>a non-empty string, not <code>proof</code> or <code>query</code>: the key of the loaded data that holds the whole collection</td>
+</tr>
+<tr>
+<td><code>filter</code></td>
+<td>optional object from a parameter name to <code>string</code> or <code>number</code>. A name is non-empty and is not <code>sort</code> or <code>page</code>. The field has the same name</td>
+</tr>
+<tr>
+<td><code>sort</code></td>
+<td>optional list of field names, each non-empty and not <code>sort</code> or <code>page</code></td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>optional positive safe integer: the items per page. Absent, the route is one page of everything</td>
+</tr>
+</tbody>
+</table>
+<p>The only new wire fact is <code>query</code> in the worker's route entry (<code>SerializedRoute.query</code>), a copy of the validated schema. The artifact format, the envelope, <code>/.spool/artifact</code> and <code>/.spool/sync</code> are unchanged.</p>
+<p><strong>The proof.</strong> A query route's <code>load</code> returns an object that holds the collection, an array, at <code>list</code> and carries <code>proof: { count, digest }</code>. <code>datasetProof(items)</code> makes it: <code>count</code> is the array's length and <code>digest</code> is the base64url SHA-256, without padding, of <code>canonicalJson(items)</code>. <code>canonicalJson</code> writes JSON with object keys in code-unit order at every depth, no whitespace, and <code>toJSON</code> followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is <code>undefined</code> and writes <code>null</code> for one in an array, as <code>JSON.stringify</code> does. <code>createSpool</code> builds the artifact only when <code>verifyProof</code> holds, which needs an array at <code>list</code>, a <code>proof</code> object whose <code>count</code> equals the array's length, and a <code>digest</code> that matches. Otherwise it throws <code>ProtocolError</code> with code <code>bad-artifact</code>, and <code>/.spool/artifact</code> answers <code>400</code>. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.</p>
+<p><strong>Evaluation.</strong> <code>evaluateQuery(schema, data, search)</code> takes the loaded data and the request's query string, with or without its <code>?</code>, and returns <code>{ items, total, page, pages }</code> or <code>null</code>. It returns <code>null</code> when:</p>
+<ul>
+<li>the data is not an object, <code>list</code> is not an own key holding an array, or an item is not an object</li>
+<li>a parameter is neither a <code>filter</code> name, <code>sort</code> nor <code>page</code></li>
+<li>a <code>number</code> filter has a value that is empty, blank or not a finite number</li>
+<li><code>sort</code> is given twice, or is not exactly a listed field or <code>-</code> plus a listed field</li>
+<li><code>page</code> is given twice or is not a positive integer without a leading zero, or lies past the last page. Page 1 of an empty result is valid. With no <code>pageSize</code> there is one page</li>
+</ul>
+<p>Otherwise it filters, sorts and pages in that order. A <code>string</code> filter compares the field as text (a string, number or boolean value matches its text), and a <code>number</code> filter matches a number field by value. Different parameters combine with and, and the values of a repeated parameter combine with or. A sort is stable, so ties keep the stored order for both directions. It compares numbers by value and strings by code unit, with no locale and no case folding (so it differs from a byte-ordered database only above U+FFFF, which <code>tests/node/query.spec.ts</code> shows against SQLite), and orders numbers before strings before any other value. <code>total</code> counts the items after filtering, and an empty query string selects everything: page 1.</p>
+<p><strong>Rendering.</strong> <code>shapeQuery</code> checks the proof, evaluates the query and returns the stored data with the array at <code>list</code> replaced by the page's items and one key added, <code>query</code>: <code>{ total, page, pages }</code>. The compiled template receives that object. A <code>projection</code> renderer receives an artifact whose <code>body.data</code> is that object, and a <code>data</code> route answers with it as JSON. A URL without a query string renders the stored data as it is.</p>
+<p><strong>The worker.</strong> <code>classify</code> treats a navigation, or for a <code>data</code> route a GET, that has a query string on a route that declares <code>query</code> like one without it. The artifact is the path's own: <code>Spool-Artifact</code> names the pathname for a query URL, <code>/.spool/artifact?path=</code> takes no query string and answers <code>404 no route</code> for one that has it, and the worker never stores an artifact or a security header set under a URL with a query string. A query is answered locally when the artifact is held and fresh under the route's freshness contract, so a stale <code>hard</code> route syncs first as it does for the path, its proof verifies, and <code>evaluateQuery</code> returns a result. Anything else goes to the network as it would without <code>query</code>. A copy that fails its proof is dropped, so the next network view provisions the collection again. A cold query URL goes to the network, and the advertised artifact of its path is provisioned like any other. The view event is an ordinary one with the route's pattern and the reason the path's artifact gives. In shadow mode the worker compares the local render with the network answer for the same URL.</p>
+<p><strong>Provisioning.</strong> The collection is an ordinary artifact, so the rule in <a href="#provisioning">Provisioning</a> weighs its bytes against its expected reuse, and the route's <code>provision</code> field sets the priors.</p>
 <h2 id="freshness" class="tsd-anchor-link">Freshness<a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Each route declares a <code>Freshness</code> (<code>src/protocol/route.ts</code>): <code>maxStale</code> in seconds and a mode.</p>
 <table>
@@ -1515,7 +1613,8 @@ Vary: Spool-Vector-Seen
 <li><a href="#artifact"><span>Artifact</span></a></li>
 <li>
 <ul>
-<li><a href="#the-artifact-body"><span>The <wbr/>Artifact <wbr/>Body</span></a></li></ul></li>
+<li><a href="#the-artifact-body"><span>The <wbr/>Artifact <wbr/>Body</span></a></li>
+<li><a href="#the-body-carries-the-artifact"><span>The <wbr/>Body <wbr/>Carries the <wbr/>Artifact</span></a></li></ul></li>
 <li><a href="#beacon"><span>Beacon</span></a></li>
 <li>
 <ul>
@@ -1535,6 +1634,9 @@ Vary: Spool-Vector-Seen
 <li><a href="#protocol-version-skew"><span>Protocol <wbr/>Version <wbr/>Skew</span></a></li>
 <li><a href="#route-patterns"><span>Route <wbr/>Patterns</span></a></li>
 <li><a href="#query-strings"><span>Query <wbr/>Strings</span></a></li>
+<li>
+<ul>
+<li><a href="#query-routes"><span>Query <wbr/>Routes</span></a></li></ul></li>
 <li><a href="#freshness"><span>Freshness</span></a></li>
 <li><a href="#static-manifest"><span>Static <wbr/>Manifest</span></a></li>
 <li><a href="#page-and-worker-messages"><span>Page and <wbr/>Worker <wbr/>Messages</span></a></li>

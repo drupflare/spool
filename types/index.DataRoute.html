@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>DataRoute | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>DataRoute | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.2.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -11,7 +11,7 @@
 <li><a href="../modules/index.html">index</a></li>
 <li><a href="" aria-current="page">DataRoute</a></li></ul>
 <h1>Type Alias DataRoute</h1></div>
-<div class="tsd-signature"><span class="tsd-kind-type-alias">DataRoute</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteCommon.html" class="tsd-signature-type tsd-kind-type-alias">RouteCommon</a> <span class="tsd-signature-symbol">&amp;</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">contentType</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">strategy</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;data&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-call-signature">load</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-signature"><span class="tsd-kind-type-alias">DataRoute</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteCommon.html" class="tsd-signature-type tsd-kind-type-alias">RouteCommon</a> <span class="tsd-signature-symbol">&amp;</span> <a href="index.QueryRoute.html" class="tsd-signature-type tsd-kind-type-alias">QueryRoute</a> <span class="tsd-signature-symbol">&amp;</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">contentType</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">strategy</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;data&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-call-signature">load</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>A route for a JSON read. The worker answers a GET (not a navigation) from the stored value with
 <code>JSON.stringify</code>, so the application's own handler has to return the same JSON <code>load</code> does.</p>
 </div>
@@ -23,22 +23,26 @@
 <div class="tsd-comment tsd-typography"><p>the content type of the local answer; default <code>application/json</code></p>
 </div></li>
 <li class="tsd-parameter">
-<h5><span class="tsd-kind-property">strategy</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&quot;data&quot;</span></h5></li>
+<h5><span class="tsd-kind-property">strategy</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&quot;data&quot;</span></h5>
+<div class="tsd-comment tsd-typography"><p>answers a GET with the stored JSON</p>
+</div></li>
 <li class="tsd-parameter">
 <h5><span class="tsd-kind-method">load</span><span class="tsd-signature-symbol">:</span> function</h5>
 <ul class="tsd-signatures">
 <li class="">
 <div class="tsd-signature tsd-anchor-link"><span class="tsd-kind-call-signature">load</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span></div>
 <div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>returns the JSON the local answer serializes</p>
+</div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li><span><span class="tsd-kind-parameter">ctx</span>: <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">unknown</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/protocol/route.ts#L126">src/protocol/route.ts:126</a></li></ul></aside></div></li></ul></li></ul></div><aside class="tsd-sources">
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L185">src/protocol/route.ts:185</a></li></ul></aside></div></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/cd331312fb07186250da6ea2e1418491639ad5f4/src/protocol/route.ts#L124">src/protocol/route.ts:124</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L180">src/protocol/route.ts:180</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

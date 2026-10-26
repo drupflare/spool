@@ -4,19 +4,22 @@ Readings behind `docs/impact.md`, one folder per rig and one file per run (`<dat
 `<date>-<experiment>.json` when a rig ran more than one experiment that day). Every reading here is
 L1, measured on hardware described in the file.
 
-| rig               | measures                                                                                | instrument                              | script                               |
-| ----------------- | --------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
-| `repeat-nav`      | bytes and requests of cold, warm and repeat views on 16 public sites                    | Chromium DevTools Protocol              | `scripts/measure/repeat-nav.ts`      |
-| `on-wire`         | the same navigations, with the requests and bytes a proxy saw reach the origin          | a counting proxy and Chromium DevTools  | `scripts/measure/on-wire.ts`         |
-| `zero-network`    | server hits per service-worker navigation in Chromium, Firefox and WebKit               | the origin's request log                | `scripts/measure/zero-network.ts`    |
-| `device-cpu`      | browser CPU per navigation, HTTP revalidation vs a service-worker render                | process CPU time (a proxy, not joules)  | `scripts/measure/device-cpu.ts`      |
-| `rapl`            | package joules on a desktop CPU, by experiment                                          | RAPL energy counters, a sampled GPU     | `scripts/measure/rapl.ts`            |
-| `iphone`          | phone joules per view, back to back and paced; service-worker lifetime                  | the battery gauge's accumulated energy  | `scripts/measure/iphone.ts`          |
-| `payload`         | compressed bytes of a page, its shared shell, its unique part and its node data         | plain GETs, gzip, brotli, zstd          | `scripts/measure/payload.ts`         |
-| `trim`            | CSS and JS used per page, new aggregate bytes, markup classes, bytes by class           | Chromium coverage and DevTools, zstd    | `scripts/measure/trim.ts`            |
-| `link-assets`     | icon, manifest, tile and video requests per navigation, by headers and worker           | the origin's request log, worker log    | `scripts/measure/link-assets.ts`     |
-| `image-crawl`     | image, video and iframe bytes per first view, WebP arms with SSIM, lazy loading         | Chromium DevTools, tinyimg, canvas SSIM | `scripts/measure/image-crawl.ts`     |
-| `dictionary-size` | stylesheet and script bytes per first view against a dictionary, four ways to choose it | node:zlib zstd and brotli, brotli CLI   | `scripts/measure/dictionary-size.ts` |
+| rig               | measures                                                                                                       | instrument                                | script                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------ |
+| `repeat-nav`      | bytes and requests of cold, warm and repeat views on 16 public sites                                           | Chromium DevTools Protocol                | `scripts/measure/repeat-nav.ts`      |
+| `on-wire`         | the same navigations, with the requests and bytes a proxy saw reach the origin                                 | a counting proxy and Chromium DevTools    | `scripts/measure/on-wire.ts`         |
+| `zero-network`    | server hits per service-worker navigation in Chromium, Firefox and WebKit                                      | the origin's request log                  | `scripts/measure/zero-network.ts`    |
+| `device-cpu`      | browser CPU per navigation, HTTP revalidation vs a service-worker render                                       | process CPU time (a proxy, not joules)    | `scripts/measure/device-cpu.ts`      |
+| `rapl`            | package joules on a desktop CPU, by experiment                                                                 | RAPL energy counters, a sampled GPU       | `scripts/measure/rapl.ts`            |
+| `iphone`          | phone joules per view, back to back and paced; service-worker lifetime                                         | the battery gauge's accumulated energy    | `scripts/measure/iphone.ts`          |
+| `payload`         | compressed bytes of a page, its shared shell, its unique part and its node data                                | plain GETs, gzip, brotli, zstd            | `scripts/measure/payload.ts`         |
+| `trim`            | CSS and JS used per page, new aggregate bytes, markup classes, bytes by class                                  | Chromium coverage and DevTools, zstd      | `scripts/measure/trim.ts`            |
+| `link-assets`     | icon, manifest, tile and video requests per navigation, by headers and worker                                  | the origin's request log, worker log      | `scripts/measure/link-assets.ts`     |
+| `image-crawl`     | image, video and iframe bytes per first view, WebP arms with SSIM, lazy loading                                | Chromium DevTools, tinyimg, canvas SSIM   | `scripts/measure/image-crawl.ts`     |
+| `dictionary-size` | stylesheet and script bytes per first view against a dictionary, four ways to choose it                        | node:zlib zstd and brotli, brotli CLI     | `scripts/measure/dictionary-size.ts` |
+| `nav-replay`      | accuracy and net joules of seven provisioning arms replayed on public page-category sequences                  | replay of a public dataset (UCI 133)      | `scripts/measure/nav-replay.ts`      |
+| `first-payload`   | requests and bytes from a first controlled visit to the first local view, artifact fetched, derived or inlined | request log and HTTP text sizes, Chromium | `scripts/measure/first-payload.ts`   |
+| `embed-markup`    | embed iframes, videos and provider scripts in the server-rendered markup of 60 sites                           | plain HTTP GETs and a tag tokenizer       | `scripts/measure/embed-markup.ts`    |
 
 The `rapl` experiments are `views` (optimized caching, spool and shipping headers), `compute-server`
 (recompute against a cache, per request), `compute-browser` (the same in Chromium), `projection`
