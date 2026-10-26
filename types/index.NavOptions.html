@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">NavOptions</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#alpha">alpha</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#backoff">backoff</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#halflife">halfLife</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxcontexts">maxContexts</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxnext">maxNext</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#order">order</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">1</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">2</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#prior">prior</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L4">src/protocol/navigation.ts:4</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L4">src/protocol/navigation.ts:4</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -41,49 +41,49 @@
 <div class="tsd-comment tsd-typography"><p>pseudo-observations that pull each row toward its prior</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L10">src/protocol/navigation.ts:10</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L10">src/protocol/navigation.ts:10</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="backoff"><code class="tsd-tag">Optional</code><span>backoff</span><a href="#backoff" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">backoff</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the two-pattern row weighs n / (n + backoff) against the one-pattern row, n being its observations</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L12">src/protocol/navigation.ts:12</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L12">src/protocol/navigation.ts:12</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="halflife"><code class="tsd-tag">Optional</code><span>half<wbr/>Life</span><a href="#halflife" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">halfLife</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>observations until a count has lost half its weight; <code>Infinity</code> turns decay off</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L8">src/protocol/navigation.ts:8</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L8">src/protocol/navigation.ts:8</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxcontexts"><code class="tsd-tag">Optional</code><span>max<wbr/>Contexts</span><a href="#maxcontexts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxContexts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>contexts kept in each table</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L16">src/protocol/navigation.ts:16</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L16">src/protocol/navigation.ts:16</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxnext"><code class="tsd-tag">Optional</code><span>max<wbr/>Next</span><a href="#maxnext" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxNext</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>next routes kept per context</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L18">src/protocol/navigation.ts:18</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L18">src/protocol/navigation.ts:18</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="order"><code class="tsd-tag">Optional</code><span>order</span><a href="#order" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">order</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">1</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">2</span></div>
 <div class="tsd-comment tsd-typography"><p>1 predicts from the last route pattern; 2 uses the last two and backs off to 1</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L6">src/protocol/navigation.ts:6</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L6">src/protocol/navigation.ts:6</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="prior"><code class="tsd-tag">Optional</code><span>prior</span><a href="#prior" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">prior</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>counts per one-pattern context, as a population or a public corpus would give them</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/navigation.ts#L14">src/protocol/navigation.ts:14</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/de3f313229688a78df1e47e96595d4756b82faa0/src/protocol/navigation.ts#L14">src/protocol/navigation.ts:14</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
