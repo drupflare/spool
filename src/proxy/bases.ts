@@ -11,6 +11,14 @@ export type BaseCandidate = {
 /** compressed size of `file` against `dictionary`, both indexes into the candidate list */
 export type DeltaSize = (file: number, dictionary: number) => number | Promise<number>;
 
+/**
+ * What a candidate base is scored on. `held` counts what the other files cost against it, for a
+ * visitor who already holds the base. `first-visit` adds the base's own plain size, for a visitor
+ * who loads every file of the group and has not held it. Neither weighs how often each file is
+ * requested or how long a browser keeps the base, so neither is a proven minimum of total transfer.
+ */
+export type BasePolicy = 'held' | 'first-visit';
+
 export type BaseChoice = {
 	/** whether the base is a stylesheet or a script */
 	kind: 'style' | 'script';
@@ -34,35 +42,43 @@ const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /**
  * The member of `members` that minimizes the sum, over the other members, of the smaller of their
- * delta against it and their plain size. Ties keep the member listed first.
+ * delta against it and their plain size, plus the member's own plain size under `first-visit`.
+ * Ties keep the member listed first. `score` is the minimized sum and `others` its part without the
+ * base's own size.
  */
 export function pickBase(
 	members: readonly number[],
 	delta: (file: number, dictionary: number) => number,
-	plain: (file: number) => number
-): { best: number; score: number } {
+	plain: (file: number) => number,
+	policy: BasePolicy = 'held'
+): { best: number; score: number; others: number } {
 	let best = -1;
 	let bestScore = Infinity;
+	let bestOthers = Infinity;
 	for (const c of members) {
-		let score = 0;
+		let others = 0;
 		for (const f of members) {
-			if (f !== c) score += Math.min(delta(f, c), plain(f));
+			if (f !== c) others += Math.min(delta(f, c), plain(f));
 		}
+		const score = policy === 'first-visit' ? others + plain(c) : others;
 		if (score < bestScore) {
 			best = c;
 			bestScore = score;
+			bestOthers = others;
 		}
 	}
-	return { best, score: bestScore };
+	return { best, score: bestScore, others: bestOthers };
 }
 
 /**
- * One base per directory and kind. Members are ordered by URL before scoring, so a tie goes to the
- * URL that sorts first whatever the input order. A group of one file has no base.
+ * One base per directory and kind, scored by `policy` (default `held`). Members are ordered by URL
+ * before scoring, so a tie goes to the URL that sorts first whatever the input order. A group of
+ * one file has no base.
  */
 export async function chooseBases(
 	files: readonly BaseCandidate[],
-	delta: DeltaSize
+	delta: DeltaSize,
+	options: { policy?: BasePolicy } = {}
 ): Promise<BaseChoice[]> {
 	const at = (i: number) => files[i] as BaseCandidate;
 	const groups = new Map<string, number[]>();
@@ -82,10 +98,11 @@ export async function chooseBases(
 				if (f !== c) sizes.set(`${f}|${c}`, await delta(f, c));
 			}
 		}
-		const { best, score } = pickBase(
+		const { best, others } = pickBase(
 			sorted,
 			(f, c) => sizes.get(`${f}|${c}`) as number,
-			(f) => at(f).plain
+			(f) => at(f).plain,
+			options.policy
 		);
 		const { kind, url } = at(best);
 		choices.push({
@@ -93,7 +110,7 @@ export async function chooseBases(
 			directory: dirOf(url),
 			url,
 			files: sorted.length,
-			meanDelta: score / (sorted.length - 1)
+			meanDelta: others / (sorted.length - 1)
 		});
 	}
 	return choices.sort((a, b) => compare(a.directory, b.directory) || compare(a.kind, b.kind));

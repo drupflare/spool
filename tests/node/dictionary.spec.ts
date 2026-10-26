@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { zstdCompressSync, zstdDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { ProtocolError } from '../../src/protocol/index';
+import { pickBase } from '../../src/proxy/bases';
 import {
 	baseMatcher,
 	chooseBases,
@@ -463,6 +464,32 @@ describe('choosing bases from a crawl', () => {
 			{ kind: 'style', directory: '/css/', url: `${HOST}/css/a.css`, files: 3, meanDelta: 30 }
 		]);
 		expect(await chooseBases([...files].reverse(), flat)).toEqual(forward);
+	});
+
+	it('scores a base by the others alone under held and adds its own size under first-visit', async () => {
+		const files = [
+			candidate('/css/a.css', 'style', 50),
+			candidate('/css/b.css', 'style', 500),
+			candidate('/css/c.css', 'style', 300)
+		];
+		const delta = (_file: number, dictionary: number) => [10, 5, 20][dictionary] as number;
+		expect(await chooseBases(files, delta)).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/b.css`, files: 3, meanDelta: 5 }
+		]);
+		expect(await chooseBases(files, delta, { policy: 'held' })).toEqual(
+			await chooseBases(files, delta)
+		);
+		expect(await chooseBases(files, delta, { policy: 'first-visit' })).toEqual([
+			{ kind: 'style', directory: '/css/', url: `${HOST}/css/a.css`, files: 3, meanDelta: 10 }
+		]);
+		const members = [0, 1, 2];
+		const plain = (f: number) => (files[f] as BaseCandidate).plain;
+		expect(pickBase(members, delta, plain)).toEqual({ best: 1, score: 10, others: 10 });
+		expect(pickBase(members, delta, plain, 'first-visit')).toEqual({
+			best: 0,
+			score: 70,
+			others: 20
+		});
 	});
 
 	it('gives each directory and kind its own choice, sorted, and no base to a lone file', async () => {
