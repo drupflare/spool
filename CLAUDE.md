@@ -36,8 +36,19 @@ integration on `@drupflare/spool ^0.2.0` for eligible public traffic: a request 
 `Authorization` header bypasses spool, so the authenticated `cfw_page` and fragment integration is a
 separate capability that does not exist yet. spool is on by default for paid sites (the `SPOOL`
 lever overrides it), and its `images`, `video` and `embeds` features are on once it is; its six
-pass conditions are not re-verified. Not built yet: the capacity and institution reports (P8).
-v0.2.0 is released; v0.3 is planned in `~/.claude/plans/review-the-updated-plan-idempotent-hamming.md`.
+pass conditions are not re-verified.
+
+**v0.3 is built** (`package.json` 0.3.0, not tagged; v0.2.0 is released). It adds the first-payload
+artifact kept from the navigation response (`h` in `Spool-Artifact`; `inlineMaxBytes` is off by
+default), `query` schemas on public routes, `catalogueConfidence`, `chooseBases` (policies `held`
+and `first-visit`, neither a proven minimum of transfer), `window.spool.activity`, and the capacity,
+institution and channel reports in `src/report` (P8; no retirement is demonstrated). Closed with
+the objective still open: the device-local learner, HTML decomposition, the image variant policy,
+new embed providers and the persistent shell; `.remember/SPOOL_PLAN.md` has the readings. The
+package version is the worker's runtime version: a different one empties a worker's replica and
+asset caches, so a release that changes stored shapes needs a new `package.json` version, and
+`tests/browser/upgrade.pw.ts` checks v0.2 against v0.3 in both directions (it needs the `v0.2.0`
+tag).
 
 ## Load-bearing facts, each measured
 

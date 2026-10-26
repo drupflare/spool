@@ -1776,8 +1776,12 @@ every other file of the directory is encoded against the base the request names.
 `chooseBases` picks the bases from a crawl. It takes the site's stylesheets and scripts with their
 compressed sizes and a `delta` function that returns the size of one file compressed against
 another. For each directory and file kind it returns the file whose deltas against the others, each
-capped at the other file's plain size, add up smallest. A directory with one file has no base, and a
-tie goes to the URL that sorts first. `baseMatcher` turns the choices into a `base` function.
+capped at the other file's plain size, add up smallest. That `held` policy scores a base for a
+visitor who already holds it. Pass `{ policy: 'first-visit' }` to add the base's own plain size
+to the sum, for visitors who load the whole group before they hold anything. Neither policy
+weighs how often a file is requested or how long browsers keep the base, so neither is a proven
+minimum of total transfer. A directory with one file has no base, and a tie goes to the URL that
+sorts first. `baseMatcher` turns the choices into a `base` function.
 
 ```ts
 import { promisify } from 'node:util';
