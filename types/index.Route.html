@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Route | @drupflare/spool - v0.2.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.2.0</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Route | @drupflare/spool - v0.3.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.3.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">Route</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#catalogue">catalogue</a><span class="tsd-signature-symbol">?:</span> <a href="index.RouteCommon.html" class="tsd-signature-type tsd-kind-type-alias">RouteCommon</a><span class="tsd-signature-symbol">[</span><a href="index.RouteCommon.html#catalogue"><span class="tsd-signature-type">&quot;catalogue&quot;</span></a><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#contenttype">contentType</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#documentbytes">documentBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#freshness">freshness</a><span class="tsd-signature-symbol">:</span> <a href="index.Freshness.html" class="tsd-signature-type tsd-kind-type-alias">Freshness</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#mode">mode</a><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#offline">offline</a><span class="tsd-signature-symbol">:</span> <a href="index.OfflineRule.html" class="tsd-signature-type tsd-kind-type-alias">OfflineRule</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#pattern">pattern</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#persist">persist</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#provision">provision</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">futureViews</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reuse</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#query">query</a><span class="tsd-signature-symbol">?:</span> <a href="index.QuerySchema.html" class="tsd-signature-type tsd-kind-type-alias">QuerySchema</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#retention">retention</a><span class="tsd-signature-symbol">?:</span> <a href="index.Retention.html" class="tsd-signature-type tsd-kind-type-alias">Retention</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#scope">scope</a><span class="tsd-signature-symbol">:</span> <a href="index.Scope.html" class="tsd-signature-type tsd-kind-type-alias">Scope</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#strategy">strategy</a><span class="tsd-signature-symbol">:</span> <a href="index.Strategy.html" class="tsd-signature-type tsd-kind-type-alias">Strategy</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sync">sync</a><span class="tsd-signature-symbol">:</span> <a href="index.SyncRule.html" class="tsd-signature-type tsd-kind-type-alias">SyncRule</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#template">template</a><span class="tsd-signature-symbol">?:</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#depends-1">depends</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#load-1">load</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L195">src/protocol/route.ts:195</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L195">src/protocol/route.ts:195</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -62,7 +62,7 @@
 <li><span><span class="tsd-kind-parameter">ctx</span>: <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L232">src/protocol/route.ts:232</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L232">src/protocol/route.ts:232</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="load"><span>load</span><a href="#load" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -77,7 +77,7 @@
 <li><span><span class="tsd-kind-parameter">ctx</span>: <a href="index.RouteContext.html" class="tsd-signature-type tsd-kind-type-alias">RouteContext</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">unknown</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L234">src/protocol/route.ts:234</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L234">src/protocol/route.ts:234</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -87,56 +87,56 @@
 <div class="tsd-comment tsd-typography"><p>the route's catalogue function, when it declares one</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L226">src/protocol/route.ts:226</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L226">src/protocol/route.ts:226</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="contenttype"><code class="tsd-tag">Optional</code><span>content<wbr/>Type</span><a href="#contenttype" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">contentType</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>content type of a data route's local answer</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L215">src/protocol/route.ts:215</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L215">src/protocol/route.ts:215</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="documentbytes"><code class="tsd-tag">Optional</code><span>document<wbr/>Bytes</span><a href="#documentbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">documentBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>compressed bytes of the document the route renders</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L228">src/protocol/route.ts:228</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L228">src/protocol/route.ts:228</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="freshness"><span>freshness</span><a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">freshness</span><span class="tsd-signature-symbol">:</span> <a href="index.Freshness.html" class="tsd-signature-type tsd-kind-type-alias">Freshness</a></div>
 <div class="tsd-comment tsd-typography"><p>the staleness contract with every default applied</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L203">src/protocol/route.ts:203</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L203">src/protocol/route.ts:203</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="mode"><code class="tsd-tag">Optional</code><span>mode</span><a href="#mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">mode</span><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a></div>
 <div class="tsd-comment tsd-typography"><p>serve or shadow; absent means the server decides</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L209">src/protocol/route.ts:209</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L209">src/protocol/route.ts:209</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="offline"><span>offline</span><a href="#offline" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">offline</span><span class="tsd-signature-symbol">:</span> <a href="index.OfflineRule.html" class="tsd-signature-type tsd-kind-type-alias">OfflineRule</a></div>
 <div class="tsd-comment tsd-typography"><p>whether a snapshot may be shown while offline, after the default</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L207">src/protocol/route.ts:207</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L207">src/protocol/route.ts:207</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="pattern"><span>pattern</span><a href="#pattern" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">pattern</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>the path pattern the route matches</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L197">src/protocol/route.ts:197</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L197">src/protocol/route.ts:197</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="persist"><span>persist</span><a href="#persist" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">persist</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>whether the artifact survives a worker restart; true by default</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L205">src/protocol/route.ts:205</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L205">src/protocol/route.ts:205</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="provision"><code class="tsd-tag">Optional</code><span>provision</span><a href="#provision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">provision</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">futureViews</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reuse</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
@@ -154,49 +154,49 @@
 <div class="tsd-comment tsd-typography"><p>chance a provisioned artifact serves a later view; the server's prior when absent</p>
 </div></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L217">src/protocol/route.ts:217</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L217">src/protocol/route.ts:217</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="query"><code class="tsd-tag">Optional</code><span>query</span><a href="#query" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">query</span><span class="tsd-signature-symbol">?:</span> <a href="index.QuerySchema.html" class="tsd-signature-type tsd-kind-type-alias">QuerySchema</a></div>
 <div class="tsd-comment tsd-typography"><p>query strings the worker answers from the stored collection</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L230">src/protocol/route.ts:230</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L230">src/protocol/route.ts:230</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="retention"><code class="tsd-tag">Optional</code><span>retention</span><a href="#retention" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">retention</span><span class="tsd-signature-symbol">?:</span> <a href="index.Retention.html" class="tsd-signature-type tsd-kind-type-alias">Retention</a></div>
 <div class="tsd-comment tsd-typography"><p>at-rest key lifetime; set only on principal routes</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L213">src/protocol/route.ts:213</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L213">src/protocol/route.ts:213</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="scope"><span>scope</span><a href="#scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">scope</span><span class="tsd-signature-symbol">:</span> <a href="index.Scope.html" class="tsd-signature-type tsd-kind-type-alias">Scope</a></div>
 <div class="tsd-comment tsd-typography"><p>public or principal, after the default</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L201">src/protocol/route.ts:201</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L201">src/protocol/route.ts:201</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="strategy"><span>strategy</span><a href="#strategy" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">strategy</span><span class="tsd-signature-symbol">:</span> <a href="index.Strategy.html" class="tsd-signature-type tsd-kind-type-alias">Strategy</a></div>
 <div class="tsd-comment tsd-typography"><p>how the route is answered locally</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L199">src/protocol/route.ts:199</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L199">src/protocol/route.ts:199</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sync"><span>sync</span><a href="#sync" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">sync</span><span class="tsd-signature-symbol">:</span> <a href="index.SyncRule.html" class="tsd-signature-type tsd-kind-type-alias">SyncRule</a></div>
 <div class="tsd-comment tsd-typography"><p>when a soft route past its bound refreshes</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L211">src/protocol/route.ts:211</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L211">src/protocol/route.ts:211</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="template"><code class="tsd-tag">Optional</code><span>template</span><a href="#template" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">template</span><span class="tsd-signature-symbol">?:</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a></div>
 <div class="tsd-comment tsd-typography"><p>the compiled template of a template route</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/ca0b07ccf806a5263bffc15dcfb6445fd3919356/src/protocol/route.ts#L224">src/protocol/route.ts:224</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/9f8654fcf5aeeccfc8f5880a64ce6864eba64749/src/protocol/route.ts#L224">src/protocol/route.ts:224</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -217,7 +217,7 @@
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
 <div><a href="#catalogue"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>catalogue</span></a><a href="#contenttype"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>content<wbr/>Type</span></a><a href="#documentbytes"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>document<wbr/>Bytes</span></a><a href="#freshness"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>freshness</span></a><a href="#mode"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>mode</span></a><a href="#offline"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>offline</span></a><a href="#pattern"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>pattern</span></a><a href="#persist"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>persist</span></a><a href="#provision"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>provision</span></a><a href="#query"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>query</span></a><a href="#retention"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>retention</span></a><a href="#scope"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>scope</span></a><a href="#strategy"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>strategy</span></a><a href="#sync"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>sync</span></a><a href="#template"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>template</span></a></div></details></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.2.0</a>
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.3.0</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
