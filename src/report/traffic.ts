@@ -338,9 +338,24 @@ export function transitions(views: readonly TimedView[]): Transitions {
 	return { pairs: sorted, byFrom };
 }
 
-/** the share of views from `from` that went to each route, in route order; empty when none came from it */
-export function nextShare(views: readonly TimedView[], from: string): Record<string, number> {
-	const { pairs, byFrom } = transitions(views);
+/** a view of a page the device did not hold: a network view of a cold route, or a catalogue entry's first open */
+const isFirstView = (view: TimedView) => view.reason === 'cold' || view.reason === 'catalogue';
+
+/**
+ * The share of views from `from` that went to each route, in route order; empty when none came from
+ * it. With `first`, only a first view of the route counts toward its share, over every view from
+ * `from`. A catalogue entry saves only a first view, so that share is the one to rank entries by:
+ * the share over all views counts returning visits and, in a replay of 989,818 public visitors,
+ * ran 1.5 to 7 times the observed chance of a first view in the bins that decide an entry
+ * (`measurements/nav-replay`).
+ */
+export function nextShare(
+	views: readonly TimedView[],
+	from: string,
+	options: { first?: boolean } = {}
+): Record<string, number> {
+	const { byFrom } = transitions(views);
+	const { pairs } = options.first ? transitions(views.filter(isFirstView)) : transitions(views);
 	const total = byFrom[from];
 	const out: Record<string, number> = {};
 	if (!total) return out;

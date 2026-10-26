@@ -12,7 +12,10 @@ export const RIGS = [
 	'trim',
 	'link-assets',
 	'image-crawl',
-	'dictionary-size'
+	'dictionary-size',
+	'nav-replay',
+	'first-payload',
+	'embed-markup'
 ] as const;
 
 /** one of {@link RIGS} */

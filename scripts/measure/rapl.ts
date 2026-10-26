@@ -4,6 +4,7 @@ import http from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { openHiddenBrowser } from './cdp-hidden.ts';
 import {
 	MEASUREMENTS_DIR,
 	counterDelta,
@@ -24,6 +25,7 @@ import {
 	ACTIVITY_ARMS,
 	DECODE_METHODS,
 	DECODE_VARIANTS,
+	HIDDEN_ARMS,
 	fileFor,
 	loadTinyimg,
 	readSet,
@@ -43,7 +45,8 @@ export const EXPERIMENTS = [
 	'image-decode',
 	'image-encode',
 	'dictionary-load',
-	'idle-activity'
+	'idle-activity',
+	'idle-activity-hidden'
 ] as const;
 
 export type Experiment = (typeof EXPERIMENTS)[number];
@@ -112,7 +115,8 @@ const DEFAULT_ROUNDS: Record<Experiment, number> = {
 	'image-decode': 6,
 	'image-encode': 6,
 	'dictionary-load': 6,
-	'idle-activity': 4
+	'idle-activity': 4,
+	'idle-activity-hidden': 8
 };
 
 export function parse(argv: string[]) {
@@ -708,19 +712,99 @@ export async function mediaOrigin(env: Record<string, string> = {}): Promise<Chi
 
 const mediaStats = async () => stats(MEDIA_PORT);
 
-/** package joules per minute for a visible page that is quiet, polls once a second, or runs a requestAnimationFrame loop */
+/** the window order of one round: an idle window before the first arm, after every second arm and after the last */
+export function activitySchedule(arms: readonly string[]): string[] {
+	return [
+		'idle',
+		...arms.flatMap((arm, i) => (i % 2 === 1 || i === arms.length - 1 ? [arm, 'idle'] : [arm]))
+	];
+}
+
+/** package joules per minute for each activity arm, every page visible */
 async function runIdleActivity(config: Config, meter: Meter) {
 	const origin = await mediaOrigin();
+	try {
+		const client = await fetch(`http://127.0.0.1:${MEDIA_PORT}/client.js`);
+		if (!client.ok)
+			throw new Error('the origin has no /client.js; run bun run build:cdn first');
+		await idleActivityRounds(config, meter);
+	} finally {
+		origin.kill();
+	}
+}
+
+/**
+ * package joules per minute for a quiet page and a poller with and without the pause hook, each in
+ * a tab behind another one, in a headed Chromium under a virtual display and driven over raw CDP
+ */
+async function runIdleActivityHidden(config: Config, meter: Meter) {
+	const { chromium } = await import('playwright');
+	const origin = await mediaOrigin();
+	try {
+		const base = `http://127.0.0.1:${MEDIA_PORT}`;
+		const client = await fetch(`${base}/client.js`);
+		if (!client.ok)
+			throw new Error('the origin has no /client.js; run bun run build:cdn first');
+		for (let round = 0; round < config.rounds; round++) {
+			for (const name of activitySchedule(rotate([...HIDDEN_ARMS], round))) {
+				if (name === 'idle') {
+					await idleWindow(meter, config, round);
+					continue;
+				}
+				const browser = await openHiddenBrowser(
+					chromium.executablePath(),
+					`${base}/${name}`
+				);
+				try {
+					await browser.hideFirstTab();
+					await sleep(8000);
+					const o0 = await mediaStats();
+					const c0 = await browser.evaluate<number>('window.__count');
+					const w = await meter.window(() => sleep(config.windowS * 1000));
+					const c1 = await browser.evaluate<number>('window.__count');
+					const o1 = await mediaStats();
+					const visibility = await browser.visibility();
+					if (visibility !== 'hidden') {
+						throw new Error(
+							`${name} in round ${round} ended ${visibility}, not hidden`
+						);
+					}
+					emit(config, {
+						arm: name,
+						round,
+						n: 0,
+						windowS: config.windowS,
+						elapsedMs: w.elapsedMs,
+						pkgJ: w.pkgJ,
+						load0: w.load0,
+						load1: w.load1,
+						pageEvents: c1 - c0,
+						originPings: o1.ping - o0.ping,
+						originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+						visibility,
+						otherCpuMs: w.others
+					});
+				} finally {
+					await browser.close();
+				}
+			}
+		}
+	} finally {
+		origin.kill();
+	}
+}
+
+async function idleActivityRounds(config: Config, meter: Meter) {
 	const base = `http://127.0.0.1:${MEDIA_PORT}`;
 	for (let round = 0; round < config.rounds; round++) {
-		const arms = rotate([...ACTIVITY_ARMS], round);
-		for (const name of ['idle', arms[0], arms[1], 'idle', arms[2], 'idle']) {
+		for (const name of activitySchedule(rotate([...ACTIVITY_ARMS], round))) {
 			if (name === 'idle') {
 				await idleWindow(meter, config, round);
 				continue;
 			}
 			const browser = await launch();
-			const page: Page = await (await browser.newContext()).newPage();
+			const context = await browser.newContext();
+			const page: Page = await context.newPage();
 			await page.goto(`${base}/${name}`);
 			await page.waitForTimeout(8000);
 			const o0 = await mediaStats();
@@ -729,6 +813,10 @@ async function runIdleActivity(config: Config, meter: Meter) {
 			const c1 = (await page.evaluate(() => (window as any).__count)) as number;
 			const o1 = await mediaStats();
 			const visibility = await page.evaluate(() => document.visibilityState);
+			if (visibility !== 'visible') {
+				await browser.close();
+				throw new Error(`${name} in round ${round} ended ${visibility}, not visible`);
+			}
 			emit(config, {
 				arm: name,
 				round,
@@ -747,7 +835,6 @@ async function runIdleActivity(config: Config, meter: Meter) {
 			await browser.close();
 		}
 	}
-	origin.kill();
 }
 
 /** package joules per image converted by tinyimg in Node on one busy thread, with the module loaded (warm) or loaded in a fresh process per pass (cold) */
@@ -1462,24 +1549,63 @@ export function publishDraft(
 		return {
 			...base,
 			question:
-				'package joules per minute for a visible page in headless Chromium that is quiet, one that polls a local endpoint once a second, and one that runs a requestAnimationFrame loop',
+				'package joules per minute in headless Chromium for quiet, polling and requestAnimationFrame pages, and for a loop off screen with and without a pause hook',
 			machine,
 			software: { browser: CHROMIUM, origin: 'Node http server in the same container' },
 			method: {
 				arms: {
 					quiet: 'a static page with no timers',
 					poll: 'setInterval every 1000 ms, fetch() of a 204 endpoint',
-					raf: 'a requestAnimationFrame loop that moves a composited 80 px box'
+					raf: 'a requestAnimationFrame loop that moves a composited 80 px box',
+					'raf-off-plain':
+						'the raf loop with its box at top 3000 px, off screen in a 900 px viewport',
+					'raf-off-hook':
+						'raf-off-plain plus the page runtime, which cancels the frame while the box is off screen'
 				},
 				'window s': meta.windowS,
 				rounds: meta.rounds,
 				'idle window s': meta.idleS,
 				'idle windows':
-					'three per round (start, middle, end), no browser running; the drift between them is in the rows',
+					'four per round, no browser running; the drift between them is in the rows',
 				'arm order':
-					'rotated per round, an idle window before the first arm, between the second and third, and after the last',
+					'rotated per round; an idle window before the first arm, after every second arm and after the last',
 				settle: 'the page loaded, then 8 s before the window opens',
-				visibility: 'every row records document.visibilityState at the end of its window'
+				visibility:
+					"every row records document.visibilityState at the end of its window and a row that is not visible stops the run. A hidden-page arm is not run: no headless Chromium launch mode reports a backgrounded page as hidden (probe 2026-10-25, three modes), so the hook's hidden-time pause is covered by contract tests in three engines and has no power reading"
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'idle-activity-hidden') {
+		return {
+			...base,
+			question:
+				'package joules per minute in a headed Chromium under a virtual display for a quiet page and a polling page, each in a tab behind another tab, with and without the page runtime pausing the poll',
+			machine,
+			software: {
+				browser: CHROMIUM,
+				display: 'Xvfb through xvfb-run, no window manager',
+				driver: 'raw CDP over a WebSocket (no Playwright, which turns on focus emulation and makes every tab report visible)',
+				origin: 'Node http server in the same container'
+			},
+			method: {
+				arms: {
+					'quiet-hidden': 'a static page with no timers, in a tab behind another',
+					'poll-hidden-plain':
+						'setInterval every 1000 ms with a fetch() of a 204 endpoint, in a tab behind another',
+					'poll-hidden-hook':
+						'poll-hidden-plain plus the page runtime, which clears the interval once the page has been hidden for 1000 ms'
+				},
+				'window s': meta.windowS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows':
+					'three or four per round, no browser running; the drift between them is in the rows',
+				'arm order':
+					'rotated per round; an idle window before the first arm, after every second arm and after the last',
+				settle: 'the page loaded, a second tab opened and brought to the front, then 8 s before the window opens',
+				visibility:
+					'every row records document.visibilityState of the first tab at the end of its window, and a row that is not hidden stops the run'
 			},
 			rows: raw.map((r) => stripRow(r))
 		};
@@ -1762,7 +1888,8 @@ if (isMain(import.meta.url)) {
 			'image-decode': runImageDecode,
 			'image-encode': runImageEncode,
 			'dictionary-load': runDictionaryLoad,
-			'idle-activity': runIdleActivity
+			'idle-activity': runIdleActivity,
+			'idle-activity-hidden': runIdleActivityHidden
 		};
 		await runs[config.experiment](config, meter);
 		writeFileSync(`${config.raw}.DONE`, new Date().toISOString());

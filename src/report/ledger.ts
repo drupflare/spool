@@ -428,6 +428,52 @@ export function activityFigures(rows: readonly Row[], limit = CONTAMINATION_MS_P
 	return { idleWatts, noisyRounds: noisy.sort((a, b) => a - b), counts, arms };
 }
 
+/** a page with a pause hook, the same page without it, and the quiet page of the same setup */
+export type ActivityPair = { plain: string; hook: string; quiet: string };
+
+/** the two pairs the rig measures: a loop off screen in a visible page, and a poll in a hidden tab */
+export const ACTIVITY_PAIRS: readonly ActivityPair[] = [
+	{ plain: 'raf-off-plain', hook: 'raf-off-hook', quiet: 'quiet' },
+	{ plain: 'poll-hidden-plain', hook: 'poll-hidden-hook', quiet: 'quiet-hidden' }
+];
+
+/** what a pause hook did for one pair, in watts */
+export type ActivityGain = {
+	pair: ActivityPair;
+	/** the same page without the hook less with it, over the arm medians; the range sets each page's extreme against the other's opposite */
+	saved: { median: number; min: number; max: number };
+	/** what the page with the hook still draws above the quiet page */
+	residual: number;
+};
+
+/**
+ * Per pair, the watts a hook removes from the page it is on (the gain), and the watts that page
+ * still draws above a quiet one (the residual). A pair with an arm that has no kept window is left
+ * out. The quiet arm is not the baseline of the gain: a quiet page is where a perfect hook would end.
+ */
+export function activityGains(
+	arms: Readonly<Record<string, { extraWatts: Spread } | null | undefined>>,
+	pairs: readonly ActivityPair[] = ACTIVITY_PAIRS
+): ActivityGain[] {
+	return pairs.flatMap((pair) => {
+		const plain = arms[pair.plain]?.extraWatts;
+		const hook = arms[pair.hook]?.extraWatts;
+		const quiet = arms[pair.quiet]?.extraWatts;
+		if (!plain || !hook || !quiet) return [];
+		return [
+			{
+				pair,
+				saved: {
+					median: plain.median - hook.median,
+					min: plain.min - hook.max,
+					max: plain.max - hook.min
+				},
+				residual: hook.median - quiet.median
+			}
+		];
+	});
+}
+
 /** attributional joules for `bytes` (the same SWD v4 rate as the headline, no origin term: these are the same requests with fewer bytes) */
 export const ledgerJoules = (bytes: number): number => attributionalJoules(bytes);
 

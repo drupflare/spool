@@ -1,15 +1,20 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { brotliCompressSync, constants, zstdCompressSync } from 'node:zlib';
 
-/** the three pages of the idle-activity experiment, one arm each */
-export const ACTIVITY_ARMS = ['quiet', 'poll', 'raf'] as const;
+/** the pages of the idle-activity experiment, one arm each; the first three are the original arms */
+export const ACTIVITY_ARMS = ['quiet', 'poll', 'raf', 'raf-off-plain', 'raf-off-hook'] as const;
 
 export type ActivityArm = (typeof ACTIVITY_ARMS)[number];
+
+/** the pages of the idle-activity-hidden experiment: a quiet page, and a poller with and without the pause hook, each in a tab behind another */
+export const HIDDEN_ARMS = ['quiet-hidden', 'poll-hidden-plain', 'poll-hidden-hook'] as const;
+
+export type HiddenArm = (typeof HIDDEN_ARMS)[number];
 
 /** the decode arms: a file variant decoded by one method */
 export const DECODE_VARIANTS = ['original', 'native', 'resized'] as const;
@@ -75,18 +80,37 @@ type Options = {
 	port: number;
 	images?: string;
 	dictionary?: { dict: string; target: string };
+	client?: Buffer;
 };
+
+const OFF_SCREEN_BOX =
+	'<div id="box" style="position:absolute;top:3000px;left:0;width:80px;height:80px;background:#06c;will-change:transform"></div>';
 
 const html = (body: string, head = '') =>
 	`<!doctype html><meta charset="utf-8"><title>x</title>${head}<body>${body}</body>`;
 
-const ACTIVITY: Record<ActivityArm, string> = {
+const POLL_TICK = 'window.__count++;fetch("/ping")';
+
+const ACTIVITY: Record<ActivityArm | HiddenArm, string> = {
+	'quiet-hidden': html('<main id="m">quiet</main><script>window.__count=0</script>'),
+	'poll-hidden-plain': html(
+		`<main id="m">poll</main><script>window.__count=0;setInterval(()=>{${POLL_TICK}},1000)</script>`
+	),
+	'poll-hidden-hook': html(
+		`<main id="m">poll</main><script src="/client.js"></script><script>window.__count=0;let t=0;const start=()=>{t=setInterval(()=>{${POLL_TICK}},1000)};start();window.spool.activity.register({pause(){clearInterval(t)},resume(){start()}},{hiddenAfterMs:1000})</script>`
+	),
 	quiet: html('<main id="m">quiet</main><script>window.__count=0</script>'),
 	poll: html(
 		'<main id="m">poll</main><script>window.__count=0;setInterval(()=>fetch("/ping").then((r)=>r.text()).then(()=>{window.__count++}),1000)</script>'
 	),
 	raf: html(
 		'<div id="box" style="width:80px;height:80px;background:#06c;will-change:transform"></div><script>window.__count=0;const b=document.getElementById("box");function tick(t){window.__count++;b.style.transform="translateX("+((t/8)%300)+"px)";requestAnimationFrame(tick)}requestAnimationFrame(tick)</script>'
+	),
+	'raf-off-plain': html(
+		`${OFF_SCREEN_BOX}<script>window.__count=0;const b=document.getElementById("box");function tick(t){window.__count++;b.style.transform="translateX("+((t/8)%300)+"px)";requestAnimationFrame(tick)}requestAnimationFrame(tick)</script>`
+	),
+	'raf-off-hook': html(
+		`${OFF_SCREEN_BOX}<script src="/client.js"></script><script>window.__count=0;const b=document.getElementById("box");let h=0;function tick(t){window.__count++;b.style.transform="translateX("+((t/8)%300)+"px)";h=requestAnimationFrame(tick)}h=requestAnimationFrame(tick);window.spool.activity.register({pause(){cancelAnimationFrame(h)},resume(){h=requestAnimationFrame(tick)}},{target:b})</script>`
 	)
 };
 
@@ -127,8 +151,8 @@ window.decodeAll = async (method, widths, passes) => {
 );
 
 /**
- * One origin for the media experiments. `/quiet`, `/poll` and `/raf` are the idle-activity pages and
- * `/ping` answers the poller; `/decode` and `/img/<file>` serve the decode set; `/dict-page` links a
+ * One origin for the media experiments. The `ACTIVITY_ARMS` pages are the idle-activity pages, `/client.js`
+ * is the page runtime when `client` is given, and `/ping` answers the pollers; `/decode` and `/img/<file>` serve the decode set; `/dict-page` links a
  * dictionary stylesheet with `Use-As-Dictionary` and `/page?n=` links a target stylesheet that is sent
  * plain brotli to a request with no dictionary and `dcz` to one that names it. `/__stats` counts what
  * it saw.
@@ -178,6 +202,13 @@ export function startMediaOrigin(options: Options) {
 			stats.ping++;
 			res.writeHead(204, { 'cache-control': 'no-store' });
 			return void res.end();
+		}
+		if (path === '/client.js' && options.client) {
+			res.writeHead(200, {
+				'content-type': 'text/javascript; charset=utf-8',
+				'cache-control': 'no-store'
+			});
+			return void res.end(options.client);
 		}
 		const activity = ACTIVITY[path.slice(1) as ActivityArm];
 		if (activity) {
@@ -330,8 +361,11 @@ if (process.argv[1]?.endsWith('rapl-media.ts')) {
 	if (process.argv[2] === 'encode-child') {
 		await encodeChild(process.argv[3] as string, process.argv[4] as string);
 	} else {
+		const clientFile = join(dirname(import.meta.filename), '../../dist/cdn/client.js');
+		// the idle-activity rig checks /client.js itself, so the other experiments need no build
 		startMediaOrigin({
 			port: Number(process.env.PORT ?? 8961),
+			client: existsSync(clientFile) ? readFileSync(clientFile) : undefined,
 			images: process.env.IMAGES,
 			dictionary: process.env.DICT_FILE
 				? { dict: process.env.DICT_FILE, target: process.env.TARGET_FILE as string }

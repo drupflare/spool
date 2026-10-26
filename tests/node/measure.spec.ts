@@ -12,11 +12,17 @@ import { describe, expect, it } from 'vitest';
 import { parse as parseDeviceCpu, psCpuSeconds } from '../../scripts/measure/device-cpu';
 import {
 	plan as dictionaryPlan,
-	dirOf,
 	parse as parseDictionary,
 	planArms,
 	type Candidate
 } from '../../scripts/measure/dictionary-size';
+import {
+	EXTRA_SITES,
+	addressOf,
+	parse as parseEmbedMarkup,
+	parsePage,
+	pathShape
+} from '../../scripts/measure/embed-markup';
 import {
 	chooseSet,
 	exifOrientation,
@@ -60,6 +66,14 @@ import {
 	svgOf,
 	workerSource
 } from '../../scripts/measure/link-assets';
+import {
+	buildArms,
+	calibration,
+	parseSequences,
+	replay,
+	trainCounts,
+	type ArmResult
+} from '../../scripts/measure/nav-replay';
 import { parse as parseOnWire } from '../../scripts/measure/on-wire';
 import {
 	K_J_PER_B,
@@ -82,6 +96,7 @@ import {
 } from '../../scripts/measure/payload';
 import {
 	PAISLEY,
+	activitySchedule,
 	conditions,
 	inferenceRows,
 	mediaOrigin,
@@ -92,6 +107,7 @@ import {
 } from '../../scripts/measure/rapl';
 import {
 	ACTIVITY_ARMS,
+	HIDDEN_ARMS,
 	availableDictionary,
 	dczBody,
 	dczHeader,
@@ -124,8 +140,16 @@ import {
 } from '../../scripts/measure/wire-proxy';
 import { ARMS, parse as parseZeroNetwork } from '../../scripts/measure/zero-network';
 import type { TimedView } from '../../src/protocol/index';
+import { JOULES_PER_BYTE, ORIGIN_JOULES } from '../../src/protocol/provision';
+import { dirOf } from '../../src/proxy/bases';
 import { parseMeasurement, raplRun, type Measurement } from '../../src/report/index';
-import { activityFigures, dictionaryArms, windowCounts } from '../../src/report/ledger';
+import {
+	ACTIVITY_PAIRS,
+	activityFigures,
+	activityGains,
+	dictionaryArms,
+	windowCounts
+} from '../../src/report/ledger';
 
 const draft = (over: Partial<Draft> = {}): Draft => ({
 	rig: 'device-cpu',
@@ -707,6 +731,157 @@ describe('the counting proxy', () => {
 	});
 });
 
+describe('the embed-markup rig', () => {
+	const FIXTURE = [
+		'<!doctype html>',
+		'<html><head>',
+		'<script>var player = "kaltura"; // inline mention, twitter</script>',
+		'<script src="https://cdnapisec.kaltura.com/p/1770401/sp/embedIframeJs?foo=1"></script>',
+		'<script src="/local/app.js"></script>',
+		'</head><body>',
+		'<div class="hero-ambient" data-provider="wistia">twitter? no.</div>',
+		'<iframe class="hero-ambient__aggie-video" id="x" width="100" height="50" title="UC Davis"' +
+			' loading="lazy" sandbox="allow-scripts" allow="autoplay" allowfullscreen' +
+			' src="https://cdnapisec.kaltura.com/p/1770401/embedIframeJs/uiconf_id/52186791' +
+			'?iframeembed=true&amp;entry_id=1_abcdef12&amp;wid=1_9xyz"></iframe>',
+		'<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?start=10&list=PL1"></iframe>',
+		'<iframe srcdoc="<p>hi</p>" class="embed"></iframe>',
+		'<video autoplay muted loop playsinline poster="p.jpg">',
+		'<source src="https://cfvod.kaltura.com/a.mp4" type="video/mp4">',
+		'<source src="/fallback.webm"></video>',
+		'<noscript><iframe src="https://player.vimeo.com/video/123456789?secret=s3cr3t"></iframe>',
+		'</noscript>',
+		'<!-- <iframe src="https://www.example.org/hidden?token=zz"></iframe> -->',
+		'<span data-embed="tagboard">x</span>',
+		'</body></html>'
+	].join('\n');
+
+	it('reads iframes, videos, scripts and provider names from server-rendered markup', () => {
+		const facts = parsePage(FIXTURE);
+		expect(facts.iframes).toEqual([
+			{
+				host: 'cdnapisec.kaltura.com',
+				path: '/p/:id/embedIframeJs/uiconf_id/:id',
+				params: ['entry_id', 'iframeembed', 'wid'],
+				attrs: [
+					'width',
+					'height',
+					'title',
+					'loading',
+					'sandbox',
+					'allow',
+					'allowfullscreen',
+					'class'
+				],
+				hero: true
+			},
+			{
+				host: 'www.youtube.com',
+				path: '/embed/:id',
+				params: ['list', 'start'],
+				attrs: [],
+				hero: false
+			},
+			{ host: '(none)', path: null, params: [], attrs: ['srcdoc', 'class'], hero: false }
+		]);
+		expect(facts.videos).toEqual([
+			{
+				autoplay: true,
+				muted: true,
+				loop: true,
+				controls: false,
+				preload: false,
+				poster: true,
+				srcHost: null,
+				sourceHosts: ['cfvod.kaltura.com', '(relative)']
+			}
+		]);
+		expect(facts.scripts).toEqual([{ host: 'cdnapisec.kaltura.com', provider: 'kaltura' }]);
+		expect(facts.inline).toEqual({ kaltura: 1, twitter: 1 });
+		expect(facts.data).toEqual({ wistia: 1, tagboard: 1 });
+	});
+
+	it('skips markup in a noscript or a comment and counts those iframes apart', () => {
+		const facts = parsePage(FIXTURE);
+		expect(facts.noscriptIframes).toBe(1);
+		expect(facts.commentIframes).toBe(1);
+		expect(facts.iframes.map((f) => f.host)).not.toContain('player.vimeo.com');
+		expect(facts.iframes.map((f) => f.host)).not.toContain('www.example.org');
+	});
+
+	it('never records a value, a title, page text or a full URL', () => {
+		const text = JSON.stringify(parsePage(FIXTURE));
+		for (const value of [
+			'1_abcdef12',
+			'1_9xyz',
+			'52186791',
+			'PL1',
+			'UC Davis',
+			'lazy',
+			's3cr3t',
+			'token',
+			'example.org',
+			'dQw4w9WgXcQ'
+		]) {
+			expect(text).not.toContain(value);
+		}
+		expect(text).not.toMatch(/\?|https?:\/\//);
+	});
+
+	it('replaces id-like path segments and keeps the rest of the path', () => {
+		expect(pathShape('/p/1770401/embedIframeJs/uiconf_id/52186791')).toBe(
+			'/p/:id/embedIframeJs/uiconf_id/:id'
+		);
+		expect(pathShape('/embed/dQw4w9WgXcQ')).toBe('/embed/:id');
+		expect(pathShape('/news/abcdefgh/abc/2026-summer')).toBe('/news/abcdefgh/abc/:id');
+		expect(pathShape('/a/b')).toBe('/a/b');
+	});
+
+	it('records a query parameter name only when it carries an =', () => {
+		expect(addressOf(`https://a.test/x?abc123&k=v&=bad&long=${'a'.repeat(50)}`)).toEqual({
+			host: 'a.test',
+			path: '/x',
+			params: ['k', 'long']
+		});
+		expect(addressOf('//player.vimeo.com/video/123456789?h=abc')).toEqual({
+			host: 'player.vimeo.com',
+			path: '/video/:id',
+			params: ['h']
+		});
+		expect(addressOf('/embed/x')).toEqual({ host: '(relative)', path: '/embed/x', params: [] });
+		expect(addressOf('data:text/html,hi')).toEqual({ host: '(data)', path: null, params: [] });
+	});
+
+	it('matches a provider on the longest listed name and counts each occurrence once', () => {
+		expect(
+			parsePage('<script src="https://maps.google.com/maps/api/js?key=a"></script>').scripts
+		).toEqual([{ host: 'maps.google.com', provider: 'google.com/maps' }]);
+		expect(parsePage('<script>platform.twitter.com</script>').inline).toEqual({
+			'platform.twitter': 1
+		});
+	});
+
+	it('marks a hero iframe by its id as well as its class', () => {
+		expect(
+			parsePage('<iframe id="page-bg-loop" src="https://x.test/a"></iframe>').iframes[0]?.hero
+		).toBe(true);
+		expect(parsePage('<iframe src="https://x.test/a"></iframe>').iframes[0]?.hero).toBe(false);
+	});
+
+	it('lists 60 sites with no repeats and filters them by substring', () => {
+		expect(EXTRA_SITES).toHaveLength(44);
+		const all = parseEmbedMarkup(['--dry-run']).sites;
+		expect(all).toHaveLength(60);
+		expect(new Set(all).size).toBe(60);
+		expect(parseEmbedMarkup(['--sites', 'asu,yale', '--pages', '2'])).toMatchObject({
+			sites: ['https://www.asu.edu/', 'https://www.yale.edu/'],
+			pages: 2
+		});
+		expect(() => parseEmbedMarkup(['--sites', 'nosuchsite'])).toThrow(/matched no site/);
+		expect(() => parseEmbedMarkup(['--pages=-1'])).toThrow(/whole number/);
+	});
+});
+
 describe('the payload rig', () => {
 	const page = (title: string, body: string) =>
 		lines(
@@ -1182,7 +1357,24 @@ describe('the media experiments of the RAPL runner', () => {
 			targetFile: '/rig/dict/target.bin'
 		});
 		expect(() => parseRapl(['run', 'idle'])).toThrow(/experiment must be one of/);
-		expect(ACTIVITY_ARMS).toEqual(['quiet', 'poll', 'raf']);
+		expect(parseRapl(['run', 'idle-activity-hidden']).config.rounds).toBe(8);
+		expect([...HIDDEN_ARMS]).toEqual(['quiet-hidden', 'poll-hidden-plain', 'poll-hidden-hook']);
+		expect(ACTIVITY_ARMS.some((arm) => (HIDDEN_ARMS as readonly string[]).includes(arm))).toBe(
+			false
+		);
+		expect(ACTIVITY_ARMS.slice(0, 3)).toEqual(['quiet', 'poll', 'raf']);
+		expect(ACTIVITY_ARMS).toHaveLength(5);
+		expect(new Set(ACTIVITY_ARMS).size).toBe(ACTIVITY_ARMS.length);
+	});
+
+	it('orders each round with an idle window before the first arm, after every second arm and after the last', () => {
+		const schedule = activitySchedule(ACTIVITY_ARMS);
+		expect(schedule.filter((name) => name !== 'idle')).toEqual([...ACTIVITY_ARMS]);
+		expect(schedule.slice(0, 4)).toEqual(['idle', 'quiet', 'poll', 'idle']);
+		expect(schedule[schedule.length - 1]).toBe('idle');
+		expect(activitySchedule(['a', 'b', 'c'])).toEqual(['idle', 'a', 'b', 'idle', 'c', 'idle']);
+		const idles = schedule.flatMap((name, i) => (name === 'idle' ? [i] : []));
+		expect(idles.every((at, i) => i === 0 || at - (idles[i - 1] as number) <= 3)).toBe(true);
 	});
 
 	it('publishes a run of each as a valid schema-1 file with the method written down', () => {
@@ -1507,11 +1699,193 @@ describe('the contamination rule of the metered readings', () => {
 		).toBeNull();
 	});
 
+	it('reports what a hook removes from the same page and what the page still draws above a quiet one', () => {
+		const spread = (median: number, min = median, max = median) => ({
+			extraWatts: { median, min, max, n: 4 }
+		});
+		const gains = activityGains({
+			quiet: spread(0.25),
+			'raf-off-plain': spread(3.5, 3.25, 3.75),
+			'raf-off-hook': spread(0.5, 0.25, 0.75)
+		});
+		expect(gains).toHaveLength(1);
+		expect(gains[0]?.pair).toEqual(ACTIVITY_PAIRS[0]);
+		expect(gains[0]?.saved).toEqual({ median: 3, min: 2.5, max: 3.5 });
+		expect(gains[0]?.residual).toBe(0.25);
+	});
+
+	it('leaves out a pair with an arm that has no kept window and has no baseline against quiet', () => {
+		expect(
+			activityGains({
+				quiet: null,
+				'raf-off-plain': { extraWatts: { median: 3, min: 3, max: 3, n: 1 } },
+				'raf-off-hook': { extraWatts: { median: 1, min: 1, max: 1, n: 1 } }
+			})
+		).toEqual([]);
+		expect(activityGains({})).toEqual([]);
+		const hidden = {
+			'quiet-hidden': { extraWatts: { median: 0, min: 0, max: 0, n: 2 } },
+			'poll-hidden-plain': { extraWatts: { median: 0.5, min: 0.5, max: 0.5, n: 2 } },
+			'poll-hidden-hook': { extraWatts: { median: 0.125, min: 0.125, max: 0.125, n: 2 } }
+		};
+		expect(activityGains(hidden).map((g) => [g.saved.median, g.residual])).toEqual([
+			[0.375, 0.125]
+		]);
+	});
+
+	it('gives each new arm its own figures and drops a round whose idle windows disagree by more than 25%', () => {
+		const result = activityFigures([
+			win('idle', 0, 18),
+			win('idle', 0, 18),
+			win('idle', 0, 18),
+			win('raf-off-plain', 0, 18.5),
+			win('raf-off-hook', 0, 18.2),
+			win('idle', 1, 18),
+			win('idle', 1, 18),
+			win('idle', 1, 23),
+			win('raf-off-plain', 1, 30),
+			win('idle', 2, 18),
+			win('idle', 2, 18),
+			win('idle', 2, 22),
+			win('poll', 2, 19),
+			win('quiet', 2, 18.5),
+			win('quiet', 2, 18.5, 120)
+		]);
+		expect(result.noisyRounds).toEqual([1]);
+		expect(result.counts).toEqual({
+			idle: { kept: 6, dropped: 0, idleControl: 3 },
+			'raf-off-plain': { kept: 1, dropped: 0, idleControl: 1 },
+			'raf-off-hook': { kept: 1, dropped: 0, idleControl: 0 },
+			poll: { kept: 1, dropped: 0, idleControl: 0 },
+			quiet: { kept: 1, dropped: 1, idleControl: 0 }
+		});
+		expect(result.arms['raf-off-plain']?.extraWatts.median).toBeCloseTo(0.5, 10);
+		expect(result.arms['raf-off-hook']?.extraWatts.median).toBeCloseTo(0.2, 10);
+		expect(result.arms['poll']?.extraWatts.median).toBeCloseTo(1, 10);
+		expect(result.arms['quiet']?.extraWatts.median).toBeCloseTo(0.5, 10);
+	});
+
 	it('drops a window by the same rule in raplRun and in the counts', () => {
 		const run = raplRun(
 			rows.filter((r) => r.arm !== 'negotiation').map((r) => ({ ...r, n: 1 })),
 			{ contamination: 100 }
 		);
 		expect(run.dropped).toBe(windowCounts(rows).raf?.dropped);
+	});
+});
+
+describe('the navigation replay rig', () => {
+	// users 0 and 2 train the counts, users 1 and 3 are scored
+	const corpus = [
+		[1, 2, 1, 2],
+		[1, 2, 3],
+		[3, 1],
+		[2, 1, 2]
+	];
+	const documentBytes = 17_054;
+	const avoided = JOULES_PER_BYTE * documentBytes + ORIGIN_JOULES;
+	const provision = JOULES_PER_BYTE * 473;
+	const replayAt = (entryBytes: number): ArmResult[] =>
+		replay(corpus, buildArms(corpus, trainCounts(corpus)), {
+			documentBytes,
+			cases: [{ entryBytes, z: 1.28 }]
+		});
+	const arm = (name: string): ArmResult => replayAt(473).find((r) => r.arm === name) as ArmResult;
+
+	it('reads the category rows under the header and skips the comments', () => {
+		const text = [
+			'% Different categories found in input file:',
+			'',
+			'frontpage news tech',
+			'',
+			'% Sequences:',
+			'1 1 ',
+			'2 ',
+			'3 2 2 '
+		].join('\n');
+		expect(parseSequences(text)).toEqual([[1, 1], [2], [3, 2, 2]]);
+	});
+
+	it('rejects a category outside the header range and a token that is not an integer', () => {
+		const header =
+			'% Different categories found in input file:\n\nfrontpage news tech\n\n% Sequences:\n';
+		expect(() => parseSequences(`${header}1 4\n`)).toThrow('"4" is not a category from 1 to 3');
+		expect(() => parseSequences(`${header}1 x\n`)).toThrow('"x" is not a category from 1 to 3');
+	});
+
+	it('counts first-order transitions of the even-index users only', () => {
+		expect(trainCounts(corpus)).toEqual({
+			first: { '1': { '2': 2 }, '2': { '1': 1 }, '3': { '1': 1 } },
+			firstViews: { '1': { '2': 1 }, '3': { '1': 1 } },
+			marginal: { '1': 2, '2': 2 }
+		});
+	});
+
+	it('scores the odd-index users only', () => {
+		expect(arm('none').steps).toBe(4);
+	});
+
+	it('provisions nothing for none', () => {
+		expect(arm('none')).toMatchObject({
+			steps: 4,
+			provisions: 0,
+			hits: 0,
+			hit1: 0,
+			hit3: 0,
+			netJPerKB: null
+		});
+	});
+
+	it('hits every first view the oracle provisions and skips a page already opened', () => {
+		// user 3 reads 2 again as its last step, which is held without a prediction
+		const r = arm('oracle');
+		expect(r).toMatchObject({
+			steps: 4,
+			firstSteps: 3,
+			provisions: 3,
+			hits: 3,
+			hit1: 3,
+			hit3: 3,
+			provisionedBytes: 3 * 473
+		});
+		expect(r.netJ).toBeCloseTo(3 * (avoided - provision));
+	});
+
+	it('proposes only pages the visitor has not opened', () => {
+		// categories 1 and 2 hold a train share of one half each; the opened page is never proposed
+		const r = arm('popularity');
+		expect(r).toMatchObject({
+			steps: 4,
+			firstSteps: 3,
+			provisions: 2,
+			hits: 2,
+			hit1: 2,
+			hit3: 2
+		});
+		expect(r.netJ).toBeCloseTo(2 * avoided - 2 * provision);
+	});
+
+	it('bins the probability of every unopened candidate against how often it came next', () => {
+		const rows = calibration(corpus, buildArms(corpus, trainCounts(corpus)));
+		expect(rows.filter((r) => r.arm === 'popularity')).toEqual([
+			{ arm: 'popularity', from: 0.4, to: 1, n: 2, predicted: 0.5, observed: 1 }
+		]);
+		expect(rows.filter((r) => r.arm === 'population-1')).toEqual([
+			{ arm: 'population-1', from: 0.4, to: 1, n: 2, predicted: 1, observed: 1 }
+		]);
+		expect(rows.filter((r) => r.arm === 'population-first')).toEqual([
+			{ arm: 'population-first', from: 0.4, to: 1, n: 1, predicted: 0.5, observed: 1 }
+		]);
+		expect(rows.some((r) => r.arm === 'none' || r.arm === 'oracle')).toBe(false);
+		for (const r of rows) expect(r.observed).toBeLessThanOrEqual(1);
+	});
+
+	it('provisions nothing for a non-oracle arm when the entry cannot pay', () => {
+		for (const r of replay(corpus, buildArms(corpus, trainCounts(corpus)), {
+			documentBytes,
+			cases: [{ entryBytes: 1_000_000_000, z: 1.28 }]
+		})) {
+			if (r.arm !== 'oracle') expect(r.provisions).toBe(0);
+		}
 	});
 });

@@ -1,0 +1,762 @@
+{
+	"schema": 1,
+	"rig": "first-payload",
+	"date": "2026-10-26",
+	"layer": "L1",
+	"question": "requests and bytes at the origin from the first controlled visit to a page to the first strict local view, with the artifact derived from the response, inlined, or fetched",
+	"instrument": "request log and socket byte counters (bytesRead and bytesWritten) of an in-process server, Chromium through Playwright",
+	"machine": {
+		"name": "darwin arm64",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"browser": "Chromium, Playwright bundled build"
+	},
+	"method": {
+		"rounds": 5,
+		"window": "from the SW controlling a page and idle to the second view of a second page, which is local; setup page excluded",
+		"strategies": "assembly behind spoolProxy, template behind createSpool",
+		"lever off": "assembly: the front drops the h field of Spool-Artifact; template: inlineMaxBytes 0",
+		"lever 1": "assembly page kept from its own response",
+		"lever 2": "template artifact inlined, inlineMaxBytes 2048",
+		"assembly page": "11074 bytes of HTML, uncompressed",
+		"template page": "976 bytes of HTML, uncompressed",
+		"networkView": "a plain GET of a third page, no worker, identity encoding",
+		"compression": "none on the wire; gzip and brotli sizes are of the same body, computed offline",
+		"origin": "loopback"
+	},
+	"exclusions": [],
+	"rows": [
+		{
+			"arm": "assembly, off",
+			"strategy": "assembly",
+			"lever": "off",
+			"round": 0,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/n/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 22900
+				},
+				"backend": {
+					"originPageFetches": 2
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 50,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, off",
+			"strategy": "assembly",
+			"lever": "off",
+			"round": 1,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/n/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 22900
+				},
+				"backend": {
+					"originPageFetches": 2
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 50,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, off",
+			"strategy": "assembly",
+			"lever": "off",
+			"round": 2,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/n/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 22900
+				},
+				"backend": {
+					"originPageFetches": 2
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 50,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, off",
+			"strategy": "assembly",
+			"lever": "off",
+			"round": 3,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/n/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 22900
+				},
+				"backend": {
+					"originPageFetches": 2
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 50,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, off",
+			"strategy": "assembly",
+			"lever": "off",
+			"round": 4,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/n/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 22900
+				},
+				"backend": {
+					"originPageFetches": 2
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 50,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, lever 1",
+			"strategy": "assembly",
+			"lever": "1",
+			"round": 0,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/n/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 11540
+				},
+				"backend": {
+					"originPageFetches": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 97,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, lever 1",
+			"strategy": "assembly",
+			"lever": "1",
+			"round": 1,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/n/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 11540
+				},
+				"backend": {
+					"originPageFetches": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 97,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, lever 1",
+			"strategy": "assembly",
+			"lever": "1",
+			"round": 2,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/n/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 11540
+				},
+				"backend": {
+					"originPageFetches": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 97,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, lever 1",
+			"strategy": "assembly",
+			"lever": "1",
+			"round": 3,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/n/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 11540
+				},
+				"backend": {
+					"originPageFetches": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 97,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "assembly, lever 1",
+			"strategy": "assembly",
+			"lever": "1",
+			"round": 4,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/n/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 11540
+				},
+				"backend": {
+					"originPageFetches": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/n/3",
+				"bodyBytes": 11145,
+				"gzipBytes": 637,
+				"brotliBytes": 386,
+				"spoolArtifactHeaderBytes": 97,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, off",
+			"strategy": "template",
+			"lever": "off",
+			"round": 0,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/t/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 2428
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1047,
+				"gzipBytes": 309,
+				"brotliBytes": 208,
+				"spoolArtifactHeaderBytes": 45,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, off",
+			"strategy": "template",
+			"lever": "off",
+			"round": 1,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/t/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 2428
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1047,
+				"gzipBytes": 309,
+				"brotliBytes": 208,
+				"spoolArtifactHeaderBytes": 45,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, off",
+			"strategy": "template",
+			"lever": "off",
+			"round": 2,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/t/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 2428
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1047,
+				"gzipBytes": 309,
+				"brotliBytes": 208,
+				"spoolArtifactHeaderBytes": 45,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, off",
+			"strategy": "template",
+			"lever": "off",
+			"round": 3,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/t/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 2428
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1047,
+				"gzipBytes": 309,
+				"brotliBytes": 208,
+				"spoolArtifactHeaderBytes": 45,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, off",
+			"strategy": "template",
+			"lever": "off",
+			"round": 4,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 2,
+				"paths": ["/t/2", "/.spool/artifact"],
+				"artifactRequests": 1,
+				"bytes": {
+					"read": 1097,
+					"written": 2428
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1047,
+				"gzipBytes": 309,
+				"brotliBytes": 208,
+				"spoolArtifactHeaderBytes": 45,
+				"inlineElementBytes": 0
+			}
+		},
+		{
+			"arm": "template, lever 2",
+			"strategy": "template",
+			"lever": "2",
+			"round": 0,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/t/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 2344
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1965,
+				"gzipBytes": 441,
+				"brotliBytes": 311,
+				"spoolArtifactHeaderBytes": 92,
+				"inlineElementBytes": 918
+			}
+		},
+		{
+			"arm": "template, lever 2",
+			"strategy": "template",
+			"lever": "2",
+			"round": 1,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/t/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 2344
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1965,
+				"gzipBytes": 441,
+				"brotliBytes": 311,
+				"spoolArtifactHeaderBytes": 92,
+				"inlineElementBytes": 918
+			}
+		},
+		{
+			"arm": "template, lever 2",
+			"strategy": "template",
+			"lever": "2",
+			"round": 2,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/t/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 2344
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1965,
+				"gzipBytes": 441,
+				"brotliBytes": 311,
+				"spoolArtifactHeaderBytes": 92,
+				"inlineElementBytes": 918
+			}
+		},
+		{
+			"arm": "template, lever 2",
+			"strategy": "template",
+			"lever": "2",
+			"round": 3,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/t/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 2344
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1965,
+				"gzipBytes": 441,
+				"brotliBytes": 311,
+				"spoolArtifactHeaderBytes": 92,
+				"inlineElementBytes": 918
+			}
+		},
+		{
+			"arm": "template, lever 2",
+			"strategy": "template",
+			"lever": "2",
+			"round": 4,
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.4",
+			"cold": {
+				"requests": 1,
+				"paths": ["/t/2"],
+				"artifactRequests": 0,
+				"bytes": {
+					"read": 644,
+					"written": 2344
+				},
+				"backend": {
+					"loads": 1,
+					"renders": 1
+				}
+			},
+			"local": {
+				"requests": 0,
+				"paths": [],
+				"bytes": {
+					"read": 0,
+					"written": 0
+				}
+			},
+			"networkView": {
+				"path": "/t/3",
+				"bodyBytes": 1965,
+				"gzipBytes": 441,
+				"brotliBytes": 311,
+				"spoolArtifactHeaderBytes": 92,
+				"inlineElementBytes": 918
+			}
+		}
+	]
+}

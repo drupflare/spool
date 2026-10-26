@@ -9,6 +9,7 @@ import {
 	zstdCompressSync,
 	zstdDecompressSync
 } from 'node:zlib';
+import { dirOf, pickBase } from '../../src/proxy/bases.ts';
 import { DICTIONARY_ARMS, dictionaryArms, type DictionaryArm } from '../../src/report/ledger.ts';
 import {
 	isMain,
@@ -59,12 +60,6 @@ export type Plan = {
 /** the base file chosen for one directory and kind */
 export type Base = { kind: FileKind; dir: string; base: number; files: number; meanZstd: number };
 
-/** the directory of a URL's path, with the trailing slash */
-export function dirOf(url: string): string {
-	const path = new URL(url).pathname;
-	return path.slice(0, path.lastIndexOf('/') + 1);
-}
-
 /**
  * Chooses the dictionary of every arm for every file. `delta(file, dictionary)` is the compressed
  * size of `file` against `dictionary`. The oracle takes the best earlier file of the same kind, the
@@ -84,26 +79,13 @@ export function planArms(
 		const key = `${f.kind}|${f.dir}`;
 		groups.set(key, [...(groups.get(key) ?? []), i]);
 	}
-	const pick = (members: readonly number[]) => {
-		let best = -1;
-		let bestScore = Infinity;
-		for (const c of members) {
-			let score = 0;
-			for (const f of members) {
-				if (f !== c) score += Math.min(delta(f, c), (files[f] as Candidate).br11);
-			}
-			if (score < bestScore) {
-				best = c;
-				bestScore = score;
-			}
-		}
-		return { best, bestScore };
-	};
+	const pick = (members: readonly number[]) =>
+		pickBase(members, delta, (f) => (files[f] as Candidate).br11);
 	const baseOf = new Map<string, number>();
 	const bases: Base[] = [];
 	for (const [key, members] of groups) {
 		if (members.length < 2) continue;
-		const { best, bestScore } = pick(members);
+		const { best, score: bestScore } = pick(members);
 		baseOf.set(key, best);
 		const first = files[best] as Candidate;
 		bases.push({

@@ -1,0 +1,4829 @@
+{
+	"schema": 1,
+	"rig": "embed-markup",
+	"date": "2026-10-26",
+	"layer": "L1",
+	"question": "which embed classes appear in the server-rendered markup of higher-ed home and internal pages, how often, and in what shape",
+	"instrument": "plain HTTPS GETs, read with the tag tokenizer of src/trim/tokens.ts (no browser, no script execution)",
+	"machine": {
+		"name": "darwin arm64",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"runtime": "Bun 1.4.4",
+		"node": "26.3.0"
+	},
+	"method": {
+		"sites listed": 60,
+		"sites loaded": 52,
+		"site list": "the sites of repeat-nav plus EXTRA_SITES (44 picked by the rig author, not sampled); a convenience set",
+		"pages per site": "home plus up to 4 internal links, spread evenly over the links",
+		"page choice": "internal links of the home page: same host, no query or fragment, no asset or account path",
+		"host rule": "a page that lands off the site (www. ignored) is excluded; the rig follows no link off the site",
+		"requests": "GET with fetch, redirects followed, 20 s timeout, 250 ms after each request, 2 sites at a time",
+		"user agent": "spool-measurement/0.3 (+https://github.com/drupflare/spool)",
+		"iframe": "host; path with id-like segments as :id; sorted query parameter names, only where the parameter has an =; presence of width, height, title, loading, sandbox, allow, allowfullscreen, srcdoc and class; hero when the class or id matches /hero|ambient|background|bg|loop|banner/i",
+		"video": "presence of autoplay, muted, loop, controls, preload and poster; host of src and of each source src inside the element",
+		"script": "host and provider name for each absolute or protocol-relative src; a relative src has no host and is not recorded",
+		"inline and data": "occurrences of each provider name in inline script text and in data-* attribute values; counts only",
+		"provider match": "scripts: the first listed name found in host plus path; inline and data: every occurrence, longest name first",
+		"ignored": "markup inside a noscript or an HTML comment; iframes skipped that way are counted in noscriptIframes and commentIframes",
+		"never recorded": "full URLs, query values, ids, titles, page text and script bodies",
+		"limit": "server-rendered markup only; an embed that a script injects after load is not seen"
+	},
+	"exclusions": [
+		"https://www.ox.ac.uk/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.unl.edu/admissions/online-education/: redirected off the site",
+		"https://www.unl.edu/research/nutech-ventures/: redirected off the site",
+		"https://www.unl.edu/outreach-impact/parent-family-association/: redirected off the site",
+		"https://www.princeton.edu/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.columbia.edu/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.jhu.edu/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.vanderbilt.edu/work-at-vanderbilt/becomingacommodore.php: HTTP 404",
+		"https://www.rice.edu/travelguidance: HTTP 500",
+		"https://www.umich.edu/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.uky.edu/: home page TypeError",
+		"https://www.williams.edu/: home page HTTP 403 text/html; charset=UTF-8",
+		"https://www.amherst.edu/: home page HTTP 405 text/html; charset=UTF-8",
+		"https://www.pomona.edu/give: HTTP 403"
+	],
+	"rows": [
+		{
+			"site": "https://demo.drupflare.com/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://demo.drupflare.com/",
+			"page": "/node/3",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://demo.drupflare.com/",
+			"page": "/node/2",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://demo.drupflare.com/",
+			"page": "/node/1",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 3,
+				"twitter": 1,
+				"instagram": 3,
+				"youtube": 3
+			},
+			"data": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"page": "/academics/colleges-schools",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2,
+				"instagram": 2,
+				"youtube": 2
+			},
+			"data": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"page": "/admission",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 2,
+				"instagram": 2,
+				"youtube": 2
+			},
+			"data": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"page": "/president",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2,
+				"instagram": 2,
+				"youtube": 2
+			},
+			"data": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.asu.edu/",
+			"page": "/about/contact",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2,
+				"instagram": 2,
+				"youtube": 2
+			},
+			"data": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"page": "/calendars",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"page": "/about-yale/yales-impact-america/impact-state",
+			"home": false,
+			"iframes": [
+				{
+					"host": "datawrapper.dwcdn.net",
+					"path": "/Re1yf/:id/",
+					"params": [],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"datawrapper": 3
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"page": "/admissions/financial-aid",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.yale.edu/",
+			"page": "/life-yale/service",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"page": "/map",
+			"home": false,
+			"iframes": [
+				{
+					"host": "map.concept3d.com",
+					"path": "/",
+					"params": ["id"],
+					"attrs": ["width", "height", "allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"concept3d": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"page": "/academics/academic-resources",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"page": "/graduateschool/admitted-students",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colorado.edu/",
+			"page": "/alumni",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["www.berkeley.edu"]
+				}
+			],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"page": "/students/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"page": "/about/traditions/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"page": "/academics/advising-tutoring/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.berkeley.edu/",
+			"page": "/campus-life/health-safety/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autoplay", "enablejsapi", "modestbranding"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"kaltura": 2,
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["cdnsecakmi.kaltura.com"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"page": "/admissions/",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["cdnsecakmi.kaltura.com"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"page": "/engagement/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/mvKzawEuiZI",
+					"params": ["si"],
+					"attrs": ["title", "allowfullscreen", "class"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["si"],
+					"attrs": ["title", "allowfullscreen", "class"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["si"],
+					"attrs": ["title", "allowfullscreen", "class"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["si"],
+					"attrs": ["title", "allowfullscreen", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cornell.edu/",
+			"page": "/visit/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": true,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": true,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": true,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"page": "/a-z",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"page": "/academics/areas-study",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"page": "/research",
+			"home": false,
+			"iframes": [
+				{
+					"host": "uiowa.edu",
+					"path": "/media/oembed",
+					"params": ["hash", "max_height", "max_width", "url"],
+					"attrs": ["width", "height", "title", "loading", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uiowa.edu/",
+			"page": "/student-life/safety-and-support",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "player.vimeo.com",
+					"provider": "vimeo"
+				},
+				{
+					"host": "fast.wistia.net",
+					"provider": "wistia"
+				}
+			],
+			"inline": {
+				"instagram": 1,
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"curator": 2
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"page": "/about/visit",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"page": "/admissions",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "player.vimeo.com",
+					"provider": "vimeo"
+				},
+				{
+					"host": "fast.wistia.net",
+					"provider": "wistia"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"page": "/research/opportunities-for-students",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.tufts.edu/",
+			"page": "/about/university-leadership",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unl.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "mediahub.unl.edu",
+					"path": "/media/:id",
+					"params": ["autoplay", "format"],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unl.edu/",
+			"page": "/visit/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["player.vimeo.com"]
+				}
+			],
+			"scripts": [
+				{
+					"host": "www.juicer.io",
+					"provider": "juicer"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"page": "/who-we-are/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"page": "/student-life/life-on-the-hilltop-campus/housing/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"page": "/academics/exploration-discovery/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.georgetown.edu/",
+			"page": "/info-for/faculty/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"page": "/massachusetts-state-organizations",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"page": "/topics/professional-licenses-permits",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"page": "/topics/family-fun",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mass.gov/",
+			"page": "/orgs/office-of-jury-commissioner",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "cdnapisec.kaltura.com",
+					"path": "/p/:id/embedIframeJs/uiconf_id/:id",
+					"params": ["entry_id", "iframeembed", "wid"],
+					"attrs": ["width", "height", "title", "sandbox", "class"],
+					"hero": true
+				}
+			],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [
+				{
+					"host": "static.tagboard.com",
+					"provider": "tagboard"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"page": "/admissions/undergraduate/transfer/transfer-admission-guarantee/requirements",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"page": "/academics/professional-programs",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucdavis.edu/",
+			"page": "/research/discoveries/veterinary-science-discoveries/fish-skins-for-animal-burns",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"page": "/info/prospective-students-parents",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"page": "/about/budget-facts",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"page": "/admissions-tuition/getting-ready-for-rutgers",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rutgers.edu/",
+			"page": "/events/health-and-wellness",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["www.harvard.edu"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"page": "/federal-lawsuits/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"page": "/campus/work-at-harvard/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"youtube": 1,
+				"ytimg": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"page": "/about/history/timeline/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.harvard.edu/",
+			"page": "/community/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"page": "/education",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"page": "/admissions-aid",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.mit.edu/",
+			"page": "/visitmit",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.stanford.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/tgNDNeveCog",
+					"params": [
+						"cc_load_policy",
+						"color",
+						"enablejsapi",
+						"iv_load_policy",
+						"modestbranding",
+						"preload",
+						"rel",
+						"showinfo"
+					],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": false,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"twitter": 21,
+				"youtube": 14,
+				"instagram": 14,
+				"facebook": 12
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.stanford.edu/",
+			"page": "/civics",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": false,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"twitter": 21,
+				"youtube": 12,
+				"instagram": 14,
+				"facebook": 12
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.stanford.edu/",
+			"page": "/about/history",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/ewdPzMXqmQg",
+					"params": [
+						"cc_load_policy",
+						"color",
+						"enablejsapi",
+						"iv_load_policy",
+						"modestbranding",
+						"preload",
+						"rel",
+						"showinfo"
+					],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"twitter": 21,
+				"youtube": 14,
+				"instagram": 12,
+				"facebook": 12
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.stanford.edu/",
+			"page": "/research",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": [
+						"cc_load_policy",
+						"color",
+						"enablejsapi",
+						"iv_load_policy",
+						"modestbranding",
+						"preload",
+						"rel",
+						"showinfo"
+					],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": false,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"twitter": 21,
+				"youtube": 18,
+				"instagram": 14,
+				"facebook": 12,
+				"tableau": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.stanford.edu/",
+			"page": "/contact",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"twitter": 21,
+				"youtube": 12,
+				"instagram": 12,
+				"facebook": 12
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.upenn.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.upenn.edu/",
+			"page": "/academics",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.upenn.edu/",
+			"page": "/research-and-innovation/research-enterprise",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.upenn.edu/",
+			"page": "/life-at-penn/religion",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.upenn.edu/",
+			"page": "/about/communications",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.duke.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "open.spotify.com",
+					"path": "/embed/episode/:id",
+					"params": ["theme", "utm_source"],
+					"attrs": ["width", "height", "title", "loading", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1,
+				"tiktok": 1
+			},
+			"data": {
+				"youtube": 2
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.duke.edu/",
+			"page": "/academics/",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1,
+				"tiktok": 1
+			},
+			"data": {
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.duke.edu/",
+			"page": "/admissions/",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1,
+				"tiktok": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.duke.edu/",
+			"page": "/visit/",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1,
+				"tiktok": 1
+			},
+			"data": {
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.duke.edu/",
+			"page": "/exploring-space/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "open.spotify.com",
+					"path": "/embed/episode/:id",
+					"params": ["theme", "utm_source"],
+					"attrs": ["width", "height", "title", "loading", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/KHJqjbFLPtw",
+					"params": ["feature"],
+					"attrs": ["width", "height", "title", "loading", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["feature"],
+					"attrs": ["width", "height", "title", "loading", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1,
+				"tiktok": 1
+			},
+			"data": {
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.northwestern.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": false,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["dgwlxezajnh25.cloudfront.net"]
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["dgwlxezajnh25.cloudfront.net"]
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["dgwlxezajnh25.cloudfront.net"]
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["dgwlxezajnh25.cloudfront.net"]
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["dgwlxezajnh25.cloudfront.net"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.northwestern.edu/",
+			"page": "/students/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.northwestern.edu/",
+			"page": "/academics/colleges-and-schools.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.northwestern.edu/",
+			"page": "/arts/artistic-disciplines.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube-nocookie.com",
+					"path": "/embed/:id",
+					"params": ["si"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.northwestern.edu/",
+			"page": "/transportation-parking/shuttles/routes/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uchicago.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["www.uchicago.edu"]
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"twitter": 10,
+				"flourish": 1,
+				"facebook": 7,
+				"instagram": 7,
+				"youtube": 9,
+				"vimeo": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uchicago.edu/",
+			"page": "/who-we-are",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"flourish": 1,
+				"facebook": 7,
+				"instagram": 7,
+				"twitter": 9,
+				"youtube": 9,
+				"vimeo": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uchicago.edu/",
+			"page": "/academics/undergraduate-programs",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"instagram": 7,
+				"twitter": 9,
+				"youtube": 9,
+				"vimeo": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uchicago.edu/",
+			"page": "/admissions",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 24,
+				"instagram": 24,
+				"twitter": 27,
+				"youtube": 18,
+				"vimeo": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uchicago.edu/",
+			"page": "/life-at-uchicago/diversity",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"instagram": 7,
+				"twitter": 9,
+				"youtube": 9,
+				"vimeo": 2
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.caltech.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.caltech.edu/",
+			"page": "/about/visit/plan-your-visit",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.caltech.edu/",
+			"page": "/map/history",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "maps.googleapis.com",
+					"provider": "maps.googleapis"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.caltech.edu/",
+			"page": "/research/faculty-listing",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.caltech.edu/",
+			"page": "/map/campus/beckman-institute",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "maps.googleapis.com",
+					"provider": "maps.googleapis"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.vanderbilt.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["cdn.vanderbilt.edu"]
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 2
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.vanderbilt.edu/",
+			"page": "/admissions/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.vanderbilt.edu/",
+			"page": "/nashville/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.google.com",
+					"path": "/maps/embed",
+					"params": ["pb"],
+					"attrs": ["width", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.vanderbilt.edu/",
+			"page": "/hub/category/student-involvement/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "youtu.be",
+					"path": "/fflzluGkToc",
+					"params": [],
+					"attrs": ["allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.emory.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": "(relative)",
+					"sourceHosts": []
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": "(relative)",
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.emory.edu/",
+			"page": "/apply",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.emory.edu/",
+			"page": "/admission-and-aid",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.emory.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.emory.edu/",
+			"page": "/life/athletics",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rice.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["loop", "playlist", "rel"],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["loop", "playlist", "rel"],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["loop", "playlist", "rel"],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rice.edu/",
+			"page": "/rice-community",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rice.edu/",
+			"page": "/undergraduate-resources",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.rice.edu/",
+			"page": "/visit-rice",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucla.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucla.edu/",
+			"page": "/events",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucla.edu/",
+			"page": "/economic-impact",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {
+				"flourish": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucla.edu/",
+			"page": "/academics",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ucla.edu/",
+			"page": "/academics/libraries",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wisc.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wisc.edu/",
+			"page": "/academics/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wisc.edu/",
+			"page": "/athletics/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wisc.edu/",
+			"page": "/academics/majors/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wisc.edu/",
+			"page": "/directories/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"youtube": 1,
+				"instagram": 1
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cmu.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": "(relative)",
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"twitter": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cmu.edu/",
+			"page": "/current-students",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cmu.edu/",
+			"page": "/academics/interdisciplinary-programs",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cmu.edu/",
+			"page": "/uro/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["si"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.cmu.edu/",
+			"page": "/jobs/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "www.youtube.com",
+					"provider": "youtube"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ku.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ku.edu/",
+			"page": "/navigator",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ku.edu/",
+			"page": "/about-lawrence",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ku.edu/",
+			"page": "/schools-departments",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ku.edu/",
+			"page": "/research",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.iastate.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.iastate.edu/",
+			"page": "/admission-and-aid/apply",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.iastate.edu/",
+			"page": "/admission-and-aid/affording-college",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.iastate.edu/",
+			"page": "/learn-by-doing/study-abroad",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.iastate.edu/",
+			"page": "/academics/majors-minors-certificates/agriculture-and-life-sciences",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colostate.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"twitter": 3
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colostate.edu/",
+			"page": "/academics/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"twitter": 3
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colostate.edu/",
+			"page": "/research/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"twitter": 3
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colostate.edu/",
+			"page": "/research",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"twitter": 3
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.colostate.edu/",
+			"page": "/equal-opportunity",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 7,
+				"twitter": 3
+			},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oregonstate.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oregonstate.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oregonstate.edu/",
+			"page": "/future",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oregonstate.edu/",
+			"page": "/contact",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oregonstate.edu/",
+			"page": "/copyright",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wsu.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"curator": 2
+			},
+			"data": {},
+			"noscriptIframes": 3,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wsu.edu/",
+			"page": "/2023/07/11/data-breach-impacts-wsu/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 3,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wsu.edu/",
+			"page": "/new/admissions/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["rel"],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 3,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wsu.edu/",
+			"page": "/research/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 3,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.wsu.edu/",
+			"page": "/rfi/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 3,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.utah.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "www.juicer.io",
+					"path": "/api/feeds/uofu-instagram-homepage/iframe",
+					"params": ["per"],
+					"attrs": ["width", "height", "title"],
+					"hero": false
+				},
+				{
+					"host": "www.juicer.io",
+					"path": "/api/feeds/:id/iframe",
+					"params": ["per"],
+					"attrs": ["width", "height", "title"],
+					"hero": false
+				},
+				{
+					"host": "www.juicer.io",
+					"path": "/api/feeds/uofu-facebook-homepage/iframe",
+					"params": ["per"],
+					"attrs": ["width", "height", "title"],
+					"hero": false
+				},
+				{
+					"host": "www.juicer.io",
+					"path": "/api/feeds/uofu-youtube-homepage/iframe",
+					"params": ["per"],
+					"attrs": ["width", "height", "title"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "player.vimeo.com",
+					"provider": "vimeo"
+				}
+			],
+			"inline": {},
+			"data": {
+				"instagram": 1,
+				"twitter": 1,
+				"facebook": 1,
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.utah.edu/",
+			"page": "/academics/colleges.php",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.utah.edu/",
+			"page": "/arts/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "player.vimeo.com",
+					"path": "/video/:id",
+					"params": ["byline", "color", "portrait", "title"],
+					"attrs": ["width", "height", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.utah.edu/",
+			"page": "/faculty/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.utah.edu/",
+			"page": "/contact/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.arizona.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 2,
+				"youtube": 2,
+				"instagram": 1
+			},
+			"data": {
+				"youtube": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.arizona.edu/",
+			"page": "/admissions/apply",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.arizona.edu/",
+			"page": "/degree-search/majors",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.arizona.edu/",
+			"page": "/campus-life/tucson",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.arizona.edu/",
+			"page": "/business-partner",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unm.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "assets.juicer.io",
+					"provider": "juicer"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unm.edu/",
+			"page": "/welcome/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unm.edu/",
+			"page": "/current-students/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unm.edu/",
+			"page": "/welcome/unm-by-the-numbers.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.unm.edu/",
+			"page": "/apply",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.uga.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.lsu.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.lsu.edu/",
+			"page": "/admission/index.php",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.lsu.edu/",
+			"page": "/eng/index.php",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.lsu.edu/",
+			"page": "/ocr-tix/tix/index.php",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.lsu.edu/",
+			"page": "/working-for-louisiana/index.php",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(none)",
+					"path": null,
+					"params": [],
+					"attrs": ["allow", "class"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"youtube": 1
+			},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umd.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": [],
+					"attrs": ["width", "height", "title", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["d3tv0kpcim3xds.cloudfront.net"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umd.edu/",
+			"page": "/about",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": true,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["d3tv0kpcim3xds.cloudfront.net"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umd.edu/",
+			"page": "/research",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["d3tv0kpcim3xds.cloudfront.net"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umd.edu/",
+			"page": "/about/contact",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umd.edu/",
+			"page": "/student-life/student-organizations",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umass.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/agqIJlJpbAY",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": ["api-files.sproutvideo.com"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umass.edu/",
+			"page": "/gateway/info/prospective-students",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umass.edu/",
+			"page": "/uww/pre-college",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umass.edu/",
+			"page": "/gateway/research/centers-and-institutes",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.umass.edu/",
+			"page": "/admissions/undergraduate-admissions/visit",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "origin", "rel"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ufl.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ufl.edu/",
+			"page": "/prospective-students/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ufl.edu/",
+			"page": "/visitors-and-families/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ufl.edu/",
+			"page": "/academics/programs-courses/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ufl.edu/",
+			"page": "/life-at-uf/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.austincc.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1,
+				"instagram": 1,
+				"youtube": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.austincc.edu/",
+			"page": "/parents-families/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "feature", "origin"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				},
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["enablejsapi", "feature", "origin"],
+					"attrs": ["width", "height", "title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"ytimg": 2
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.austincc.edu/",
+			"page": "/academic-and-career-programs/university-transfer/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [
+				{
+					"host": "public.flourish.studio",
+					"provider": "flourish"
+				}
+			],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.austincc.edu/",
+			"page": "/campuses/acc-lockhart/",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.google.com",
+					"path": "/maps",
+					"params": ["output", "q", "z"],
+					"attrs": [],
+					"hero": false
+				},
+				{
+					"host": "www.google.com",
+					"path": "/maps",
+					"params": ["output", "q", "z"],
+					"attrs": [],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.austincc.edu/",
+			"page": "/college-your-way/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.montgomerycollege.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["(relative)"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.montgomerycollege.edu/",
+			"page": "/about-mc/campuses-and-locations/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.montgomerycollege.edu/",
+			"page": "/academics/departments/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.montgomerycollege.edu/",
+			"page": "/academics/program-advising/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.montgomerycollege.edu/",
+			"page": "/offices/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pima.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pima.edu/",
+			"page": "/index",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pima.edu/",
+			"page": "/paying-for-college/financial-aid/index",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pima.edu/",
+			"page": "/about-pima/consumer-info/index",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pima.edu/",
+			"page": "/academics-programs/pimaonline/index.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": ["autohide", "showinfo", "si"],
+					"attrs": ["width", "height", "title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.miracosta.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				},
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"youtube": 3
+			},
+			"data": {
+				"youtube": 4
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.miracosta.edu/",
+			"page": "/index.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				},
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["title", "allow", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"youtube": 3
+			},
+			"data": {
+				"youtube": 4
+			},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.miracosta.edu/",
+			"page": "/student-services/career-center/index.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube.com",
+					"path": "/embed/:id",
+					"params": [],
+					"attrs": ["title", "class"],
+					"hero": false
+				},
+				{
+					"host": "www.careerspots.com",
+					"path": "/secure/quadad_hrz_ext.aspx",
+					"params": ["key"],
+					"attrs": ["width", "height", "title", "class"],
+					"hero": false
+				},
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"youtube": 3
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.miracosta.edu/",
+			"page": "/admissions-and-aid/returning-students.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"youtube": 3
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.miracosta.edu/",
+			"page": "/office-of-the-president/public-information-office/miracosta-college-locations-maps.html",
+			"home": false,
+			"iframes": [
+				{
+					"host": "(relative)",
+					"path": "/",
+					"params": [],
+					"attrs": ["width", "height", "allow"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"youtube": 3
+			},
+			"data": {},
+			"noscriptIframes": 2,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.foothill.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.foothill.edu/",
+			"page": "/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.foothill.edu/",
+			"page": "/high-school/index.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.foothill.edu/",
+			"page": "/apply-and-register/admissions-and-records/remove-holds.html",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.foothill.edu/",
+			"page": "/title-ix/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ccsf.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ccsf.edu/",
+			"page": "/apply-ccsf",
+			"home": false,
+			"iframes": [
+				{
+					"host": "player.vimeo.com",
+					"path": "/video/:id",
+					"params": ["h"],
+					"attrs": ["width", "height", "title", "allowfullscreen"],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ccsf.edu/",
+			"page": "/academics/adult-education",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ccsf.edu/",
+			"page": "/about-ccsf/administration/student-affairs/student-equity/sparkpoint-ccsf-basic-needs-center",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.ccsf.edu/",
+			"page": "/about-ccsf/contact-us",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 0,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.swarthmore.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [
+				{
+					"host": "player.vimeo.com",
+					"path": "/video/:id",
+					"params": [
+						"autopause",
+						"autoplay",
+						"background",
+						"byline",
+						"controls",
+						"dnt",
+						"loop",
+						"muted",
+						"playsinline",
+						"portrait"
+					],
+					"attrs": ["loading", "allow", "class"],
+					"hero": true
+				},
+				{
+					"host": "www.youtube-nocookie.com",
+					"path": "/embed/:id",
+					"params": [
+						"autoplay",
+						"controls",
+						"enablejsapi",
+						"mute",
+						"origin",
+						"playsinline",
+						"rel",
+						"start"
+					],
+					"attrs": [
+						"width",
+						"height",
+						"title",
+						"loading",
+						"allow",
+						"allowfullscreen",
+						"class"
+					],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.swarthmore.edu/",
+			"page": "/meet-swarthmore",
+			"home": false,
+			"iframes": [
+				{
+					"host": "player.vimeo.com",
+					"path": "/video/:id",
+					"params": [
+						"autopause",
+						"autoplay",
+						"background",
+						"byline",
+						"controls",
+						"dnt",
+						"loop",
+						"muted",
+						"playsinline",
+						"portrait"
+					],
+					"attrs": ["loading", "allow", "class"],
+					"hero": true
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.swarthmore.edu/",
+			"page": "/honors-program",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube-nocookie.com",
+					"path": "/embed/:id",
+					"params": [
+						"autoplay",
+						"controls",
+						"enablejsapi",
+						"mute",
+						"origin",
+						"playsinline",
+						"rel",
+						"start"
+					],
+					"attrs": [
+						"width",
+						"height",
+						"title",
+						"loading",
+						"allow",
+						"allowfullscreen",
+						"class"
+					],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.swarthmore.edu/",
+			"page": "/financial-aid",
+			"home": false,
+			"iframes": [
+				{
+					"host": "www.youtube-nocookie.com",
+					"path": "/embed/bJtMjQ_JGns",
+					"params": [
+						"autoplay",
+						"controls",
+						"enablejsapi",
+						"mute",
+						"origin",
+						"playsinline",
+						"rel",
+						"start"
+					],
+					"attrs": [
+						"width",
+						"height",
+						"title",
+						"loading",
+						"allow",
+						"allowfullscreen",
+						"class"
+					],
+					"hero": false
+				}
+			],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.swarthmore.edu/",
+			"page": "/meet-swarthmore/opportunities-philadelphia",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pomona.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pomona.edu/",
+			"page": "/admissions-aid",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pomona.edu/",
+			"page": "/news/2026/10/13-pomona-students-embrace-vision-behind-center-global-engagement",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.pomona.edu/",
+			"page": "/events",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.carleton.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.carleton.edu/",
+			"page": "/admissions/",
+			"home": false,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": false,
+					"muted": false,
+					"loop": false,
+					"controls": false,
+					"preload": false,
+					"poster": false,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {
+				"facebook": 1
+			},
+			"data": {
+				"youtube": 8
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.carleton.edu/",
+			"page": "/giving/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.carleton.edu/",
+			"page": "/visitors/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.carleton.edu/",
+			"page": "/admissions/explore/education/faculty/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {
+				"facebook": 1
+			},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.grinnell.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.grinnell.edu/",
+			"page": "/students",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.grinnell.edu/",
+			"page": "/visitor-guide/electric-vehicle-charging",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.grinnell.edu/",
+			"page": "/academics/majors-concentrations",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.grinnell.edu/",
+			"page": "/globe",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oberlin.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": true,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": ["player.vimeo.com"]
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"ensemble": 1
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oberlin.edu/",
+			"page": "/carbon-neutral-2025",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oberlin.edu/",
+			"page": "/news-and-events/special-events",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oberlin.edu/",
+			"page": "/arts-and-sciences/departments/critical-ai-studies",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.oberlin.edu/",
+			"page": "/musicology",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.middlebury.edu/",
+			"page": "/",
+			"home": true,
+			"iframes": [],
+			"videos": [
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				},
+				{
+					"autoplay": true,
+					"muted": true,
+					"loop": true,
+					"controls": false,
+					"preload": false,
+					"poster": true,
+					"srcHost": null,
+					"sourceHosts": []
+				}
+			],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"vimeo": 5,
+				"youtube": 11
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.middlebury.edu/",
+			"page": "/college/",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {
+				"vimeo": 8,
+				"youtube": 2
+			},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.middlebury.edu/",
+			"page": "/school-english/admissions",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.middlebury.edu/",
+			"page": "/franklin-environmental-center/sustainability-action",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		},
+		{
+			"site": "https://www.middlebury.edu/",
+			"page": "/midddata",
+			"home": false,
+			"iframes": [],
+			"videos": [],
+			"scripts": [],
+			"inline": {},
+			"data": {},
+			"noscriptIframes": 1,
+			"commentIframes": 0
+		}
+	]
+}

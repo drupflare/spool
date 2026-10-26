@@ -359,6 +359,20 @@ describe('transitions and nextShare', () => {
 		expect(nextShare(views, '/nowhere')).toEqual({});
 		expect(nextShare(views, 'constructor')).toEqual({});
 	});
+
+	it('counts only first views toward a share, over every view from the page, with first', () => {
+		const seen = [
+			view({ route: '/b', from: '/a', reason: 'cold' }),
+			view({ route: '/b', from: '/a', reason: 'fresh' }),
+			view({ route: '/c', from: '/a', reason: 'catalogue' }),
+			view({ route: '/c', from: '/a', reason: 'fresh' }),
+			view({ route: '/d', from: '/a', reason: 'soft-deferred' })
+		];
+		expect(nextShare(seen, '/a', { first: true })).toEqual({ '/b': 1 / 5, '/c': 1 / 5 });
+		expect(nextShare(seen, '/a')).toEqual({ '/b': 2 / 5, '/c': 2 / 5, '/d': 1 / 5 });
+		expect(nextShare(seen, '/a', {})).toEqual(nextShare(seen, '/a'));
+		expect(nextShare(seen, '/none', { first: true })).toEqual({});
+	});
 });
 
 describe('catalogueFigures', () => {

@@ -87,7 +87,9 @@
 		"measure:iphone": "bun scripts/measure/iphone.ts",
 		"measure:traces": "bun scripts/measure/traces.ts",
 		"measure:payload": "bun scripts/measure/payload.ts",
-		"measure:trim": "bun scripts/measure/trim.ts"
+		"measure:trim": "bun scripts/measure/trim.ts",
+		"measure:nav-replay": "bun scripts/measure/nav-replay.ts",
+		"measure:embed-markup": "bun scripts/measure/embed-markup.ts"
 	},
 	"devDependencies": {
 		"@azure/functions": "^4.16.5",
