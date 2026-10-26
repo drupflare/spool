@@ -25,7 +25,7 @@ export type ResolvedEmbedOptions = {
 	ignoreCsp: boolean;
 };
 
-/** what the proxy counted for `embeds`: pages with a rewritten embed, the embeds, and the ones left alone by reason (`csp`, `jsapi`) */
+/** what the proxy counted for `embeds`: pages with a rewritten embed, the embeds, and the ones left alone by reason (`csp`, `jsapi`, `ambient`) */
 export type EmbedStats = { pages: number; rewritten: number; skipped: Record<string, number> };
 
 /** applies the defaults to `options` */
@@ -122,13 +122,24 @@ function facadeTag(
 	return `<iframe ${[...kept, `srcdoc="${doc}"`].join(' ')}>`;
 }
 
+const AMBIENT_NAME = /(?:^|[^a-z0-9])(?:hero|ambient|background|banner)(?:[^a-z0-9]|$)/i;
+
+/** a muted loop or a hero background plays on its own by design, so a click-to-load link would change the page */
+function ambient(tag: Tag, url: URL): boolean {
+	const on = (name: string) => url.searchParams.get(name) === '1';
+	if (on('background')) return true;
+	if (on('autoplay') && (on('mute') || on('muted') || on('loop'))) return true;
+	return AMBIENT_NAME.test(`${find(tag, 'class')?.value ?? ''} ${find(tag, 'id')?.value ?? ''}`);
+}
+
 /**
  * Replaces each server-rendered YouTube or Vimeo `<iframe src>` in `html` with a facade, as
  * `options` allow, and says how many it replaced and how many it left alone. Only an `https`,
  * `http` or protocol-relative `src` on a known embed host and path, with an id of 6 to 64 letters,
  * digits, `-` and `_`, is touched. An iframe inside an HTML comment or `<noscript>`, one that has
  * `srcdoc`, and one whose URL sets `enablejsapi=1` (the page's script expects the real player) stay
- * as they are; the last is counted as `jsapi`. With `page.csp` set, and no `ignoreCsp`, every
+ * as they are; the last is counted as `jsapi`. An embed that plays on its own by design (see
+ * `ambient`) stays too and is counted as `ambient`. With `page.csp` set, and no `ignoreCsp`, every
  * matching iframe is left alone and counted as `csp`. The facade keeps `width`, `height`, `title`,
  * `class`, `style`, `allow`, `allowfullscreen`, `loading`, `id`, `sandbox` and `referrerpolicy`.
  * Everything outside the replaced start tags stays byte for byte.
@@ -156,6 +167,10 @@ export function rewriteEmbeds(
 		if (!embed || !resolved.providers.has(embed.provider)) continue;
 		if (embed.url.searchParams.get('enablejsapi') === '1') {
 			skipped.jsapi = (skipped.jsapi ?? 0) + 1;
+			continue;
+		}
+		if (ambient(tag, embed.url)) {
+			skipped.ambient = (skipped.ambient ?? 0) + 1;
 			continue;
 		}
 		if (page.csp && !resolved.ignoreCsp) {

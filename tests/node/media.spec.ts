@@ -1476,6 +1476,29 @@ describe('rewriteEmbeds', () => {
 		expect(rewriteEmbeds(html)).toEqual({ html, rewritten: 0, skipped: { jsapi: 1 } });
 	});
 
+	it('leaves a background or muted-loop embed alone and counts it as ambient', () => {
+		const vimeo = 'https://player.vimeo.com/video/76979871';
+		const ambient = [
+			frame(`${vimeo}?background=1`),
+			frame(`${vimeo}?autoplay=1&muted=1`),
+			frame(`${YT}?autoplay=1&mute=1`),
+			frame(`${YT}?autoplay=1&loop=1`),
+			frame(YT, ' class="hero-ambient__video"'),
+			frame(YT, ' id="page-background"'),
+			frame(YT, ' class="top banner"')
+		].join('');
+		expect(rewriteEmbeds(ambient)).toEqual({
+			html: ambient,
+			rewritten: 0,
+			skipped: { ambient: 7 }
+		});
+	});
+
+	it('still rewrites an embed whose class only contains those letters inside a word', () => {
+		const html = frame(YT, ' class="heroic bannerless preloaded"') + frame(`${YT}?autoplay=0`);
+		expect(rewriteEmbeds(html).rewritten).toBe(2);
+	});
+
 	it('leaves every embed on a page with a CSP and counts them, unless ignoreCsp is set', () => {
 		const html = frame(YT) + frame('https://player.vimeo.com/video/76979871');
 		expect(rewriteEmbeds(html, {}, { csp: true })).toEqual({
