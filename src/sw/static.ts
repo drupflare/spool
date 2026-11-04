@@ -29,7 +29,11 @@ export function replayHeaders(headers: Headers): Headers {
  * counting, gives null and the rest is not read.
  */
 export async function readCapped(response: Response, cap: number): Promise<Uint8Array | null> {
-	if (Number(response.headers.get('content-length')) > cap) return null;
+	if (Number(response.headers.get('content-length')) > cap) {
+		// not awaited: a cancelled tee branch settles only once the other branch is read or cancelled
+		void response.body?.cancel().catch(() => undefined);
+		return null;
+	}
 	const reader = response.body?.getReader();
 	if (!reader) return new Uint8Array();
 	const chunks: Uint8Array[] = [];

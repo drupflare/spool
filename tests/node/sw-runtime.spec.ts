@@ -20,6 +20,7 @@ import { memoryStore } from '../../src/stores/index';
 import { renderLocal } from '../../src/sw/render';
 import { classify } from '../../src/sw/router';
 import { createRuntime } from '../../src/sw/runtime';
+import { MAX_STATIC_BYTES, readCapped } from '../../src/sw/static';
 import { memoryStorage, type ReplicaStorage } from '../../src/sw/storage';
 import { artifact, fakeCaches, nav, ORIGIN, sub } from './helpers';
 
@@ -526,6 +527,224 @@ describe('the artifact in the page', () => {
 		expect(shadow.log).toEqual(bare.log);
 		expect(shadow.log).not.toContain(asked);
 		expect(await stored(shadow, '/soft/1')).toEqual(await stored(bare, '/soft/1'));
+	});
+
+	const encode = (text: string) => new TextEncoder().encode(text);
+	const pageOf = (text: string, bytes: number) =>
+		text.replace('<head>', `<head>${' '.repeat(bytes - encode(text).length)}`);
+	const drain = async (body: ReadableStream<Uint8Array>) => {
+		const reader = body.getReader();
+		const decoder = new TextDecoder();
+		let got = '';
+		for (;;) {
+			try {
+				const { done, value } = await reader.read();
+				if (done) return { got, error: null as unknown };
+				got += decoder.decode(value, { stream: true });
+			} catch (error) {
+				return { got, error };
+			}
+		}
+	};
+	/** a body of `chunks` chunks of `size` bytes, counting what is pulled and cancelled */
+	const counted = (chunks: number, size: number, headers: Record<string, string> = {}) => {
+		const counts = { delivered: 0, cancels: 0 };
+		const body = new ReadableStream<Uint8Array>(
+			{
+				pull(controller) {
+					if (counts.delivered === chunks) return controller.close();
+					counts.delivered += 1;
+					controller.enqueue(new Uint8Array(size));
+				},
+				cancel() {
+					counts.cancels += 1;
+				}
+			},
+			{ highWaterMark: 0 }
+		);
+		return { response: { headers: new Headers(headers), body } as unknown as Response, counts };
+	};
+
+	it('reads a body of exactly the cap, and returns null for one byte more', async () => {
+		const exact = await readCapped(
+			new Response(new Uint8Array(MAX_STATIC_BYTES)),
+			MAX_STATIC_BYTES
+		);
+		expect(exact?.byteLength).toBe(MAX_STATIC_BYTES);
+		const over = await readCapped(
+			new Response(new Uint8Array(MAX_STATIC_BYTES + 1)),
+			MAX_STATIC_BYTES
+		);
+		expect(over).toBeNull();
+	});
+
+	it('pulls no more than the cap plus one chunk, and cancels the copy once over', async () => {
+		const size = 1024;
+		const cap = 10 * size + size / 2;
+		const { response, counts } = counted(100, size);
+		expect(await readCapped(response, cap)).toBeNull();
+		expect(counts).toEqual({ delivered: Math.floor(cap / size) + 1, cancels: 1 });
+	});
+
+	it('reads a body that ends at the cap without a cancel', async () => {
+		const { response, counts } = counted(10, 1024);
+		expect((await readCapped(response, 10 * 1024))?.byteLength).toBe(10 * 1024);
+		expect(counts).toEqual({ delivered: 10, cancels: 0 });
+	});
+
+	it('does not read a body that content-length puts over the cap, and cancels it', async () => {
+		const { response, counts } = counted(100, 1024, {
+			'content-length': String(MAX_STATIC_BYTES + 1)
+		});
+		expect(await readCapped(response, MAX_STATIC_BYTES)).toBeNull();
+		expect(counts).toEqual({ delivered: 0, cancels: 1 });
+	});
+
+	it('keeps a page of exactly MAX_STATIC_BYTES, and the visitor gets all of it', async () => {
+		const r = rig({ spool: inline, fetchWrap: rewrite((t) => pageOf(t, MAX_STATIC_BYTES)) });
+		const text = await visit(r, '/soft/1');
+		expect(encode(text).byteLength).toBe(MAX_STATIC_BYTES);
+		expect(r.log).toEqual(['GET /soft/1']);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+	});
+
+	it('does not keep a page one byte over MAX_STATIC_BYTES, and the visitor gets all of it', async () => {
+		const r = rig({
+			spool: inline,
+			fetchWrap: rewrite((t) => pageOf(t, MAX_STATIC_BYTES + 1))
+		});
+		const text = await visit(r, '/soft/1');
+		expect(encode(text).byteLength).toBe(MAX_STATIC_BYTES + 1);
+		expect(r.log).toEqual(['GET /soft/1', asked]);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+	});
+
+	it('does not keep a page that content-length puts over the cap, and the visitor gets all of it', async () => {
+		const r = rig({
+			spool: inline,
+			fetchWrap: rewrite((t) => pageOf(t, MAX_STATIC_BYTES + 1), {
+				'content-length': String(MAX_STATIC_BYTES + 1)
+			})
+		});
+		const text = await visit(r, '/soft/1');
+		expect(encode(text).byteLength).toBe(MAX_STATIC_BYTES + 1);
+		expect(r.log).toEqual(['GET /soft/1', asked]);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+	});
+
+	it.each([
+		['before the first chunk', 0],
+		['after the first chunk', 1],
+		['after two of four chunks', 2]
+	])(
+		'keeps nothing when the body fails %s, and the visitor gets what was sent',
+		async (_name, sent) => {
+			const failure = new Error('connection reset');
+			const unhandled: unknown[] = [];
+			const onUnhandled = (reason: unknown) => void unhandled.push(reason);
+			process.on('unhandledRejection', onUnhandled);
+			let parts: string[] = [];
+			let broken = true;
+			try {
+				const r = rig({
+					spool: inline,
+					fetchWrap: async (response) => {
+						if (!broken || !html(response) || !response.headers.has('spool-artifact')) {
+							return response;
+						}
+						broken = false;
+						const text = await response.text();
+						const quarter = Math.ceil(text.length / 4);
+						parts = [0, 1, 2, 3].map((i) => text.slice(i * quarter, (i + 1) * quarter));
+						const headers = new Headers(response.headers);
+						headers.delete('content-length');
+						let next = 0;
+						const body = new ReadableStream<Uint8Array>(
+							{
+								async pull(controller) {
+									await new Promise((resolve) => setTimeout(resolve, 0));
+									if (next === sent) controller.error(failure);
+									else controller.enqueue(encode(parts[next++] as string));
+								}
+							},
+							{ highWaterMark: 0 }
+						);
+						return new Response(body, { status: response.status, headers });
+					}
+				});
+				const waited: Promise<unknown>[] = [];
+				const pending = r.runtime.handle(nav('/soft/1'), (p) => void waited.push(p));
+				if (!pending) throw new Error('request was ignored');
+				const response = await pending;
+				const visitor = drain(response.body as ReadableStream<Uint8Array>);
+				await Promise.all(waited);
+				const { got, error } = await visitor;
+				expect(got).toBe(parts.slice(0, sent).join(''));
+				expect(error).toBe(failure);
+				expect(r.log).toEqual(['GET /soft/1', asked]);
+				expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+
+				await r.runtime.replica.drop(['/soft/1']);
+				r.log.length = 0;
+				await visit(r, '/soft/1');
+				expect(r.log).toEqual(['GET /soft/1']);
+				expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+			} finally {
+				process.off('unhandledRejection', onUnhandled);
+			}
+			expect(unhandled).toEqual([]);
+		}
+	);
+
+	it('stores one artifact when a second navigation to the path arrives while the first copy is read', async () => {
+		let begun = (): void => {};
+		const started = new Promise<void>((resolve) => (begun = resolve));
+		let release = (): void => {};
+		const held = new Promise<void>((resolve) => (release = resolve));
+		let first = true;
+		const r = rig({
+			spool: inline,
+			fetchWrap: async (response) => {
+				if (!first || !html(response) || !response.headers.has('spool-artifact'))
+					return response;
+				first = false;
+				const text = await response.text();
+				const headers = new Headers(response.headers);
+				headers.delete('content-length');
+				begun();
+				const body = new ReadableStream({
+					async start(controller) {
+						await held;
+						controller.enqueue(encode(text));
+						controller.close();
+					}
+				});
+				return new Response(body, { status: response.status, headers });
+			}
+		});
+		const { replica } = r.runtime;
+		const put = replica.put.bind(replica);
+		let puts = 0;
+		replica.put = (artifact, persist) => {
+			if (artifact.id === '/soft/1') puts += 1;
+			return put(artifact, persist);
+		};
+		const waited: Promise<unknown>[] = [];
+		const pending = r.drive(nav('/soft/1'));
+		await started;
+		const later = r.runtime.handle(nav('/soft/1'), (p) => void waited.push(p));
+		if (!later) throw new Error('request was ignored');
+		await later;
+		while (!(await stored(r, '/soft/1')))
+			await new Promise((resolve) => setTimeout(resolve, 1));
+		expect(puts).toBe(1);
+		release();
+		await pending;
+		await Promise.all(waited);
+		expect(r.log).toEqual(['GET /soft/1', 'GET /soft/1']);
+		expect(puts).toBe(1);
+		expect(r.runtime.ledger.entries()).toMatchObject([{ id: '/soft/1', requests: 0 }]);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
 	});
 });
 
