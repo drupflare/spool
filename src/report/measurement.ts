@@ -15,7 +15,8 @@ export const RIGS = [
 	'dictionary-size',
 	'nav-replay',
 	'first-payload',
-	'embed-markup'
+	'embed-markup',
+	'dataset-baseline'
 ] as const;
 
 /** one of {@link RIGS} */

@@ -1,0 +1,1961 @@
+{
+	"schema": 1,
+	"rig": "dataset-baseline",
+	"date": "2026-11-03",
+	"layer": "L1",
+	"question": "exact response bytes, route load runs and sync bytes of the v0.3 artifact for a held collection of 50, 500 and 5000 rows, after one row, ten rows, one percent of rows, one delete or one add, as a list of rows or as records; and whether the query proof verifies on the server and on the client after materialize",
+	"instrument": "spool.respond on an in-process createSpool with a memory store, no browser; node:zlib gzip and brotli of each response body; load runs counted inside the route",
+	"machine": {
+		"name": "darwin arm64",
+		"cpu": "Apple M2 Pro",
+		"os": "darwin 25.5.0"
+	},
+	"software": {
+		"runtime": "bun 1.4.4",
+		"zlib": "node:zlib, default levels"
+	},
+	"method": {
+		"route": "template strategy, query { list: \"rows\" }, depends [\"dataset\"], loads counted",
+		"shapes": {
+			"list": "the rows inline in the data; the proof is over the rows",
+			"records": "each row registered with ctx.record; the list holds refs; the proof is over the refs"
+		},
+		"changes": {
+			"change-1, change-10, change-1pct": "bump dataset, and the row tag of each changed row in the records shape; change-1pct is max(2, ceil(N / 100)) rows",
+			"delete-1, add-1": "bump dataset only"
+		},
+		"refetch": "each scenario runs on a fresh spool: seed, change, then one refetch with have and one without, both in the same state; then /.spool/sync from the seed vector",
+		"have": "the seed record ids and versions, the first 256 when there are more; a full have above 256 is sent once as fullHave",
+		"gates": {
+			"as shipped": "default provision priors",
+			"gate open": "route provision { reuse: 1, futureViews: 1000 }, so benefit() is positive at every size here"
+		},
+		"proof": "gate open arm: verifyProof on the built data, Graph.put and materialize from src/sw/graph, then verifyProof and shapeQuery on the materialized data",
+		"dataProbe": "a data route with default priors, one row, to check the gate on that strategy",
+		"titles": "40 to 80 ASCII characters from a seeded generator",
+		"bytes": "raw response body; a 204 is a declined artifact and counts 0 bytes",
+		"origin": "in process"
+	},
+	"exclusions": [
+		"none; a row with status 204 is a declined artifact with 0 bytes, kept as measured"
+	],
+	"rows": [
+		{
+			"kind": "probe",
+			"strategy": "data",
+			"arm": "as shipped",
+			"n": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5812,
+				"gzip": 2399,
+				"brotli": 2236,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5821,
+				"gzip": 2409,
+				"brotli": 2239,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 2,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5827,
+				"gzip": 2413,
+				"brotli": 2249,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5701,
+				"gzip": 2349,
+				"brotli": 2188,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5894,
+				"gzip": 2412,
+				"brotli": 2259,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5812,
+				"gzip": 2399,
+				"brotli": 2236,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5821,
+				"gzip": 2409,
+				"brotli": 2239,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 2,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5827,
+				"gzip": 2413,
+				"brotli": 2249,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5701,
+				"gzip": 2349,
+				"brotli": 2188,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 50,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 5798,
+				"gzip": 2393,
+				"brotli": 2224,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 5894,
+				"gzip": 2412,
+				"brotli": 2259,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 5,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 56709,
+				"gzip": 21682,
+				"brotli": 19965,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 56723,
+				"gzip": 21689,
+				"brotli": 19981,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 56709,
+				"gzip": 21682,
+				"brotli": 19965,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 56732,
+				"gzip": 21718,
+				"brotli": 19983,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 5,
+			"seed": {
+				"status": 200,
+				"bytes": 56709,
+				"gzip": 21682,
+				"brotli": 19965,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 56700,
+				"gzip": 21700,
+				"brotli": 19970,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 56709,
+				"gzip": 21682,
+				"brotli": 19965,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 56612,
+				"gzip": 21640,
+				"brotli": 19922,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 500,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 56709,
+				"gzip": 21682,
+				"brotli": 19965,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 56808,
+				"gzip": 21713,
+				"brotli": 20000,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 50,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 570412,
+				"gzip": 215517,
+				"brotli": 193107,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 570426,
+				"gzip": 215523,
+				"brotli": 191744,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 570412,
+				"gzip": 215517,
+				"brotli": 193107,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 570435,
+				"gzip": 215555,
+				"brotli": 191748,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 50,
+			"seed": {
+				"status": 200,
+				"bytes": 570412,
+				"gzip": 215517,
+				"brotli": 193107,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 570400,
+				"gzip": 215568,
+				"brotli": 191719,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 570412,
+				"gzip": 215517,
+				"brotli": 193107,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 570315,
+				"gzip": 215465,
+				"brotli": 191765,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "list",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 570412,
+				"gzip": 215517,
+				"brotli": 193107,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "list shape holds no record ids, so no have is sent",
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 570512,
+				"gzip": 215559,
+				"brotli": 191883,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1839,
+				"gzip": 524,
+				"brotli": 373,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9047,
+				"gzip": 2914,
+				"brotli": 2504,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 86
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 3159,
+				"gzip": 1021,
+				"brotli": 804,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9056,
+				"gzip": 2944,
+				"brotli": 2529,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 176
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 2,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1993,
+				"gzip": 600,
+				"brotli": 438,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9062,
+				"gzip": 2925,
+				"brotli": 2515,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 96
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1667,
+				"gzip": 430,
+				"brotli": 286,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 8874,
+				"gzip": 2857,
+				"brotli": 2455,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1855,
+				"gzip": 524,
+				"brotli": 372,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9194,
+				"gzip": 2951,
+				"brotli": 2549,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1839,
+				"gzip": 524,
+				"brotli": 373,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9047,
+				"gzip": 2914,
+				"brotli": 2504,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 86
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 3159,
+				"gzip": 1021,
+				"brotli": 804,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9056,
+				"gzip": 2944,
+				"brotli": 2529,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 176
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 2,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1993,
+				"gzip": 600,
+				"brotli": 438,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9062,
+				"gzip": 2925,
+				"brotli": 2515,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 96
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1667,
+				"gzip": 430,
+				"brotli": 286,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 8874,
+				"gzip": 2857,
+				"brotli": 2455,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 50,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 9033,
+				"gzip": 2902,
+				"brotli": 2511,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 1855,
+				"gzip": 524,
+				"brotli": 372,
+				"loads": 1,
+				"haveIds": 50
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 9194,
+				"gzip": 2951,
+				"brotli": 2549,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 5,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 90394,
+				"gzip": 26784,
+				"brotli": 21959,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 52401,
+				"gzip": 14686,
+				"brotli": 11307,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 90408,
+				"gzip": 26797,
+				"brotli": 21882,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 86
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 90394,
+				"gzip": 26784,
+				"brotli": 21959,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 52851,
+				"gzip": 14707,
+				"brotli": 11431,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 90417,
+				"gzip": 26828,
+				"brotli": 21941,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 176
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 5,
+			"seed": {
+				"status": 200,
+				"bytes": 90394,
+				"gzip": 26784,
+				"brotli": 21959,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 52819,
+				"gzip": 14708,
+				"brotli": 11395,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 90385,
+				"gzip": 26795,
+				"brotli": 21897,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 126
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 90394,
+				"gzip": 26784,
+				"brotli": 21959,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 52228,
+				"gzip": 14665,
+				"brotli": 11305,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 90235,
+				"gzip": 26742,
+				"brotli": 21851,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 500,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 90394,
+				"gzip": 26784,
+				"brotli": 21959,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 52423,
+				"gzip": 14689,
+				"brotli": 11346,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 90561,
+				"gzip": 26839,
+				"brotli": 21949,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "change-1pct",
+			"changedRows": 50,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "as shipped",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"refetchWithHave": null,
+			"haveNote": "no record ids held, so no have is sent",
+			"refetchWithout": {
+				"status": 204,
+				"bytes": 0,
+				"gzip": 0,
+				"brotli": 0,
+				"loads": 1
+			},
+			"sync": null,
+			"fullHave": null
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 922097,
+				"gzip": 260096,
+				"brotli": 210780,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 883632,
+				"gzip": 248229,
+				"brotli": 201695,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 922111,
+				"gzip": 260107,
+				"brotli": 211128,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 86
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-10",
+			"changedRows": 10,
+			"seed": {
+				"status": 200,
+				"bytes": 922097,
+				"gzip": 260096,
+				"brotli": 210780,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 883780,
+				"gzip": 248308,
+				"brotli": 201583,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 922120,
+				"gzip": 260139,
+				"brotli": 210877,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 176
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "change-1pct",
+			"changedRows": 50,
+			"seed": {
+				"status": 200,
+				"bytes": 922097,
+				"gzip": 260096,
+				"brotli": 210780,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 884183,
+				"gzip": 248560,
+				"brotli": 201957,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 922085,
+				"gzip": 260288,
+				"brotli": 210940,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 616
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "delete-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 922097,
+				"gzip": 260096,
+				"brotli": 210780,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 883459,
+				"gzip": 248173,
+				"brotli": 201460,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 921938,
+				"gzip": 260057,
+				"brotli": 210656,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "scenario",
+			"shape": "records",
+			"n": 5000,
+			"arm": "gate open",
+			"change": "add-1",
+			"changedRows": 1,
+			"seed": {
+				"status": 200,
+				"bytes": 922097,
+				"gzip": 260096,
+				"brotli": 210780,
+				"loads": 1
+			},
+			"refetchWithHave": {
+				"status": 200,
+				"bytes": 883658,
+				"gzip": 248218,
+				"brotli": 202964,
+				"loads": 1,
+				"haveIds": 256
+			},
+			"haveNote": null,
+			"refetchWithout": {
+				"status": 200,
+				"bytes": 922268,
+				"gzip": 260130,
+				"brotli": 210909,
+				"loads": 1
+			},
+			"sync": {
+				"status": 200,
+				"bytes": 76
+			},
+			"fullHave": {
+				"status": 400,
+				"error": "more than 256 ids"
+			}
+		},
+		{
+			"kind": "proof",
+			"shape": "list",
+			"n": 50,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": true,
+			"shapeQuery": "ok"
+		},
+		{
+			"kind": "proof",
+			"shape": "list",
+			"n": 500,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": true,
+			"shapeQuery": "ok"
+		},
+		{
+			"kind": "proof",
+			"shape": "list",
+			"n": 5000,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": true,
+			"shapeQuery": "ok"
+		},
+		{
+			"kind": "proof",
+			"shape": "records",
+			"n": 50,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": false,
+			"shapeQuery": "dataset proof does not match its items"
+		},
+		{
+			"kind": "proof",
+			"shape": "records",
+			"n": 500,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": false,
+			"shapeQuery": "dataset proof does not match its items"
+		},
+		{
+			"kind": "proof",
+			"shape": "records",
+			"n": 5000,
+			"serverVerify": true,
+			"materialized": true,
+			"clientVerify": false,
+			"shapeQuery": "dataset proof does not match its items"
+		}
+	]
+}
