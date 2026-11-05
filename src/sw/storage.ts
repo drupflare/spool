@@ -1,5 +1,6 @@
 import type { Artifact } from '../protocol/artifact.js';
 import type { BeaconEvent } from '../protocol/beacon.js';
+import type { DatasetRow } from '../protocol/dataset.js';
 import type { ProjectionEntry, RecordEntry } from '../protocol/graph.js';
 import type { HeaderSet } from './policy.js';
 
@@ -37,6 +38,41 @@ export type ReplicaMeta = {
 /** a queued beacon with the key to remove it by */
 export type QueuedBeacon = { key: number; event: BeaconEvent };
 
+/** what the device keeps about one held dataset; the rows sit beside it, by name and key */
+export type DatasetMeta = {
+	name: string;
+	/** the row shape version the rows were seeded at */
+	schema: string;
+	/** the cursor the rows are current to */
+	cursor: number;
+	/** rows held */
+	count: number;
+	/** the collection digest of the held rows, 64 hex digits */
+	digest: string;
+	/** bytes of row JSON held */
+	bytes: number;
+	/** when the last apply or confirming sync finished, epoch milliseconds */
+	appliedAt: number;
+};
+
+/** a row as stored, with its hash so a patch and a load need not compute it again */
+export type DatasetRowRecord = { name: string; key: string; row: DatasetRow; hash: string };
+
+/**
+ * Everything one apply writes. The store commits all of it or none of it: `clear` removes the
+ * dataset's rows first, then `deletes` and `puts` apply, and `meta` is written, or removed when null.
+ */
+export type DatasetCommit = {
+	name: string;
+	meta: DatasetMeta | null;
+	clear: boolean;
+	puts: readonly DatasetRowRecord[];
+	deletes: readonly string[];
+};
+
+/** the steps of a commit, in order; a test makes the in-memory store fail at one */
+export type DatasetStep = 'clear' | 'deletes' | 'puts' | 'meta';
+
 /** durable state of the replica; IndexedDB in a browser, a Map in tests */
 export interface ReplicaStorage {
 	getArtifact(id: string): Promise<StoredArtifact | undefined>;
@@ -58,14 +94,30 @@ export interface ReplicaStorage {
 	allProjections(): Promise<ProjectionEntry[]>;
 	deleteProjections(ids: readonly string[]): Promise<void>;
 	clearGraph(): Promise<void>;
+	/** the meta of every held dataset */
+	getDatasets(): Promise<DatasetMeta[]>;
+	/** the stored rows of one dataset in ascending key order */
+	readDataset(name: string): Promise<DatasetRowRecord[]>;
+	/** applies a commit atomically; rejects, leaving the store as it was, when any step fails */
+	commitDataset(commit: DatasetCommit): Promise<void>;
+	/** removes every dataset's rows and meta */
+	clearDatasets(): Promise<void>;
 }
 
+/** what {@link memoryStorage} can be told to do wrong */
+export type MemoryOptions = {
+	/** called before each step of a dataset commit; true makes the commit fail at that step */
+	failDatasetAt?: (step: DatasetStep) => boolean;
+};
+
 /** storage in memory, for tests and for routes that opt out of persistence */
-export function memoryStorage(): ReplicaStorage {
+export function memoryStorage(options: MemoryOptions = {}): ReplicaStorage {
 	const artifacts = new Map<string, StoredArtifact>();
 	const beacons = new Map<number, BeaconEvent>();
 	const records = new Map<string, RecordEntry>();
 	const projections = new Map<string, ProjectionEntry>();
+	const datasetMeta = new Map<string, DatasetMeta>();
+	const datasetRows = new Map<string, Map<string, DatasetRowRecord>>();
 	let meta: ReplicaMeta | undefined;
 	let flush: FlushState | undefined;
 	let next = 1;
@@ -91,6 +143,35 @@ export function memoryStorage(): ReplicaStorage {
 		clearGraph: async () => {
 			records.clear();
 			projections.clear();
+		},
+		getDatasets: async () => structuredClone([...datasetMeta.values()]),
+		readDataset: async (name) =>
+			structuredClone([...(datasetRows.get(name)?.values() ?? [])]).sort((a, b) =>
+				a.key < b.key ? -1 : a.key > b.key ? 1 : 0
+			),
+		commitDataset: async (commit) => {
+			const fail = (step: DatasetStep) => {
+				if (options.failDatasetAt?.(step))
+					throw new Error(`dataset commit failed at ${step}`);
+			};
+			// steps run on a copy, so a failure leaves the held rows as they were
+			const staged = new Map<string, DatasetRowRecord>(
+				commit.clear ? undefined : datasetRows.get(commit.name)
+			);
+			fail('clear');
+			for (const key of commit.deletes) staged.delete(key);
+			fail('deletes');
+			for (const put of commit.puts) staged.set(put.key, structuredClone(put));
+			fail('puts');
+			fail('meta');
+			if (staged.size === 0) datasetRows.delete(commit.name);
+			else datasetRows.set(commit.name, staged);
+			if (commit.meta) datasetMeta.set(commit.name, structuredClone(commit.meta));
+			else datasetMeta.delete(commit.name);
+		},
+		clearDatasets: async () => {
+			datasetMeta.clear();
+			datasetRows.clear();
 		}
 	};
 }

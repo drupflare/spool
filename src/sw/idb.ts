@@ -1,6 +1,9 @@
 import type { BeaconEvent } from '../protocol/beacon.js';
 import type { ProjectionEntry, RecordEntry } from '../protocol/graph.js';
 import type {
+	DatasetCommit,
+	DatasetMeta,
+	DatasetRowRecord,
 	FlushState,
 	QueuedBeacon,
 	ReplicaMeta,
@@ -14,6 +17,8 @@ const META = 'meta';
 const BEACONS = 'beacons';
 const RECORDS = 'records';
 const PROJECTIONS = 'projections';
+const DATASET_ROWS = 'datasetRows';
+const DATASET_META = 'datasetMeta';
 const META_KEY = 'replica';
 const FLUSH_KEY = 'flush';
 
@@ -41,6 +46,7 @@ export function idbStorage(
 	name: string = NAME
 ): ReplicaStorage & { destroy(): Promise<void> } {
 	let opened: Promise<IDBDatabase> | undefined;
+	let openedSets: Promise<IDBDatabase> | undefined;
 	const open = () =>
 		(opened ??= new Promise<IDBDatabase>((resolve, reject) => {
 			const request = factory.open(name, 2);
@@ -63,13 +69,33 @@ export function idbStorage(
 			};
 			request.onerror = () => reject(request.error);
 		}));
+	// datasets get their own database: an older worker opens `name` at version 2 and fails on a higher one
+	const openSets = () =>
+		(openedSets ??= new Promise<IDBDatabase>((resolve, reject) => {
+			const request = factory.open(`${name}-datasets`, 1);
+			request.onupgradeneeded = () => {
+				const db = request.result;
+				db.createObjectStore(DATASET_ROWS, { keyPath: ['name', 'key'] });
+				db.createObjectStore(DATASET_META, { keyPath: 'name' });
+			};
+			request.onsuccess = () => {
+				const db = request.result;
+				db.onversionchange = () => {
+					db.close();
+					openedSets = undefined;
+				};
+				resolve(db);
+			};
+			request.onerror = () => reject(request.error);
+		}));
 
 	async function tx<T>(
 		store: string,
 		mode: IDBTransactionMode,
-		run: (s: IDBObjectStore) => Promise<T> | T
+		run: (s: IDBObjectStore) => Promise<T> | T,
+		from: () => Promise<IDBDatabase> = open
 	): Promise<T> {
-		const db = await open();
+		const db = await from();
 		const transaction = db.transaction(store, mode);
 		const finished = done(transaction);
 		const result = await run(transaction.objectStore(store));
@@ -79,14 +105,19 @@ export function idbStorage(
 
 	return {
 		destroy: async () => {
-			const db = await opened?.catch(() => undefined);
-			db?.close();
+			const dbs = await Promise.all(
+				[opened, openedSets].map((p) => p?.catch(() => undefined))
+			);
+			for (const db of dbs) db?.close();
 			opened = undefined;
-			await new Promise<void>((resolve) => {
-				const request = factory.deleteDatabase(name);
-				request.onsuccess = () => resolve();
-				request.onerror = () => resolve();
-			});
+			openedSets = undefined;
+			for (const dbName of [name, `${name}-datasets`]) {
+				await new Promise<void>((resolve) => {
+					const request = factory.deleteDatabase(dbName);
+					request.onsuccess = () => resolve();
+					request.onerror = () => resolve();
+				});
+			}
 		},
 		getArtifact: (id) =>
 			tx(ARTIFACTS, 'readonly', (s) => wrap<StoredArtifact | undefined>(s.get(id))),
@@ -143,6 +174,50 @@ export function idbStorage(
 		clearGraph: async () => {
 			await tx(RECORDS, 'readwrite', async (s) => void (await wrap(s.clear())));
 			await tx(PROJECTIONS, 'readwrite', async (s) => void (await wrap(s.clear())));
+		},
+		getDatasets: () =>
+			tx(DATASET_META, 'readonly', (s) => wrap<DatasetMeta[]>(s.getAll()), openSets),
+		readDataset: (name) =>
+			tx(
+				DATASET_ROWS,
+				'readonly',
+				(s) => wrap<DatasetRowRecord[]>(s.getAll(IDBKeyRange.bound([name], [name, []]))),
+				openSets
+			),
+		commitDataset: async (commit: DatasetCommit) => {
+			const db = await openSets();
+			// strict durability: the commit is reported only after the engine verified the write
+			const transaction = db.transaction([DATASET_ROWS, DATASET_META], 'readwrite', {
+				durability: 'strict'
+			});
+			const finished = done(transaction);
+			// a rejected commit has aborted its transaction; the caller learns it from `finished`
+			finished.catch(() => undefined);
+			try {
+				const rows = transaction.objectStore(DATASET_ROWS);
+				const metas = transaction.objectStore(DATASET_META);
+				if (commit.clear) rows.delete(IDBKeyRange.bound([commit.name], [commit.name, []]));
+				for (const key of commit.deletes) rows.delete([commit.name, key]);
+				for (const put of commit.puts) rows.put(put);
+				if (commit.meta) metas.put(commit.meta);
+				else metas.delete(commit.name);
+			} catch (error) {
+				try {
+					transaction.abort();
+				} catch {
+					// already finished
+				}
+				throw error;
+			}
+			await finished;
+		},
+		clearDatasets: async () => {
+			const db = await openSets();
+			const transaction = db.transaction([DATASET_ROWS, DATASET_META], 'readwrite');
+			const finished = done(transaction);
+			transaction.objectStore(DATASET_ROWS).clear();
+			transaction.objectStore(DATASET_META).clear();
+			await finished;
 		}
 	};
 }

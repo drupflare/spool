@@ -210,6 +210,11 @@ export function sealedStorage(inner: ReplicaStorage, options: SealOptions): Seal
 			return out;
 		},
 		deleteProjections: (ids) => (dead ? Promise.resolve() : inner.deleteProjections(ids)),
-		clearGraph: () => (dead ? Promise.resolve() : inner.clearGraph())
+		clearGraph: () => (dead ? Promise.resolve() : inner.clearGraph()),
+		// datasets are public only; a partition holds none and refuses to be given one
+		getDatasets: async () => [],
+		readDataset: async () => [],
+		commitDataset: () => Promise.reject(new Error('a principal partition holds no dataset')),
+		clearDatasets: async () => undefined
 	};
 }

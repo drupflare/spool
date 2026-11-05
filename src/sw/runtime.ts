@@ -26,6 +26,7 @@ import {
 } from '../protocol/view.js';
 import { BeaconQueue, LOGOUT_SEND_MS } from './analytics.js';
 import { collectorAnswer } from './collect.js';
+import { syncDataset, type DatasetOutcome, type DatasetRefusal } from './dataset-sync.js';
 import { verdict } from './freshness.js';
 import type { PartitionHost } from './partition.js';
 import { policyHeaders, type HeaderSet } from './policy.js';
@@ -44,13 +45,14 @@ import { installRoutes, type RoutableInstall } from './routing.js';
 import { Scheduler } from './scheduler.js';
 import { differs, modeFor, runsShadow } from './shadow.js';
 import {
+	branch,
 	matchesVersion,
 	MAX_STATIC_BYTES,
 	readCapped,
 	replayHeaders,
 	STATIC_CACHE
 } from './static.js';
-import type { ReplicaStorage } from './storage.js';
+import type { DatasetMeta, ReplicaStorage } from './storage.js';
 import { THIRD_CACHE, THIRD_HEADERS, versionClass, type VersionClass } from './thirdparty.js';
 
 /** the slice of a `Cache` the runtime uses */
@@ -89,6 +91,8 @@ export type RuntimeDeps = {
 	partitions?: PartitionHost;
 	/** tells every page of the origin something, such as that a wipe happened */
 	broadcast?(message: unknown): void;
+	/** the storage the origin may use and has used; default `navigator.storage.estimate` */
+	estimate?(): Promise<{ quota?: number; usage?: number }>;
 };
 
 /** the worker's answer to a page's `spool:hello` */
@@ -136,11 +140,26 @@ export type HeldStatus = {
 	third: string[];
 };
 
+/**
+ * the worker's answer to `spool:datasets`: what it holds, how each sync ended (counts by
+ * `<name>:<status>` or `<name>:refused:<reason>`), the datasets it will not retry this run, the
+ * datasets it found damaged and cleared, and whether a page was granted persistent storage
+ */
+export type DatasetStatus = {
+	type: 'spool:datasets';
+	datasets: DatasetMeta[];
+	outcomes: Record<string, number>;
+	refused: Record<string, DatasetRefusal>;
+	evicted: number;
+	persisted: boolean | null;
+};
+
 /** every reply the worker gives a page */
 export type Reply =
 	| Hello
 	| Status
 	| ViewId
+	| DatasetStatus
 	| GraphStatus
 	| LedgerStatus
 	| PartitionStatus
@@ -266,8 +285,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		void settled.then(() => background.delete(settled));
 	};
 
-	const settleBackground = async () => {
-		while (background.size > 0) await Promise.allSettled([...background]);
+	// only work begun after `before` is waited for, not an earlier request's held body
+	const settleBackground = async (before: Set<Promise<unknown>>) => {
+		const fresh = () => [...background].filter((p) => !before.has(p));
+		while (fresh().length > 0) await Promise.allSettled(fresh());
 	};
 
 	/** runs `fn` after every earlier partition change, so two responses never swap the store at once */
@@ -440,6 +461,83 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		loaded: Promise.resolve()
 	};
 	const scheduler = publicSide.scheduler;
+
+	// #region datasets
+
+	const datasetRuns = new Map<string, Promise<DatasetOutcome>>();
+	const datasetCounts: Record<string, number> = {};
+	const datasetRefused = new Map<string, DatasetRefusal>();
+	const datasetsDeferred = new Set<string>();
+	let persistAsked = false;
+	let persisted: boolean | null = null;
+
+	const estimate = async () => {
+		if (deps.estimate) return deps.estimate();
+		return (
+			(typeof navigator === 'undefined'
+				? undefined
+				: await navigator.storage?.estimate?.()) ?? {}
+		);
+	};
+
+	/** the bytes of rows one dataset may take: the headroom times the declared share; unknown when the browser will not say */
+	const datasetBudget = async (): Promise<number | undefined> => {
+		try {
+			const { quota, usage } = await estimate();
+			if (quota === undefined || usage === undefined) return undefined;
+			return Math.max(0, (quota - usage) * (config.datasetShare ?? 1));
+		} catch {
+			return undefined;
+		}
+	};
+
+	const tally = (outcome: DatasetOutcome) => {
+		const key =
+			outcome.status === 'refused'
+				? `${outcome.name}:refused:${outcome.reason}`
+				: `${outcome.name}:${outcome.status}`;
+		datasetCounts[key] = (datasetCounts[key] ?? 0) + 1;
+		if (outcome.status === 'refused') datasetRefused.set(outcome.name, outcome.reason);
+		else if (outcome.status !== 'offline') datasetRefused.delete(outcome.name);
+		const held = outcome.status !== 'offline' && outcome.status !== 'refused';
+		if (held && !persistAsked) {
+			persistAsked = true;
+			deps.broadcast?.({ type: 'spool:persist' });
+		}
+	};
+
+	/** brings one dataset current; a second caller joins the run in flight */
+	function syncDatasetOnce(name: string): Promise<DatasetOutcome> {
+		const running = datasetRuns.get(name);
+		if (running) return running;
+		const run = syncDataset(
+			{
+				store: replica.datasets,
+				fetch: (url, init) => deps.fetch(url, init),
+				origin,
+				epoch: () => replica.epoch,
+				budget: datasetBudget
+			},
+			name
+		)
+			.then((outcome) => {
+				tally(outcome);
+				return outcome;
+			})
+			.finally(() => datasetRuns.delete(name));
+		datasetRuns.set(name, run);
+		return run;
+	}
+
+	const datasetCurrent = (outcome: DatasetOutcome) =>
+		outcome.status !== 'offline' && outcome.status !== 'refused';
+
+	/** seeds a dataset in the background unless this run already learned it will not be held */
+	function seedDataset(name: string): void {
+		if (!datasetRefused.has(name) && !datasetRuns.has(name)) track(syncDatasetOnce(name));
+	}
+
+	// #endregion
 
 	// #region partitions
 
@@ -629,6 +727,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		if (moment) {
 			await drainDeferred(publicSide);
 			if (principal) await drainDeferred(principal);
+			const names = [...datasetsDeferred];
+			datasetsDeferred.clear();
+			for (const name of names) await syncDatasetOnce(name);
 			await analytics.flushAtMoment();
 			await revalidateThirdParty();
 		}
@@ -700,9 +801,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		// a cacheable GET may be answered by the HTTP cache with no radio wake, so only these count
 		const moment = navigation || request.method !== 'GET';
 		const clone = after?.clone;
-		const copy = (typeof clone === 'function' ? clone(response, envelope) : clone)
-			? response.clone()
-			: null;
+		const kept = typeof clone === 'function' ? clone(response, envelope) : clone;
+		const { visitor, copy } = kept ? branch(response) : { visitor: response, copy: null };
 		track(
 			(async () => {
 				try {
@@ -721,7 +821,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				);
 			})()
 		);
-		return response;
+		return visitor;
 	}
 
 	/** `search` is the request's query string; the stored artifact is always the path's own */
@@ -759,9 +859,39 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			return { reason: 'invalidated', staleSec: age };
 		}
 
+		// a page answers from the rows the device holds, so their age bounds the answer too
+		const queried = route.scope === 'public' ? route.query?.dataset : undefined;
+		const dsNames =
+			route.scope === 'public'
+				? [
+						...new Set([
+							...(queried ? [queried] : []),
+							...(await rep.datasetsOf(stored.artifact))
+						])
+					]
+				: [];
+		const heldAt = async () =>
+			Promise.all(
+				dsNames.map(async (name) => (await rep.datasets.get(name))?.meta.appliedAt)
+			);
+		let appliedAt = await heldAt();
+		const missing = dsNames.filter((_, i) => appliedAt[i] === undefined);
+		if (missing.length > 0) {
+			if (!dry) for (const name of missing) seedDataset(name);
+			return { reason: 'refused', staleSec: staleSec() };
+		}
+		const known = (at: Array<number | undefined>) =>
+			at.filter((v): v is number => v !== undefined);
 		const fromCatalogue = stored.catalogue === true;
-		const action = verdict(route.freshness, rep.validatedAt(stored), now());
-		const age = staleSec() as number;
+		const action = verdict(
+			route.freshness,
+			Math.min(rep.validatedAt(stored), ...known(appliedAt)),
+			now()
+		);
+		const age = Math.max(
+			staleSec() as number,
+			...known(appliedAt).map((at) => Math.floor((now() - at) / 1000))
+		);
 		const base = rep.needFor(
 			stored.artifact,
 			route.sync === 'deferred' || route.scope === 'principal'
@@ -774,20 +904,29 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			reason = 'hard-sync';
 			if (!dry) {
 				const synced = await sched.sync(need, age);
-				if (!synced && route.offline === 'refuse')
+				const dsSynced = (await Promise.all(dsNames.map(syncDatasetOnce))).every(
+					datasetCurrent
+				);
+				if (!(synced && dsSynced) && route.offline === 'refuse')
 					return { reason: 'hard-refused', staleSec: age };
+				if (dsNames.length > 0) {
+					appliedAt = await heldAt();
+					if (appliedAt.includes(undefined)) return { reason: 'refused', staleSec: age };
+				}
 				if (synced) {
 					if (need) await rep.validate(path);
 					stored = await rep.get(path);
 					if (!stored || !rep.isCurrent(stored.artifact)) {
 						return { reason: 'stale-after-sync', staleSec: age };
 					}
-				} else reason = 'offline-stale';
+				}
+				if (!(synced && dsSynced)) reason = 'offline-stale';
 			}
 		} else if (action === 'serve-then-sync') {
 			if (route.sync === 'deferred') {
 				reason = 'soft-deferred';
 				if (!dry && need && sched.defer(need, age)) side.deferred.add(path);
+				if (!dry) for (const name of dsNames) datasetsDeferred.add(name);
 			} else {
 				reason = 'soft-sync';
 				if (!dry) {
@@ -796,6 +935,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 							if (ok && need) await rep.validate(path);
 						})
 					);
+					for (const name of dsNames) track(syncDatasetOnce(name));
 				}
 			}
 		}
@@ -813,11 +953,18 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		if (!headers && !dry) return { reason: 'refused', staleSec: age };
 		const plain = await rep.materialize(stored.artifact);
 		if (!plain.ok) {
+			// rows of a dataset not held yet: the page is sound, so keep it and seed the dataset
+			if (plain.datasets && side === publicSide) {
+				if (!dry) for (const name of plain.datasets) seedDataset(name);
+				return { reason: 'refused', staleSec: age };
+			}
 			// a reference with nothing behind it: drop the page so the next network view fetches it whole
 			await rep.drop([path]);
 			return { reason: 'refused', staleSec: age };
 		}
-		const rendered = await renderLocal(config, route, plain.artifact, renderers, search);
+		const rows = queried === undefined ? undefined : await rep.datasets.rows(queried);
+		if (queried !== undefined && !rows) return { reason: 'refused', staleSec: age };
+		const rendered = await renderLocal(config, route, plain.artifact, renderers, search, rows);
 		if (!rendered.ok) {
 			// a collection that fails its proof is dropped, so the next network view fetches it whole
 			if (rendered.reason === PROOF_MISMATCH) await rep.drop([path]);
@@ -971,7 +1118,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		asked: SerializedRoute,
 		copy: Response | null
 	): Promise<void> {
-		if (!copy || copy.status !== 200 || copy.redirected) return;
+		if (!copy || copy.status !== 200 || copy.redirected) {
+			// an unread tee branch holds every chunk the visitor reads
+			void copy?.body?.cancel().catch(() => undefined);
+			return;
+		}
 		// a sync in the same view may have replaced the manifest, so the route is read again
 		const route = config.manifest ? matchRoute(config.routes, pathOf(path))?.route : asked;
 		if (route?.strategy !== 'static') return;
@@ -1318,8 +1469,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			) {
 				return undefined;
 			}
+			const before = new Set(background);
 			const work = kind === 'asset' && !manifestPending() ? asset(request) : run(request);
-			return work.catch(() => deps.fetch(request)).finally(() => wait(settleBackground()));
+			return work
+				.catch(() => deps.fetch(request))
+				.finally(() => wait(settleBackground(before)));
 		},
 		async install(event) {
 			if (assetMode === 'static-routing') routed = await installRoutes(event, config, origin);
@@ -1413,6 +1567,21 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 			if (message.type === 'spool:assets') {
 				return { type: 'spool:assets', mode: assetMode, routed };
+			}
+			if (message.type === 'spool:datasets') {
+				await ready();
+				return {
+					type: 'spool:datasets',
+					datasets: await replica.datasets.list(),
+					outcomes: { ...datasetCounts },
+					refused: Object.fromEntries(datasetRefused),
+					evicted: replica.datasets.evicted,
+					persisted
+				};
+			}
+			if (message.type === 'spool:persisted') {
+				persisted = (message as { granted?: unknown }).granted === true;
+				return undefined;
 			}
 			if (message.type === 'spool:held') {
 				const cache = await cacheNamed(THIRD_CACHE);

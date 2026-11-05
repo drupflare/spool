@@ -7,6 +7,7 @@ import {
 	MAX_NEED,
 	type SyncResponse
 } from '../protocol/sync.js';
+import { DatasetStore, type DatasetStoreDeps } from './dataset.js';
 import { isCurrent, validatedAt } from './freshness.js';
 import { Graph, usesGraph, type Materialized } from './graph/index.js';
 import { MAX_POLICY_PATHS, type HeaderSet } from './policy.js';
@@ -32,16 +33,41 @@ export class Replica {
 	#policies = new Map<string, HeaderSet>();
 	/** records and projections; untouched until a page that references them is stored or shown */
 	readonly graph: Graph;
+	/** the datasets held, apart from the version vector: each has its own cursor */
+	readonly datasets: DatasetStore;
 
-	constructor(storage: ReplicaStorage, version: string, now: () => number = Date.now) {
+	constructor(
+		storage: ReplicaStorage,
+		version: string,
+		now: () => number = Date.now,
+		hash?: DatasetStoreDeps['hash']
+	) {
 		this.#storage = storage;
 		this.#version = version;
 		this.#now = now;
+		this.datasets = new DatasetStore({
+			storage,
+			now,
+			epoch: () => this.#epoch,
+			...(hash ? { hash } : {}),
+			onChange: (name, puts, deletes) => this.#rowsChanged(name, puts, deletes)
+		});
 		this.graph = new Graph({
 			storage,
 			tagVersion: (tag) => this.#tags.get(tag) ?? 0,
-			artifacts: () => this.#all()
+			artifacts: () => this.#all(),
+			row: (dataset, key) => this.datasets.row(dataset, key),
+			held: (dataset) => this.datasets.loaded(dataset),
+			loadDatasets: async (names) =>
+				void (await Promise.all(names.map((n) => this.datasets.get(n))))
 		});
+	}
+
+	/** repairs what references changed dataset rows: a deleted row drops the pages that used it */
+	async #rowsChanged(name: string, puts: string[], deletes: string[]): Promise<void> {
+		if (!this.graph.loaded) return;
+		const effect = await this.graph.rowsChanged(name, puts, deletes);
+		if (effect.dropped.artifacts.length > 0) await this.drop(effect.dropped.artifacts);
 	}
 
 	/** reads the persisted meta; a different runtime version wipes what the old one stored */
@@ -57,6 +83,7 @@ export class Replica {
 		}
 		await this.#storage.clearArtifacts();
 		await this.graph.clear();
+		await this.datasets.clear();
 		await this.#save();
 	}
 
@@ -150,6 +177,13 @@ export class Replica {
 		return this.graph.held(MAX_HAVE);
 	}
 
+	/** the datasets whose rows `artifact` references, directly or through projections; loads the graph when it has references */
+	async datasetsOf(artifact: Artifact): Promise<string[]> {
+		if (!usesGraph(artifact)) return [];
+		await this.#wake();
+		return this.graph.datasetsOf(artifact);
+	}
+
 	/** the artifact with its references resolved from the graph; loads the graph when it has any */
 	async materialize(artifact: Artifact): Promise<Materialized> {
 		if (usesGraph(artifact)) await this.#wake();
@@ -224,12 +258,17 @@ export class Replica {
 		if (this.graph.loaded) this.graph.forgetArtifacts(ids);
 	}
 
-	/** empties the replica; `cursor` is where it restarts */
-	async wipe(cursor: number | null = null): Promise<void> {
+	/**
+	 * Empties the replica; `cursor` is where it restarts. Datasets go too unless `keepDatasets`: a
+	 * vector reset says nothing about a dataset, whose own cursor and horizon decide when it reseeds.
+	 * Either way an apply that began before the wipe is dropped.
+	 */
+	async wipe(cursor: number | null = null, keepDatasets = false): Promise<void> {
 		this.#epoch += 1;
 		this.#memory.clear();
 		await this.#storage.clearArtifacts();
 		await this.graph.clear();
+		if (!keepDatasets) await this.datasets.clear();
 		this.#tags = new Map();
 		this.#site = undefined;
 		this.#policies = new Map();
@@ -241,7 +280,7 @@ export class Replica {
 	async applySync(response: SyncResponse): Promise<string[]> {
 		if (response.reset) {
 			const held = await this.ids();
-			await this.wipe(response.cursor);
+			await this.wipe(response.cursor, true);
 			this.#syncedAt = this.#now();
 			await this.#save();
 			return held;

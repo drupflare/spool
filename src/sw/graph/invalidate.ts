@@ -23,15 +23,33 @@ export class DependencyIndex {
 	readonly #parentsByProjection = new Map<string, Set<string>>();
 	readonly #artifactsByRecord = new Map<string, Set<string>>();
 	readonly #artifactsByProjection = new Map<string, Set<string>>();
+	readonly #projectionsByRow = new Map<string, Set<string>>();
+	readonly #artifactsByRow = new Map<string, Set<string>>();
 	readonly #usesByArtifact = new Map<string, RefSet>();
-	readonly #readsByProjection = new Map<string, { deps: string[]; children: string[] }>();
+	readonly #readsByProjection = new Map<
+		string,
+		{ deps: string[]; children: string[]; rows: string[] }
+	>();
 
-	/** records that `projection` reads the tags in `deps` and references the projections in `children` */
-	addProjection(projection: string, deps: readonly string[], children: readonly string[]): void {
+	/**
+	 * records that `projection` reads the tags in `deps`, references the projections in `children`
+	 * and the dataset rows in `rows`
+	 */
+	addProjection(
+		projection: string,
+		deps: readonly string[],
+		children: readonly string[],
+		rows: readonly string[] = []
+	): void {
 		this.removeProjections([projection]);
-		this.#readsByProjection.set(projection, { deps: [...deps], children: [...children] });
+		this.#readsByProjection.set(projection, {
+			deps: [...deps],
+			children: [...children],
+			rows: [...rows]
+		});
 		for (const tag of deps) add(this.#projectionsByTag, tag, projection);
 		for (const child of children) add(this.#parentsByProjection, child, projection);
+		for (const row of rows) add(this.#projectionsByRow, row, projection);
 	}
 
 	removeProjections(ids: readonly string[]): void {
@@ -40,16 +58,18 @@ export class DependencyIndex {
 			if (!reads) continue;
 			for (const tag of reads.deps) remove(this.#projectionsByTag, tag, id);
 			for (const child of reads.children) remove(this.#parentsByProjection, child, id);
+			for (const row of reads.rows) remove(this.#projectionsByRow, row, id);
 			this.#readsByProjection.delete(id);
 		}
 	}
 
-	/** records that `artifact` references these records and projections */
+	/** records that `artifact` references these records, projections and dataset rows */
 	addArtifact(artifact: string, uses: RefSet): void {
 		this.removeArtifacts([artifact]);
 		this.#usesByArtifact.set(artifact, uses);
 		for (const id of uses.records) add(this.#artifactsByRecord, id, artifact);
 		for (const id of uses.projections) add(this.#artifactsByProjection, id, artifact);
+		for (const id of uses.rows ?? []) add(this.#artifactsByRow, id, artifact);
 	}
 
 	removeArtifacts(ids: readonly string[]): void {
@@ -59,6 +79,7 @@ export class DependencyIndex {
 			for (const record of uses.records) remove(this.#artifactsByRecord, record, id);
 			for (const projection of uses.projections)
 				remove(this.#artifactsByProjection, projection, id);
+			for (const row of uses.rows ?? []) remove(this.#artifactsByRow, row, id);
 			this.#usesByArtifact.delete(id);
 		}
 	}
@@ -69,8 +90,27 @@ export class DependencyIndex {
 		this.#parentsByProjection.clear();
 		this.#artifactsByRecord.clear();
 		this.#artifactsByProjection.clear();
+		this.#projectionsByRow.clear();
+		this.#artifactsByRow.clear();
 		this.#usesByArtifact.clear();
 		this.#readsByProjection.clear();
+	}
+
+	/**
+	 * What a change to dataset rows reaches: the projections that reference one directly, those
+	 * and every projection above them, and the artifacts that use a reached projection or one of
+	 * the rows. Row ids are `<dataset>/<key>`.
+	 */
+	rowsReaching(rows: Iterable<string>): { projections: string[]; artifacts: string[] } {
+		const direct = new Set<string>();
+		const artifacts = new Set<string>();
+		for (const row of rows) {
+			for (const id of this.#projectionsByRow.get(row) ?? []) direct.add(id);
+			for (const id of this.#artifactsByRow.get(row) ?? []) artifacts.add(id);
+		}
+		const projections = this.withParents(direct);
+		for (const id of this.artifactsUsing([], projections)) artifacts.add(id);
+		return { projections, artifacts: [...artifacts].sort() };
 	}
 
 	/** the projections that read any of `tags` directly */

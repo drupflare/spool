@@ -1,10 +1,14 @@
 import type { Artifact } from '../protocol/artifact.js';
 import { renderAssembly } from '../protocol/assembly.js';
 import type { SwConfig } from '../protocol/config.js';
-import { shapeQuery } from '../protocol/query.js';
+import type { DatasetRow } from '../protocol/dataset.js';
+import { keyField, shapeQuery, shapeRows } from '../protocol/query.js';
 import type { SerializedRoute } from '../protocol/route.js';
 import { injectClientTag } from '../protocol/tag.js';
 import { interpretTemplate } from '../protocol/template/interpret.js';
+
+const isPlain = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** a custom renderer for one route pattern; it replaces the built-in one for that route */
 export type Renderer = (artifact: Artifact) => string | Promise<string>;
@@ -20,22 +24,34 @@ export type Rendered = { ok: true; html: string } | { ok: false; reason: string 
  * injects, so it equals the network render after normalisation. Any failure (a missing template,
  * an unfilled placeholder, a renderer that throws) is a refusal, never a partial page.
  * With `search` and a route that declares `query`, the template or renderer gets the page's
- * items in place of the collection, after the dataset proof checks out.
+ * items in place of the collection, after the dataset proof checks out. A route whose `query`
+ * names a `dataset` always takes this path, with the rows the device holds as `rows` in ascending
+ * key order; they were verified when the dataset loaded, so no proof is checked again.
  */
 export async function renderLocal(
 	config: SwConfig,
 	route: SerializedRoute,
 	source: Artifact,
 	renderers: Renderers = {},
-	search?: string
+	search?: string,
+	rows?: readonly DatasetRow[]
 ): Promise<Rendered> {
 	try {
 		let artifact = source;
-		if (search !== undefined && search !== '' && route.query) {
+		const query = route.query;
+		if (query && (rows !== undefined || (search !== undefined && search !== ''))) {
 			if (source.strategy === 'assembly' || source.strategy === 'static') {
 				return { ok: false, reason: `${source.strategy} artifact cannot answer a query` };
 			}
-			const shaped = await shapeQuery(route.query, source.body.data, search);
+			const data = source.body.data;
+			const shaped =
+				rows === undefined
+					? await shapeQuery(query, data, search ?? '', keyField(query))
+					: shapeRows(
+							query,
+							{ ...(isPlain(data) ? data : {}), [query.list]: rows },
+							search ?? ''
+						);
 			if (!shaped.ok) return shaped;
 			artifact = { ...source, body: { data: shaped.data } };
 		}

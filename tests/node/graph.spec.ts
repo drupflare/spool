@@ -627,3 +627,136 @@ describe('materializing an artifact', () => {
 		expect(graph.records.ids()).toEqual([]);
 	});
 });
+
+describe('a change to dataset rows', () => {
+	const page = (id: string, ref: unknown): Artifact =>
+		({
+			protocol: 1,
+			id,
+			scope: 'public',
+			strategy: 'template',
+			deps: [],
+			vector: 1,
+			body: { data: { about: ref } }
+		}) as Artifact;
+
+	/** three projections, each reading its own row, a parent that reads two, and the pages over them */
+	const world = async () => {
+		const storage = memoryStorage();
+		const rows = new Map<string, unknown>([
+			['directory/a', { id: 'a' }],
+			['directory/b', { id: 'b' }],
+			['directory/c', { id: 'c' }]
+		]);
+		const held = new Set(['directory']);
+		const stored: Artifact[] = [];
+		const graph = new Graph({
+			storage,
+			tagVersion: () => 0,
+			artifacts: async () => stored.map((artifact) => ({ artifact, fetchedAt: 0 })),
+			row: (dataset, key) => rows.get(`${dataset}/${key}`),
+			held: (dataset) => held.has(dataset),
+			loadDatasets: async () => undefined
+		});
+		await graph.ensure();
+		const pages = [
+			page('/p/a', { $projection: 'row:a' }),
+			page('/p/b', { $projection: 'row:b' }),
+			page('/p/ab', { $projection: 'pair' }),
+			page('/p/c', { $row: 'directory/c' })
+		];
+		const reading = (key: string) => ({
+			id: `row:${key}`,
+			version: 1,
+			deps: [],
+			data: { $row: `directory/${key}` }
+		});
+		const pair = {
+			id: 'pair',
+			version: 1,
+			deps: [],
+			data: { x: { $projection: 'row:a' }, y: { $projection: 'row:b' } }
+		};
+		const [onA, onB, onPair, onC] = pages as [Artifact, Artifact, Artifact, Artifact];
+		await graph.put({ ...onA, projections: [reading('a'), reading('b')] } as Artifact, true);
+		await graph.put(onB, true);
+		await graph.put({ ...onPair, projections: [pair] } as Artifact, true);
+		await graph.put(onC, true);
+		stored.push(...pages);
+		return { graph, rows };
+	};
+
+	it('reports the one projection and the pages over it that read the changed row, and drops nothing', async () => {
+		const { graph } = await world();
+		const effect = await graph.rowsChanged('directory', ['a'], []);
+		expect(effect.touched).toEqual({
+			projections: ['pair', 'row:a'],
+			artifacts: ['/p/a', '/p/ab']
+		});
+		expect(effect.dropped).toEqual({ records: [], projections: [], artifacts: [] });
+		expect(graph.projections.ids()).toEqual(['pair', 'row:a', 'row:b']);
+	});
+
+	it('touches one projection and no other for a row only one projection reads', async () => {
+		const { graph } = await world();
+		const effect = await graph.rowsChanged('directory', ['b'], []);
+		expect(effect.touched.projections).toEqual(['pair', 'row:b']);
+		const own = await graph.rowsChanged('directory', ['c'], []);
+		expect(own.touched).toEqual({ projections: [], artifacts: ['/p/c'] });
+	});
+
+	it('resolves a changed row at the next render with no copy of the old one kept', async () => {
+		const { graph, rows } = await world();
+		const before = await graph.materialize(page('/p/c', { $row: 'directory/c' }));
+		expect(before.ok && before.artifact.body).toEqual({ data: { about: { id: 'c' } } });
+		rows.set('directory/c', { id: 'c', title: 'new' });
+		await graph.rowsChanged('directory', ['c'], []);
+		const after = await graph.materialize(page('/p/c', { $row: 'directory/c' }));
+		expect(after.ok && after.artifact.body).toEqual({
+			data: { about: { id: 'c', title: 'new' } }
+		});
+	});
+
+	it('drops only the projections and pages that read a deleted row', async () => {
+		const { graph } = await world();
+		const effect = await graph.rowsChanged('directory', [], ['b']);
+		expect(effect.dropped).toEqual({
+			records: [],
+			projections: ['pair', 'row:b'],
+			artifacts: ['/p/ab', '/p/b']
+		});
+		expect(graph.projections.ids()).toEqual(['row:a']);
+		expect((await graph.rowsChanged('directory', ['a'], [])).touched.artifacts).toEqual([
+			'/p/a'
+		]);
+	});
+
+	it('refuses a page whose dataset is not held, naming it, and a page whose row is gone', async () => {
+		const storage = memoryStorage();
+		const graph = new Graph({
+			storage,
+			tagVersion: () => 0,
+			artifacts: async () => [],
+			row: () => undefined,
+			held: () => false,
+			loadDatasets: async () => undefined
+		});
+		expect(await graph.materialize(page('/p/c', { $row: 'directory/c' }))).toEqual({
+			ok: false,
+			reason: 'dataset directory is not held',
+			datasets: ['directory']
+		});
+		const heldGraph = new Graph({
+			storage,
+			tagVersion: () => 0,
+			artifacts: async () => [],
+			row: () => undefined,
+			held: () => true,
+			loadDatasets: async () => undefined
+		});
+		expect(await heldGraph.materialize(page('/p/c', { $row: 'directory/c' }))).toEqual({
+			ok: false,
+			reason: 'row directory/c is not held'
+		});
+	});
+});

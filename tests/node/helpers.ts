@@ -1,4 +1,4 @@
-import { IDBFactory } from 'fake-indexeddb';
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { type Artifact, type SyncResponse } from '../../src/protocol/index';
 import type { CachesLike } from '../../src/sw/runtime';
 
@@ -56,6 +56,9 @@ export function fakeCaches(): CachesLike & { names(): string[] } {
 		names: () => [...stores.keys()]
 	};
 }
+
+// idbStorage builds its key ranges from the global, which a worker has and node does not
+Object.assign(globalThis, { IDBKeyRange });
 
 /** a fresh in-memory IndexedDB */
 export const freshIndexedDB = () => new IDBFactory();

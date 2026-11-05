@@ -937,6 +937,57 @@ function storageContract(name: string, make: () => ReplicaStorage) {
 			expect(await s.allProjections()).toEqual([]);
 		});
 
+		it('commits dataset rows with their meta, reads them in key order and clears one dataset', async () => {
+			const s = make();
+			const meta = (name: string, cursor = 1) => ({
+				name,
+				schema: 'v1',
+				cursor,
+				count: 3,
+				digest: '0'.repeat(64),
+				bytes: 10,
+				appliedAt: 5
+			});
+			const row = (name: string, key: string) => ({ name, key, row: { id: key }, hash: 'h' });
+			const keys = async (name: string) => (await s.readDataset(name)).map((r) => r.key);
+			expect(await s.getDatasets()).toEqual([]);
+			await s.commitDataset({
+				name: 'a',
+				meta: meta('a'),
+				clear: true,
+				puts: [row('a', 'b'), row('a', 'a'), row('a', 'é')],
+				deletes: []
+			});
+			await s.commitDataset({
+				name: 'ab',
+				meta: meta('ab'),
+				clear: true,
+				puts: [row('ab', 'z')],
+				deletes: []
+			});
+			expect(await keys('a')).toEqual(['a', 'b', 'é']);
+			expect(await keys('ab')).toEqual(['z']);
+			await s.commitDataset({
+				name: 'a',
+				meta: meta('a', 2),
+				clear: false,
+				puts: [row('a', 'c')],
+				deletes: ['a', 'missing']
+			});
+			expect(await keys('a')).toEqual(['b', 'c', 'é']);
+			expect((await s.getDatasets()).map((m) => [m.name, m.cursor]).sort()).toEqual([
+				['a', 2],
+				['ab', 1]
+			]);
+			await s.commitDataset({ name: 'a', meta: null, clear: true, puts: [], deletes: [] });
+			expect(await keys('a')).toEqual([]);
+			expect(await keys('ab')).toEqual(['z']);
+			expect((await s.getDatasets()).map((m) => m.name)).toEqual(['ab']);
+			await s.clearDatasets();
+			expect(await s.getDatasets()).toEqual([]);
+			expect(await keys('ab')).toEqual([]);
+		});
+
 		it('queues beacons in order and removes them by key', async () => {
 			const s = make();
 			const event = (n: number) => ({ path: '/p', body: String(n), contentType: 't', at: n });
@@ -1007,13 +1058,112 @@ describe('IndexedDB storage', () => {
 		const factory = freshIndexedDB();
 		const storage = idbStorage(factory);
 		await storage.setMeta({ version: 'v', cursor: 1, tags: [], syncedAt: 0 });
-		const upgrade = factory.open('spool', 3);
+		const upgrade = factory.open('spool', 4);
 		let blocked = false;
 		upgrade.onblocked = () => void (blocked = true);
 		upgrade.onupgradeneeded = () => {};
 		await new Promise((resolve) => (upgrade.onsuccess = resolve));
 		expect(blocked).toBe(false);
 		upgrade.result.close();
+	});
+
+	it('keeps datasets in their own database, so a version 2 opener (an older worker) still opens the replica', async () => {
+		const factory = freshIndexedDB();
+		const old = await new Promise<IDBDatabase>((resolve, reject) => {
+			const request = factory.open('spool', 2);
+			request.onupgradeneeded = () => {
+				const db = request.result;
+				db.createObjectStore('artifacts', { keyPath: 'artifact.id' });
+				db.createObjectStore('meta');
+				db.createObjectStore('beacons', { autoIncrement: true });
+				db.createObjectStore('records', { keyPath: 'id' });
+				db.createObjectStore('projections', { keyPath: 'id' });
+			};
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+		await new Promise<void>((resolve, reject) => {
+			const tx = old.transaction('records', 'readwrite');
+			tx.objectStore('records').put({ id: 'kept', version: 1, data: 1 });
+			tx.oncomplete = () => resolve();
+			tx.onerror = () => reject(tx.error);
+		});
+		old.close();
+		const storage = idbStorage(factory);
+		expect((await storage.allRecords()).map((r) => r.id)).toEqual(['kept']);
+		expect(await storage.getDatasets()).toEqual([]);
+		await storage.commitDataset({
+			name: 'd',
+			meta: {
+				name: 'd',
+				schema: 'v1',
+				cursor: 1,
+				count: 1,
+				digest: '0'.repeat(64),
+				bytes: 1,
+				appliedAt: 1
+			},
+			clear: true,
+			puts: [{ name: 'd', key: 'k', row: { id: 'k' }, hash: 'h' }],
+			deletes: []
+		});
+		expect((await storage.readDataset('d')).map((r) => r.key)).toEqual(['k']);
+		const older = await new Promise<IDBDatabase>((resolve, reject) => {
+			const request = factory.open('spool', 2);
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+		expect(older.version).toBe(2);
+		expect([...older.objectStoreNames].sort()).toEqual([
+			'artifacts',
+			'beacons',
+			'meta',
+			'projections',
+			'records'
+		]);
+		older.close();
+	});
+
+	it('rolls back a dataset commit whose row cannot be stored, meta and rows together', async () => {
+		const storage = idbStorage(freshIndexedDB());
+		const meta = (cursor: number) => ({
+			name: 'd',
+			schema: 'v1',
+			cursor,
+			count: 1,
+			digest: '0'.repeat(64),
+			bytes: 1,
+			appliedAt: 1
+		});
+		await storage.commitDataset({
+			name: 'd',
+			meta: meta(1),
+			clear: true,
+			puts: [{ name: 'd', key: 'k', row: { id: 'k' }, hash: 'h' }],
+			deletes: []
+		});
+		await expect(
+			storage.commitDataset({
+				name: 'd',
+				meta: meta(2),
+				clear: true,
+				puts: [
+					{ name: 'd', key: 'new', row: { id: 'new' }, hash: 'h' },
+					{ name: 'd', key: 'bad', row: { id: () => {} } as never, hash: 'h' }
+				],
+				deletes: []
+			})
+		).rejects.toBeDefined();
+		expect((await storage.readDataset('d')).map((r) => r.key)).toEqual(['k']);
+		expect((await storage.getDatasets()).map((m) => m.cursor)).toEqual([1]);
+		await storage.commitDataset({
+			name: 'd',
+			meta: meta(3),
+			clear: false,
+			puts: [],
+			deletes: ['k']
+		});
+		expect(await storage.readDataset('d')).toEqual([]);
 	});
 
 	it('rejects the call when a transaction aborts', async () => {

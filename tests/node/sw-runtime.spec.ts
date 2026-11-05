@@ -633,12 +633,14 @@ describe('the artifact in the page', () => {
 	});
 
 	it.each([
-		['before the first chunk', 0],
-		['after the first chunk', 1],
-		['after two of four chunks', 2]
+		['before the first chunk', 0, true],
+		['after the first chunk', 1, true],
+		['after two of four chunks', 2, true],
+		['after the first chunk, in the same task', 1, false],
+		['after two of four chunks, in the same task', 2, false]
 	])(
 		'keeps nothing when the body fails %s, and the visitor gets what was sent',
-		async (_name, sent) => {
+		async (_name, sent, gap) => {
 			const failure = new Error('connection reset');
 			const unhandled: unknown[] = [];
 			const onUnhandled = (reason: unknown) => void unhandled.push(reason);
@@ -662,7 +664,7 @@ describe('the artifact in the page', () => {
 						const body = new ReadableStream<Uint8Array>(
 							{
 								async pull(controller) {
-									await new Promise((resolve) => setTimeout(resolve, 0));
+									if (gap) await new Promise((resolve) => setTimeout(resolve, 0));
 									if (next === sent) controller.error(failure);
 									else controller.enqueue(encode(parts[next++] as string));
 								}
@@ -746,6 +748,91 @@ describe('the artifact in the page', () => {
 		expect(r.runtime.ledger.entries()).toMatchObject([{ id: '/soft/1', requests: 0 }]);
 		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
 	});
+
+	it("settles a second navigation's background work while the first body is still held", async () => {
+		let release: () => void = () => {};
+		const held = new Promise<void>((resolve) => (release = resolve));
+		let first = true;
+		const r = rig({
+			spool: inline,
+			fetchWrap: async (response) => {
+				if (!first || !html(response) || !response.headers.has('spool-artifact')) {
+					return response;
+				}
+				first = false;
+				const text = await response.text();
+				const headers = new Headers(response.headers);
+				headers.delete('content-length');
+				const body = new ReadableStream({
+					async start(controller) {
+						await held;
+						controller.enqueue(encode(text));
+						controller.close();
+					}
+				});
+				return new Response(body, { status: response.status, headers });
+			}
+		});
+		const firstWaited: Promise<unknown>[] = [];
+		const pendingFirst = r.runtime.handle(nav('/soft/1'), (p) => void firstWaited.push(p));
+		if (!pendingFirst) throw new Error('request was ignored');
+		await pendingFirst;
+		const secondWaited: Promise<unknown>[] = [];
+		const later = r.runtime.handle(nav('/soft/1'), (p) => void secondWaited.push(p));
+		if (!later) throw new Error('request was ignored');
+		await later;
+		await Promise.all(secondWaited);
+		release();
+		await Promise.all(firstWaited);
+		expect(r.log).toEqual(['GET /soft/1', 'GET /soft/1']);
+		expect(await stored(r, '/soft/1')).toEqual(await built(r, '/soft/1'));
+	});
+});
+
+describe('a static copy that is not kept', () => {
+	const file = defineRoute('/file/:name', { strategy: 'static', depends: () => ['site'] });
+	const cases: Array<[string, number, string, () => Response]> = [
+		['a 404', 404, 'missing', () => new Response('missing', { status: 404 })],
+		[
+			'a 206',
+			206,
+			'par',
+			() => new Response('par', { status: 206, headers: { 'content-range': 'bytes 0-2/9' } })
+		],
+		['a 304', 304, '', () => new Response(null, { status: 304 })]
+	];
+
+	it.each(cases)(
+		'hands the visitor %s, cancels its copy, keeps nothing, and asks the network again',
+		async (_name, status, text, make) => {
+			const copies: Response[] = [];
+			const r = rig({
+				routes: [...routes, file],
+				app: (request) =>
+					new URL(request.url).pathname.startsWith('/file/') ? make() : undefined,
+				fetchWrap: (response) => {
+					const clone = response.clone.bind(response);
+					response.clone = () => {
+						const copy = clone();
+						copies.push(copy);
+						return copy;
+					};
+					return response;
+				}
+			});
+			const first = await r.drive(sub('/file/a'));
+			expect(first.status).toBe(status);
+			expect(await first.text()).toBe(text);
+			expect(copies).toHaveLength(1);
+			const [copy] = copies;
+			expect(copy?.body === null || copy?.bodyUsed).toBe(true);
+			expect(await r.runtime.replica.ids()).toEqual([]);
+
+			r.log.length = 0;
+			await r.drive(sub('/file/a'));
+			expect(r.log).toEqual(['GET /file/a']);
+		}
+	);
 });
 
 describe('hard freshness', () => {

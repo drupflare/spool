@@ -72,6 +72,80 @@ describe('register', () => {
 		expect(await client?.status()).toMatchObject({ cursor: 3, artifacts: ['/a'] });
 	});
 
+	describe('persistent storage', () => {
+		const hello = () => ({ type: 'spool:hello', protocol: 1, version: 'v', compatible: true });
+		const setup = async (storage: {
+			persisted(): Promise<boolean>;
+			persist(): Promise<boolean>;
+		}) => {
+			const c = container(hello);
+			let listener: (event: { data: unknown }) => void = () => undefined;
+			const value = {
+				...c.value,
+				register: (c.value as unknown as { register: unknown }).register,
+				ready: (c.value as unknown as { ready: unknown }).ready,
+				addEventListener: (_: string, fn: typeof listener) => void (listener = fn)
+			} as unknown as ServiceWorkerContainer;
+			const events: Array<{ type: string; detail: unknown }> = [];
+			const client = await register({
+				container: value,
+				storage,
+				target: { dispatchEvent: (e) => (events.push(e as never), true) }
+			});
+			const tell = async () => {
+				listener({ data: { type: 'spool:persist' } });
+				await new Promise((resolve) => setTimeout(resolve, 0));
+			};
+			return { c, client, events, tell };
+		};
+
+		it('asks once when the worker says it holds a dataset, records the grant and tells the worker', async () => {
+			let asked = 0;
+			const { c, client, events, tell } = await setup({
+				persisted: async () => false,
+				persist: async () => (asked++, true)
+			});
+			expect(client?.persisted()).toBeNull();
+			await tell();
+			await tell();
+			expect(asked).toBe(1);
+			expect(client?.persisted()).toBe(true);
+			expect(events.map((e) => [e.type, e.detail])).toEqual([
+				['spool:persisted', { granted: true }]
+			]);
+			expect(c.seen).toContainEqual({ type: 'spool:persisted', granted: true });
+		});
+
+		it('records a refusal, and does not ask when storage is already persistent', async () => {
+			const denied = await setup({
+				persisted: async () => false,
+				persist: async () => false
+			});
+			await denied.tell();
+			expect(denied.client?.persisted()).toBe(false);
+
+			let asked = 0;
+			const held = await setup({
+				persisted: async () => true,
+				persist: async () => (asked++, true)
+			});
+			await held.tell();
+			expect(asked).toBe(0);
+			expect(held.client?.persisted()).toBe(true);
+		});
+
+		it('treats a storage manager that throws as a refusal', async () => {
+			const broken = await setup({
+				persisted: async () => {
+					throw new Error('no');
+				},
+				persist: async () => true
+			});
+			await broken.tell();
+			expect(broken.client?.persisted()).toBe(false);
+		});
+	});
+
 	it('passes a custom worker url and scope', async () => {
 		const c = container(() => ({
 			type: 'spool:hello',
