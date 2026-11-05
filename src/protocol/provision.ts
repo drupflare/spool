@@ -209,3 +209,76 @@ export function smoothReuse(
 ): number {
 	return (prior.reuse * weight + warmViews) / (weight + warmViews + coldViews);
 }
+
+/** the two controls a dataset must beat: the held page under v0.3, and a plain HTTP cache */
+export type DatasetControl = 'v0.3' | 'native';
+
+/** compressed sizes, in bytes, of one dataset and the two controls it is measured against */
+export type DatasetInputs = {
+	/** the seed the device stores first */
+	seedBytes: number;
+	/** one update's patch */
+	patchBytes: number;
+	/** updates per day to the rows the dataset holds */
+	updatesPerDay: number;
+	/** v0.3: the seed of the held artifact and the bytes it refetches per update */
+	v03: { seedBytes: number; refetchBytes: number };
+	/** native: the bytes a plain HTTP cache still sends for each view */
+	nativeBytesPerView: number;
+	/** chance a stored copy survives the hold window; see {@link DATASET_DEFAULTS} */
+	survival?: number;
+	/** days a copy is held and kept current; see {@link DATASET_DEFAULTS} */
+	holdDays?: number;
+};
+
+/**
+ * Scenario values (L3). Safari clears script-written storage after 7 days without interaction
+ * (the window is published, L0); the survival of a copy inside that window is not measured.
+ */
+export const DATASET_DEFAULTS = { survival: 0.5, holdDays: 7 } as const;
+
+export type DatasetBenefit = {
+	/** weighed bytes the dataset saves against each control; positive means it moves fewer */
+	net: Record<DatasetControl, number>;
+	/** the control with the smaller margin: the one the dataset must beat hardest */
+	controls: DatasetControl;
+	/** the dataset beats both controls */
+	ship: boolean;
+};
+
+/**
+ * Views a stored copy serves are `reuse x survival x futureViews`. A device fetches at most one
+ * patch per served view, so the fetches over the hold are `min(updates, views)`. Each control
+ * is compared on the same views: the margin against v0.3 is its seed and refetches less the
+ * dataset's; the margin against native is what a plain HTTP cache would still send for those
+ * views less the dataset's seed and patches. Requests weigh as {@link weigh} does.
+ */
+export function datasetBenefit(
+	inputs: DatasetInputs,
+	prior: ProvisionPrior = DEFAULT_PRIOR
+): DatasetBenefit {
+	const survival = inputs.survival ?? DATASET_DEFAULTS.survival;
+	const holdDays = inputs.holdDays ?? DATASET_DEFAULTS.holdDays;
+	const sizes = [
+		inputs.seedBytes,
+		inputs.patchBytes,
+		inputs.updatesPerDay,
+		inputs.v03.seedBytes,
+		inputs.v03.refetchBytes,
+		inputs.nativeBytesPerView,
+		holdDays
+	];
+	if (!sizes.every(sound) || !(survival >= 0 && survival <= 1)) {
+		throw new RangeError('dataset sizes must be non-negative numbers and survival 0 to 1');
+	}
+	const w = (bytes: number) => weigh({ bytes, requests: 1 }, prior.requestBytes);
+	const views = prior.reuse * survival * prior.futureViews;
+	const fetches = Math.min(inputs.updatesPerDay * holdDays, views);
+	const dataset = w(inputs.seedBytes) + fetches * w(inputs.patchBytes);
+	const net = {
+		'v0.3': w(inputs.v03.seedBytes) + fetches * w(inputs.v03.refetchBytes) - dataset,
+		native: views * w(inputs.nativeBytesPerView) - dataset
+	};
+	const controls: DatasetControl = net.native < net['v0.3'] ? 'native' : 'v0.3';
+	return { net, controls, ship: net[controls] > 0 };
+}

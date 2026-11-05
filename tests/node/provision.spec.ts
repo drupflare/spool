@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { SerializedRoute, SwConfig } from '../../src/protocol/index';
+import { defineRoute, type SerializedRoute, type SwConfig } from '../../src/protocol/index';
 import { attributionalJoules, ORIGIN_J } from '../../src/report/index';
+import { createSpool } from '../../src/server/index';
+import { memoryStore } from '../../src/stores/index';
 import {
 	benefit,
 	chooseEntries,
+	DATASET_DEFAULTS,
+	datasetBenefit,
 	DEFAULT_PRIOR,
 	entryBreakEven,
 	JOULES_PER_BYTE,
@@ -326,5 +330,143 @@ describe('shadow decisions', () => {
 		expect(await differs('<p>a</p>', html('<p>b</p>'))).toBe(true);
 		expect(await differs('<p>a</p>', html('<p>a</p>', 404))).toBe(true);
 		expect(await differs('<p>a</p>', html('', 500))).toBe(true);
+	});
+});
+
+describe('dataset admission against v0.3 and native HTTP', () => {
+	// Brotli bytes from measurements/dataset-baseline (records 50 seed, its change-1 response with
+	// all 50 ids held, list seeds and refetches). The list patch is the refetch over its rows. The
+	// 300 byte native response is a fixture for a revalidation, not a measurement.
+	const records50 = {
+		seedBytes: 2511,
+		patchBytes: 373,
+		updatesPerDay: 1,
+		v03: { seedBytes: 2224, refetchBytes: 2236 },
+		nativeBytesPerView: 300
+	};
+	const list500 = {
+		seedBytes: 19_965,
+		patchBytes: 40,
+		updatesPerDay: 1,
+		v03: { seedBytes: 19_965, refetchBytes: 19_981 },
+		nativeBytesPerView: 19_965
+	};
+	const list5000 = {
+		seedBytes: 193_107,
+		patchBytes: 38,
+		updatesPerDay: 1,
+		v03: { seedBytes: 193_107, refetchBytes: 191_744 },
+		nativeBytesPerView: 193_107
+	};
+	const wide = { ...DEFAULT_PRIOR, reuse: 1, futureViews: 1000 };
+	const sticky = { ...DEFAULT_PRIOR, reuse: 1, futureViews: 20 };
+
+	it('declines a 500-row list at the default priors, and native HTTP binds', () => {
+		expect(datasetBenefit(list500)).toEqual({
+			net: { 'v0.3': 9970.5, native: -12002.5 },
+			controls: 'native',
+			ship: false
+		});
+	});
+
+	it('ships a 500-row list at the gate-open priors, bound by v0.3', () => {
+		expect(datasetBenefit(list500, wide)).toEqual({
+			net: { 'v0.3': 139587, native: 10946255 },
+			controls: 'v0.3',
+			ship: true
+		});
+	});
+
+	it('scales a 5,000-row list the same way', () => {
+		expect(datasetBenefit(list5000)).toEqual({
+			net: { 'v0.3': 95853, native: -98572.5 },
+			controls: 'native',
+			ship: false
+		});
+		expect(datasetBenefit(list5000, wide)).toEqual({
+			net: { 'v0.3': 1341942, native: 97344127 },
+			controls: 'v0.3',
+			ship: true
+		});
+	});
+
+	it('lets v0.3 bind and decline when a change rewrites every row', () => {
+		expect(datasetBenefit({ ...records50, patchBytes: 2236, survival: 0.8 }, sticky)).toEqual({
+			net: { 'v0.3': -287, native: 2637 },
+			controls: 'v0.3',
+			ship: false
+		});
+	});
+
+	it('lets native HTTP bind at the defaults when v0.3 alone would ship', () => {
+		expect(datasetBenefit(records50)).toEqual({
+			net: { 'v0.3': 644.5, native: -4547.5 },
+			controls: 'native',
+			ship: false
+		});
+	});
+
+	it('flips on survival: 0.8 ships and 0.2 does not', () => {
+		expect(datasetBenefit({ ...records50, survival: 0.8 }, sticky)).toEqual({
+			net: { 'v0.3': 12754, native: 15678 },
+			controls: 'v0.3',
+			ship: true
+		});
+		expect(datasetBenefit({ ...records50, survival: 0.2 }, sticky)).toEqual({
+			net: { 'v0.3': 7165, native: -4803 },
+			controls: 'native',
+			ship: false
+		});
+	});
+
+	it('uses the survival and hold defaults when the inputs leave them out', () => {
+		expect(datasetBenefit(records50)).toEqual(
+			datasetBenefit({ ...records50, ...DATASET_DEFAULTS })
+		);
+	});
+
+	it('refuses a size that is not a number and a survival outside 0 to 1', () => {
+		expect(() => datasetBenefit({ ...records50, seedBytes: Number.NaN })).toThrow(RangeError);
+		expect(() => datasetBenefit({ ...records50, survival: 1.5 })).toThrow(RangeError);
+	});
+
+	it('keeps benefit() for layout, template and asset opportunities', () => {
+		const shared = (kind: Opportunity['kind'], avoided: number, provision: number) => ({
+			id: kind,
+			kind,
+			avoided: { bytes: avoided, requests: 0 },
+			provision: { bytes: provision, requests: 0 }
+		});
+		expect(benefit(shared('template', 17_054, 20_000))).toBe(-2946);
+		expect(benefit(shared('layout', 30_000, 10_000))).toBe(20_000);
+		expect(benefit(shared('asset', 30_000, 10_000))).toBe(20_000);
+	});
+});
+
+describe('server admission: budget and override', () => {
+	const big = (provision: { reuse?: number; futureViews?: number; maxBytes?: number }) =>
+		defineRoute('/big/:id', {
+			strategy: 'template',
+			template: { source: '<html><head></head><body>{{big.text}}</body></html>' },
+			load: (ctx) => ({ big: ctx.record('big', { text: 'x'.repeat(200_000) }) }),
+			provision
+		});
+	const ask = (routes: ReturnType<typeof big>[]) =>
+		createSpool({ routes, store: memoryStore() }).respond(
+			new Request('https://site.test/.spool/artifact?path=/big/1')
+		);
+
+	it('declines an artifact over its maxBytes and serves one under it', async () => {
+		const over = await ask([big({ reuse: 1, futureViews: 1000, maxBytes: 1000 })]);
+		expect(over?.status).toBe(204);
+		expect(over?.headers.get('spool-provision')).toBe('declined');
+		expect(
+			(await ask([big({ reuse: 1, futureViews: 1000, maxBytes: 1_000_000 })]))?.status
+		).toBe(200);
+	});
+
+	it('declines a template over the avoided-bytes prior, and a priors override serves it', async () => {
+		expect((await ask([big({})]))?.status).toBe(204);
+		expect((await ask([big({ reuse: 1, futureViews: 1000 })]))?.status).toBe(200);
 	});
 });
