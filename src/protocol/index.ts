@@ -3,6 +3,7 @@ export * from './assembly.js';
 export * from './beacon.js';
 export * from './collector.js';
 export * from './config.js';
+export * from './dataset.js';
 export * from './envelope.js';
 export * from './errors.js';
 export * from './graph.js';

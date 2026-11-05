@@ -7,10 +7,11 @@ import type { Mode } from './view.js';
 /** every path under this prefix belongs to spool */
 export const SPOOL_PREFIX = '/.spool/';
 
-/** where the server answers sync, artifact and beacon requests, and where the worker script lives */
+/** where the server answers sync, artifact, dataset and beacon requests, and where the worker script lives */
 export const PATHS = {
 	sync: '/.spool/sync',
 	artifact: '/.spool/artifact',
+	dataset: '/.spool/dataset',
 	beacon: '/.spool/beacon',
 	worker: '/spool-sw.js'
 } as const;
@@ -95,4 +96,9 @@ export type SwConfig = {
 	collectors?: CollectorConfig[];
 	/** the opt-in cache for versioned cross-origin files */
 	thirdParty?: ThirdPartyConfig;
+	/**
+	 * The share, above 0 and at most 1, of the storage headroom one dataset may use. The worker
+	 * refuses a seed whose rows would use more; 1 when absent.
+	 */
+	datasetShare?: number;
 };

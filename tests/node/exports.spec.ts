@@ -25,9 +25,11 @@ type Exports = Record<string, { types: string; default: string } | string>;
 const SUBPATHS: Array<[string, string, Record<string, unknown>, string]> = [
 	['.', 'index', indexModule, 'joulesPerView'],
 	['.', 'index', indexModule, 'defineRoute'],
+	['.', 'index', indexModule, 'defineDataset'],
 	['./protocol', 'protocol/index', protocolModule, 'decodeEnvelope'],
 	['./server', 'server/index', serverModule, 'createSpool'],
 	['./server', 'server/index', serverModule, 'defineRoute'],
+	['./server', 'server/index', serverModule, 'defineDataset'],
 	['./node', 'node/listener', nodeModule, 'toNodeListener'],
 	['./proxy', 'proxy/index', proxyModule, 'spoolProxy'],
 	['./stores', 'stores/index', storesModule, 'memoryStore'],

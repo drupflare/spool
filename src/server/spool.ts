@@ -11,9 +11,10 @@ import {
 	type SwConfig,
 	type ThirdPartyConfig
 } from '../protocol/config.js';
+import type { Dataset } from '../protocol/dataset.js';
 import { HEADERS, writeEnvelope, type Envelope } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
-import { collectRefs, createCollector } from '../protocol/graph.js';
+import { collectRefs, createCollector, resolveRefs, splitRowId } from '../protocol/graph.js';
 import { shellHash } from '../protocol/hash.js';
 import { escapeInline, inlineElement, placeInline } from '../protocol/inline.js';
 import { checkPattern } from '../protocol/pattern.js';
@@ -24,7 +25,7 @@ import {
 	priorFrom,
 	type EntryCandidate
 } from '../protocol/provision.js';
-import { verifyProof } from '../protocol/query.js';
+import { keyField, verifyProof } from '../protocol/query.js';
 import {
 	matchRoute,
 	serializeRoute,
@@ -38,6 +39,7 @@ import type { Mode } from '../protocol/view.js';
 import type { VersionStore } from '../stores/version-store.js';
 import { VERSION } from '../version.js';
 import { respondBeacon, type Bundle } from './beacon.js';
+import { respondDataset } from './dataset.js';
 import { CLIENT_CORE } from './embedded.js';
 import { partitionId, type IdentityOptions } from './identity.js';
 import type { Sink } from './sink.js';
@@ -59,6 +61,8 @@ const ENTRY_STRATEGIES: readonly string[] = ['template', 'projection', 'data'];
 export type SpoolOptions = {
 	routes: readonly Route[];
 	store: VersionStore;
+	/** public datasets `/.spool/dataset` answers, each by its own name */
+	datasets?: readonly Dataset[];
 	identity?: IdentityOptions;
 	sink?: Sink;
 	/**
@@ -173,6 +177,22 @@ export function createSpool(options: SpoolOptions): Spool {
 		}
 		seen.add(route.pattern);
 	}
+	const datasets = new Map<string, Dataset>();
+	for (const dataset of options.datasets ?? []) {
+		if (datasets.has(dataset.name)) {
+			throw new ProtocolError('bad-dataset', `${dataset.name}: declared twice`);
+		}
+		datasets.set(dataset.name, dataset);
+	}
+	for (const route of routes) {
+		const name = route.query?.dataset;
+		if (name !== undefined && !datasets.has(name)) {
+			throw new ProtocolError(
+				'bad-route',
+				`${route.pattern}: query.dataset "${name}" is not declared`
+			);
+		}
+	}
 	const mode: Mode = options.mode ?? 'serve';
 	if (mode !== 'serve' && mode !== 'shadow') {
 		throw new ProtocolError('bad-route', `unknown mode "${String(mode)}"`);
@@ -263,7 +283,8 @@ export function createSpool(options: SpoolOptions): Spool {
 		params,
 		identity,
 		record: collector.record,
-		projection: collector.projection
+		projection: collector.projection,
+		row: collector.row
 	});
 
 	/** drops the records and projections the worker already holds at a version no change has passed */
@@ -287,7 +308,9 @@ export function createSpool(options: SpoolOptions): Spool {
 	}
 
 	type Built =
-		{ artifact: Artifact; partition?: string } | { response: Response } | { declined: true };
+		| { artifact: Artifact; partition?: string }
+		| { response: Response }
+		| { declined: 'benefit' | 'budget' };
 
 	async function buildArtifact(
 		request: Request,
@@ -313,12 +336,6 @@ export function createSpool(options: SpoolOptions): Spool {
 		const ctx = context(request, new URL(path, url), hit.params, identity, collector);
 		const dependsOn = [...(await hit.route.depends(ctx))];
 		const loaded = await hit.route.load(ctx);
-		if (hit.route.query && !(await verifyProof(hit.route.query, loaded))) {
-			throw new ProtocolError(
-				'bad-artifact',
-				`${path}: a query route's load needs an array at "${hit.route.query.list}" and a matching proof`
-			);
-		}
 		const body = hit.route.strategy === 'assembly' ? loaded : { data: loaded };
 		const collected = collector.collect(vector);
 		const stored = new Set([...collected.records.map((r) => r.id)]);
@@ -340,6 +357,34 @@ export function createSpool(options: SpoolOptions): Spool {
 				);
 			}
 		}
+		for (const id of refs.rows ?? []) {
+			const at = splitRowId(id);
+			if (!at || !datasets.has(at.dataset)) {
+				throw new ProtocolError(
+					'bad-artifact',
+					`${path} references row ${id} of no dataset here`
+				);
+			}
+		}
+		if (hit.route.query && hit.route.query.dataset === undefined) {
+			// the worker checks the proof after it resolves refs, so the server checks the same text
+			const recordsById = new Map(collected.records.map((r) => [r.id, r]));
+			const projectionsById = new Map(collected.projections.map((p) => [p.id, p]));
+			const lookup = {
+				record: (id: string) => recordsById.get(id),
+				projection: (id: string) => projectionsById.get(id)
+			};
+			const resolved = resolveRefs(loaded, lookup);
+			if (
+				!resolved.ok ||
+				!(await verifyProof(hit.route.query, resolved.value, keyField(hit.route.query)))
+			) {
+				throw new ProtocolError(
+					'bad-artifact',
+					`${path}: a query route's load needs an array at "${hit.route.query.list}" and a matching proof over its resolved rows`
+				);
+			}
+		}
 		const artifact = parseArtifact({
 			protocol: PROTOCOL_VERSION,
 			id: path,
@@ -352,20 +397,24 @@ export function createSpool(options: SpoolOptions): Spool {
 			...(collected.projections.length > 0 ? { projections: collected.projections } : {})
 		});
 		const trimmed = await trim(artifact, have);
-		if (weighed && hit.route.scope === 'public') {
+		if (weighed) {
 			const bytes = new TextEncoder().encode(JSON.stringify(trimmed)).length;
-			const mine = { ...prior, ...hit.route.provision };
-			const data = hit.route.strategy === 'data';
-			const worth = benefit(
-				{
-					id: path,
-					kind: 'route',
-					provision: { bytes, requests: 1 },
-					avoided: { bytes: data ? bytes : prior.avoidedBytes, requests: 1 }
-				},
-				mine
-			);
-			if (worth <= 0) return { declined: true };
+			const budget = hit.route.provision?.maxBytes;
+			if (budget !== undefined && bytes > budget) return { declined: 'budget' };
+			if (hit.route.scope === 'public') {
+				const mine = { ...prior, ...hit.route.provision };
+				const data = hit.route.strategy === 'data';
+				const worth = benefit(
+					{
+						id: path,
+						kind: 'route',
+						provision: { bytes, requests: 1 },
+						avoided: { bytes: data ? bytes : prior.avoidedBytes, requests: 1 }
+					},
+					mine
+				);
+				if (worth <= 0) return { declined: 'benefit' };
+			}
 		}
 		const out: Built = { artifact: trimmed };
 		if (identity && hit.route.scope === 'principal') {
@@ -546,6 +595,9 @@ export function createSpool(options: SpoolOptions): Spool {
 				return await respondSync(url, store, partition);
 			}
 			if (url.pathname === PATHS.artifact && get) return await respondArtifact(request, url);
+			if (url.pathname === PATHS.dataset && get) {
+				return await respondDataset(request, url, datasets);
+			}
 			if (url.pathname === PATHS.beacon) {
 				return await respondBeacon(request, sink, provide(request), catalogue(request));
 			}

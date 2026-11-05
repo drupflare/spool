@@ -1,3 +1,4 @@
+export { defineDataset } from '../protocol/dataset.js';
 export { datasetProof } from '../protocol/query.js';
 export { defineRoute } from '../protocol/route.js';
 export * from './ga4.js';

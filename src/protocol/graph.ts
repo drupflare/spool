@@ -1,4 +1,5 @@
 import { ProtocolError } from './errors.js';
+import { DATASET_NAME } from './query.js';
 
 /** a reference to a record, resolved against the replica when a page renders */
 export type RecordRef = { $record: string };
@@ -6,8 +7,14 @@ export type RecordRef = { $record: string };
 /** a reference to a projection, resolved against the replica when a page renders */
 export type ProjectionRef = { $projection: string };
 
+/**
+ * a reference to a row of a dataset the device holds, as `<dataset>/<key>`; the page keeps the id
+ * and the row resolves when the page renders, so a change to the row needs no new artifact
+ */
+export type RowRef = { $row: string };
+
 /** what a page's data carries in place of a record or projection stored once elsewhere */
-export type Ref = RecordRef | ProjectionRef;
+export type Ref = RecordRef | ProjectionRef | RowRef;
 
 /** an authoritative piece of data, stored once by id; its id is the tag that invalidates it */
 export type RecordEntry = {
@@ -27,8 +34,8 @@ export type ProjectionEntry = {
 	data: unknown;
 };
 
-/** the id lists {@link collectRefs} found */
-export type RefSet = { records: string[]; projections: string[] };
+/** the id lists {@link collectRefs} found; `rows` is set only when there are row references */
+export type RefSet = { records: string[]; projections: string[]; rows?: string[] };
 
 /** the reference to put in a page's data for record `id` */
 export function recordRef(id: string): RecordRef {
@@ -38,6 +45,21 @@ export function recordRef(id: string): RecordRef {
 /** the reference to put in a page's data for projection `id` */
 export function projectionRef(id: string): ProjectionRef {
 	return { $projection: id };
+}
+
+/** the reference to put in a page's data for the row `key` of dataset `dataset` */
+export function rowRef(dataset: string, key: string): RowRef {
+	if (!DATASET_NAME.test(dataset) || key === '') {
+		bad('a row reference needs a dataset name and a non-empty key');
+	}
+	return { $row: `${dataset}/${key}` };
+}
+
+/** splits a row id into its dataset name and key; the name never holds a `/`, so the first one splits */
+export function splitRowId(id: string): { dataset: string; key: string } | null {
+	const at = id.indexOf('/');
+	if (at < 1 || at === id.length - 1) return null;
+	return { dataset: id.slice(0, at), key: id.slice(at + 1) };
 }
 
 function isPlain(value: unknown): value is Record<string, unknown> {
@@ -50,31 +72,42 @@ export function isRef(value: unknown): value is Ref {
 	const keys = Object.keys(value);
 	if (keys.length !== 1) return false;
 	const key = keys[0] as string;
-	return (key === '$record' || key === '$projection') && typeof value[key] === 'string';
+	return (
+		(key === '$record' || key === '$projection' || key === '$row') &&
+		typeof value[key] === 'string'
+	);
 }
 
-/** every record and projection id referenced anywhere in `value`, sorted and unique */
+/** every record, projection and row id referenced anywhere in `value`, sorted and unique */
 export function collectRefs(value: unknown): RefSet {
 	const records = new Set<string>();
 	const projections = new Set<string>();
+	const rows = new Set<string>();
 	const walk = (node: unknown): void => {
 		if (Array.isArray(node)) return node.forEach(walk);
 		if (!isPlain(node)) return;
 		if (isRef(node)) {
 			if ('$record' in node) records.add(node.$record);
+			else if ('$row' in node) rows.add(node.$row);
 			else projections.add(node.$projection);
 			return;
 		}
 		Object.values(node).forEach(walk);
 	};
 	walk(value);
-	return { records: [...records].sort(), projections: [...projections].sort() };
+	return {
+		records: [...records].sort(),
+		projections: [...projections].sort(),
+		...(rows.size > 0 ? { rows: [...rows].sort() } : {})
+	};
 }
 
-/** where {@link resolveRefs} looks references up */
+/** where {@link resolveRefs} looks references up; without `row`, a row reference is a refusal */
 export type RefLookup = {
 	record(id: string): RecordEntry | undefined;
 	projection(id: string): ProjectionEntry | undefined;
+	/** the held row `key` of `dataset`, or undefined when it is not held */
+	row?(dataset: string, key: string): unknown;
 };
 
 /** the tree with every reference replaced by what it points at, or the first one that is missing */
@@ -94,6 +127,12 @@ export function resolveRefs(value: unknown, lookup: RefLookup): Resolved {
 				const record = lookup.record(node.$record);
 				if (!record) throw new Error(`record ${node.$record} is not stored`);
 				return record.data;
+			}
+			if ('$row' in node) {
+				const at = splitRowId(node.$row);
+				const row = at ? lookup.row?.(at.dataset, at.key) : undefined;
+				if (row === undefined) throw new Error(`row ${node.$row} is not held`);
+				return row;
 			}
 			const id = node.$projection;
 			if (path.includes(id)) throw new Error(`projection ${id} reaches itself`);
@@ -161,6 +200,8 @@ export type Collected = {
 export type Collector = {
 	record(id: string, data: unknown): RecordRef;
 	projection(id: string, data: unknown, deps?: readonly string[]): ProjectionRef;
+	/** the reference to a dataset row; nothing is registered, the device resolves it from its rows */
+	row(dataset: string, key: string): RowRef;
 	/** everything registered so far; throws when a projection reaches an unregistered or cyclic one */
 	collect(version: number): Collected;
 };
@@ -205,6 +246,7 @@ export function createCollector(): Collector {
 			projections.set(id, { data, deps, text: json });
 			return projectionRef(id);
 		},
+		row: rowRef,
 		collect(vector) {
 			const closure = (id: string, path: readonly string[]): Set<string> => {
 				if (path.includes(id)) return bad(`projection ${id} reaches itself`);

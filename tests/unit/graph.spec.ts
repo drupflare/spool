@@ -11,6 +11,8 @@ import {
 	recordRef,
 	renderAssembly,
 	resolveRefs,
+	rowRef,
+	splitRowId,
 	type ProjectionEntry,
 	type RecordEntry,
 	type RefLookup
@@ -263,5 +265,59 @@ describe('entries on the wire', () => {
 			data: null
 		});
 		expect(parseProjectionEntry({ id: 'p', version: 2, deps: [], data: 1 }).version).toBe(2);
+	});
+});
+
+describe('row references', () => {
+	const rows: RefLookup = {
+		record: () => undefined,
+		projection: () => undefined,
+		row: (dataset, key) =>
+			dataset === 'directory' && key === 'a/b' ? { id: 'a/b' } : undefined
+	};
+
+	it('builds a reference as dataset/key and splits it at the first slash', () => {
+		expect(rowRef('directory', 'a/b')).toEqual({ $row: 'directory/a/b' });
+		expect(splitRowId('directory/a/b')).toEqual({ dataset: 'directory', key: 'a/b' });
+		expect(splitRowId('nokey/')).toBeNull();
+		expect(splitRowId('/nodataset')).toBeNull();
+		expect(splitRowId('plain')).toBeNull();
+		expectCode(() => rowRef('has/slash', 'k'), 'bad-artifact');
+		expectCode(() => rowRef('directory', ''), 'bad-artifact');
+		expect(createCollector().row('directory', 'k')).toEqual({ $row: 'directory/k' });
+	});
+
+	it('is a reference only when it is the single key of its object', () => {
+		expect(isRef({ $row: 'd/k' })).toBe(true);
+		expect(isRef({ $row: 'd/k', x: 1 })).toBe(false);
+		expect(isRef({ $row: 3 })).toBe(false);
+	});
+
+	it('lists the rows a tree references, and only when it has any', () => {
+		expect(collectRefs({ a: [rowRef('d', 'z'), rowRef('d', 'a'), rowRef('d', 'z')] })).toEqual({
+			records: [],
+			projections: [],
+			rows: ['d/a', 'd/z']
+		});
+		expect(collectRefs({ a: recordRef('r') })).toEqual({ records: ['r'], projections: [] });
+	});
+
+	it('resolves a row from the lookup, and refuses one that is missing or has no lookup', () => {
+		expect(resolveRefs({ x: rowRef('directory', 'a/b') }, rows)).toEqual({
+			ok: true,
+			value: { x: { id: 'a/b' } }
+		});
+		expect(resolveRefs(rowRef('directory', 'gone'), rows)).toEqual({
+			ok: false,
+			reason: 'row directory/gone is not held'
+		});
+		expect(resolveRefs(rowRef('directory', 'a/b'), lookup([]))).toEqual({
+			ok: false,
+			reason: 'row directory/a/b is not held'
+		});
+		expect(resolveRefs({ $row: 'nokey/' }, rows)).toEqual({
+			ok: false,
+			reason: 'row nokey/ is not held'
+		});
 	});
 });

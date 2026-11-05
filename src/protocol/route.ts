@@ -2,7 +2,7 @@ import type { AssemblyBody, Scope } from './artifact.js';
 import { ProtocolError } from './errors.js';
 import type { Collector } from './graph.js';
 import { checkPattern, matchPattern, type Params } from './pattern.js';
-import type { QuerySchema } from './query.js';
+import { DATASET_NAME, type QuerySchema } from './query.js';
 import { compileTemplate, type CompiledTemplate, type TemplateSource } from './template/compile.js';
 import type { Mode } from './view.js';
 
@@ -56,7 +56,7 @@ export type RouteContext = {
 	params: Params;
 	/** the principal the app resolved for this request; null when none */
 	identity: Identity | null;
-} & Pick<Collector, 'record' | 'projection'>;
+} & Pick<Collector, 'record' | 'projection' | 'row'>;
 
 /** public routes default to 15 minutes soft, principal routes to 5 minutes hard */
 export const DEFAULT_FRESHNESS: Record<Scope, Freshness> = {
@@ -101,6 +101,8 @@ export type RouteCommon = {
 		reuse?: number;
 		/** later views one provisioned artifact is expected to serve; the server's prior when absent */
 		futureViews?: number;
+		/** refuses an artifact whose stored JSON is over this many bytes; no budget when absent */
+		maxBytes?: number;
 	};
 	/**
 	 * Pages a device on this route may open next, each with the share of devices expected to
@@ -219,6 +221,8 @@ export type Route = {
 		reuse?: number;
 		/** later views one provisioned artifact is expected to serve; the server's prior when absent */
 		futureViews?: number;
+		/** refuses an artifact whose stored JSON is over this many bytes; no budget when absent */
+		maxBytes?: number;
 	};
 	/** the compiled template of a template route */
 	template?: CompiledTemplate;
@@ -268,7 +272,7 @@ function bad(pattern: string, message: string): never {
 	throw new ProtocolError('bad-route', `${pattern}: ${message}`);
 }
 
-const QUERY_KEYS = ['list', 'filter', 'sort', 'pageSize'];
+const QUERY_KEYS = ['list', 'filter', 'sort', 'pageSize', 'key', 'dataset'];
 const RESERVED = ['sort', 'page'];
 
 /** the validated copy of a route's `query`; throws `bad-route` for a schema the worker could not apply */
@@ -315,6 +319,20 @@ function checkQuery(pattern: string, value: unknown): QuerySchema {
 			return bad(pattern, 'query.pageSize must be a positive integer');
 		}
 		out.pageSize = pageSize;
+	}
+	const { key, dataset } = given;
+	if (key !== undefined) {
+		if (typeof key !== 'string' || key === '') {
+			return bad(pattern, 'query.key must be a field name');
+		}
+		out.key = key;
+	}
+	if (dataset !== undefined) {
+		if (typeof dataset !== 'string' || !DATASET_NAME.test(dataset)) {
+			return bad(pattern, 'query.dataset must be a dataset name');
+		}
+		if (key !== undefined) return bad(pattern, 'query.key and query.dataset are exclusive');
+		out.dataset = dataset;
 	}
 	return out;
 }

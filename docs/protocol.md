@@ -16,12 +16,13 @@ This page describes what the server half and the worker send each other: paths, 
 
 ## Paths
 
-`PATHS` (`src/protocol/config.ts`) names the four paths a server half owns.
+`PATHS` (`src/protocol/config.ts`) names the five paths a server half owns.
 
 | `PATHS` key | Path               | Methods   | Answered by                                         |
 | ----------- | ------------------ | --------- | --------------------------------------------------- |
 | `sync`      | `/.spool/sync`     | GET, HEAD | `respondSync`, `src/server/sync.ts`                 |
 | `artifact`  | `/.spool/artifact` | GET, HEAD | `respondArtifact`, `src/server/spool.ts`            |
+| `dataset`   | `/.spool/dataset`  | GET, HEAD | `respondDataset`, `src/server/dataset.ts`           |
 | `beacon`    | `/.spool/beacon`   | POST      | `respondBeacon`, `src/server/beacon.ts`             |
 | `worker`    | `/spool-sw.js`     | GET       | `spool.stub()`; `handle` routes it, an adapter does |
 
@@ -459,7 +460,7 @@ The server decides whether a public artifact is worth sending, and answers `204`
 reuse * futureViews * avoided - provision - maintain
 ```
 
-Each term is in bytes, with a request counted as `requestBytes`. An artifact is sent when the result is positive. A `data` route weighs against its own size. Principal artifacts are not weighed.
+Each term is in bytes, with a request counted as `requestBytes`. An artifact is sent when the result is positive. A `data` route weighs against its own size. Principal artifacts are not weighed. A route's `provision.maxBytes` refuses an artifact whose stored JSON is over that many bytes, for every scope, before the benefit is weighed.
 
 `DEFAULT_PRIOR` (`src/protocol/provision.ts`) holds the scenario priors the worker and the server use until telemetry replaces them. Every one is an assumption. `ProvisionConfig` in `src/protocol/config.ts` overrides them, and a route's `provision` field overrides `reuse` and `futureViews` for that route.
 
@@ -587,7 +588,7 @@ A public `template`, `projection` or `data` route may declare `query` (`QuerySch
 
 The only new wire fact is `query` in the worker's route entry (`SerializedRoute.query`), a copy of the validated schema. The artifact format, the envelope, `/.spool/artifact` and `/.spool/sync` are unchanged.
 
-**The proof.** A query route's `load` returns an object that holds the collection, an array, at `list` and carries `proof: { count, digest }`. `datasetProof(items)` makes it: `count` is the array's length and `digest` is the base64url SHA-256, without padding, of `canonicalJson(items)`. `canonicalJson` writes JSON with object keys in code-unit order at every depth, no whitespace, and `toJSON` followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is `undefined` and writes `null` for one in an array, as `JSON.stringify` does. `createSpool` builds the artifact only when `verifyProof` holds, which needs an array at `list`, a `proof` object whose `count` equals the array's length, and a `digest` that matches. Otherwise it throws `ProtocolError` with code `bad-artifact`, and `/.spool/artifact` answers `400`. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.
+**The proof.** A query route's `load` returns an object that holds the collection, an array, at `list` and carries `proof: { count, digest }`. `datasetProof(items)` makes it: `count` is the array's length and `digest` is the base64url SHA-256, without padding, of `canonicalJson(items)`. `canonicalJson` writes JSON with object keys in code-unit order at every depth, no whitespace, and `toJSON` followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is `undefined` and writes `null` for one in an array, as `JSON.stringify` does. `createSpool` builds the artifact only when `verifyProof` holds, which needs an array at `list`, a `proof` object whose `count` equals the array's length, and a `digest` that matches. When the list holds `$record` or `$projection` refs, the proof is over the resolved rows: `createSpool` resolves the refs against what the load registered before it checks, and the worker checks after it materialises the page. A proof over the refs is refused. Otherwise it throws `ProtocolError` with code `bad-artifact`, and `/.spool/artifact` answers `400`. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.
 
 **Evaluation.** `evaluateQuery(schema, data, search)` takes the loaded data and the request's query string, with or without its `?`, and returns `{ items, total, page, pages }` or `null`. It returns `null` when:
 
@@ -604,6 +605,53 @@ Otherwise it filters, sorts and pages in that order. A `string` filter compares 
 **The worker.** `classify` treats a navigation, or for a `data` route a GET, that has a query string on a route that declares `query` like one without it. The artifact is the path's own: `Spool-Artifact` names the pathname for a query URL, `/.spool/artifact?path=` takes no query string and answers `404 no route` for one that has it, and the worker never stores an artifact or a security header set under a URL with a query string. A query is answered locally when the artifact is held and fresh under the route's freshness contract, so a stale `hard` route syncs first as it does for the path, its proof verifies, and `evaluateQuery` returns a result. Anything else goes to the network as it would without `query`. A copy that fails its proof is dropped, so the next network view provisions the collection again. A cold query URL goes to the network, and the advertised artifact of its path is provisioned like any other. The view event is an ordinary one with the route's pattern and the reason the path's artifact gives. In shadow mode the worker compares the local render with the network answer for the same URL.
 
 **Provisioning.** The collection is an ordinary artifact, so the rule in [Provisioning](#provisioning) weighs its bytes against its expected reuse, and the route's `provision` field sets the priors.
+
+## Datasets
+
+A dataset is a public collection of thousands of rows that a device seeds once and then keeps current with patches of only the changed rows. `defineDataset(name, declaration)` (`src/protocol/dataset.ts`) declares one and `createSpool({ datasets })` serves it at `GET /.spool/dataset`. It does not use the site's version vector, which never prunes tag versions: a dataset has its own integer cursor, held by the backend. Route integration is not part of this section.
+
+| Field                 | Rule                                                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scope`               | `public`. `principal` throws `bad-dataset`, because principal datasets wait for their own flag                                                                                                                                                                      |
+| `key(row)`            | a non-empty string, unique among the rows                                                                                                                                                                                                                           |
+| `seed(ctx)`           | every row in strictly ascending key order, as an array or as pages of rows. `ctx.after` lets a backend skip rows at or before a key. It runs once to admit a seed and once per page                                                                                 |
+| `read(ids, ctx)`      | a keyed read of those rows. A row it omits is sent as a delete. The route's `load` never runs                                                                                                                                                                       |
+| `changes(since, ctx)` | the net change after `since`: `{ cursor, puts, deletes, proof? }` with `puts` as keys and `deletes` as `{ key, cursor }`, or `'reset'`. It decides scope membership, so a row that moves in is a put and one that moves out is a delete, with its version unchanged |
+| `horizon(ctx)`        | the oldest cursor `changes` can answer. A `since` below it reseeds the device                                                                                                                                                                                       |
+| `head(ctx)`           | `{ cursor, proof? }`: the cursor a seed starts from, read before the first page                                                                                                                                                                                     |
+| `schema`              | a version string. A device that holds another one reseeds                                                                                                                                                                                                           |
+| `maxRows`, `maxBytes` | the seed's limits, in rows and in bytes of row JSON. A seed over either throws `dataset-limit`, and the endpoint answers `400`                                                                                                                                      |
+
+A request is `?name=<n>&since=<cursor>&schema=<v>` for a patch, or `?name=<n>` for a seed, with `after=<key>&limit=<n>` for the pages after the first. `since` needs `schema` and excludes `after`. A `since` below the horizon, a different schema, a `'reset'` from the backend, or a cursor ahead of the backend's answers with the first seed page. The body is `DatasetResponse`:
+
+```json
+{
+  "protocol": 1,
+  "name": "directory",
+  "schema": "v1",
+  "cursor": 42,
+  "reset": false,
+  "puts": [{ "key": "c00007", "row": { "id": "c00007" } }],
+  "deletes": [{ "key": "c00003", "cursor": 41 }],
+  "proof": { "kind": "set", "count": 1700, "digest": "<64 hex digits>" }
+}
+```
+
+A seed page has `reset: true`, at most `limit` rows (500 by default, 5,000 at most) and no deletes. A page with more to come carries `next`, the `after` of the next request, and no `proof`. The last page carries `proof`. A page after the first echoes `after`, and a device clears its rows only on a reset response without `after`. The cursor of the first page is the one a device keeps. If rows changed while the pages were read, the proof on the last page fails and the device asks for a patch from that cursor.
+
+**The proof.** `kind: 'set'` is the count of rows and the sum, modulo 2^256, of every row's hash, in 64 lowercase hex digits. A row's hash is the SHA-256 of its key, a NUL byte and `canonicalJson(row)`. A sum does not depend on order, so a patch moves it by `digestSub` for each row it replaces or deletes and `digestAdd` for each it puts. `applyChanges(rows, response, digest?)` does that on a map of rows, hashing only the rows the response touches when the caller passes the digest it holds, and reports whether the result equals `response.proof`. The proof catches corruption, a missed apply and a half-applied patch. A server that sends rows and a digest that agree is not caught, so it is not a defence against a malicious server. Without `kind`, or with `kind: 'ordered'`, a proof is the v0.3 ordered one, and `verifyProof` still checks it as before. A set proof needs `verifyProof(schema, data, keyOf)`.
+
+A backend that keeps its own digest returns it in `head().proof` and `changes().proof`, and a patch then costs the feed and a keyed read. Without one, spool reads the whole collection through `seed` to make the proof: one full read per patch, and one on the last seed page after the first. The first seed page always reads every row once to count it against `maxRows` and `maxBytes`.
+
+### The device store
+
+The worker holds a dataset in IndexedDB: one record per row by `[name, key]` with the row's hash, and one meta record per dataset (`name`, `schema`, `cursor`, `count`, `digest`, `bytes`, `appliedAt`). A seed or a patch is applied to a staging copy, checked against the response's proof, and then written in one transaction with `durability: 'strict'`, rows and meta together. A failed write leaves the store and the memory copy as they were. A dataset load sums the stored row hashes and compares them with the meta, so a store that lost rows is cleared for that dataset alone and reseeded.
+
+A sync asks `?name&since&schema`. A reset, another schema or a failed proof clears that dataset and seeds it again, once; a second failed proof leaves it not held. A seed whose rows moved between pages is repaired by one patch from the first page's cursor before any reseed. A wipe of the replica clears the datasets, and a vector reset keeps them. An apply that began before a wipe is dropped.
+
+Outcomes are `seeded`, `reseeded`, `patched`, `current`, `offline` and `refused` with a reason: `budget`, `proof`, `unavailable`, `bad-response`, `epoch` or `storage`. The `spool:datasets` message returns what is held, the counts by outcome, the refused datasets and the persistence answer. A seed is refused when its rows would use more than `datasetShare` (default 1) of the headroom `navigator.storage.estimate()` reports. After the first dataset is held the worker sends `spool:persist`, and `register` asks `navigator.storage.persist()` once and sends the answer back.
+
+A route reaches rows in two ways. `query.dataset` names a dataset: the route's data carries no list, and the worker uses the held rows in ascending key order, applies the filter, sort and page of `query`, and goes to the network when the dataset is not held. `ctx.row(dataset, key)` puts `{ "$row": "dataset/key" }` in the data; the row resolves when the page renders, so a put needs no new artifact, and a delete drops only the pages and projections that referenced the row. A list that carries a set proof in its data names the field that holds each key with `query.key`, which is exclusive with `query.dataset`. A route's freshness bounds the age of every dataset it reads.
 
 ## Freshness
 

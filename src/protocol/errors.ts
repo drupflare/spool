@@ -8,7 +8,9 @@ export type ProtocolErrorCode =
 	| 'bad-beacon'
 	| 'bad-template'
 	| 'bad-manifest'
-	| 'bad-nav';
+	| 'bad-nav'
+	| 'bad-dataset'
+	| 'dataset-limit';
 
 /** thrown for malformed protocol input; `code` names the family so callers can map it to a status */
 export class ProtocolError extends Error {

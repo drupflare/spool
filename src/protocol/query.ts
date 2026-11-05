@@ -19,13 +19,41 @@ export type QuerySchema = {
 	sort?: readonly string[];
 	/** items per page; turns on the page parameter */
 	pageSize?: number;
+	/** field of each item that holds its dataset key; a list with a set proof needs it */
+	key?: string;
+	/**
+	 * Name of a dataset the device holds. The rows it holds are the collection, in ascending key
+	 * order, so the route's data carries no list and no proof. Exclusive with `key`.
+	 */
+	dataset?: string;
 };
 
-/** what a collection's `load` result carries so the worker can tell it holds every item the server sent */
+/**
+ * What a collection's `load` result carries so the worker can tell it holds every item the server
+ * sent. This is the ordered proof: a hash of the whole array in its order. {@link SetProof} is the
+ * order-independent one a dataset uses.
+ */
 export type DatasetProof = {
+	/** `ordered`; absent on every proof made before the set proof existed */
+	kind?: 'ordered';
 	/** number of items in the collection */
 	count: number;
 	/** hash of the collection's canonical JSON */
+	digest: string;
+};
+
+/**
+ * The proof of a dataset: the number of rows and the sum of every row's hash modulo 2^256, as 64
+ * lowercase hex digits. A sum does not depend on order, so a patch moves it by the hashes of the rows
+ * it replaces and adds, and neither side reads the whole collection to check a sync. It detects
+ * corruption, a missed apply and a half-applied patch. It is not a defence against a malicious
+ * server, which can send rows and a digest that agree.
+ */
+export type SetProof = {
+	kind: 'set';
+	/** number of rows in the collection */
+	count: number;
+	/** sum of the row hashes modulo 2^256, 64 hex digits */
 	digest: string;
 };
 
@@ -90,12 +118,118 @@ export async function datasetProof(items: readonly unknown[]): Promise<DatasetPr
 	return { count: items.length, digest: await shellHash(canonicalJson(items)) };
 }
 
-/** whether `data` holds the collection at `schema.list` and a `proof` that matches it */
-export async function verifyProof(schema: QuerySchema, data: unknown): Promise<boolean> {
+/** what a dataset's name may be; it never holds a `/`, which a row id uses to split name from key */
+export const DATASET_NAME = /^[A-Za-z0-9._:-]{1,128}$/;
+
+const MODULUS = 1n << 256n;
+
+/** the digest of an empty collection */
+export const EMPTY_DIGEST = '0'.repeat(64);
+
+const DIGEST_FORM = /^[0-9a-f]{64}$/;
+
+/** the hash of one row: base64url SHA-256 of its key, a NUL, and its canonical JSON */
+export function rowHash(key: string, row: unknown): Promise<string> {
+	return shellHash(`${key}\0${canonicalJson(row)}`);
+}
+
+function hashValue(hash: string): bigint {
+	if (!/^[A-Za-z0-9_-]{43}$/.test(hash)) throw new RangeError('not a row hash');
+	const binary = atob(hash.replace(/-/g, '+').replace(/_/g, '/') + '=');
+	let hex = '';
+	for (let i = 0; i < binary.length; i++)
+		hex += binary.charCodeAt(i).toString(16).padStart(2, '0');
+	return BigInt(`0x${hex}`);
+}
+
+function digestValue(digest: string): bigint {
+	if (!DIGEST_FORM.test(digest)) throw new RangeError('not a set digest');
+	return BigInt(`0x${digest}`);
+}
+
+const digestText = (value: bigint) =>
+	(((value % MODULUS) + MODULUS) % MODULUS).toString(16).padStart(64, '0');
+
+/** `digest` plus the row hash `hash`, modulo 2^256 */
+export function digestAdd(digest: string, hash: string): string {
+	return digestText(digestValue(digest) + hashValue(hash));
+}
+
+/** `digest` minus the row hash `hash`, modulo 2^256 */
+export function digestSub(digest: string, hash: string): string {
+	return digestText(digestValue(digest) - hashValue(hash));
+}
+
+/** the set proof of rows by key; read every row once, so a patch should update it with {@link digestAdd} and {@link digestSub} */
+export async function setProof(rows: ReadonlyMap<string, unknown>): Promise<SetProof> {
+	const hashes = await Promise.all([...rows].map(([key, row]) => rowHash(key, row)));
+	let sum = 0n;
+	for (const hash of hashes) sum += hashValue(hash);
+	return { kind: 'set', count: rows.size, digest: digestText(sum) };
+}
+
+/** whether `value` is shaped like a set proof */
+export function isSetProof(value: unknown): value is SetProof {
+	return (
+		isPlain(value) &&
+		value['kind'] === 'set' &&
+		typeof value['count'] === 'number' &&
+		Number.isSafeInteger(value['count']) &&
+		value['count'] >= 0 &&
+		typeof value['digest'] === 'string' &&
+		DIGEST_FORM.test(value['digest'])
+	);
+}
+
+/** reads the key of a row for a set proof; throws or returns a non-string for a row it cannot key */
+export type KeyOf = (row: Plain) => string;
+
+/** the {@link KeyOf} a route's `query.key` names: the item's own field, which must be a string */
+export function keyField(schema: QuerySchema): KeyOf | undefined {
+	const field = schema.key;
+	if (field === undefined) return undefined;
+	return (row) => {
+		const key = own(row, field);
+		if (typeof key !== 'string') throw new TypeError(`${field} is not a string key`);
+		return key;
+	};
+}
+
+async function verifySet(items: readonly unknown[], proof: SetProof, keyOf: KeyOf) {
+	if (proof.count !== items.length) return false;
+	const rows = new Map<string, Plain>();
+	for (const item of items) {
+		if (!isPlain(item)) return false;
+		let key: unknown;
+		try {
+			key = keyOf(item);
+		} catch {
+			return false;
+		}
+		if (typeof key !== 'string' || rows.has(key)) return false;
+		rows.set(key, item);
+	}
+	return (await setProof(rows)).digest === proof.digest;
+}
+
+/**
+ * Whether `data` holds the collection at `schema.list` and a `proof` that matches it. A proof with
+ * `kind: 'set'` is checked with `keyOf`, which reads each row's key; without one it fails.
+ */
+export async function verifyProof(
+	schema: QuerySchema,
+	data: unknown,
+	keyOf?: KeyOf
+): Promise<boolean> {
 	if (!isPlain(data)) return false;
 	const items = own(data, schema.list);
 	const proof = own(data, 'proof');
 	if (!Array.isArray(items) || !isPlain(proof)) return false;
+	const kind = proof['kind'];
+	if (kind === 'set') {
+		return keyOf !== undefined && isSetProof(proof) && (await verifySet(items, proof, keyOf));
+	}
+	if (kind !== undefined && kind !== 'ordered') return false;
 	if (proof['count'] !== items.length || typeof proof['digest'] !== 'string') return false;
 	return (await shellHash(canonicalJson(items))) === proof['digest'];
 }
@@ -205,8 +339,15 @@ export function evaluateQuery(
 export async function shapeQuery(
 	schema: QuerySchema,
 	data: unknown,
-	search: string
-): Promise<
+	search: string,
+	keyOf?: KeyOf
+): Promise<Shaped> {
+	if (!(await verifyProof(schema, data, keyOf))) return { ok: false, reason: PROOF_MISMATCH };
+	return shapeRows(schema, data, search);
+}
+
+/** what {@link shapeQuery} and {@link shapeRows} return */
+export type Shaped =
 	| {
 			/** true when the query was answered from the stored collection */
 			ok: true;
@@ -218,9 +359,13 @@ export async function shapeQuery(
 			ok: false;
 			/** why the query was refused */
 			reason: string;
-	  }
-> {
-	if (!(await verifyProof(schema, data))) return { ok: false, reason: PROOF_MISMATCH };
+	  };
+
+/**
+ * {@link shapeQuery} without the proof check, for a collection the caller has already verified,
+ * such as the rows of a held dataset.
+ */
+export function shapeRows(schema: QuerySchema, data: unknown, search: string): Shaped {
 	const result = evaluateQuery(schema, data, search);
 	if (!result) return { ok: false, reason: 'query is not one the route declares' };
 	const { items, total, page, pages } = result;
