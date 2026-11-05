@@ -9,8 +9,12 @@ import {
 	coverageFigures,
 	dataCentreJoules,
 	egressUsd,
+	electricityPrice,
 	fleetFor,
+	footprintMwh,
 	freeTierCeiling,
+	gPerKwhFromLbPerMwh,
+	institutionReport,
 	joulesPerView,
 	joulesPerViewWithOrigin,
 	linearFit,
@@ -28,6 +32,7 @@ import {
 	repeatNavFigures,
 	repeatSplitBySite,
 	requestUsd,
+	rollUpInstitutions,
 	runtimeRun,
 	saving,
 	serverYearMWh,
@@ -40,7 +45,7 @@ import {
 	zeroNetworkFigures,
 	type Row
 } from '../../src/report/index';
-import { DOCUMENT_BYTES } from '../../src/report/inputs';
+import { DOCUMENT_BYTES, G_PER_LB } from '../../src/report/inputs';
 
 // a scale for the tables: 100 million views a year, a round number and no institution
 const VIEWS = 100e6;
@@ -692,5 +697,155 @@ describe('trim figures', () => {
 		expect(perMillionViewsUsd(10_000, 1, aws)).toBeCloseTo(0.85, 10);
 		expect(perMillionViewsUsd(10_000, 0.5, aws)).toBeCloseTo(0.425, 10);
 		expect(perMillionViewsUsd(10_000, 1, HOSTS[0] as (typeof HOSTS)[number])).toBe(0);
+	});
+});
+
+describe('institution figures', () => {
+	const campus = {
+		state: 'AZ',
+		subregion: 'AZNM' as const,
+		sites: 425,
+		viewsPerYear: 420e6,
+		attributionalMwh: 45.5
+	};
+
+	it('converts eGRID pounds per MWh and the EIA pounds per kWh to grams per kWh', () => {
+		expect(gPerKwhFromLbPerMwh(770.884)).toBeCloseTo(349.7, 1);
+		expect(gPerKwhFromLbPerMwh(543.178)).toBeCloseTo(246.4, 1);
+		expect(gPerKwhFromLbPerMwh(706.189)).toBeCloseTo(320.3, 1);
+		expect(0.81 * G_PER_LB).toBeCloseTo(367.4, 1);
+	});
+
+	it('prices at the state rate and throws on a state the price table lacks', () => {
+		expect(electricityPrice('AZ', 'industrial').value).toBe(8.05);
+		expect(electricityPrice('NH', 'commercial').value).toBe(20.11);
+		expect(() => electricityPrice('CA', 'industrial')).toThrow(RangeError);
+		expect(() => electricityPrice('constructor', 'industrial')).toThrow(RangeError);
+	});
+
+	it('splits the ASU high case into 12.9 MWh of data centre inside the host meter and 32.6 MWh off it', () => {
+		const { economics, research } = institutionReport({ institution: campus });
+		expect(economics?.dataCentreMwh).toBeCloseTo(45.5 * (0.055 / 0.194), 10);
+		expect(economics?.dataCentreMwh).toBeCloseTo(12.9, 1);
+		expect(economics?.offMeterMwh).toBeCloseTo(32.6, 1);
+		expect(research?.boundary.devices.share).toBeCloseTo(0.412, 3);
+	});
+
+	it('prices the hosting cases at both sector rates, headline first', () => {
+		const { economics } = institutionReport({ institution: campus });
+		expect(economics?.cases.map((c) => c.name)).toEqual(['peak', 'production', 'floor']);
+		const peak = economics?.cases[0];
+		expect(peak?.mwh).toBeCloseTo((425 * 390) / 1000, 10);
+		expect(peak?.usdIndustrial).toBeCloseTo(((425 * 390) / 1000) * 8.05 * 10, 6);
+		expect(peak?.usdCommercial).toBeCloseTo(((425 * 390) / 1000) * 12.45 * 10, 6);
+	});
+
+	it('derives the footprint and the goal ladder from the view count', () => {
+		const footprint = footprintMwh(1.2e6);
+		expect(footprint).toBeCloseTo(0.313, 3);
+		expect(footprint).toBeCloseTo((1.2e6 * (0.6 * 2.2e6 + 0.4 * 66343) * 6.984e-4) / 3.6e9, 10);
+		const { research } = institutionReport({
+			institution: { ...campus, viewsPerYear: 1.2e6 }
+		});
+		expect(research?.goal.rungs.map((r) => r.share)).toEqual([0.025, 0.05, 0.1, 0.25]);
+		expect(research?.goal.rungs[0]?.kwh).toBeCloseTo(footprint * 25, 6);
+		expect(research?.goal.high.share).toBe(0.415);
+	});
+
+	it('takes carbon at the campus subregion and at Ember beside it', () => {
+		const { research } = institutionReport({ institution: campus });
+		expect(research?.carbon.gPerKwh).toBeCloseTo(320.3, 1);
+		expect(research?.carbon.ember.gPerKwh).toBe(384);
+		expect(research?.carbon.tonnes).toBeCloseTo(
+			(45.5 * gPerKwhFromLbPerMwh(706.189)) / 1000,
+			6
+		);
+	});
+
+	it('counts trust from the worker views and names the counters the worker lacks', () => {
+		const view = (over: Record<string, unknown>) =>
+			({
+				id: 'v',
+				tier: 'local',
+				reason: 'fresh',
+				route: '/',
+				mismatch: null,
+				at: 0,
+				...over
+			}) as never;
+		const { trust } = institutionReport({
+			views: [
+				view({ tier: 'shadow', mismatch: true }),
+				view({ tier: 'shadow', mismatch: false }),
+				view({ reason: 'refused' }),
+				view({ reason: 'hard-refused' }),
+				view({ reason: 'stale-after-sync' })
+			]
+		});
+		expect(trust).toMatchObject({
+			views: 5,
+			sampled: 2,
+			mismatches: 1,
+			refused: 2,
+			fallbacks: 1
+		});
+		expect(trust?.notCounted).toEqual(['proof failures', 'reseeds', 'rollbacks']);
+	});
+
+	it('sums held bytes per side against the budget and refuses a negative holding', () => {
+		const { storage } = institutionReport({
+			storage: {
+				budget: { device: 100, server: 50 },
+				holdings: [
+					{ dataset: 'a', where: 'device', bytes: 60 },
+					{ dataset: 'b', where: 'device', bytes: 60 },
+					{ dataset: 'c', where: 'server', bytes: 50 }
+				]
+			}
+		});
+		expect(storage?.held).toEqual({ device: 120, server: 50 });
+		expect(storage?.within).toEqual({ device: false, server: true });
+		expect(() =>
+			institutionReport({
+				storage: {
+					budget: { device: 1, server: 1 },
+					holdings: [{ dataset: 'x', where: 'server', bytes: -1 }]
+				}
+			})
+		).toThrow(RangeError);
+	});
+
+	it('leaves every new block null without its input', () => {
+		const report = institutionReport({});
+		expect([report.economics, report.storage, report.trust, report.research]).toEqual([
+			null,
+			null,
+			null,
+			null
+		]);
+	});
+
+	it('sums energy and carbon across institutions and keeps water per institution', () => {
+		const rows = [
+			{ name: 'A', subregion: 'AZNM' as const, attributionalMwh: 45.5 },
+			{ name: 'C', subregion: 'NEWE' as const, attributionalMwh: 6.49 }
+		];
+		const rollup = rollUpInstitutions(rows);
+		expect(rollup.institutions).toBe(2);
+		expect(rollup.mwh).toBeCloseTo(51.99, 6);
+		expect(rollup.tonnes).toBeCloseTo(
+			(45.5 * gPerKwhFromLbPerMwh(706.189) + 6.49 * gPerKwhFromLbPerMwh(543.178)) / 1000,
+			6
+		);
+		expect(rollup.water.map((w) => w.name)).toEqual(['A', 'C']);
+		expect(rollup.water[0]?.directLitres).toBeCloseTo(45.5 * (0.055 / 0.194) * 1000 * 0.375, 6);
+	});
+
+	it('has no summed water field, on the roll-up or on any institution', () => {
+		const rollup = rollUpInstitutions([{ name: 'A', subregion: 'US', attributionalMwh: 1 }]);
+		expect(Object.keys(rollup).sort()).toEqual(['institutions', 'mwh', 'tonnes', 'water']);
+		for (const w of rollup.water) {
+			expect(Object.keys(w).sort()).toEqual(['directLitres', 'indirectLitres', 'name']);
+		}
 	});
 });

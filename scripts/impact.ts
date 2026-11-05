@@ -5,8 +5,13 @@ import { format, resolveConfig } from 'prettier';
 import {
 	DICTIONARY_ARMS,
 	DOCUMENT_BYTES,
+	EGRID_LB_PER_MWH,
+	ELECTRICITY_PRICE,
+	EMBER_US_G_PER_KWH,
 	FIRST_VIEW_SHARE,
 	FREE_TIER_VIEWS,
+	GOAL_HIGH_SHARE,
+	GOAL_SHARES,
 	HOSTS,
 	MOBILE_SHARE,
 	MODELLED_VIEW,
@@ -15,9 +20,13 @@ import {
 	PRICES_READ,
 	PUE,
 	RADIO_J,
+	REPEAT_VIEW_BYTES,
 	SERVER_WATTS,
 	SWD_V4,
 	TIERS,
+	WATER_DIRECT,
+	WATER_INDIRECT,
+	WATER_INDIRECT_LBNL,
 	activityFigures,
 	activityGains,
 	addLevers,
@@ -32,8 +41,11 @@ import {
 	deviceCpuFigures,
 	dictionaryArms,
 	egressUsd,
+	footprintMwh,
 	freeTierCeiling,
+	gPerKwhFromLbPerMwh,
 	inferenceFigures,
+	institutionReport,
 	joulesPerView,
 	joulesPerViewWithOrigin,
 	lazyUnscrolled,
@@ -67,6 +79,7 @@ import {
 	type Channels,
 	type DictionaryArm,
 	type Fit,
+	type InstitutionProfile,
 	type Measurement,
 	type OpFigures,
 	type OriginClass,
@@ -273,9 +286,13 @@ export function buildFigures(readings: Readings): Figures {
 		)
 	);
 	v.blockedSites = [...blocked].sort().join(', ') || 'none';
-	v.revisitWholeMedian = fixed(
-		median(bySite.flatMap((m) => [...m.values()].map((s) => s.bytes)))
-	);
+	const wholeMedian = median(bySite.flatMap((m) => [...m.values()].map((s) => s.bytes)));
+	if (wholeMedian !== REPEAT_VIEW_BYTES.value) {
+		throw new Error(
+			`REPEAT_VIEW_BYTES is ${REPEAT_VIEW_BYTES.value} B but the pooled whole repeat-view median is ${wholeMedian} B; update src/report/inputs.ts`
+		);
+	}
+	v.revisitWholeMedian = fixed(wholeMedian);
 	const sites = [...new Set(bySite.flatMap((m) => [...m.keys()]))];
 	const lastOf = (site: string) =>
 		[...bySite]
@@ -1987,6 +2004,183 @@ export function buildFigures(readings: Readings): Figures {
 			[2]
 		);
 	}
+	// #endregion
+
+	// #region institutions
+	// Three anonymous campuses. Sites are L3 choices near the plan's hosting figures; attributional is the
+	// high case of the ceiling (L3) applied to each campus's views.
+	const examples = [
+		{ name: 'A', state: 'AZ', subregion: 'AZNM', sites: 425, views: 420e6 },
+		{ name: 'B', state: 'WA', subregion: 'NWPP', sites: 180, views: 24.4e6 },
+		{ name: 'C', state: 'NH', subregion: 'NEWE', sites: 100, views: 60e6 }
+	] as const;
+	const rows = examples.map((e) => {
+		const profile: InstitutionProfile = {
+			state: e.state,
+			subregion: e.subregion,
+			sites: e.sites,
+			viewsPerYear: e.views,
+			attributionalMwh: footprintMwh(e.views) * GOAL_HIGH_SHARE.value
+		};
+		const report = institutionReport({ institution: profile });
+		if (!report.economics || !report.research)
+			throw new Error(`institution ${e.name} has no economics or research block`);
+		return { name: e.name, profile, economics: report.economics, research: report.research };
+	});
+	const a = rows.find((r) => r.name === 'A');
+	if (!a) throw new Error('no institution A');
+	v.instAAttrMwh = fixed(a.profile.attributionalMwh, 1);
+	v.instADataCentre = fixed(a.economics.dataCentreMwh, 1);
+	v.instAOffMeter = fixed(a.economics.offMeterMwh, 1);
+	v.deviceShare = fixed(a.research.boundary.devices.share * 100, 1);
+	v.networkShare = fixed(a.research.boundary.networks.share * 100, 1);
+	v.dataCentreShare = fixed(a.research.boundary.dataCentres.share * 100, 1);
+	v.goalHighShare = fixed(GOAL_HIGH_SHARE.value * 100, 1);
+	v.avgViewJoules = fixed(footprintMwh(1) * 3.6e9);
+	v.indirectGapPct = fixed((WATER_INDIRECT.value / WATER_INDIRECT_LBNL.value - 1) * 100, 1);
+
+	t['institution-economics'] = table(
+		[
+			'Institution',
+			'Sites',
+			'Case',
+			'kWh a site',
+			'Host-meter MWh a year',
+			'Dollars, industrial',
+			'Dollars, commercial'
+		],
+		rows.flatMap((r) =>
+			r.economics.cases.map((c) => [
+				r.name,
+				fixed(r.profile.sites),
+				c.name,
+				fixed(c.kwhPerSite, 1),
+				fixed(c.mwh, 1),
+				usd(c.usdIndustrial),
+				usd(c.usdCommercial)
+			])
+		),
+		[1, 3, 4, 5, 6]
+	);
+	t['institution-prices'] = table(
+		['State', 'Commercial, cents per kWh', 'Industrial, cents per kWh', 'Layer'],
+		Object.entries(ELECTRICITY_PRICE).map(([state, p]) => [
+			state,
+			fixed(p.commercial.value, 2),
+			fixed(p.industrial.value, 2),
+			p.commercial.layer
+		]),
+		[1, 2]
+	);
+	t['grid-factors'] = table(
+		['Source', 'Rate', 'Unit', 'g CO2e per kWh', 'Layer'],
+		[
+			...Object.entries(EGRID_LB_PER_MWH).map(([sub, f]) => [
+				`eGRID2023 ${sub}`,
+				fixed(f.value, 3),
+				'lb/MWh',
+				fixed(gPerKwhFromLbPerMwh(f.value), 1),
+				`${f.layer} rate, L2 conversion`
+			]),
+			[
+				'Ember, US 2025',
+				fixed(EMBER_US_G_PER_KWH.value),
+				'gCO2e/kWh',
+				fixed(EMBER_US_G_PER_KWH.value, 1),
+				EMBER_US_G_PER_KWH.layer
+			]
+		],
+		[1, 3]
+	);
+	t['water-factors'] = table(
+		['Factor', 'L per kWh', 'Layer', 'Applies to'],
+		[
+			[
+				'Direct, on site',
+				fixed(WATER_DIRECT.value, 3),
+				WATER_DIRECT.layer,
+				'data-centre electricity'
+			],
+			[
+				'Indirect, drupflare',
+				fixed(WATER_INDIRECT.value, 2),
+				WATER_INDIRECT.layer,
+				'electricity through generation'
+			],
+			[
+				'Indirect, LBNL 2024',
+				fixed(WATER_INDIRECT_LBNL.value, 2),
+				WATER_INDIRECT_LBNL.layer,
+				'electricity through generation'
+			]
+		],
+		[1]
+	);
+	t['institution-boundary'] = table(
+		[
+			'Institution',
+			'Attributional MWh',
+			'Devices, MWh',
+			'Networks, MWh',
+			'Data centres, MWh',
+			'Off the meter, MWh'
+		],
+		rows.map((r) => [
+			r.name,
+			fixed(r.profile.attributionalMwh, 1),
+			fixed(r.research.boundary.devices.mwh, 1),
+			fixed(r.research.boundary.networks.mwh, 1),
+			fixed(r.economics.dataCentreMwh, 1),
+			fixed(r.economics.offMeterMwh, 1)
+		]),
+		[1, 2, 3, 4, 5]
+	);
+	t['institution-carbon-water'] = table(
+		[
+			'Institution',
+			'eGRID subregion',
+			'tCO2e, eGRID',
+			'tCO2e, Ember',
+			'Direct water, L',
+			'Indirect water, L (drupflare)',
+			'Indirect water, L (LBNL)'
+		],
+		rows.map((r) => [
+			r.name,
+			r.research.carbon.subregion,
+			fixed(r.research.carbon.tonnes, 1),
+			fixed(r.research.carbon.ember.tonnes, 1),
+			fixed(r.research.water.directLitres),
+			fixed(r.research.water.indirectLitres),
+			fixed(r.research.water.indirectLbnlLitres)
+		]),
+		[2, 3, 4, 5, 6]
+	);
+	const scales: Array<[string, number]> = [
+		['1.2M a year (100k a month)', 1.2e6],
+		['12M a year (1M a month)', 12e6],
+		['24.4M a year', 24.4e6],
+		['120M a year (10M a month)', 120e6],
+		['420M a year (35M a month)', 420e6],
+		['1B a year', 1e9]
+	];
+	t['goal-ladder'] = table(
+		[
+			'Views',
+			'Footprint, MWh a year',
+			...GOAL_SHARES.map((s) => `${fixed(s * 100, 1)}%`),
+			`High case, ${fixed(GOAL_HIGH_SHARE.value * 100, 1)}%`
+		],
+		scales.map(([label, views]) => {
+			const footprint = footprintMwh(views);
+			return [
+				label,
+				sig(footprint),
+				...[...GOAL_SHARES, GOAL_HIGH_SHARE.value].map((s) => fixed(footprint * s * 1000))
+			];
+		}),
+		[1, 2, 3, 4, 5, 6]
+	);
 	// #endregion
 
 	void spread;

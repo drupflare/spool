@@ -85,6 +85,99 @@ The money above does not include:
 
 Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.
 
+## An Institution's Figures
+
+This section prices spool for one institution. It leads with money, then storage and trust, then energy as a research figure. Institutions A, B and C are anonymous examples at three scales. Their site counts are L3 choices, and they name no campus. The blocks come from `institutionReport` in `src/report/institution.ts`.
+
+### Economics
+
+The host meter carries drupflare's hosting saving: the energy the host no longer spends serving the institution's sites. The peak-sized deployment is the headline (L2). The production deployment and a single small VPS sit beside it. Each is priced at the state's average industrial and commercial rates (L0).
+
+| Institution | Sites | Case       | kWh a site | Host-meter MWh a year | Dollars, industrial | Dollars, commercial |
+| ----------- | ----: | ---------- | ---------: | --------------------: | ------------------: | ------------------: |
+| A           |   425 | peak       |      390.0 |                 165.8 |             $13,343 |             $20,636 |
+| A           |   425 | production |      224.2 |                  95.3 |              $7,670 |             $11,863 |
+| A           |   425 | floor      |        9.3 |                   4.0 |                $320 |                $494 |
+| B           |   180 | peak       |      390.0 |                  70.2 |              $4,914 |              $7,701 |
+| B           |   180 | production |      224.2 |                  40.4 |              $2,825 |              $4,427 |
+| B           |   180 | floor      |        9.3 |                   1.7 |                $118 |                $184 |
+| C           |   100 | peak       |      390.0 |                  39.0 |              $6,560 |              $7,843 |
+| C           |   100 | production |      224.2 |                  22.4 |              $3,771 |              $4,509 |
+| C           |   100 | floor      |        9.3 |                   0.9 |                $157 |                $188 |
+
+The electricity prices come from EIA. Only these five states are in the record, and the report throws on any other state.
+
+| State | Commercial, cents per kWh | Industrial, cents per kWh | Layer |
+| ----- | ------------------------: | ------------------------: | ----- |
+| US    |                     13.37 |                      8.51 | L0    |
+| NH    |                     20.11 |                     16.82 | L0    |
+| MA    |                     23.10 |                     19.04 | L0    |
+| AZ    |                     12.45 |                      8.05 | L0    |
+| WA    |                     10.97 |                      7.00 | L0    |
+
+Spool's data-centre share of the attributional saving is already inside the hosting saving, so the table does not add it. For Institution A the data-centre share is 12.9 MWh a year and the rest, 32.6 MWh, sits on visitors' devices and networks. No institution's meter carries that rest, so no dollar figure covers it.
+
+The dollar figures are energy charges only. The record holds no campus tariff, no energy-only share of any bill and no demand charge. A saved kWh avoids the energy charge and any per-kWh delivery charge. The averages here are all-in rates, so they overstate a saving that avoids only the energy charge. The figures are small beside hosting fees and support contracts.
+
+### Storage
+
+The storage block compares the bytes each dataset holds on the device and on the server with a declared budget for each side. The worker does not report those bytes yet, and the device store that would hold them is not built. This page therefore prints no storage figure. A report given storage inputs shows the held bytes and whether each side is within budget.
+
+### Trust
+
+The trust block counts what the worker's own views record. It counts sampled shadow comparisons and their mismatches, views the worker refused or rendered by fallback, and views answered from the network because a stored copy was outdated. Proof failures, reseeds and rollbacks are not counted anywhere in the worker. A report says so and never prints a zero for them. This page has no views from a live site, so it prints no trust figure.
+
+### Research: energy, carbon and water
+
+These figures are research. Energy and carbon do not decide a default or a sales claim, and the energy figures are not a business case.
+
+For Institution A, the attributional saving at the high case is 45.5 MWh a year (L3). It splits across three meter boundaries: visitors' devices take 41.2%, networks 30.4% and data centres 28.4% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
+
+| Institution | Attributional MWh | Devices, MWh | Networks, MWh | Data centres, MWh | Off the meter, MWh |
+| ----------- | ----------------: | -----------: | ------------: | ----------------: | -----------------: |
+| A           |              45.5 |         18.8 |          13.8 |              12.9 |               32.6 |
+| B           |               2.6 |          1.1 |           0.8 |               0.7 |                1.9 |
+| C           |               6.5 |          2.7 |           2.0 |               1.8 |                4.7 |
+
+Carbon uses each campus's own eGRID2023 subregion (L0). The eGRID rate covers stack emissions at the plant, with no transmission or distribution losses and no upstream emissions. Ember's 2025 national figure of 384 gCO2e/kWh (L0) sits beside it and does not replace it. Ember states no boundary. The carbon covers the whole attributional saving, and a visitor's device draws on its own grid, so read the carbon as a bracket.
+
+Water covers the data-centre share only. Direct water is used on site. Indirect water is used where the electricity is generated, in the plant's watershed and not the campus's. Drupflare's indirect factor is 0.7% above the figure LBNL prints. Water stays per institution and is never added up, because water is local.
+
+| Factor              | L per kWh | Layer | Applies to                     |
+| ------------------- | --------: | ----- | ------------------------------ |
+| Direct, on site     |     0.375 | L2    | data-centre electricity        |
+| Indirect, drupflare |      4.55 | L2    | electricity through generation |
+| Indirect, LBNL 2024 |      4.52 | L0    | electricity through generation |
+
+| Source         |    Rate | Unit      | g CO2e per kWh | Layer                  |
+| -------------- | ------: | --------- | -------------: | ---------------------- |
+| eGRID2023 US   | 770.884 | lb/MWh    |          349.7 | L0 rate, L2 conversion |
+| eGRID2023 NEWE | 543.178 | lb/MWh    |          246.4 | L0 rate, L2 conversion |
+| eGRID2023 AZNM | 706.189 | lb/MWh    |          320.3 | L0 rate, L2 conversion |
+| eGRID2023 NWPP | 635.267 | lb/MWh    |          288.2 | L0 rate, L2 conversion |
+| eGRID2023 SRVC | 596.326 | lb/MWh    |          270.5 | L0 rate, L2 conversion |
+| eGRID2023 ERCT | 736.629 | lb/MWh    |          334.1 | L0 rate, L2 conversion |
+| Ember, US 2025 |     384 | gCO2e/kWh |          384.0 | L0                     |
+
+| Institution | eGRID subregion | tCO2e, eGRID | tCO2e, Ember | Direct water, L | Indirect water, L (drupflare) | Indirect water, L (LBNL) |
+| ----------- | --------------- | -----------: | -----------: | --------------: | ----------------------------: | -----------------------: |
+| A           | AZNM            |         14.6 |         17.5 |           4,841 |                        58,734 |                   58,347 |
+| B           | NWPP            |          0.8 |          1.0 |             281 |                         3,412 |                    3,390 |
+| C           | NEWE            |          1.6 |          2.5 |             692 |                         8,391 |                    8,335 |
+
+The goal ladder sets each goal as a share of a page view's own footprint. An average view costs 940 J on the attributional basis (L2). First views carry the central share of 60% (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of 41.5% is a scenario (L3). Each cell gives kWh a year.
+
+| Views                      | Footprint, MWh a year |  2.5% |   5.0% |  10.0% |  25.0% | High case, 41.5% |
+| -------------------------- | --------------------: | ----: | -----: | -----: | -----: | ---------------: |
+| 1.2M a year (100k a month) |                 0.313 |     8 |     16 |     31 |     78 |              130 |
+| 12M a year (1M a month)    |                  3.13 |    78 |    157 |    313 |    784 |            1,301 |
+| 24.4M a year               |                  6.37 |   159 |    319 |    637 |  1,593 |            2,645 |
+| 120M a year (10M a month)  |                  31.3 |   784 |  1,567 |  3,135 |  7,837 |           13,009 |
+| 420M a year (35M a month)  |                   110 | 2,743 |  5,486 | 10,972 | 27,429 |           45,532 |
+| 1B a year                  |                   261 | 6,531 | 13,061 | 26,123 | 65,307 |          108,410 |
+
+Unconfirmed inputs: the Dartmouth footprint is a 2019 preliminary figure, and the record holds no campus electricity price, no energy-only share of a bill, and no lifecycle or marginal grid factor. Ember's boundary is unstated.
+
 ## Asset Trimming
 
 The proxy can serve a site's stylesheets with the rules that no page of the site can match removed. This is a separate channel from the 12.4 J headline. The headline is what a local view saves, and a local view fetches no stylesheet. Trimming applies to a network view of a page the visitor has not seen. A repeat view saves nothing from it, since an optimized HTTP cache already keeps the file. The two do not add, and nothing in this section is part of the headline.

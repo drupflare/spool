@@ -62,6 +62,56 @@ The money above does not include:
 
 Cloudflare Workers bills a request only when a Worker runs. A site that serves its document from static assets makes no Worker request for it, and saves $0 in the Workers row. Prices are list prices. An institution's contract can differ from every number here.
 
+## An Institution's Figures
+
+This section prices spool for one institution. It leads with money, then storage and trust, then energy as a research figure. Institutions A, B and C are anonymous examples at three scales. Their site counts are L3 choices, and they name no campus. The blocks come from `institutionReport` in `src/report/institution.ts`.
+
+### Economics
+
+The host meter carries drupflare's hosting saving: the energy the host no longer spends serving the institution's sites. The peak-sized deployment is the headline (L2). The production deployment and a single small VPS sit beside it. Each is priced at the state's average industrial and commercial rates (L0).
+
+{{table:institution-economics}}
+
+The electricity prices come from EIA. Only these five states are in the record, and the report throws on any other state.
+
+{{table:institution-prices}}
+
+Spool's data-centre share of the attributional saving is already inside the hosting saving, so the table does not add it. For Institution A the data-centre share is {{value:instADataCentre}} MWh a year and the rest, {{value:instAOffMeter}} MWh, sits on visitors' devices and networks. No institution's meter carries that rest, so no dollar figure covers it.
+
+The dollar figures are energy charges only. The record holds no campus tariff, no energy-only share of any bill and no demand charge. A saved kWh avoids the energy charge and any per-kWh delivery charge. The averages here are all-in rates, so they overstate a saving that avoids only the energy charge. The figures are small beside hosting fees and support contracts.
+
+### Storage
+
+The storage block compares the bytes each dataset holds on the device and on the server with a declared budget for each side. The worker does not report those bytes yet, and the device store that would hold them is not built. This page therefore prints no storage figure. A report given storage inputs shows the held bytes and whether each side is within budget.
+
+### Trust
+
+The trust block counts what the worker's own views record. It counts sampled shadow comparisons and their mismatches, views the worker refused or rendered by fallback, and views answered from the network because a stored copy was outdated. Proof failures, reseeds and rollbacks are not counted anywhere in the worker. A report says so and never prints a zero for them. This page has no views from a live site, so it prints no trust figure.
+
+### Research: energy, carbon and water
+
+These figures are research. Energy and carbon do not decide a default or a sales claim, and the energy figures are not a business case.
+
+For Institution A, the attributional saving at the high case is {{value:instAAttrMwh}} MWh a year (L3). It splits across three meter boundaries: visitors' devices take {{value:deviceShare}}%, networks {{value:networkShare}}% and data centres {{value:dataCentreShare}}% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
+
+{{table:institution-boundary}}
+
+Carbon uses each campus's own eGRID2023 subregion (L0). The eGRID rate covers stack emissions at the plant, with no transmission or distribution losses and no upstream emissions. Ember's 2025 national figure of 384 gCO2e/kWh (L0) sits beside it and does not replace it. Ember states no boundary. The carbon covers the whole attributional saving, and a visitor's device draws on its own grid, so read the carbon as a bracket.
+
+Water covers the data-centre share only. Direct water is used on site. Indirect water is used where the electricity is generated, in the plant's watershed and not the campus's. Drupflare's indirect factor is {{value:indirectGapPct}}% above the figure LBNL prints. Water stays per institution and is never added up, because water is local.
+
+{{table:water-factors}}
+
+{{table:grid-factors}}
+
+{{table:institution-carbon-water}}
+
+The goal ladder sets each goal as a share of a page view's own footprint. An average view costs {{value:avgViewJoules}} J on the attributional basis (L2). First views carry the central share of 60% (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of {{value:goalHighShare}}% is a scenario (L3). Each cell gives kWh a year.
+
+{{table:goal-ladder}}
+
+Unconfirmed inputs: the Dartmouth footprint is a 2019 preliminary figure, and the record holds no campus electricity price, no energy-only share of a bill, and no lifecycle or marginal grid factor. Ember's boundary is unstated.
+
 ## Asset Trimming
 
 The proxy can serve a site's stylesheets with the rules that no page of the site can match removed. This is a separate channel from the {{value:headlineJ}} J headline. The headline is what a local view saves, and a local view fetches no stylesheet. Trimming applies to a network view of a page the visitor has not seen. A repeat view saves nothing from it, since an optimized HTTP cache already keeps the file. The two do not add, and nothing in this section is part of the headline.

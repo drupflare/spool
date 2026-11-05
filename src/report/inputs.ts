@@ -251,3 +251,155 @@ export const PANTHEON_OVERAGE: Input = {
 
 /** the three tiers, named by the share of annual views served with zero network */
 export const TIERS = { meaningful: 0.3, major: 0.65, transformative: 0.9 } as const;
+
+/** grams per pound, the mass conversion behind eGRID's lb/MWh rates */
+export const G_PER_LB = 453.59237;
+
+const cents = (value: number): Input => ({
+	value,
+	unit: 'cents/kWh',
+	layer: 'L0',
+	source: 'EIA Electric Power Annual 2025, Table 2.10, https://www.eia.gov/electricity/annual/html/epa_02_10.html (raw HTML read 2026-11-05)'
+});
+
+/**
+ * Average retail electricity price in cents per kWh for 2025, from EIA Electric Power Annual Table
+ * 2.10 (L0). The table holds these five states. Any other state has no price here, and
+ * `electricityPrice` throws on it rather than guessing.
+ */
+export const ELECTRICITY_PRICE = {
+	US: { commercial: cents(13.37), industrial: cents(8.51) },
+	NH: { commercial: cents(20.11), industrial: cents(16.82) },
+	MA: { commercial: cents(23.1), industrial: cents(19.04) },
+	AZ: { commercial: cents(12.45), industrial: cents(8.05) },
+	WA: { commercial: cents(10.97), industrial: cents(7) }
+} as const satisfies Record<string, Record<'commercial' | 'industrial', Input>>;
+
+export type PriceState = keyof typeof ELECTRICITY_PRICE;
+
+const egrid = (value: number): Input => ({
+	value,
+	unit: 'lb/MWh',
+	layer: 'L0',
+	source: 'EPA eGRID2023, eGRID subregion total output emission rates, CO2e (https://www.epa.gov/egrid/summary-data), one WebFetch excerpt not cross-checked against the xlsx'
+});
+
+/** an eGRID2023 subregion; `US` is the national total */
+export type EgridSubregion = 'US' | 'NEWE' | 'AZNM' | 'NWPP' | 'SRVC' | 'ERCT';
+
+/**
+ * eGRID2023 total output CO2e per subregion, lb per MWh (L0). The boundary is stack emissions at the
+ * plant: no transmission or distribution losses and no upstream or construction emissions (eGRID
+ * Technical Guide, read in full).
+ */
+export const EGRID_LB_PER_MWH: Readonly<Record<EgridSubregion, Input>> = {
+	US: egrid(770.884),
+	NEWE: egrid(543.178),
+	AZNM: egrid(706.189),
+	NWPP: egrid(635.267),
+	SRVC: egrid(596.326),
+	ERCT: egrid(736.629)
+};
+
+/**
+ * Ember's US carbon intensity of electricity generation, 2025, in gCO2e per kWh (L0). Ember states no
+ * boundary. It is printed beside the eGRID figure and never in its place.
+ */
+export const EMBER_US_G_PER_KWH: Input = {
+	value: 384,
+	unit: 'gCO2e/kWh',
+	layer: 'L0',
+	source: 'Ember, Global Electricity Review 2026, major countries and regions (https://ember-energy.org/latest-insights/global-electricity-review-2026/major-countries-and-regions), WebFetch excerpt; another Ember page prints the same figure as 2024'
+};
+
+/**
+ * Litres of water per kWh of data-centre electricity, consumed on site (L2, derived from LBNL 2024:
+ * 66 billion L in 2023 over 176 TWh). drupflare's worker docs use the same value.
+ */
+export const WATER_DIRECT: Input = {
+	value: 0.375,
+	unit: 'L/kWh',
+	layer: 'L2',
+	source: 'drupflare/worker docs/impact/water.md, from LBNL 2024 (2023 data)'
+};
+
+/**
+ * Litres of water per kWh of electricity through generation (L2). drupflare's worker docs round
+ * LBNL's figure to 4.55.
+ */
+export const WATER_INDIRECT: Input = {
+	value: 4.55,
+	unit: 'L/kWh',
+	layer: 'L2',
+	source: 'drupflare/worker docs/impact/water.md, from LBNL 2024 (nearly 800 billion L through generation)'
+};
+
+/** LBNL 2024's printed indirect water for data centres, 4.52 L/kWh (L0), shown beside `WATER_INDIRECT` */
+export const WATER_INDIRECT_LBNL: Input = {
+	value: 4.52,
+	unit: 'L/kWh',
+	layer: 'L0',
+	source: 'LBNL 2024 United States Data Center Energy Usage Report, full text (4.35 for the whole US grid)'
+};
+
+/**
+ * Median bytes of a first view's home page (L0). The Web Almanac chapter's own figures conflict, from
+ * 2.16 to 2.41 MB; the midpoint is used here.
+ */
+export const FIRST_VIEW_BYTES: Input = {
+	value: 2_200_000,
+	unit: 'B',
+	layer: 'L0',
+	source: 'Web Almanac 2025, home-page weight median (mobile and desktop)'
+};
+
+/**
+ * Median bytes of a whole repeat view, pooled over every repeat-navigation reading (L1).
+ * `scripts/impact.ts` refuses to run if the readings give another median.
+ */
+export const REPEAT_VIEW_BYTES: Input = {
+	value: 66_343,
+	unit: 'B',
+	layer: 'L1',
+	source: 'measurements/repeat-nav, pooled whole-repeat-view median'
+};
+
+/** the high case of the ceiling scenario: every cut at its high value (L3) */
+export const GOAL_HIGH_SHARE: Input = {
+	value: 0.415,
+	unit: 'fraction',
+	layer: 'L3',
+	source: 'scenario, SPOOL_PLAN "How high can the share go" (2026-11-03): every cut at its high value'
+};
+
+/**
+ * Proposed goal shares of a site's own page-view footprint (L3). Proposed in the plan on 2026-11-03
+ * and not adopted; they are a research target, not a business figure.
+ */
+export const GOAL_SHARES = [0.025, 0.05, 0.1, 0.25] as const;
+
+/**
+ * drupflare's hosting saving per site a year against three deployments (L2, modelled). The
+ * production-baseline page of the worker docs prints these three; the peak-sized figure is the
+ * headline.
+ */
+export const HOSTING_KWH_PER_SITE = {
+	peak: {
+		value: 390,
+		unit: 'kWh/site/yr',
+		layer: 'L2',
+		source: 'drupflare/worker docs/impact/energy/production-baseline.md: peak-sized, 3 regions, 12 nodes, 8 vCPU, 10%'
+	},
+	production: {
+		value: 224.2,
+		unit: 'kWh/site/yr',
+		layer: 'L2',
+		source: 'drupflare/worker docs/impact/energy/production-baseline.md: production, 3 regions, 12 nodes, 4 vCPU, 15%'
+	},
+	floor: {
+		value: 9.34,
+		unit: 'kWh/site/yr',
+		layer: 'L2',
+		source: 'drupflare/worker docs/impact/energy/production-baseline.md: worst case, one small VPS, 2 vCPU, 15%'
+	}
+} as const satisfies Record<string, Input>;

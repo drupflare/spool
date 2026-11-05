@@ -74,6 +74,17 @@ describe('docs/impact.md', () => {
 		expect(values.gbPerMillion).toBe('17.1');
 	});
 
+	it('prints the institution figures from the report, with the meter split and no summed water', () => {
+		const { values, tables } = buildFigures(loadReadings());
+		expect(values.instADataCentre).toBe('12.9');
+		expect(values.instAOffMeter).toBe('32.6');
+		expect(values.indirectGapPct).toBe('0.7');
+		expect(tables['grid-factors']).toContain('| eGRID2023 US');
+		expect(tables['grid-factors']).toContain('349.7');
+		expect(tables['goal-ladder']).toContain('| 0.313 |');
+		expect(tables['institution-carbon-water']).not.toMatch(/\| total\b/i);
+	});
+
 	it('opens with the notice before the evidence', () => {
 		const text = readFileSync(join(root, 'docs/impact.md'), 'utf8');
 		expect(text.startsWith('# Impact Notice\n')).toBe(true);

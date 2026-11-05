@@ -204,6 +204,10 @@ describe('institutionReport', () => {
 			ledger: [server()]
 		});
 		expect(report).toEqual({
+			economics: null,
+			storage: null,
+			trust: null,
+			research: null,
 			observed: null,
 			potential: { plan, layer: 'L3' },
 			financial: { currency: 'USD', period: 'month', saving: 300, layer: 'L1' },
@@ -214,6 +218,10 @@ describe('institutionReport', () => {
 
 	it('reports only the potential when a plan is the one input', () => {
 		expect(institutionReport({ plan })).toEqual({
+			economics: null,
+			storage: null,
+			trust: null,
+			research: null,
 			observed: null,
 			potential: { plan, layer: 'L3' },
 			financial: null,
@@ -235,6 +243,10 @@ describe('institutionReport', () => {
 				invoices: { currency: 'EUR', period: 'year', before: 900, after: 1000 }
 			})
 		).toEqual({
+			economics: null,
+			storage: null,
+			trust: null,
+			research: null,
 			observed: null,
 			potential: null,
 			financial: { currency: 'EUR', period: 'year', saving: -100, layer: 'L1' },
@@ -377,17 +389,25 @@ describe('institutionReport', () => {
 	it('has no total field across the three results', () => {
 		const report = institutionReport({ plan, ledger: [server()] });
 		expect(Object.keys(report).sort()).toEqual([
+			'economics',
 			'financial',
 			'observed',
 			'physical',
 			'potential',
-			'statement'
+			'research',
+			'statement',
+			'storage',
+			'trust'
 		]);
 	});
 });
 
 describe('channelRows', () => {
 	const report: InstitutionReport = {
+		economics: null,
+		storage: null,
+		trust: null,
+		research: null,
 		observed: null,
 		potential: {
 			plan: {
