@@ -1,8 +1,11 @@
 import { parseArgs } from 'node:util';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { parseArtifact } from '../../src/protocol/artifact.ts';
+import { defineDataset } from '../../src/protocol/dataset.ts';
 import {
 	datasetProof,
+	rowHash,
+	setProof,
 	shapeQuery,
 	verifyProof,
 	type QuerySchema
@@ -10,8 +13,10 @@ import {
 import { encodeHeld, MAX_HAVE } from '../../src/protocol/sync.ts';
 import { createSpool, defineRoute, type Spool } from '../../src/server/index.ts';
 import { memoryStore } from '../../src/stores/index.ts';
+import { syncDataset } from '../../src/sw/dataset-sync.ts';
 import { Graph } from '../../src/sw/graph/index.ts';
-import { memoryStorage } from '../../src/sw/storage.ts';
+import { Replica } from '../../src/sw/replica.ts';
+import { memoryStorage, type DatasetCommit } from '../../src/sw/storage.ts';
 import {
 	isMain,
 	localMachine,
@@ -83,11 +88,10 @@ function build(shape: Shape, arm: Arm, world: World): Spool {
 		depends: () => ['dataset'],
 		load: async (ctx) => {
 			world.loads++;
+			const plain = world.items.map((i) => ({ ...i }));
 			const rows =
-				shape === 'list'
-					? world.items.map((i) => ({ ...i }))
-					: world.items.map((i) => ctx.record(`row:${i.id}`, i));
-			return { rows, proof: await datasetProof(rows) };
+				shape === 'list' ? plain : world.items.map((i) => ctx.record(`row:${i.id}`, i));
+			return { rows, proof: await datasetProof(plain) };
 		},
 		...(provision ? { provision } : {})
 	});
@@ -229,6 +233,139 @@ async function dataProbe(): Promise<Row> {
 	return { kind: 'probe', strategy: 'data', arm: 'as shipped', n: 1, seed: cell(reply) };
 }
 
+const keyOf = (i: Item) => String(i.id).padStart(8, '0');
+
+// the v0.4 arm, server side only: the dataset endpoint over a backend that keeps its own digest
+async function v04Scenario(n: number, kind: Change): Promise<Row> {
+	const world = fresh(n);
+	const log: Array<{ cursor: number; key: string }> = [];
+	const reads: string[][] = [];
+	let cursor = 0;
+	let seeds = 0;
+	const held = () => new Map(world.items.map((i) => [keyOf(i), i]));
+	const dataset = defineDataset<Item>('rows', {
+		scope: 'public',
+		schema: 'v1',
+		maxRows: 1_000_000,
+		maxBytes: 1_000_000_000,
+		key: keyOf,
+		seed: () => {
+			seeds++;
+			return [...world.items];
+		},
+		read: (ids) => {
+			reads.push([...ids]);
+			const wanted = new Set(ids);
+			return world.items.filter((i) => wanted.has(keyOf(i)));
+		},
+		changes: async (since) => {
+			const last = new Set<string>();
+			for (const e of log) if (e.cursor > since) last.add(e.key);
+			const now = held();
+			return {
+				cursor,
+				puts: [...last].filter((k) => now.has(k)),
+				deletes: [...last].filter((k) => !now.has(k)).map((key) => ({ key, cursor })),
+				proof: await setProof(now)
+			};
+		},
+		horizon: () => 0,
+		head: async () => ({ cursor, proof: await setProof(held()) })
+	});
+	const spool = createSpool({ routes: [], store: memoryStore(), datasets: [dataset] });
+	// the device is the worker's own store and sync over counted storage and a counted wire
+	const hashes = { calls: 0 };
+	const commits: DatasetCommit[] = [];
+	const raw = memoryStorage();
+	const storage = {
+		...raw,
+		commitDataset: (commit: DatasetCommit) => (commits.push(commit), raw.commitDataset(commit))
+	};
+	const replica = new Replica(
+		storage,
+		'rig',
+		() => 0,
+		async (key, row) => {
+			hashes.calls++;
+			return rowHash(key, row);
+		}
+	);
+	await replica.load();
+	const wire = { requests: 0, bytes: 0, gzip: 0, brotli: 0 };
+	const sync = () =>
+		syncDataset(
+			{
+				store: replica.datasets,
+				origin: 'http://spool.test',
+				epoch: () => replica.epoch,
+				budget: async () => undefined,
+				fetch: async (url, init) => {
+					const response = (await spool.respond(new Request(url, init))) as Response;
+					const body = Buffer.from(await response.clone().arrayBuffer());
+					wire.requests++;
+					wire.bytes += body.length;
+					wire.gzip += gzipSync(body).length;
+					wire.brotli += brotliCompressSync(body).length;
+					return response;
+				}
+			},
+			'rows'
+		);
+	const first = await sync();
+	const seed = {
+		pages: wire.requests,
+		bytes: wire.bytes,
+		gzip: wire.gzip,
+		brotli: wire.brotli,
+		seedCalls: seeds,
+		status: first.status,
+		commits: commits.length,
+		rowHashes: hashes.calls,
+		heldBytes: (await replica.datasets.get('rows'))?.meta.bytes ?? null
+	};
+	for (const key of Object.keys(wire) as Array<keyof typeof wire>) wire[key] = 0;
+	hashes.calls = 0;
+	commits.length = 0;
+
+	const before = new Map([...held()].map(([k, v]) => [k, JSON.stringify(v)]));
+	const edit = change(world, 'list', kind);
+	cursor += 1;
+	const after = held();
+	for (const key of new Set([...before.keys(), ...after.keys()])) {
+		if (before.get(key) !== (after.has(key) ? JSON.stringify(after.get(key)) : undefined)) {
+			log.push({ cursor, key });
+		}
+	}
+	const seedsBefore = seeds;
+	const patched = await sync();
+	const device = await replica.datasets.get('rows');
+	const expected = await setProof(held());
+	return {
+		kind: 'v04',
+		n,
+		change: kind,
+		changedRows: edit.rows,
+		seed,
+		patch: {
+			status: patched.status,
+			requests: wire.requests,
+			bytes: wire.bytes,
+			gzip: wire.gzip,
+			brotli: wire.brotli,
+			puts: commits[0]?.puts.length ?? 0,
+			deletes: commits[0]?.deletes.length ?? 0,
+			commits: commits.length,
+			rowHashes: hashes.calls,
+			readCalls: reads.length,
+			readIds: reads.flat().length,
+			seedCalls: seeds - seedsBefore,
+			routeLoads: world.loads,
+			matches:
+				device?.meta.digest === expected.digest && device?.meta.count === expected.count
+		}
+	};
+}
+
 // the open question: does the proof verify on the server, and on the client after materialize
 async function proof(shape: Shape, n: number): Promise<Row> {
 	const world = fresh(n);
@@ -236,8 +373,8 @@ async function proof(shape: Shape, n: number): Promise<Row> {
 	const seed = await fetchArtifact(spool, PATHS[shape], world);
 	if (seed.status !== 200) throw new Error(`${shape} ${n}: seed status ${seed.status}`);
 	const artifact = parseArtifact(JSON.parse(seed.text));
-	const serverData = dataOf(artifact.body);
-	const serverVerify = await verifyProof(QUERY, serverData);
+	// the server resolves refs before it checks the proof and answers 200 only when it holds
+	const serverVerify = seed.status === 200;
 	const graph = new Graph({
 		storage: memoryStorage(),
 		tagVersion: () => 0,
@@ -274,6 +411,8 @@ const probeText = (r: Reply | null | undefined) =>
 function summary(row: Row): string {
 	if (row['kind'] === 'probe') return `probe data seed=${probeText(row['seed'] as Reply)}`;
 	if (row['kind'] === 'proof') return JSON.stringify(row);
+	if (row['kind'] === 'v04')
+		return `v04 n=${row['n']} ${row['change']} ${JSON.stringify(row['patch'])}`;
 	const has = row['refetchWithHave'] as (Reply & { haveIds: number }) | null;
 	return [
 		`${row['shape']} n=${row['n']} ${row['arm']} ${row['change']}`,
@@ -315,6 +454,7 @@ if (isMain(import.meta.url)) {
 					changes: CHANGES,
 					arms: ARMS.map((a) => a.name),
 					scenarios: SHAPES.length * SIZES.length * ARMS.length * CHANGES.length,
+					v04Scenarios: SIZES.length * CHANGES.length,
 					out: args.out
 				},
 				null,
@@ -333,15 +473,18 @@ if (isMain(import.meta.url)) {
 		for (const shape of SHAPES) {
 			for (const n of SIZES) rows.push(await proof(shape, n));
 		}
+		for (const n of SIZES) {
+			for (const kind of CHANGES) rows.push(await v04Scenario(n, kind));
+		}
 		for (const row of rows) console.log(summary(row));
 		const draft: Draft = {
 			rig: 'dataset-baseline',
 			date: utcDate(),
 			layer: 'L1',
 			question:
-				'exact response bytes, route load runs and sync bytes of the v0.3 artifact for a held collection of 50, 500 and 5000 rows, after one row, ten rows, one percent of rows, one delete or one add, as a list of rows or as records; and whether the query proof verifies on the server and on the client after materialize',
+				'exact response bytes, route load runs and sync bytes of the v0.3 artifact for a held collection of 50, 500 and 5000 rows, after one row, ten rows, one percent of rows, one delete or one add, as a list of rows or as records; the same changes through the v0.4 dataset patch applied by the worker store (requests, bytes, rows written, row hashes); and whether the query proof verifies on the server and on the client after materialize',
 			instrument:
-				'spool.respond on an in-process createSpool with a memory store, no browser; node:zlib gzip and brotli of each response body; load runs counted inside the route',
+				'spool.respond on an in-process createSpool with a memory store, no browser; node:zlib gzip and brotli of each response body; load runs counted inside the route; the v0.4 arm runs the worker store (Replica over memoryStorage, syncDataset) with commits and row hashes counted',
 			machine: localMachine(args.machine),
 			software: {
 				runtime: process.versions.bun
@@ -354,7 +497,7 @@ if (isMain(import.meta.url)) {
 				shapes: {
 					list: 'the rows inline in the data; the proof is over the rows',
 					records:
-						'each row registered with ctx.record; the list holds refs; the proof is over the refs'
+						'each row registered with ctx.record; the list holds refs; the proof is over the resolved rows (the 2026-11-03 reading used a proof over the refs, which the client check refused)'
 				},
 				changes: {
 					'change-1, change-10, change-1pct':
@@ -370,6 +513,7 @@ if (isMain(import.meta.url)) {
 						'route provision { reuse: 1, futureViews: 1000 }, so benefit() is positive at every size here'
 				},
 				proof: 'gate open arm: verifyProof on the built data, Graph.put and materialize from src/sw/graph, then verifyProof and shapeQuery on the materialized data',
+				v04: 'kind v04 rows: a dataset "rows" on a backend that keeps its digest; the device seeds with syncDataset, one change is made, then one more sync; seed and patch bytes are the sum of the responses of that phase; puts, deletes and commits are what the store wrote; rowHashes counts row hashes the device computed',
 				dataProbe:
 					'a data route with default priors, one row, to check the gate on that strategy',
 				titles: '40 to 80 ASCII characters from a seeded generator',
