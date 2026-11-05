@@ -58,6 +58,83 @@ export async function readCapped(response: Response, cap: number): Promise<Uint8
 	return out;
 }
 
+/**
+ * Splits a body into the visitor's stream and a capture stream, both fed by one read of `body`. A
+ * tee drops the chunks a branch has not read yet when the source errors, so the visitor would lose
+ * bytes the network already sent. Here the error reaches the visitor only after those chunks.
+ */
+export function splitBody(body: ReadableStream<Uint8Array>): {
+	visitor: ReadableStream<Uint8Array>;
+	capture: ReadableStream<Uint8Array>;
+} {
+	const reader = body.getReader();
+	const held: Uint8Array[] = [];
+	let end: { failed: boolean; reason?: unknown } | null = null;
+	let wake = (): void => {};
+	let open = true;
+	let copy!: ReadableStreamDefaultController<Uint8Array>;
+	const capture = new ReadableStream<Uint8Array>({
+		start(controller) {
+			copy = controller;
+		},
+		cancel() {
+			open = false;
+		}
+	});
+	const finish = (next: { failed: boolean; reason?: unknown }) => {
+		end = next;
+		wake();
+	};
+	void (async () => {
+		for (;;) {
+			let step: ReadableStreamReadResult<Uint8Array>;
+			try {
+				step = await reader.read();
+			} catch (reason) {
+				if (open) copy.error(reason);
+				return finish({ failed: true, reason });
+			}
+			if (step.done) {
+				if (open) copy.close();
+				return finish({ failed: false });
+			}
+			held.push(step.value);
+			wake();
+			if (open) copy.enqueue(step.value);
+		}
+	})();
+	const visitor = new ReadableStream<Uint8Array>(
+		{
+			async pull(controller) {
+				for (;;) {
+					const next = held.shift();
+					if (next) return controller.enqueue(next);
+					if (end?.failed) return controller.error(end.reason);
+					if (end) return controller.close();
+					await new Promise<void>((resolve) => (wake = resolve));
+				}
+			},
+			cancel: (reason) => reader.cancel(reason)
+		},
+		{ highWaterMark: 0 }
+	);
+	return { visitor, capture };
+}
+
+/**
+ * The response a visitor gets and the copy the runtime keeps from one network answer. A 200 body is
+ * split (see {@link splitBody}); any other body is cloned, so a status the runtime never keeps keeps
+ * the tee the capture path cancels. A redirect and a body-less answer are cloned too.
+ */
+export function branch(response: Response): { visitor: Response; copy: Response } {
+	if (response.status !== 200 || response.redirected || !response.body) {
+		return { visitor: response, copy: response.clone() };
+	}
+	const { visitor, capture } = splitBody(response.body);
+	const init = { status: 200, statusText: response.statusText, headers: response.headers };
+	return { visitor: new Response(visitor, init), copy: new Response(capture, init) };
+}
+
 const HASH = /^sha(256|384|512)-([A-Za-z0-9+/]+={0,2})$/;
 const TAG = /^(?:W\/)?"/;
 
