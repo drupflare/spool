@@ -1,4 +1,5 @@
 import { shellHash } from './hash.js';
+import type { QueryPlan } from './plan.js';
 
 /** how a query parameter is read when it filters a field */
 export type QueryFilterType = 'string' | 'number';
@@ -26,6 +27,11 @@ export type QuerySchema = {
 	 * order, so the route's data carries no list and no proof. Exclusive with `key`.
 	 */
 	dataset?: string;
+	/**
+	 * A read-only plan over the held dataset: joins, conditions, groups and aggregates. Requires
+	 * `dataset`; `list` names the key the result rows go under. See {@link QueryPlan}.
+	 */
+	plan?: QueryPlan;
 };
 
 /**

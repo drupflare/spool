@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	canonicalJson,
+	checkPlan,
 	datasetProof,
 	defineRoute,
+	evaluatePlan,
 	evaluateQuery,
 	injectClientTag,
 	PROOF_MISMATCH,
@@ -455,5 +457,114 @@ describe('evaluateQuery against an independent oracle', () => {
 			if (expected.items.length > 0) matched += 1;
 		}
 		expect(matched).toBeGreaterThan(100);
+	});
+});
+
+describe('declaring a query plan', () => {
+	const base = { from: ['c', 'n'], pageSize: 10, limit: 100 };
+	const declare = (query: unknown) =>
+		defineRoute('/p', { strategy: 'data', load: () => ({}), query } as never);
+	const withQuery = (plan: unknown, extra: Record<string, unknown> = {}) => ({
+		list: 'rows',
+		dataset: 'd',
+		plan,
+		...extra
+	});
+
+	it('accepts a plan that names a dataset and a list', () => {
+		expect(declare(withQuery(base)).query?.plan).toEqual({
+			from: ['c', 'n'],
+			pageSize: 10,
+			limit: 100
+		});
+	});
+
+	it('refuses a plan without a dataset, or with the list options it replaces', () => {
+		expect(() => declare({ list: 'rows', plan: base })).toThrow(
+			'query.plan needs query.dataset'
+		);
+		expect(() => declare(withQuery(base, { filter: { c: 'string' } }))).toThrow(
+			'query.plan replaces'
+		);
+		expect(() => declare(withQuery(base, { sort: ['c'] }))).toThrow('query.plan replaces');
+		expect(() => declare(withQuery(base, { pageSize: 5 }))).toThrow('query.plan replaces');
+	});
+
+	it('refuses an unknown option, an unknown operator and an unreadable field', () => {
+		expect(() => checkPlan('/p', { ...base, extra: 1 })).toThrow('unknown query.plan option');
+		const where = (condition: unknown) => () =>
+			checkPlan('/p', { ...base, where: [condition] });
+		expect(where({ field: 'c', op: 'like', param: 'p', type: 'string' })).toThrow(
+			'unknown query.plan.where operator'
+		);
+		expect(where({ field: 'zz', op: 'eq', param: 'p', type: 'string' })).toThrow(
+			'not readable'
+		);
+		expect(where({ field: 'c', op: 'eq', param: 'sort', type: 'string' })).toThrow('param');
+		expect(where({ field: 'c', op: 'prefix', param: 'p', type: 'number' })).toThrow(
+			'prefix takes a string'
+		);
+		expect(where({ field: 'c', op: 'eq', param: 'p', type: 'string', fold: 'ascii' })).toThrow(
+			'fold'
+		);
+	});
+
+	it('refuses a join to a field it does not declare, a chained base field and a missing limit', () => {
+		const join = (over: Record<string, unknown>) => () =>
+			checkPlan('/p', {
+				...base,
+				join: [
+					{
+						dataset: 'o',
+						on: ['c', null],
+						type: 'inner',
+						as: 'o',
+						fields: ['t'],
+						...over
+					}
+				]
+			});
+		expect(join({})).not.toThrow();
+		expect(join({ on: ['zz', null] })).toThrow('query.plan.join.on');
+		expect(join({ type: 'outer' })).toThrow('inner');
+		expect(join({ dataset: 'has/slash' })).toThrow('dataset name');
+		expect(join({ as: 'c' })).toThrow('new name');
+		expect(() =>
+			checkPlan('/p', { from: ['c'], pageSize: 1, limit: 1 } as never)
+		).not.toThrow();
+		expect(() => checkPlan('/p', { from: ['c'], pageSize: 5, limit: 1 })).toThrow('limit');
+		expect(() => checkPlan('/p', { from: ['c'], pageSize: 5 })).toThrow('limit');
+	});
+
+	it('refuses an unknown aggregate, a group key that is not a base field, and a sort on an unknown name', () => {
+		const group = (g: unknown, sort?: unknown) => () =>
+			checkPlan('/p', { ...base, group: g, ...(sort === undefined ? {} : { sort }) });
+		expect(group({ by: ['c'], aggregates: { k: 'count' } })).not.toThrow();
+		expect(group({ by: ['c'], aggregates: { k: { median: 'n' } } })).toThrow(
+			'unknown aggregate'
+		);
+		expect(group({ by: ['c'], aggregates: { k: { sum: 'zz' } } })).toThrow('not readable');
+		expect(group({ by: ['zz'], aggregates: {} })).toThrow('base fields');
+		expect(group({ by: ['c'], aggregates: { k: 'count' } }, ['n'])).toThrow('not readable');
+		expect(group({ by: ['c'], aggregates: { k: 'count' } }, ['k'])).not.toThrow();
+		expect(checkPlan('/p', { ...base, sort: ['c'] }).sort).toEqual(['c']);
+	});
+
+	it('answers through evaluatePlan once declared', () => {
+		const plan = checkPlan('/p', { ...base, sort: ['n'] });
+		const tables = {
+			base: {
+				keys: ['a', 'b'],
+				rows: new Map([
+					['a', { c: 'x', n: 2 }],
+					['b', { c: 'y', n: 1 }]
+				])
+			},
+			joined: () => undefined
+		};
+		expect(evaluatePlan(plan, 'sort=n', tables)?.items).toEqual([
+			{ c: 'y', n: 1 },
+			{ c: 'x', n: 2 }
+		]);
 	});
 });

@@ -1,4 +1,5 @@
 import { applyChanges, type DatasetResponse, type DatasetRow } from '../protocol/dataset.js';
+import { compareText, TableIndex, type PlanTable, type PlanTables } from '../protocol/plan.js';
 import { digestAdd, EMPTY_DIGEST } from '../protocol/query.js';
 import type { DatasetMeta, DatasetRowRecord, ReplicaStorage } from './storage.js';
 
@@ -125,6 +126,8 @@ export class DatasetStore {
 	#metas: Promise<Map<string, DatasetMeta>> | undefined;
 	#queue: Promise<unknown> = Promise.resolve();
 	#sorted = new Map<string, DatasetRow[]>();
+	/** the key-ordered tables and their indexes a plan reads; dropped on a commit, a drop or a wipe */
+	#tables = new Map<string, PlanTable>();
 	/** datasets found damaged on a load and cleared, since the worker started */
 	evicted = 0;
 
@@ -201,6 +204,31 @@ export class DatasetStore {
 		return sorted;
 	}
 
+	/** the base table and each joined table a plan reads, or undefined when any of them is not held */
+	async tables(base: string, joins: readonly string[]): Promise<PlanTables | undefined> {
+		const baseTable = await this.#table(base);
+		if (!baseTable) return undefined;
+		const joined = new Map<string, PlanTable>();
+		for (const name of joins) {
+			const table = await this.#table(name);
+			if (!table) return undefined;
+			joined.set(name, table);
+		}
+		return { base: baseTable, joined: (name) => joined.get(name) };
+	}
+
+	async #table(name: string): Promise<PlanTable | undefined> {
+		const held = await this.get(name);
+		if (!held) return undefined;
+		let table = this.#tables.get(name);
+		if (!table) {
+			const keys = [...held.rows.keys()].sort(compareText);
+			table = { keys, rows: held.rows, index: new TableIndex(keys, held.rows) };
+			this.#tables.set(name, table);
+		}
+		return table;
+	}
+
 	/** whether `name` is held and in memory */
 	loaded(name: string): boolean {
 		return this.#loaded.has(name);
@@ -247,6 +275,7 @@ export class DatasetStore {
 				deletes
 			});
 			const held: Held = { meta, rows: staging.rows, hashes: staging.hashes };
+			this.#tables.delete(staging.name);
 			await this.#set(staging.name, held);
 			await this.#deps.onChange?.(staging.name, ...changedKeys(before, held));
 			return true;
@@ -282,6 +311,7 @@ export class DatasetStore {
 				puts: [],
 				deletes: []
 			});
+			this.#tables.delete(name);
 			await this.#set(name, undefined);
 			if (before) await this.#deps.onChange?.(name, [], [...before.rows.keys()]);
 		});
@@ -294,6 +324,7 @@ export class DatasetStore {
 			this.#held.clear();
 			this.#loaded.clear();
 			this.#sorted.clear();
+			this.#tables.clear();
 			this.#metas = Promise.resolve(new Map());
 		});
 	}

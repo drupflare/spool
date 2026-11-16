@@ -2,6 +2,7 @@ import type { Artifact } from '../protocol/artifact.js';
 import { renderAssembly } from '../protocol/assembly.js';
 import type { SwConfig } from '../protocol/config.js';
 import type { DatasetRow } from '../protocol/dataset.js';
+import { shapePlan, type PlanTables } from '../protocol/plan.js';
 import { keyField, shapeQuery, shapeRows } from '../protocol/query.js';
 import type { SerializedRoute } from '../protocol/route.js';
 import { injectClientTag } from '../protocol/tag.js';
@@ -27,6 +28,7 @@ export type Rendered = { ok: true; html: string } | { ok: false; reason: string 
  * items in place of the collection, after the dataset proof checks out. A route whose `query`
  * names a `dataset` always takes this path, with the rows the device holds as `rows` in ascending
  * key order; they were verified when the dataset loaded, so no proof is checked again.
+ * A route with a `plan` takes `tables` instead: the held base table and each joined one.
  */
 export async function renderLocal(
 	config: SwConfig,
@@ -34,18 +36,25 @@ export async function renderLocal(
 	source: Artifact,
 	renderers: Renderers = {},
 	search?: string,
-	rows?: readonly DatasetRow[]
+	rows?: readonly DatasetRow[],
+	tables?: PlanTables
 ): Promise<Rendered> {
 	try {
 		let artifact = source;
 		const query = route.query;
-		if (query && (rows !== undefined || (search !== undefined && search !== ''))) {
+		if (
+			query &&
+			(query.plan !== undefined ||
+				rows !== undefined ||
+				(search !== undefined && search !== ''))
+		) {
 			if (source.strategy === 'assembly' || source.strategy === 'static') {
 				return { ok: false, reason: `${source.strategy} artifact cannot answer a query` };
 			}
 			const data = source.body.data;
-			const shaped =
-				rows === undefined
+			const shaped = query.plan
+				? shapePlan(query.list, query.plan, data, search ?? '', tables)
+				: rows === undefined
 					? await shapeQuery(query, data, search ?? '', keyField(query))
 					: shapeRows(
 							query,
