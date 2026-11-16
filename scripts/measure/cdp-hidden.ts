@@ -5,6 +5,12 @@ import { join } from 'node:path';
 
 type Pending = { resolve(value: unknown): void; reject(error: Error): void };
 
+/** a tab opened by {@link HiddenBrowser.addTab} */
+export type Tab = {
+	/** evaluates `expression` in this tab and returns its value */
+	evaluate<T>(expression: string): Promise<T>;
+};
+
 /** a browser driven over raw CDP, which sets no focus emulation, so a tab behind another reports `hidden` */
 export type HiddenBrowser = {
 	/** the first tab's `document.visibilityState` */
@@ -13,6 +19,10 @@ export type HiddenBrowser = {
 	evaluate<T>(expression: string): Promise<T>;
 	/** opens a second tab in the same window and brings it to the front */
 	hideFirstTab(): Promise<void>;
+	/** opens another tab at `url` in the same window; the front tab does not change */
+	addTab(url: string): Promise<Tab>;
+	/** brings the first tab back to the front, so every other tab reports `hidden` */
+	activateFirst(): Promise<void>;
 	close(): Promise<void>;
 };
 
@@ -96,15 +106,16 @@ export async function openHiddenBrowser(executable: string, url: string): Promis
 	await send('Page.navigate', { url }, sessionId);
 	await sleep(500);
 
-	const evaluate = async <T>(expression: string): Promise<T> => {
+	const evaluateIn = async <T>(session: string, expression: string): Promise<T> => {
 		const out = await send<{ result: { value: T }; exceptionDetails?: unknown }>(
 			'Runtime.evaluate',
 			{ expression, returnByValue: true },
-			sessionId
+			session
 		);
 		if (out.exceptionDetails) throw new Error(`evaluating ${expression} threw`);
 		return out.result.value;
 	};
+	const evaluate = <T>(expression: string) => evaluateIn<T>(sessionId, expression);
 
 	return {
 		visibility: () => evaluate<string>('document.visibilityState'),
@@ -115,6 +126,24 @@ export async function openHiddenBrowser(executable: string, url: string): Promis
 				newWindow: false
 			});
 			await send('Target.activateTarget', { targetId });
+			await sleep(500);
+		},
+		async addTab(url: string) {
+			const { targetId } = await send<{ targetId: string }>('Target.createTarget', {
+				url,
+				newWindow: false
+			});
+			const attached = await send<{ sessionId: string }>('Target.attachToTarget', {
+				targetId,
+				flatten: true
+			});
+			await sleep(500);
+			return {
+				evaluate: <T>(expression: string) => evaluateIn<T>(attached.sessionId, expression)
+			};
+		},
+		async activateFirst() {
+			await send('Target.activateTarget', { targetId: first.targetId });
 			await sleep(500);
 		},
 		async close() {

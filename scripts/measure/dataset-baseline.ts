@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { cpus, loadavg } from 'node:os';
 import { parseArgs } from 'node:util';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { parseArtifact } from '../../src/protocol/artifact.ts';
@@ -405,6 +409,76 @@ async function proof(shape: Shape, n: number): Promise<Row> {
 	};
 }
 
+type Served = { status: number; socketBytes: number; bodyBytes: number; wireBytes: number };
+
+// the native control: the same rows as one plain resource, revalidated with its ETag the way a browser cache does
+async function nativeScenario(n: number, kind: Change): Promise<Row> {
+	const world = fresh(n);
+	const served: Served[] = [];
+	const server = createServer((req, res) => {
+		const sent = req.socket.bytesWritten;
+		const text = JSON.stringify(world.items);
+		const etag = `"${createHash('sha256').update(text).digest('hex').slice(0, 16)}"`;
+		const brotli = String(req.headers['accept-encoding'] ?? '').includes('br');
+		const notModified = req.headers['if-none-match'] === etag;
+		const body = notModified
+			? Buffer.alloc(0)
+			: brotli
+				? brotliCompressSync(text)
+				: Buffer.from(text);
+		res.on('finish', () =>
+			served.push({
+				status: notModified ? 304 : 200,
+				socketBytes: req.socket.bytesWritten - sent,
+				bodyBytes: notModified ? 0 : Buffer.byteLength(text),
+				wireBytes: body.length
+			})
+		);
+		res.writeHead(notModified ? 304 : 200, {
+			etag,
+			'cache-control': 'max-age=0',
+			'content-type': 'application/json',
+			vary: 'accept-encoding',
+			...(brotli && !notModified ? { 'content-encoding': 'br' } : {})
+		});
+		res.end(body);
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/collection`;
+	const ask = async (etag?: string) => {
+		const response = await fetch(url, {
+			headers: { 'accept-encoding': 'br', ...(etag ? { 'if-none-match': etag } : {}) }
+		});
+		await response.arrayBuffer();
+		// the server records its write when the response finishes, which can land after the client reads
+		await new Promise((resolve) => setImmediate(resolve));
+		return response.headers.get('etag');
+	};
+	const next = (count: number): Served => {
+		if (served.length !== count)
+			throw new Error(`native: ${served.length} responses recorded, want ${count}`);
+		return served[count - 1] as Served;
+	};
+	const etag = (await ask()) ?? '';
+	const first = next(1);
+	await ask(etag);
+	const unchanged = next(2);
+	const edit = change(world, 'list', kind);
+	await ask(etag);
+	const changed = next(3);
+	server.closeAllConnections();
+	await new Promise((resolve) => server.close(resolve));
+	return {
+		kind: 'native',
+		n,
+		change: kind,
+		changedRows: edit.rows,
+		firstLoad: first,
+		revalidateUnchanged: unchanged,
+		revalidateChanged: changed
+	};
+}
+
 const probeText = (r: Reply | null | undefined) =>
 	r ? `${r.status}/${r.bytes}/${r.gzip}/${r.brotli}/L${r.loads}` : '-';
 
@@ -413,6 +487,8 @@ function summary(row: Row): string {
 	if (row['kind'] === 'proof') return JSON.stringify(row);
 	if (row['kind'] === 'v04')
 		return `v04 n=${row['n']} ${row['change']} ${JSON.stringify(row['patch'])}`;
+	if (row['kind'] === 'native')
+		return `native n=${row['n']} ${row['change']} ${JSON.stringify([row['firstLoad'], row['revalidateUnchanged'], row['revalidateChanged']])}`;
 	const has = row['refetchWithHave'] as (Reply & { haveIds: number }) | null;
 	return [
 		`${row['shape']} n=${row['n']} ${row['arm']} ${row['change']}`,
@@ -455,6 +531,7 @@ if (isMain(import.meta.url)) {
 					arms: ARMS.map((a) => a.name),
 					scenarios: SHAPES.length * SIZES.length * ARMS.length * CHANGES.length,
 					v04Scenarios: SIZES.length * CHANGES.length,
+					nativeScenarios: SIZES.length * CHANGES.length,
 					out: args.out
 				},
 				null,
@@ -476,15 +553,18 @@ if (isMain(import.meta.url)) {
 		for (const n of SIZES) {
 			for (const kind of CHANGES) rows.push(await v04Scenario(n, kind));
 		}
+		for (const n of SIZES) {
+			for (const kind of CHANGES) rows.push(await nativeScenario(n, kind));
+		}
 		for (const row of rows) console.log(summary(row));
 		const draft: Draft = {
 			rig: 'dataset-baseline',
 			date: utcDate(),
 			layer: 'L1',
 			question:
-				'exact response bytes, route load runs and sync bytes of the v0.3 artifact for a held collection of 50, 500 and 5000 rows, after one row, ten rows, one percent of rows, one delete or one add, as a list of rows or as records; the same changes through the v0.4 dataset patch applied by the worker store (requests, bytes, rows written, row hashes); and whether the query proof verifies on the server and on the client after materialize',
+				'exact response bytes, route load runs and sync bytes of the v0.3 artifact for a held collection of 50, 500 and 5000 rows, after one row, ten rows, one percent of rows, one delete or one add, as a list of rows or as records; the same changes through the v0.4 dataset patch applied by the worker store (requests, bytes, rows written, row hashes); and whether the query proof verifies on the server and on the client after materialize; and for a plain HTTP resource of the same rows, the bytes a browser cache still sends: a first load, a revalidation with no change (a 304) and one after the change (a 200)',
 			instrument:
-				'spool.respond on an in-process createSpool with a memory store, no browser; node:zlib gzip and brotli of each response body; load runs counted inside the route; the v0.4 arm runs the worker store (Replica over memoryStorage, syncDataset) with commits and row hashes counted',
+				'spool.respond on an in-process createSpool with a memory store, no browser; node:zlib gzip and brotli of each response body; load runs counted inside the route; the v0.4 arm runs the worker store (Replica over memoryStorage, syncDataset) with commits and row hashes counted; the native arm is a node:http server on 127.0.0.1 that counts its socket bytesWritten per response (status line, headers and body), requested with fetch',
 			machine: localMachine(args.machine),
 			software: {
 				runtime: process.versions.bun
@@ -517,6 +597,10 @@ if (isMain(import.meta.url)) {
 				dataProbe:
 					'a data route with default priors, one row, to check the gate on that strategy',
 				titles: '40 to 80 ASCII characters from a seeded generator',
+				native: 'kind native rows: the collection as one JSON resource with an ETag and Cache-Control max-age=0, brotli when accepted; three fetches per row: no validator (the first load, 200), If-None-Match before any change (304), and If-None-Match after the change (200); socketBytes is the server socket bytesWritten delta across the response, bodyBytes the uncompressed JSON, wireBytes the body as sent',
+				load: `1, 5 and 15 minute load averages ${loadavg()
+					.map((x) => x.toFixed(2))
+					.join(', ')} on ${cpus().length} CPUs at start`,
 				bytes: 'raw response body; a 204 is a declined artifact and counts 0 bytes',
 				origin: 'in process'
 			},

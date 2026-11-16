@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, createPublicKey } from 'node:crypto';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import tls from 'node:tls';
 import { zstdDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { corpus, pageLabel, redactUrls } from '../../scripts/measure/avoidable-loops';
 import { parse as parseDeviceCpu, psCpuSeconds } from '../../scripts/measure/device-cpu';
 import {
 	plan as dictionaryPlan,
@@ -23,6 +24,28 @@ import {
 	parsePage,
 	pathShape
 } from '../../scripts/measure/embed-markup';
+import {
+	ACCEPT_ENCODING,
+	MAX_RESPONSE_HEADER_BYTES,
+	Replay,
+	classOf,
+	classTotals,
+	codings,
+	decodeBody,
+	encodeBody,
+	ensureTls,
+	forwardHeaders,
+	keptHeaders,
+	keyOf,
+	makeFacade,
+	parseSites,
+	rawFetch,
+	redirectOf,
+	replayArgs,
+	spkiOf,
+	warmReplayArgs,
+	withFacade
+} from '../../scripts/measure/first-view';
 import {
 	chooseSet,
 	exifOrientation,
@@ -95,19 +118,32 @@ import {
 	uniquePart
 } from '../../scripts/measure/payload';
 import {
+	EXPERIMENTS,
 	PAISLEY,
 	activitySchedule,
+	chunkSchedule,
 	conditions,
+	firstViewWindows,
 	inferenceRows,
 	mediaOrigin,
 	parse as parseRapl,
 	publishDraft,
 	plan as raplPlan,
-	stripRow
+	stripRow,
+	tabsPlan
 } from '../../scripts/measure/rapl';
 import {
+	CHUNK_ARMS,
+	chunkFiles,
+	pageHtml as chunkPageHtml,
+	chunkSummary,
+	pieceSource
+} from '../../scripts/measure/rapl-chunk';
+import {
+	ACTIVITY,
 	ACTIVITY_ARMS,
 	HIDDEN_ARMS,
+	TABS_ARMS,
 	availableDictionary,
 	dczBody,
 	dczHeader,
@@ -142,7 +178,19 @@ import { ARMS, parse as parseZeroNetwork } from '../../scripts/measure/zero-netw
 import type { TimedView } from '../../src/protocol/index';
 import { JOULES_PER_BYTE, ORIGIN_JOULES } from '../../src/protocol/provision';
 import { dirOf } from '../../src/proxy/bases';
-import { parseMeasurement, raplRun, type Measurement } from '../../src/report/index';
+import {
+	attributionalJoules,
+	chunkSplitFigures,
+	firstViewFigures,
+	firstViewFit,
+	leastSquares,
+	parseMeasurement,
+	parseMeasurementText,
+	raplRun,
+	tabsFigures,
+	warmFigures,
+	type Measurement
+} from '../../src/report/index';
 import {
 	ACTIVITY_PAIRS,
 	activityFigures,
@@ -1415,6 +1463,96 @@ describe('the media experiments of the RAPL runner', () => {
 		}
 	});
 
+	it('wires idle-activity-tabs with its arms, its default rounds and the long window', () => {
+		expect(parseRapl(['run', 'idle-activity-tabs']).config).toMatchObject({
+			rounds: 6,
+			windowS: 20,
+			longWindowS: 120
+		});
+		expect(
+			parseRapl(['run', 'idle-activity-tabs', '--long-window-s', '300']).config.longWindowS
+		).toBe(300);
+		expect(TABS_ARMS.map((a) => a.arm)).toEqual([
+			'tabs-1-poll',
+			'tabs-3-poll',
+			'tabs-3-leader',
+			'tabs-3-quiet',
+			'poll-hidden-long'
+		]);
+		expect(TABS_ARMS.filter((a) => a.long).map((a) => a.arm)).toEqual(['poll-hidden-long']);
+		expect(TABS_ARMS.filter((a) => a.leader).map((a) => a.tabs)).toEqual([3]);
+	});
+
+	it('plans a round with four idle windows and the wall time from the window lengths', () => {
+		const plan = tabsPlan(2, 30, 60, 120);
+		expect(plan.idleWindowsPerRound).toBe(4);
+		expect(plan.order).toEqual([
+			'idle',
+			'tabs-1-poll',
+			'tabs-3-poll',
+			'idle',
+			'tabs-3-leader',
+			'tabs-3-quiet',
+			'idle',
+			'poll-hidden-long',
+			'idle'
+		]);
+		// 4 idle windows of 32 s, 4 short arms of 70 s, and the long arm of 330 + 120 + 2 s
+		expect(plan.roundS).toBe(860);
+		expect(plan.wallS).toBe(1720);
+		const dry = raplPlan(
+			parseRapl([
+				'run',
+				'idle-activity-tabs',
+				'--rounds',
+				'1',
+				'--window-s',
+				'60',
+				'--long-window-s',
+				'120',
+				'--idle-s',
+				'30',
+				'--dry-run'
+			])
+		);
+		expect(dry.schedule).toMatchObject({ roundS: 860, wallS: 860 });
+	});
+
+	it('parses the script of every page the activity and tabs arms serve', () => {
+		for (const [name, html] of Object.entries(ACTIVITY)) {
+			for (const [, body] of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+				expect(() => new Function(body as string), name).not.toThrow();
+			}
+		}
+		expect(ACTIVITY['tabs-leader']).toContain('navigator.locks.request("poll"');
+		expect(ACTIVITY['tabs-leader']).toContain('new BroadcastChannel("spool-tabs")');
+	});
+
+	it('publishes an idle-activity-tabs run as a valid schema-1 file with its arms written down', () => {
+		const rows = [
+			{
+				arm: 'idle',
+				round: 0,
+				n: 0,
+				elapsedMs: 1000,
+				pkgJ: 19.4,
+				load0: 0,
+				load1: 0,
+				otherCpuMs: 0
+			}
+		];
+		const draft = publishDraft(
+			'idle-activity-tabs',
+			rows,
+			{ rounds: 1, idleS: 30, windowS: 60, longWindowS: 120, range: 1 },
+			{ date: '2026-11-15' }
+		);
+		expect(draft.rig).toBe('rapl');
+		expect(draft.method).toMatchObject({ 'long window s': 120, 'window s': 60 });
+		expect(Object.keys(draft.method)).toEqual(expect.arrayContaining(['arms', 'settle']));
+		expect(() => parseMeasurement({ schema: 1, ...draft })).not.toThrow();
+	});
+
 	it('frames a dcz body with the 40-byte header and decodes with zstd and the dictionary', () => {
 		const dictionary = Buffer.from('.a{color:red}'.repeat(300));
 		const input = Buffer.from('.a{color:red}'.repeat(300) + '.b{margin:0}'.repeat(100));
@@ -1765,12 +1903,831 @@ describe('the contamination rule of the metered readings', () => {
 		expect(result.arms['quiet']?.extraWatts.median).toBeCloseTo(0.5, 10);
 	});
 
+	it('nets each three-tab arm against the quiet window of its round, on an exact fixture', () => {
+		const tab = (
+			arm: string,
+			round: number,
+			pkgJ: number,
+			extra: Record<string, number> = {}
+		) => ({
+			arm,
+			round,
+			elapsedMs: 60_000,
+			pkgJ,
+			originPings: 0,
+			otherCpuMs: 0,
+			...extra
+		});
+		const figures = tabsFigures([
+			tab('idle', 0, 1200),
+			tab('tabs-3-quiet', 0, 1260),
+			tab('tabs-3-poll', 0, 1500, { originPings: 540 }),
+			tab('tabs-3-leader', 0, 1320, { originPings: 180 }),
+			tab('tabs-1-poll', 0, 1260, { originPings: 60 }),
+			{ ...tab('poll-hidden-long', 0, 2400), elapsedMs: 120_000, originPings: 2 },
+			tab('idle', 1, 1200),
+			tab('tabs-3-poll', 1, 1500, { originPings: 540, otherCpuMs: 10_000 }),
+			tab('tabs-3-leader', 1, 1320, { originPings: 180 })
+		]);
+		expect(figures.idleWatts).toMatchObject({ median: 20, min: 20, max: 20, n: 2 });
+		expect(figures.dropped).toBe(1);
+		expect(figures.unmatched).toBe(1);
+		expect(figures.arms['tabs-3-poll']).toMatchObject({
+			windows: 1,
+			floor: 'tabs-3-quiet',
+			joulesPerMinute: { median: 240 },
+			pingsPerMinute: { median: 540 }
+		});
+		expect(figures.arms['tabs-3-leader']).toMatchObject({
+			windows: 1,
+			floor: 'tabs-3-quiet',
+			joulesPerMinute: { median: 60 },
+			pingsPerMinute: { median: 180 }
+		});
+		expect(figures.arms['tabs-1-poll']).toMatchObject({
+			floor: 'idle',
+			joulesPerMinute: { median: 60 },
+			pingsPerMinute: { median: 60 }
+		});
+		expect(figures.arms['tabs-3-quiet']).toMatchObject({
+			joulesPerMinute: { median: 60 },
+			pingsPerMinute: { median: 0 }
+		});
+		expect(figures.arms['poll-hidden-long']).toMatchObject({
+			floor: 'idle',
+			joulesPerMinute: { median: 0 },
+			pingsPerMinute: { median: 1 }
+		});
+		expect(figures.ratio).toEqual({ poll3ToLeader: 4, poll3ToPoll1: 4 });
+	});
+
+	it('reports no idle draw and no arm when a tabs run has no kept idle window', () => {
+		const figures = tabsFigures([
+			{
+				arm: 'tabs-1-poll',
+				round: 0,
+				elapsedMs: 60_000,
+				pkgJ: 1260,
+				originPings: 60,
+				otherCpuMs: 0
+			}
+		]);
+		expect(figures).toEqual({ idleWatts: null, dropped: 0, unmatched: 0, arms: {}, ratio: {} });
+	});
+
 	it('drops a window by the same rule in raplRun and in the counts', () => {
 		const run = raplRun(
 			rows.filter((r) => r.arm !== 'negotiation').map((r) => ({ ...r, n: 1 })),
 			{ contamination: 100 }
 		);
 		expect(run.dropped).toBe(windowCounts(rows).raf?.dropped);
+	});
+});
+
+describe('the first-view rig', () => {
+	const reading = () =>
+		parseMeasurementText(
+			readFileSync(new URL('../fixtures/first-view.json', import.meta.url), 'utf8')
+		);
+
+	it('forwards a recorded request with the browser accept-encoding the route handler omits', () => {
+		expect(ACCEPT_ENCODING).toBe('gzip, deflate, br, zstd');
+		const sent = forwardHeaders({ 'user-agent': 'x', host: 'a.example', range: 'bytes=0-9' });
+		expect(sent).toEqual({ 'user-agent': 'x', 'accept-encoding': ACCEPT_ENCODING });
+		expect(forwardHeaders({ 'accept-encoding': 'identity' })['accept-encoding']).toBe(
+			'identity'
+		);
+	});
+
+	it('records a response whose header block passes the 16 KiB default', async () => {
+		const server = http.createServer((_req, res) => {
+			res.writeHead(200, { 'x-big': 'a'.repeat(40_000), 'content-type': 'text/html' });
+			res.end('embed');
+		});
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		try {
+			const { port } = server.address() as AddressInfo;
+			const raw = await rawFetch(
+				`http://127.0.0.1:${port}/embed`,
+				'GET',
+				{},
+				undefined,
+				1_000_000
+			);
+			expect(raw.status).toBe(200);
+			expect(raw.body.toString()).toBe('embed');
+			expect(raw.headerBytes).toBeGreaterThan(16 * 1024);
+			expect(raw.headerBytes).toBeLessThan(MAX_RESPONSE_HEADER_BYTES);
+		} finally {
+			server.close();
+		}
+	});
+
+	it('keys a replay by method, host, path and query', () => {
+		expect(keyOf('get', 'https://a.example/x?b=1&a=2')).toBe('GET a.example/x?b=1&a=2');
+		expect(keyOf('GET', 'https://a.example/x')).toBe('GET a.example/x');
+	});
+
+	it('answers a recorded response by host, path and query, and counts what it cannot answer', () => {
+		const replay = new Replay();
+		replay.load(
+			[
+				{
+					key: keyOf('GET', 'https://a.example/app.js?v=1'),
+					status: 200,
+					headers: { 'content-type': 'text/javascript' },
+					body: Buffer.from('ok'),
+					cls: 'script'
+				}
+			],
+			['a.example']
+		);
+		expect(replay.answer('GET', 'https://a.example/app.js?v=1', {})).toMatchObject({
+			status: 200,
+			cls: 'script'
+		});
+		expect(replay.answer('GET', 'https://a.example/app.js?v=2', {})).toMatchObject({
+			status: 404
+		});
+		expect(replay.answer('GET', 'https://b.example/track', {})).toMatchObject({ status: 404 });
+		expect(
+			replay.answer('OPTIONS', 'https://a.example/app.js', { origin: 'https://a.example' })
+		).toMatchObject({ status: 204 });
+		expect(replay.stats()).toMatchObject({
+			served: { script: 2, document: 0 },
+			servedTotal: 2,
+			requests: 3,
+			missed: 1,
+			outside: 1,
+			preflights: 1
+		});
+		replay.reset();
+		expect(replay.stats()).toMatchObject({
+			requests: 0,
+			missed: 0,
+			outside: 0,
+			servedTotal: 0
+		});
+	});
+
+	it('undoes and redoes the content-encodings a page can send', () => {
+		const body = Buffer.from('<html>'.repeat(200));
+		for (const value of [undefined, 'gzip', 'br', 'zstd', 'deflate', 'gzip, br']) {
+			expect(decodeBody(encodeBody(body, value), value).equals(body)).toBe(true);
+		}
+		expect(codings('identity, GZIP')).toEqual(['gzip']);
+		expect(() => decodeBody(body, 'compress')).toThrow(/no decoder/);
+	});
+
+	it('classes a request by its resource type and totals a page by class', () => {
+		expect(classOf('image')).toBe('image');
+		expect(classOf('xhr')).toBe('other');
+		const totals = classTotals([
+			{ cls: 'script', wireBytes: 10 },
+			{ cls: 'image', wireBytes: 5 },
+			{ cls: 'other', wireBytes: 3 }
+		]);
+		expect(totals.classBytes).toMatchObject({ script: 10, image: 5, other: 3, document: 0 });
+		expect(totals.wireBytes).toBe(18);
+		expect(Object.values(totals.classBytes).reduce((s, v) => s + v, 0)).toBe(totals.wireBytes);
+	});
+
+	it('keeps the replay headers and joins a repeated one', () => {
+		expect(
+			keptHeaders([
+				['content-type', 'text/html'],
+				['set-cookie', 'a=1'],
+				['vary', 'Accept'],
+				['vary', 'Cookie'],
+				['x-other', '1']
+			])
+		).toEqual({ 'content-type': 'text/html', vary: 'Accept, Cookie' });
+	});
+
+	it('resolves a redirect against the request and reads no other answer as one', () => {
+		expect(
+			redirectOf(
+				{ status: 301, headers: [['location', '/about/']] },
+				'https://www.example.edu/about'
+			)
+		).toBe('https://www.example.edu/about/');
+		expect(
+			redirectOf({ status: 200, headers: [['location', '/x']] }, 'https://www.example.edu/')
+		).toBeNull();
+		expect(redirectOf({ status: 302, headers: [] }, 'https://www.example.edu/')).toBeNull();
+	});
+
+	it('runs the RAPL runner under node for the views and first-view dry runs', () => {
+		const root = new URL('../..', import.meta.url).pathname;
+		for (const experiment of ['views', 'first-view', 'first-view-warm', 'chunk-split']) {
+			const run = spawnSync(
+				'node',
+				['scripts/measure/rapl.ts', 'run', experiment, '--dry-run'],
+				{
+					cwd: root,
+					encoding: 'utf8'
+				}
+			);
+			expect(run.status, run.stderr).toBe(0);
+			expect(run.stdout).toContain(`"experiment": "${experiment}"`);
+		}
+	});
+
+	it('makes the facade variant at record time, and leaves a page alone when there is nothing to rewrite', async () => {
+		const url = 'https://www.example.edu/';
+		const page = (body: string) => [
+			{
+				key: keyOf('GET', url),
+				status: 200,
+				headers: {},
+				body: Buffer.from(body),
+				cls: 'document' as const
+			}
+		];
+		const html =
+			'<!doctype html><iframe width="560" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video"></iframe>';
+		const made = await makeFacade(html, undefined, false);
+		expect(made).not.toBeNull();
+		const text = made?.body.toString('utf8') ?? '';
+		expect(text).not.toContain('src="https://www.youtube.com');
+		expect(text).toContain('srcdoc=');
+		expect(withFacade(page(html), keyOf('GET', url), made?.body ?? Buffer.alloc(0))?.body).toBe(
+			made?.body
+		);
+		expect(await makeFacade(html, undefined, true)).toBeNull();
+		expect(await makeFacade('<p>no embed</p>', undefined, false)).toBeNull();
+	});
+
+	it('reads a sites file, one site a line with its extra page paths after it', () => {
+		expect(
+			parseSites(
+				'# note\nhttps://www.yale.edu/\nhttps://www.stanford.edu/ /research /about\n'
+			)
+		).toEqual([
+			{ site: 'https://www.yale.edu/', paths: [] },
+			{ site: 'https://www.stanford.edu/', paths: ['/research', '/about'] }
+		]);
+	});
+
+	it('runs every page once a round, and a facade page in both arms', () => {
+		const windows = firstViewWindows(
+			[
+				{ id: 'a', facade: false },
+				{ id: 'b', facade: true }
+			],
+			0
+		);
+		expect(windows).toHaveLength(3);
+		expect(
+			windows
+				.filter((w) => w.page === 'b')
+				.map((w) => w.arm)
+				.sort()
+		).toEqual(['facade', 'original']);
+		expect(windows.filter((w) => w.page === 'a')).toEqual([{ page: 'a', arm: 'original' }]);
+	});
+
+	it('adds the experiment with its defaults, a corpus path and the no-meter switch', () => {
+		expect(EXPERIMENTS).toContain('first-view');
+		expect(parseRapl(['run', 'first-view', '--dry-run']).config).toMatchObject({
+			rounds: 6,
+			noMeter: false,
+			pages: ''
+		});
+		expect(
+			parseRapl(['run', 'first-view', '--pages', '/corpus', '--no-meter']).config
+		).toMatchObject({ pages: '/corpus', noMeter: true });
+	});
+
+	it('writes a first-view reading only from rows with package joules', () => {
+		const meta = {
+			corpus: { pages: [], excluded: [], sites: 0, wireBytes: 0, date: '2026-11-15' },
+			navs: 2,
+			rounds: 1,
+			idleS: 10,
+			range: 1
+		};
+		const row = {
+			arm: 'original',
+			page: 'a-1',
+			site: 'x',
+			round: 0,
+			navs: 2,
+			elapsedMs: 20000,
+			pkgJ: null,
+			otherCpuMs: 0,
+			servedTotal: 1,
+			missed: 0
+		};
+		expect(() => publishDraft('first-view', [row], meta, { date: '2026-11-15' })).toThrow(
+			/no package joules/
+		);
+		const made = publishDraft('first-view', [{ ...row, pkgJ: 24 }], meta, {
+			date: '2026-11-15'
+		});
+		expect(made).toMatchObject({ rig: 'rapl', layer: 'L1' });
+		expect(parseMeasurement({ schema: 1, ...made }).rows).toHaveLength(1);
+	});
+
+	it('pins the warm arm to the replay certificate and keeps the cold flags', () => {
+		expect(warmReplayArgs(8971, 'SPKI=')).toEqual([
+			'--host-resolver-rules=MAP * 127.0.0.1:8971',
+			'--ignore-certificate-errors-spki-list=SPKI='
+		]);
+		expect(replayArgs(8971)).toEqual([
+			'--host-resolver-rules=MAP * 127.0.0.1:8971',
+			'--ignore-certificate-errors'
+		]);
+	});
+
+	it('hashes the public key of a replay certificate the way the spki list expects', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'spki-'));
+		ensureTls(dir);
+		const pem = readFileSync(join(dir, 'tls', 'cert.pem'), 'utf8');
+		const spki = createPublicKey(pem).export({ type: 'spki', format: 'der' });
+		expect(spkiOf(pem)).toBe(createHash('sha256').update(spki).digest('base64'));
+		expect(spkiOf(pem)).toMatch(/^[A-Za-z0-9+/]{43}=$/);
+	});
+
+	it('counts the conditional requests and the 304 answers the replay gives', () => {
+		const replay = new Replay();
+		replay.load(
+			[
+				{
+					key: keyOf('GET', 'https://a.example/app.js'),
+					status: 200,
+					headers: {},
+					body: Buffer.from('ok'),
+					cls: 'script'
+				},
+				{
+					key: keyOf('GET', 'https://a.example/style.css'),
+					status: 304,
+					headers: {},
+					body: Buffer.alloc(0),
+					cls: 'stylesheet'
+				}
+			],
+			['a.example']
+		);
+		replay.answer('GET', 'https://a.example/app.js', { 'if-none-match': '"v1"' });
+		replay.answer('GET', 'https://a.example/app.js', {});
+		replay.answer('GET', 'https://a.example/style.css', {
+			'if-modified-since': 'Mon, 01 Jan 2024 00:00:00 GMT'
+		});
+		expect(replay.stats()).toMatchObject({ requests: 3, conditional: 2, notModified: 1 });
+		replay.reset();
+		expect(replay.stats()).toMatchObject({ conditional: 0, notModified: 0 });
+	});
+
+	it('runs only the repeat arm for first-view-warm, once per page', () => {
+		const pages = [
+			{ id: 'a', facade: false },
+			{ id: 'b', facade: true }
+		];
+		expect(firstViewWindows(pages, 0, ['warm'])).toEqual([
+			{ page: 'a', arm: 'warm' },
+			{ page: 'b', arm: 'warm' }
+		]);
+	});
+
+	it('adds the repeat-view experiment with four rounds and its own reading name', () => {
+		const parsed = parseRapl(['run', 'first-view-warm', '--dry-run', '--date', '2026-11-15']);
+		expect(parsed.config).toMatchObject({
+			experiment: 'first-view-warm',
+			rounds: 4,
+			noMeter: false
+		});
+		expect(raplPlan(parsed)).toMatchObject({
+			output: 'measurements/rapl/2026-11-15-first-view-warm.json'
+		});
+	});
+
+	it('derives the repeat-view figures from two readings, with exact values', () => {
+		const info = (id: string) => ({
+			id,
+			site: 'x.example',
+			wireBytes: 1000,
+			classBytes: { script: 500 },
+			facade: false
+		});
+		const meta = (ids: string[]) => ({
+			corpus: {
+				pages: ids.map(info),
+				excluded: [],
+				sites: 1,
+				wireBytes: 2000,
+				date: '2026-11-15'
+			},
+			navs: 2,
+			rounds: 1,
+			idleS: 10,
+			range: 1,
+			browser: 'Chromium'
+		});
+		const idle = { arm: 'idle', round: 0, n: 0, elapsedMs: 10_000, pkgJ: 10, otherCpuMs: 0 };
+		const view = (
+			arm: string,
+			page: string,
+			pkgJ: number,
+			servedTotal: number,
+			extra = {}
+		) => ({
+			arm,
+			page,
+			site: 'x.example',
+			round: 0,
+			navs: 2,
+			elapsedMs: 20_000,
+			pkgJ,
+			otherCpuMs: 0,
+			servedTotal,
+			missed: 0,
+			...extra
+		});
+		const step = (script: number, layout: number, recalc: number) => ({
+			before: {
+				ScriptDuration: 0,
+				LayoutDuration: 0,
+				RecalcStyleDuration: 0,
+				TaskDuration: 0
+			},
+			after: {
+				ScriptDuration: script,
+				LayoutDuration: layout,
+				RecalcStyleDuration: recalc,
+				TaskDuration: 1
+			}
+		});
+		const cold = parseMeasurement({
+			schema: 1,
+			...publishDraft(
+				'first-view',
+				[idle, view('original', 'a', 50, 200), view('original', 'b', 60, 400)],
+				meta(['a', 'b']),
+				{ date: '2026-11-15' }
+			)
+		});
+		const warm = parseMeasurement({
+			schema: 1,
+			...publishDraft(
+				'first-view-warm',
+				[
+					idle,
+					view('warm', 'a', 30, 50, {
+						warmMetrics: [step(0.4, 0.1, 0.1), step(0.4, 0.1, 0.1)]
+					}),
+					view('warm', 'b', 40, 300, {
+						warmMetrics: [step(0.5, 0.25, 0.25), step(0.5, 0.25, 0.25)]
+					})
+				],
+				meta(['a', 'b']),
+				{ date: '2026-11-15' }
+			)
+		});
+		const figures = warmFigures(warm, cold);
+		expect(figures).toMatchObject({
+			rounds: 1,
+			pages: 2,
+			dropped: 0,
+			joules: { mean: 7.5, median: 7.5 },
+			coldJoules: { mean: 17.5, median: 17.5 },
+			refetch: { pages: 1, share: 0.5 }
+		});
+		expect(figures.ratio.mean).toBeCloseTo(5 / 12, 9);
+		expect(figures.taskShare.script).toBeCloseTo(0.45, 9);
+		expect(figures.taskShare.layout).toBeCloseTo(0.175, 9);
+		expect(figures.taskShare.recalc).toBeCloseTo(0.175, 9);
+	});
+
+	it('fits the classes, bytes and requests, with intervals that collapse on noise-free pages', () => {
+		const sites = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'demo.drupflare.com'];
+		const pages = sites.map((site, k) => {
+			const image = 100_000 * (((k * 7) % 5) + 1);
+			const script = 150_000 * (((k * 3) % 4) + 1);
+			const other = 50_000 * (((k * 5) % 6) + 1);
+			const requests = 20 + ((k * 11) % 9);
+			const offset = site === 'demo.drupflare.com' ? 10 : 0;
+			const joules =
+				2 + 3 * (image / 1e6) + 5 * (script / 1e6) + other / 1e6 + 0.5 * requests + offset;
+			return { site, id: `${site}-1`, image, script, other, requests, joules };
+		});
+		const idle = { arm: 'idle', round: 0, n: 0, elapsedMs: 10_000, pkgJ: 10, otherCpuMs: 0 };
+		const rows = [
+			idle,
+			...pages.map((p) => ({
+				arm: 'original',
+				page: p.id,
+				site: p.site,
+				round: 0,
+				navs: 2,
+				elapsedMs: 20_000,
+				pkgJ: 2 * p.joules + 20,
+				otherCpuMs: 0,
+				servedTotal: 1,
+				missed: 0
+			}))
+		];
+		const meta = {
+			corpus: {
+				pages: pages.map((p) => ({
+					id: p.id,
+					site: p.site,
+					wireBytes: p.image + p.script + p.other,
+					classBytes: { image: p.image, script: p.script },
+					facade: false,
+					requests: p.requests
+				})),
+				excluded: [],
+				sites: sites.length,
+				wireBytes: 0,
+				date: '2026-11-15'
+			},
+			navs: 2,
+			rounds: 1,
+			idleS: 10,
+			range: 1,
+			browser: 'Chromium'
+		};
+		const m = parseMeasurement({
+			schema: 1,
+			...publishDraft('first-view', rows, meta, { date: '2026-11-15' })
+		});
+		const all = firstViewFit(m);
+		const noDemo = firstViewFit(m, ['demo.drupflare.com']);
+		expect(all.pages).toBe(8);
+		expect(noDemo.pages).toBe(7);
+		expect(noDemo.classRequestFit?.r2).toBeCloseTo(1, 9);
+		expect(all.classRequestFit?.r2).toBeLessThan(0.999);
+		const truth = { intercept: 2, image: 3, script: 5, other: 1, requests: 0.5 };
+		for (const [name, expected] of Object.entries(truth)) {
+			const e = noDemo.classRequestFit?.coef[name];
+			expect(e?.value).toBeCloseTo(expected, 6);
+			expect(e?.low).toBeCloseTo(expected, 6);
+			expect(e?.high).toBeCloseTo(expected, 6);
+		}
+		expect(noDemo.classRequestFit?.replicates).toBe(750);
+		expect(firstViewFit(m)).toEqual(firstViewFit(m));
+		const xs = pages.map((p) => (p.image + p.script + p.other) / 1e6);
+		const ys = pages.map((p) => p.joules);
+		const mx = xs.reduce((s, v) => s + v, 0) / xs.length;
+		const my = ys.reduce((s, v) => s + v, 0) / ys.length;
+		const cov = xs.reduce((s, x, i) => s + (x - mx) * ((ys[i] as number) - my), 0);
+		const vx = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+		const vy = ys.reduce((s, y) => s + (y - my) ** 2, 0);
+		expect(all.corrTotalMb).toBeCloseTo(cov / Math.sqrt(vx * vy), 9);
+		expect(firstViewFigures(m).joules.mean).toBeCloseTo(my, 6);
+	});
+
+	it('reads the cold joules the way firstViewFigures does, on the fixture', () => {
+		const cold = reading();
+		const warm = {
+			...cold,
+			rows: cold.rows
+				.filter((r) => r.arm === 'original' || r.arm === 'idle')
+				.map((r) => (r.arm === 'original' ? { ...r, arm: 'warm', warmMetrics: [] } : r))
+		};
+		expect(warmFigures(warm, cold).coldJoules.mean).toBeCloseTo(
+			firstViewFigures(cold).joules.mean,
+			9
+		);
+	});
+
+	it('adds chunk-split with eight arms, five navigations and eight rounds by default', () => {
+		expect(EXPERIMENTS).toContain('chunk-split');
+		const parsed = parseRapl(['run', 'chunk-split', '--dry-run']);
+		expect(parsed.config).toMatchObject({ rounds: 8, navs: 5, idleS: 30 });
+		expect(parseRapl(['run', 'views', '--dry-run']).config.navs).toBe(300);
+		expect(raplPlan(parsed)).toMatchObject({
+			schedule: { arms: 8, windows: 64, idleWindows: 11, wallFloorS: 2656 }
+		});
+		expect(chunkSchedule(8, 30, 5)).toMatchObject({ windows: 64, idleWindows: 11 });
+		expect(CHUNK_ARMS.slice(0, 2)).toEqual([
+			{ chunks: 1, rttMs: 0 },
+			{ chunks: 1, rttMs: 40 }
+		]);
+	});
+
+	it('serves the same pieces whatever the file count, one script tag per file', () => {
+		const whole = chunkFiles(1)[0] as string;
+		for (const chunks of [5, 25, 50]) expect(chunkFiles(chunks).join('')).toBe(whole);
+		expect(chunkFiles(25)[0]).toBe(chunkFiles(50).slice(0, 2).join(''));
+		expect(() => chunkFiles(7)).toThrow(RangeError);
+		expect(pieceSource(3)).toBe(pieceSource(3));
+		expect(pieceSource(3)).not.toBe(pieceSource(4));
+		for (const chunks of [1, 5, 25, 50]) {
+			const html = chunkPageHtml(chunks);
+			expect(html.match(/<script /g)).toHaveLength(chunks);
+			expect(html.match(/<div id=/g)).toHaveLength(50);
+		}
+		expect(chunkPageHtml(5)).toContain('<script src="/k/5/4.js"></script>');
+		const sizes = chunkSummary();
+		expect(sizes.pieces).toBe(50);
+		expect(sizes.arms[50]?.files).toBe(50);
+		expect(sizes.arms[1]?.sourceBytes).toBe(sizes.arms[50]?.sourceBytes);
+	});
+
+	it('reads a noise-free chunk-split line exactly and collapses the bootstrap onto it', () => {
+		const offsets = [0, 0.5, -0.25];
+		const rows: Measurement['rows'] = [];
+		for (const round of [0, 1, 2]) {
+			rows.push({ arm: 'idle', round, n: 0, elapsedMs: 10_000, pkgJ: 100, otherCpuMs: 0 });
+		}
+		for (const rttMs of [0, 40]) {
+			for (const round of [0, 1, 2]) {
+				for (const chunks of [1, 5, 25, 50]) {
+					const requests = chunks + 1;
+					const perNavJ = 2 + 0.1 * requests + (offsets[round] as number);
+					rows.push({
+						arm: 'chunks',
+						chunks,
+						rttMs,
+						round,
+						navs: 2,
+						elapsedMs: 10_000,
+						pkgJ: 100 + 2 * perNavJ,
+						otherCpuMs: 0,
+						requests: 2 * requests,
+						servedTotal: 2 * (1000 + 300 * (chunks - 1)),
+						originCpuMs: 5,
+						navErrors: 0,
+						navMetrics: [0, 1].map(() => ({
+							before: { ScriptDuration: 0, TaskDuration: 0 },
+							after: {
+								ScriptDuration: 0.001 * requests,
+								TaskDuration: 0.002 * requests
+							}
+						}))
+					});
+				}
+			}
+		}
+		const meta = { rounds: 3, idleS: 10, navs: 2, range: 1 };
+		const m = parseMeasurement({
+			schema: 1,
+			...publishDraft('chunk-split', rows, meta, { date: '2026-11-15' })
+		});
+		const figures = chunkSplitFigures(m);
+		expect(figures.dropped).toBe(0);
+		expect(figures.arms.filter((a) => a.rttMs === 0).map((a) => a.requests)).toEqual([
+			2, 6, 26, 51
+		]);
+		const one = figures.arms.find((a) => a.rttMs === 0 && a.chunks === 1);
+		expect(one?.joules.median).toBeCloseTo(2.2, 10);
+		expect(one?.joules.min).toBeCloseTo(1.95, 10);
+		expect(one?.joules.max).toBeCloseTo(2.7, 10);
+		const five = figures.arms.find((a) => a.rttMs === 0 && a.chunks === 5);
+		expect(five?.bytePenalty).toBe(1200);
+		expect(five?.penaltyJ).toBeCloseTo(attributionalJoules(1200), 12);
+		expect(figures.fits.map((f) => f.rttMs)).toEqual([0, 40]);
+		const fit = figures.fits[0];
+		expect(fit?.slope.value).toBeCloseTo(0.1, 10);
+		expect(fit?.slope.low).toBeCloseTo(0.1, 10);
+		expect(fit?.slope.high).toBeCloseTo(0.1, 10);
+		expect(fit?.intercept.value).toBeCloseTo(2, 10);
+		expect(fit?.scriptSlope.value).toBeCloseTo(1, 10);
+		expect(fit?.taskSlope.value).toBeCloseTo(2, 10);
+		expect(fit?.requestsPerJoule?.value).toBeCloseTo(10, 9);
+		expect(fit?.requestsPerJoule?.low).toBeCloseTo(10, 9);
+		expect(fit?.requestsPerJoule?.high).toBeCloseTo(10, 9);
+		expect(fit?.rounds).toBe(3);
+	});
+
+	it('writes a chunk-split reading only from rows with package joules', () => {
+		const meta = { rounds: 1, idleS: 30, navs: 2, range: 1 };
+		const row = {
+			arm: 'chunks',
+			chunks: 1,
+			rttMs: 0,
+			round: 0,
+			navs: 2,
+			elapsedMs: 10_000,
+			pkgJ: null,
+			otherCpuMs: 0,
+			requests: 4,
+			servedTotal: 2000,
+			originCpuMs: 1,
+			navErrors: 0,
+			navMetrics: []
+		};
+		expect(() => publishDraft('chunk-split', [row], meta, { date: '2026-11-15' })).toThrow(
+			/no package joules/
+		);
+		const made = publishDraft('chunk-split', [{ ...row, pkgJ: 24 }], meta, {
+			date: '2026-11-15'
+		});
+		expect(made).toMatchObject({ rig: 'rapl', layer: 'L1' });
+		expect(parseMeasurement({ schema: 1, ...made }).rows).toHaveLength(1);
+	});
+
+	it('adds the drupal-render experiment with its defaults and a dry-run schedule', () => {
+		expect(EXPERIMENTS).toContain('drupal-render');
+		const parsed = parseRapl(['run', 'drupal-render', '--dry-run']);
+		expect(parsed.config).toMatchObject({ rounds: 8, idleS: 30 });
+		const schedule = (
+			raplPlan(parsed) as { schedule: { armWindowsPerRound: number; rounds: number } }
+		).schedule;
+		expect(schedule.rounds).toBe(8);
+		expect(schedule.armWindowsPerRound).toBe(16);
+	});
+
+	it('writes a drupal-render reading only from rows with package joules', () => {
+		const meta = {
+			drupal: { php: '8.5.12', drupal: '11.4.0', urls: { front: '/' } },
+			rounds: 1,
+			idleS: 10,
+			range: 1
+		};
+		const row = {
+			arm: 'null',
+			url: 'null',
+			phase: 'steady',
+			round: 0,
+			n: 2000,
+			status: { '200': 2000 },
+			pageCache: { none: 2000 },
+			dynamicCache: { none: 2000 },
+			elapsedMs: 4000,
+			pkgJ: null,
+			otherCpuMs: 0
+		};
+		expect(() => publishDraft('drupal-render', [row], meta, { date: '2026-11-15' })).toThrow(
+			/no package joules/
+		);
+		const made = publishDraft('drupal-render', [{ ...row, pkgJ: 9 }], meta, {
+			date: '2026-11-15'
+		});
+		expect(made).toMatchObject({ rig: 'rapl', layer: 'L1' });
+		expect(made.method).toMatchObject({ php: '8.5.12', drupal: '11.4.0' });
+		expect(parseMeasurement({ schema: 1, ...made }).rows).toHaveLength(1);
+	});
+
+	it('fits by least squares and refuses a fit with no spare points or collinear columns', () => {
+		const fit = leastSquares(
+			[
+				[1, 0],
+				[1, 1],
+				[1, 2]
+			],
+			[1, 3, 5]
+		);
+		expect(fit.coef[0]).toBeCloseTo(1, 9);
+		expect(fit.coef[1]).toBeCloseTo(2, 9);
+		expect(fit.residualSe).toBeCloseTo(0, 9);
+		expect(() =>
+			leastSquares(
+				[
+					[1, 0],
+					[1, 1]
+				],
+				[1, 2]
+			)
+		).toThrow(/more points/);
+		expect(() =>
+			leastSquares(
+				[
+					[1, 1],
+					[1, 1],
+					[1, 1]
+				],
+				[1, 2, 3]
+			)
+		).toThrow(/collinear/);
+	});
+
+	it('derives the joules, the ratio, the class fit and the facade arm exactly from the fixture', () => {
+		const fv = firstViewFigures(reading());
+		expect(fv).toMatchObject({
+			pages: 5,
+			sites: 3,
+			rounds: 2,
+			dropped: 1,
+			missedPages: ['a-2']
+		});
+		expect(fv.fit).toMatchObject({ n: 5 });
+		expect(fv.fit.intercept).toBeCloseTo(1, 9);
+		expect(fv.fit.image).toBeCloseTo(0.5, 9);
+		expect(fv.fit.script).toBeCloseTo(0.25, 9);
+		expect(fv.fit.other).toBeCloseTo(0.125, 9);
+		expect(fv.fit.residualSe).toBeCloseTo(0, 9);
+		expect(fv.joules.median).toBeCloseTo(2.125, 9);
+		expect(fv.joules.mean).toBeCloseTo((2.125 + 2 + 2.25 + 2.625 + 1.5) / 5, 9);
+		const ratios = [
+			[2.125, 4e6],
+			[2, 5e6],
+			[2.25, 3e6],
+			[2.625, 4e6],
+			[1.5, 4e6]
+		].map(([joules, bytes]) => (joules as number) / attributionalJoules(bytes as number));
+		expect(fv.ratio.mean).toBeCloseTo(ratios.reduce((s, r) => s + r, 0) / 5, 12);
+		expect(fv.ratio.median).toBeCloseTo([...ratios].sort((a, b) => a - b)[2] as number, 12);
+		const siteA = ((ratios[0] as number) + (ratios[1] as number)) / 2;
+		const siteB = ((ratios[2] as number) + (ratios[3] as number)) / 2;
+		expect(fv.ratio.siteMin).toBeCloseTo(Math.min(siteA, siteB, ratios[4] as number), 12);
+		expect(fv.ratio.siteMax).toBeCloseTo(Math.max(siteA, siteB, ratios[4] as number), 12);
+		expect(fv.facade).toMatchObject({ pages: 1 });
+		expect(fv.facade?.savedJ.mean).toBeCloseTo(0.5, 9);
+		expect(fv.facade?.savedBytes.mean).toBeCloseTo(1_000_000, 3);
 	});
 });
 
@@ -1887,5 +2844,33 @@ describe('the navigation replay rig', () => {
 		})) {
 			if (r.arm !== 'oracle') expect(r.provisions).toBe(0);
 		}
+	});
+});
+
+describe('avoidable-loops crawl', () => {
+	it('stores a page as its origin and first path segment, never its query', () => {
+		expect(pageLabel('https://www.asu.edu/admissions/apply?id=42#top')).toBe(
+			'https://www.asu.edu/admissions'
+		);
+		expect(pageLabel('https://www.asu.edu/')).toBe('https://www.asu.edu/');
+	});
+
+	it('redacts a token-like first segment', () => {
+		expect(pageLabel(`https://a.example/${'x'.repeat(90)}/more`)).toBe(
+			'https://a.example/{opaque}'
+		);
+	});
+
+	it('cuts every URL in an error message to its page label', () => {
+		expect(redactUrls('net::ERR at https://a.example/news/item?token=secret failed')).toBe(
+			'net::ERR at https://a.example/news failed'
+		);
+	});
+
+	it('uses each site of both corpora once, sixty in all', () => {
+		const sites = corpus(null);
+		expect(sites).toHaveLength(60);
+		expect(new Set(sites).size).toBe(60);
+		expect(corpus(['asu.edu'])).toEqual(['https://www.asu.edu/']);
 	});
 });

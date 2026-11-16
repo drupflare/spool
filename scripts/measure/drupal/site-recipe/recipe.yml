@@ -1,0 +1,8 @@
+name: 'spool-b4 site'
+description: 'The standard recipe plus the article type and tags, for the drupal-render rig.'
+type: 'Site'
+recipes:
+  - core/recipes/standard
+  - core/recipes/tags_taxonomy
+  - core/recipes/article_content_type
+  - core/recipes/article_tags

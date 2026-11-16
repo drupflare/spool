@@ -5,9 +5,11 @@ import {
 	classOf,
 	coverMask,
 	dictionaryOf,
+	fetchBase,
 	markupBloat,
 	maskedText,
 	missingRules,
+	priorBase,
 	reduceQuery,
 	reuseOf,
 	savings,
@@ -259,5 +261,111 @@ describe('trimmed experiment helpers', () => {
 			{ newStyleFiles: 0, br5New: 0, br5Saved: 0, rawSaved: 0 },
 			{ newStyleFiles: 1, br5New: 300, br5Saved: 180, rawSaved: 600 }
 		]);
+	});
+});
+
+describe('the churn rig base fetch', () => {
+	type Answer = { status: number; body?: Buffer } | 'throw';
+	const rig = (answer: (url: string) => Answer, prior: unknown[] | null = null) => {
+		const calls: string[] = [];
+		const request = {
+			get: async (url: string) => {
+				calls.push(url);
+				const got = answer(url);
+				if (got === 'throw') throw new Error('unreachable');
+				return { status: () => got.status, body: async () => got.body ?? Buffer.alloc(0) };
+			}
+		};
+		const ctx = { request, bases: new Map(), prior, origin: 'https://site.test' };
+		return { calls, ctx: ctx as unknown as Parameters<typeof fetchBase>[0] };
+	};
+	const earlier = [
+		{ path: '/files/css/small.css', kind: 'css', raw: 10 },
+		{ path: '/files/css/big.css', kind: 'css', raw: 99 },
+		{ path: '/files/js/app.js', kind: 'js', raw: 500 }
+	];
+
+	it('keeps the body of a 200 and asks for each url once', async () => {
+		const { calls, ctx } = rig(() => ({ status: 200, body: Buffer.from('a{}') }));
+		const first = await fetchBase(ctx, 'https://site.test/a.css');
+		const again = await fetchBase(ctx, 'https://site.test/a.css');
+		expect(first).toEqual({ status: 200, body: Buffer.from('a{}') });
+		expect(again).toBe(first);
+		expect(calls).toEqual(['https://site.test/a.css']);
+	});
+
+	it('keeps the status of a 404 and no body', async () => {
+		const { ctx } = rig(() => ({ status: 404 }));
+		expect(await fetchBase(ctx, 'https://site.test/gone.css')).toEqual({
+			status: 404,
+			body: null
+		});
+	});
+
+	it('reports a null status when the request throws, and does not ask again', async () => {
+		const { calls, ctx } = rig(() => 'throw');
+		expect(await fetchBase(ctx, 'https://site.test/x.css')).toEqual({
+			status: null,
+			body: null
+		});
+		await fetchBase(ctx, 'https://site.test/x.css');
+		expect(calls).toHaveLength(1);
+	});
+
+	it('takes the largest earlier aggregate of the kind and sizes the text against its body', async () => {
+		const body = Buffer.from('body { color: red; }\n'.repeat(20));
+		const text = 'body { color: blue; }\n'.repeat(20);
+		const { calls, ctx } = rig(() => ({ status: 200, body }), earlier);
+		const z = zstdWithDictionary(Buffer.from(text), body);
+		expect(await priorBase(ctx, 'css', text)).toEqual({
+			url: 'https://site.test/files/css/big.css',
+			status: 200,
+			zstdAlone: z.alone,
+			zstdDict: z.dict
+		});
+		expect(calls).toEqual(['https://site.test/files/css/big.css']);
+	});
+
+	it('returns the status and null sizes when the base is missing', async () => {
+		const { ctx } = rig(() => ({ status: 404 }), earlier);
+		expect(await priorBase(ctx, 'css', 'p{}')).toEqual({
+			url: 'https://site.test/files/css/big.css',
+			status: 404,
+			zstdAlone: null,
+			zstdDict: null
+		});
+	});
+
+	it('uses the bytes of a non-zstd body as a raw dictionary', async () => {
+		const text = 'p{margin:0}';
+		const junk = Buffer.from('not a zstd frame');
+		const { ctx } = rig(() => ({ status: 200, body: junk }), earlier);
+		const z = zstdWithDictionary(Buffer.from(text), junk);
+		expect(await priorBase(ctx, 'css', text)).toMatchObject({
+			status: 200,
+			zstdAlone: z.alone,
+			zstdDict: z.dict
+		});
+	});
+
+	it("takes the text's own size as the dictionary size when the base body is empty", async () => {
+		const { ctx } = rig(() => ({ status: 200 }), earlier);
+		const got = await priorBase(ctx, 'css', 'p{margin:0}');
+		expect(got.status).toBe(200);
+		expect(got.zstdDict).toBe(got.zstdAlone);
+	});
+
+	it('names no base when there is no earlier aggregate of the kind', async () => {
+		const { calls, ctx } = rig(
+			() => ({ status: 200 }),
+			earlier.filter((a) => a.kind === 'js')
+		);
+		expect(await priorBase(ctx, 'css', 'p{}')).toEqual({
+			url: null,
+			status: null,
+			zstdAlone: null,
+			zstdDict: null
+		});
+		expect(calls).toEqual([]);
 	});
 });

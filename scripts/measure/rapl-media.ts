@@ -16,6 +16,33 @@ export const HIDDEN_ARMS = ['quiet-hidden', 'poll-hidden-plain', 'poll-hidden-ho
 
 export type HiddenArm = (typeof HIDDEN_ARMS)[number];
 
+/** the pages of the idle-activity-tabs experiment that the other arms do not use */
+export type TabsPage = 'tabs-leader';
+
+/**
+ * the arms of idle-activity-tabs: the page each tab runs, how many tabs share the window, whether
+ * one of them leads the polling, and whether the window is the long one, opened after the first tab
+ * has been hidden for {@link HIDDEN_BEFORE_S} seconds
+ */
+export const TABS_ARMS: ReadonlyArray<{
+	arm: string;
+	page: string;
+	tabs: number;
+	leader: boolean;
+	long: boolean;
+}> = [
+	{ arm: 'tabs-1-poll', page: 'poll-hidden-plain', tabs: 1, leader: false, long: false },
+	{ arm: 'tabs-3-poll', page: 'poll-hidden-plain', tabs: 3, leader: false, long: false },
+	{ arm: 'tabs-3-leader', page: 'tabs-leader', tabs: 3, leader: true, long: false },
+	{ arm: 'tabs-3-quiet', page: 'quiet-hidden', tabs: 3, leader: false, long: false },
+	{ arm: 'poll-hidden-long', page: 'poll-hidden-plain', tabs: 1, leader: false, long: true }
+];
+
+export type TabsArm = (typeof TABS_ARMS)[number];
+
+/** hidden time before the long window: Chromium's 5 minutes of intensive throttling, plus a margin */
+export const HIDDEN_BEFORE_S = 330;
+
 /** the decode arms: a file variant decoded by one method */
 export const DECODE_VARIANTS = ['original', 'native', 'resized'] as const;
 export const DECODE_METHODS = ['bitmap', 'img'] as const;
@@ -91,7 +118,10 @@ const html = (body: string, head = '') =>
 
 const POLL_TICK = 'window.__count++;fetch("/ping")';
 
-const ACTIVITY: Record<ActivityArm | HiddenArm, string> = {
+export const ACTIVITY: Record<ActivityArm | HiddenArm | TabsPage, string> = {
+	'tabs-leader': html(
+		'<main id="m">leader</main><script>window.__count=0;window.__messages=0;window.__leader=false;const channel=new BroadcastChannel("spool-tabs");channel.onmessage=()=>{window.__messages++};navigator.locks.request("poll",()=>{window.__leader=true;return new Promise(()=>{})});setInterval(()=>{if(!window.__leader)return;window.__count++;fetch("/ping").then(()=>channel.postMessage(1))},1000)</script>'
+	),
 	'quiet-hidden': html('<main id="m">quiet</main><script>window.__count=0</script>'),
 	'poll-hidden-plain': html(
 		`<main id="m">poll</main><script>window.__count=0;setInterval(()=>{${POLL_TICK}},1000)</script>`

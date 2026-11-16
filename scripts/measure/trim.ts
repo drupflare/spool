@@ -1,9 +1,16 @@
-import { chromium, type BrowserContext, type CDPSession, type Page } from '@playwright/test';
+import {
+	chromium,
+	type APIRequestContext,
+	type BrowserContext,
+	type CDPSession,
+	type Page
+} from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { brotliCompressSync, constants, zstdCompressSync } from 'node:zlib';
+import { aggregatesOf, isAggregate, type Aggregate, type Base } from '../../src/report/trim';
 import {
 	buildTrimManifest,
 	guardPage,
@@ -24,7 +31,7 @@ import { internalLinks, median, nodeResources, pickPages, spread } from './paylo
 import { sameOrigin } from './repeat-nav';
 
 const HELP = `Usage: bun scripts/measure/trim.ts [--machine NAME] [--experiment NAME] [--out DIR]
-       [--force] [--dry-run] [--sites SUBSTRING[,SUBSTRING]] [--no-screenshots]
+       [--force] [--dry-run] [--sites SUBSTRING[,SUBSTRING]] [--no-screenshots] [--prior FILE]
 
 Walks the Drupal sites of measurements/payload/2026-10-19.json: the home page, then up to 8
 internal pages chosen as payload.ts chooses them. Per page: CSS and JS coverage at load and after
@@ -34,7 +41,12 @@ of the repeat-nav requests reading.
 --experiment trimmed trims each site's stylesheets against all its pages and scripts (the pages of
 measurements/trim/2026-10-19.json) and checks the result: false removals against CDP rule
 coverage (Oracle A), full-page pixels against the original CSS with a control (Oracle B),
-leave-one-out, and brotli-5 bytes saved.`;
+leave-one-out, and brotli-5 bytes saved.
+
+--prior FILE (default run) names an earlier trim reading. Each same-origin aggregate whose path
+that reading lacks is compared with the largest earlier aggregate of its kind: zstd 3 alone and
+with that file as a dictionary. The earlier file is fetched now, by path, so it is the file the
+site serves today under the old name.`;
 
 const PAGES_PER_SITE = 8;
 const DELAY_MS = 250;
@@ -309,6 +321,11 @@ type FileRow = {
 	usedScroll: number;
 	unusedLoadBr5: number;
 	transfer: number | null;
+	/** SHA-256 of the body, first 16 hex characters */
+	hash: string;
+	/** null unless a same-origin aggregate of a run with `--prior` */
+	changed: boolean | null;
+	base: Base | null;
 };
 
 type Markup = ReturnType<typeof markupBloat> & { settings: Settings | null };
@@ -347,6 +364,10 @@ type Ctx = {
 	origin: string;
 	earlier: Set<string>;
 	texts: Map<string, Buffer>;
+	request: APIRequestContext;
+	/** the site's aggregates on the earlier reading, or null without one */
+	prior: readonly Aggregate[] | null;
+	bases: Map<string, BaseFetch>;
 };
 
 type ScriptCov = { scriptId: string; url: string; functions: Array<{ ranges: CountRange[] }> };
@@ -374,7 +395,10 @@ function fileRow(
 		usedLoad: Buffer.byteLength(maskedText(text, loadMask, true)),
 		usedScroll: Buffer.byteLength(maskedText(text, scrollMask, true)),
 		unusedLoadBr5: brotli5(maskedText(text, loadMask, false)),
-		transfer
+		transfer,
+		hash: createHash('sha256').update(text).digest('hex').slice(0, 16),
+		changed: null,
+		base: null
 	};
 }
 
@@ -453,6 +477,37 @@ async function scrollToEnd(page: Page) {
 		}
 	}, SCROLL_STEPS);
 	await sleep(SETTLE_MS);
+}
+
+type BaseFetch = { status: number | null; body: Buffer | null };
+
+/** a GET of an earlier aggregate by its path, kept per site; null status when the request failed */
+export async function fetchBase(ctx: Ctx, url: string): Promise<BaseFetch> {
+	const known = ctx.bases.get(url);
+	if (known) return known;
+	let got: BaseFetch;
+	try {
+		const response = await ctx.request.get(url, { timeout: 30_000 });
+		const status = response.status();
+		got = { status, body: status === 200 ? await response.body() : null };
+	} catch {
+		got = { status: null, body: null };
+	}
+	ctx.bases.set(url, got);
+	return got;
+}
+
+/** the largest earlier aggregate of `kind`, and the zstd sizes of `text` alone and with it as a dictionary */
+export async function priorBase(ctx: Ctx, kind: 'css' | 'js', text: string): Promise<Base> {
+	const earlier = (ctx.prior ?? [])
+		.filter((a) => a.kind === kind)
+		.sort((a, b) => b.raw - a.raw)[0];
+	if (!earlier) return { url: null, status: null, zstdAlone: null, zstdDict: null };
+	const url = `${ctx.origin}${earlier.path}`;
+	const got = await fetchBase(ctx, url);
+	if (got.body === null) return { url, status: got.status, zstdAlone: null, zstdDict: null };
+	const z = zstdWithDictionary(Buffer.from(text), got.body);
+	return { url, status: 200, zstdAlone: z.alone, zstdDict: z.dict };
 }
 
 async function visit(ctx: Ctx, url: string, kind: PageRow['kind']): Promise<PageRow> {
@@ -591,6 +646,15 @@ async function visit(ctx: Ctx, url: string, kind: PageRow['kind']): Promise<Page
 		});
 	}
 
+	if (ctx.prior) {
+		const priorPaths = new Set(ctx.prior.map((a) => a.path));
+		for (const { url: fileUrl, text, row } of all) {
+			if (row.origin !== 'same' || !isAggregate(fileUrl)) continue;
+			row.changed = !priorPaths.has(new URL(fileUrl).pathname);
+			if (row.changed) row.base = await priorBase(ctx, row.kind, text);
+		}
+	}
+
 	const dictionary = dictionaryOf(ctx.texts);
 	const newAgg = { ...EMPTY_NEW };
 	for (const { text, row } of all) {
@@ -639,7 +703,11 @@ async function visit(ctx: Ctx, url: string, kind: PageRow['kind']): Promise<Page
 }
 
 /** one site: the home page, then the internal pages payload.ts would choose, in one context */
-export async function walkSite(context: BrowserContext, site: string): Promise<SiteRow> {
+export async function walkSite(
+	context: BrowserContext,
+	site: string,
+	prior: readonly Aggregate[] | null = null
+): Promise<SiteRow> {
 	const page = await context.newPage();
 	const cdp = await context.newCDPSession(page);
 	await cdp.send('Network.enable');
@@ -648,7 +716,16 @@ export async function walkSite(context: BrowserContext, site: string): Promise<S
 	await cdp.send('Profiler.enable');
 	await cdp.send('Debugger.enable');
 	const origin = new URL(site).origin;
-	const ctx: Ctx = { page, cdp, origin, earlier: new Set(), texts: new Map() };
+	const ctx: Ctx = {
+		page,
+		cdp,
+		origin,
+		earlier: new Set(),
+		texts: new Map(),
+		request: context.request,
+		prior,
+		bases: new Map()
+	};
 	const pages: PageRow[] = [];
 	try {
 		const nodes = await nodeResources(origin, []);
@@ -1292,10 +1369,12 @@ function parse(argv: string[]) {
 			'dry-run': { type: 'boolean', default: false },
 			help: { type: 'boolean', default: false },
 			sites: { type: 'string' },
-			'no-screenshots': { type: 'boolean', default: false }
+			'no-screenshots': { type: 'boolean', default: false },
+			prior: { type: 'string' }
 		}
 	});
 	return {
+		prior: values.prior,
 		machine: values.machine,
 		experiment: values.experiment,
 		sites: values.sites?.split(','),
@@ -1374,11 +1453,20 @@ if (isMain(import.meta.url)) {
 		const browser = await chromium.launch();
 		const version = browser.version();
 		const rows: SiteRow[] = [];
+		const earlier = args.prior
+			? aggregatesOf(
+					(
+						JSON.parse(readFileSync(args.prior, 'utf8')) as {
+							rows: Array<Record<string, unknown>>;
+						}
+					).rows
+				)
+			: null;
 		for (const site of sites) {
 			const context = await browser.newContext({
 				userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36 spool-trim-measure/1.0`
 			});
-			rows.push(await walkSite(context, site));
+			rows.push(await walkSite(context, site, earlier?.get(site) ?? null));
 			await context.close();
 			console.error(site);
 		}
@@ -1422,6 +1510,13 @@ if (isMain(import.meta.url)) {
 				transfer:
 					'encodedDataLength per finished request, bucketed by same or third origin, resource type and new or reused URL; requests still open at the end are counted as unfinished',
 				'request delay': `${DELAY_MS} ms between page visits; the JSON:API probe uses the payload.ts delay`,
+				hash: 'SHA-256 of each CSS and JS body, first 16 hex characters',
+				'earlier reading': args.prior
+					? `${basename(args.prior)}; a same-origin aggregate whose path it lacks is changed`
+					: 'none; no name is compared',
+				base: args.prior
+					? 'for a changed aggregate, the largest earlier aggregate of its kind, fetched now by path without its query: zstd 3 size alone and with it as a raw dictionary; status null when the request failed'
+					: 'not run',
 				'warm-internal table':
 					'from the repeat-nav requests reading; byType and thirdPartyBytes are all origins, same-origin by type is not in that reading'
 			},

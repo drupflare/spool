@@ -1,10 +1,23 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { appendFileSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+import { cpus, loadavg } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { openHiddenBrowser } from './cdp-hidden.ts';
+import {
+	CONTROL_PORT,
+	QUIET_MS,
+	REPLAY_PORT,
+	VIEWPORT,
+	corpusPages,
+	readIndex,
+	replayArgs,
+	spkiOf,
+	userAgent,
+	warmReplayArgs
+} from './first-view.ts';
 import {
 	MEASUREMENTS_DIR,
 	counterDelta,
@@ -20,16 +33,33 @@ import {
 	type Draft,
 	type PowerSample
 } from './lib.ts';
+import {
+	CHUNK_ARMS,
+	CHUNK_COUNTS,
+	CHUNK_RTTS_MS,
+	chunkSummary,
+	type ChunkArm
+} from './rapl-chunk.ts';
 import { buildAll } from './rapl-data.ts';
+import {
+	DRUPAL_QUESTION,
+	drupalMethod,
+	drupalPlan,
+	drupalSoftware,
+	runDrupalRender
+} from './rapl-drupal.ts';
 import {
 	ACTIVITY_ARMS,
 	DECODE_METHODS,
 	DECODE_VARIANTS,
 	HIDDEN_ARMS,
+	HIDDEN_BEFORE_S,
+	TABS_ARMS,
 	fileFor,
 	loadTinyimg,
 	readSet,
-	runEncodeChild
+	runEncodeChild,
+	type TabsArm
 } from './rapl-media.ts';
 import { ARM_ASSET, SW_ARMS, requestsFor, type SwArm } from './rapl-sw.ts';
 
@@ -46,7 +76,12 @@ export const EXPERIMENTS = [
 	'image-encode',
 	'dictionary-load',
 	'idle-activity',
-	'idle-activity-hidden'
+	'idle-activity-hidden',
+	'idle-activity-tabs',
+	'first-view',
+	'first-view-warm',
+	'drupal-render',
+	'chunk-split'
 ] as const;
 
 export type Experiment = (typeof EXPERIMENTS)[number];
@@ -91,6 +126,7 @@ export type Config = {
 	data: string;
 	governor: string;
 	windowS: number;
+	longWindowS: number;
 	settleS: number;
 	nreq: number;
 	requests: number;
@@ -102,6 +138,8 @@ export type Config = {
 	dictFile: string;
 	targetFile: string;
 	passes: number;
+	pages: string;
+	noMeter: boolean;
 };
 
 const DEFAULT_ROUNDS: Record<Experiment, number> = {
@@ -116,8 +154,16 @@ const DEFAULT_ROUNDS: Record<Experiment, number> = {
 	'image-encode': 6,
 	'dictionary-load': 6,
 	'idle-activity': 4,
-	'idle-activity-hidden': 8
+	'idle-activity-hidden': 8,
+	'idle-activity-tabs': 6,
+	'first-view': 6,
+	'first-view-warm': 4,
+	'drupal-render': 8,
+	'chunk-split': 8
 };
+
+/** the navigations per window where an experiment does not set `--navs` (the rest default to 300) */
+const DEFAULT_NAVS: Partial<Record<Experiment, number>> = { 'chunk-split': 5 };
 
 export function parse(argv: string[]) {
 	const { values, positionals } = parseArgs({
@@ -126,7 +172,7 @@ export function parse(argv: string[]) {
 		options: {
 			rounds: { type: 'string' },
 			'idle-s': { type: 'string', default: '30' },
-			navs: { type: 'string', default: '300' },
+			navs: { type: 'string' },
 			rapl: { type: 'string', default: '/rapl/intel-rapl:0' },
 			cgroup: { type: 'string', default: '/host-cgroup/system.slice' },
 			raw: { type: 'string' },
@@ -134,6 +180,7 @@ export function parse(argv: string[]) {
 			data: { type: 'string', default: '/rig/data' },
 			governor: { type: 'string', default: 'powersave' },
 			'window-s': { type: 'string', default: '20' },
+			'long-window-s': { type: 'string', default: '120' },
 			'settle-s': { type: 'string', default: '4' },
 			nreq: { type: 'string', default: '24' },
 			requests: { type: 'string', default: '20000' },
@@ -145,6 +192,8 @@ export function parse(argv: string[]) {
 			'dict-file': { type: 'string', default: '/rig/dict/base.bin' },
 			'target-file': { type: 'string', default: '/rig/dict/target.bin' },
 			passes: { type: 'string', default: '6' },
+			pages: { type: 'string' },
+			'no-meter': { type: 'boolean', default: false },
 			gpu: { type: 'string' },
 			'machine-json': { type: 'string' },
 			'timer-raw': { type: 'string' },
@@ -168,7 +217,7 @@ export function parse(argv: string[]) {
 		experiment: exp,
 		rounds: Number(values.rounds ?? DEFAULT_ROUNDS[exp] ?? 8),
 		idleS: Number(values['idle-s']),
-		navs: Number(values.navs),
+		navs: Number(values.navs ?? DEFAULT_NAVS[exp] ?? 300),
 		rapl: values.rapl as string,
 		cgroup: values.cgroup as string,
 		raw: (values.raw ?? `out/${exp}.jsonl`) as string,
@@ -176,6 +225,7 @@ export function parse(argv: string[]) {
 		data: values.data as string,
 		governor: values.governor as string,
 		windowS: Number(values['window-s']),
+		longWindowS: Number(values['long-window-s']),
 		settleS: Number(values['settle-s']),
 		nreq: Number(values.nreq),
 		requests: Number(values.requests),
@@ -186,7 +236,9 @@ export function parse(argv: string[]) {
 		tinyimg: values.tinyimg as string,
 		dictFile: values['dict-file'] as string,
 		targetFile: values['target-file'] as string,
-		passes: Number(values.passes)
+		passes: Number(values.passes),
+		pages: (values.pages ?? '') as string,
+		noMeter: values['no-meter'] as boolean
 	};
 	return {
 		command,
@@ -206,23 +258,29 @@ export function parse(argv: string[]) {
 
 /** reads the package counter, the host's load and the other containers' CPU */
 export class Meter {
-	readonly raplDir: string;
+	/** null under `--no-meter`: no counter is read and every joule figure is NaN, written as null */
+	readonly raplDir: string | null;
 	readonly cgroupDir: string;
 	readonly range: number;
 	readonly self: string;
 
-	constructor(raplDir: string, cgroupDir: string) {
+	constructor(raplDir: string | null, cgroupDir: string) {
 		this.raplDir = raplDir;
 		this.cgroupDir = cgroupDir;
-		this.range = Number(readFileSync(join(raplDir, 'max_energy_range_uj'), 'utf8'));
-		this.self = readFileSync('/etc/hostname', 'utf8').trim();
+		this.range =
+			raplDir === null
+				? 1
+				: Number(readFileSync(join(raplDir, 'max_energy_range_uj'), 'utf8'));
+		this.self = raplDir === null ? '' : readFileSync('/etc/hostname', 'utf8').trim();
 	}
 
 	uj(sub = ''): number {
+		if (this.raplDir === null) return 0;
 		return Number(readFileSync(join(this.raplDir, sub, 'energy_uj'), 'utf8'));
 	}
 
 	load(): number {
+		if (this.raplDir === null) return loadavg()[0] as number;
 		return Number(readFileSync('/proc/loadavg', 'utf8').split(' ')[0]);
 	}
 
@@ -241,7 +299,7 @@ export class Meter {
 	}
 
 	/** runs `fn` between two reads and returns the energy, the time and the neighbours' CPU */
-	async window<T>(fn: () => Promise<T>, withCore = false) {
+	async window<T>(fn: () => Promise<T>, withCore = false, exclude: readonly string[] = []) {
 		const s0 = this.snap();
 		const p0 = this.uj();
 		const c0 = withCore ? this.uj('intel-rapl:0:0') : 0;
@@ -253,11 +311,13 @@ export class Meter {
 		const c1 = withCore ? this.uj('intel-rapl:0:0') : 0;
 		const t1 = process.hrtime.bigint();
 		const e1 = Date.now();
-		const others = otherCpuMs(s0, this.snap(), this.self);
+		const others = otherCpuMs(s0, this.snap(), this.self, (id) =>
+			exclude.every((x) => !x.startsWith(id))
+		);
 		return {
 			result,
 			elapsedMs: Number(t1 - t0) / 1e6,
-			pkgJ: counterDelta(p0, p1, this.range) / 1e6,
+			pkgJ: this.raplDir === null ? NaN : counterDelta(p0, p1, this.range) / 1e6,
 			coreJ: withCore ? counterDelta(c0, c1, this.range) / 1e6 : undefined,
 			load0: l0,
 			load1: this.load(),
@@ -837,6 +897,153 @@ async function idleActivityRounds(config: Config, meter: Meter) {
 	}
 }
 
+/** the settle before a short window, as the other tab runners wait */
+const TABS_SETTLE_S = 8;
+/** the estimate of browser start, tab open and front change, which the plan adds to each window */
+const TABS_OPEN_S = 2;
+
+/** the windows of one run from the window lengths: a wall-time estimate, not a timer */
+export function tabsPlan(rounds: number, idleS: number, windowS: number, longWindowS: number) {
+	const perRound = activitySchedule(TABS_ARMS.map((a) => a.arm));
+	const idle = perRound.filter((name) => name === 'idle').length;
+	const short = TABS_ARMS.filter((a) => !a.long).length;
+	const roundS =
+		idle * (2 + idleS) +
+		short * (TABS_SETTLE_S + windowS + TABS_OPEN_S) +
+		(HIDDEN_BEFORE_S + longWindowS + TABS_OPEN_S);
+	return {
+		arms: TABS_ARMS.map((a) => a.arm),
+		order: perRound,
+		idleWindowsPerRound: idle,
+		roundS,
+		wallS: rounds * roundS
+	};
+}
+
+/**
+ * package joules per minute for one, three and three-with-a-leader tabs, a quiet three-tab floor,
+ * and a hidden poll after the 5 minutes of intensive throttling
+ */
+async function runIdleActivityTabs(config: Config, meter: Meter) {
+	const { chromium } = await import('playwright');
+	const origin = await mediaOrigin();
+	try {
+		const base = `http://127.0.0.1:${MEDIA_PORT}`;
+		for (let round = 0; round < config.rounds; round++) {
+			for (const name of activitySchedule(
+				rotate(
+					TABS_ARMS.map((a) => a.arm),
+					round
+				)
+			)) {
+				if (name === 'idle') {
+					await idleWindow(meter, config, round);
+					continue;
+				}
+				const arm = TABS_ARMS.find((a) => a.arm === name) as TabsArm;
+				await tabsWindow(meter, config, round, arm, base, chromium.executablePath());
+			}
+		}
+	} finally {
+		origin.kill();
+	}
+}
+
+/** one tab's state, read in the page: polls sent, messages received, lock holder, visibility */
+type TabState = { c: number; m: number; l: boolean; v: string };
+const TAB_STATE =
+	'JSON.stringify({c:window.__count||0,m:window.__messages||0,l:window.__leader===true,v:document.visibilityState})';
+
+/** one window of a tabs arm: open the tabs, set the front tab, read every tab before and after */
+async function tabsWindow(
+	meter: Meter,
+	config: Config,
+	round: number,
+	arm: TabsArm,
+	base: string,
+	executable: string
+) {
+	const url = `${base}/${arm.page}`;
+	const browser = await openHiddenBrowser(executable, url);
+	try {
+		const readers: Array<(expression: string) => Promise<unknown>> = [browser.evaluate];
+		if (arm.long) {
+			await browser.hideFirstTab();
+		} else {
+			if (arm.leader) {
+				for (let i = 0; ; i++) {
+					if (await browser.evaluate<boolean>('window.__leader===true')) break;
+					if (i >= 100)
+						throw new Error('the first tab did not get the poll lock in 10 s');
+					await sleep(100);
+				}
+			}
+			for (let i = 1; i < arm.tabs; i++) {
+				readers.push((await browser.addTab(url)).evaluate);
+			}
+			await browser.activateFirst();
+		}
+		const hiddenSince = Date.now();
+		await sleep(arm.long ? HIDDEN_BEFORE_S * 1000 : TABS_SETTLE_S * 1000);
+
+		const states = async () =>
+			Promise.all(
+				readers.map(async (read) => JSON.parse(String(await read(TAB_STATE))) as TabState)
+			);
+		const before = await states();
+		const o0 = await mediaStats();
+		const windowS = arm.long ? config.longWindowS : config.windowS;
+		const w = await meter.window(() => sleep(windowS * 1000));
+		const after = await states();
+		const o1 = await mediaStats();
+
+		const shown = after.map((s) => s.v);
+		const expected = arm.long ? ['hidden'] : ['visible', ...Array(arm.tabs - 1).fill('hidden')];
+		if (shown.join(',') !== expected.join(',')) {
+			throw new Error(
+				`${arm.arm} in round ${round} ended with tabs ${shown.join(', ')}, not ${expected.join(', ')}`
+			);
+		}
+		const delta = after.map((s, i) => s.c - (before[i] as TabState).c);
+		const pageEvents = delta.reduce((sum, d) => sum + d, 0);
+		const leaderPolls = after.reduce((sum, s, i) => sum + (s.l ? (delta[i] as number) : 0), 0);
+		if (arm.leader) {
+			if (after.filter((s) => s.l).length !== 1) {
+				throw new Error(
+					`${arm.arm} in round ${round} did not have exactly one lock holder`
+				);
+			}
+			if (leaderPolls !== pageEvents) {
+				throw new Error(
+					`${arm.arm} in round ${round}: ${pageEvents - leaderPolls} polls came from a tab without the lock`
+				);
+			}
+		}
+		const messages = after.reduce((sum, s, i) => sum + s.m - (before[i] as TabState).m, 0);
+		emit(config, {
+			arm: arm.arm,
+			round,
+			n: 0,
+			windowS,
+			tabs: arm.tabs,
+			hiddenForS: (w.epochStartMs - hiddenSince) / 1000,
+			elapsedMs: w.elapsedMs,
+			pkgJ: w.pkgJ,
+			load0: w.load0,
+			load1: w.load1,
+			pageEvents,
+			leaderPolls,
+			messages,
+			originPings: o1.ping - o0.ping,
+			originCpuMs: (o1.cpuUs - o0.cpuUs) / 1000,
+			visibility: shown[0],
+			otherCpuMs: w.others
+		});
+	} finally {
+		await browser.close();
+	}
+}
+
 /** package joules per image converted by tinyimg in Node on one busy thread, with the module loaded (warm) or loaded in a fresh process per pass (cold) */
 async function runImageEncode(config: Config, meter: Meter) {
 	const set = readSet(config.images);
@@ -1078,6 +1285,371 @@ async function runDictionaryLoad(config: Config, meter: Meter) {
 		}
 	}
 	origin.kill();
+}
+
+// #endregion
+
+// #region first-view
+
+/** the corpus a first-view run measures: its usable pages and what was left out */
+type FirstViewCorpus = {
+	pages: ReturnType<typeof corpusPages>;
+	excluded: string[];
+	sites: number;
+	wireBytes: number;
+	date: string;
+};
+
+export function firstViewCorpus(dir: string): FirstViewCorpus {
+	const index = readIndex(dir);
+	const pages = corpusPages(index);
+	return {
+		pages,
+		excluded: index.pages
+			.filter((p) => p.excluded !== null)
+			.map((p) => `${p.id}: ${p.excluded}`),
+		sites: new Set(pages.map((p) => p.site)).size,
+		wireBytes: pages.reduce((s, p) => s + p.wireBytes, 0),
+		date: index.date
+	};
+}
+
+/** a window's arm: a cold view, a cold view with the embeds as facades, or a repeat view */
+export type FirstViewArm = 'original' | 'facade' | 'warm';
+
+/** one round's windows: every page once, the pages rotated by the round and each page's arms rotated too */
+export function firstViewWindows(
+	pages: ReadonlyArray<{ id: string; facade: boolean }>,
+	round: number,
+	arms: readonly FirstViewArm[] = ['original', 'facade']
+): Array<{ page: string; arm: FirstViewArm }> {
+	return rotate(pages, round).flatMap((p) =>
+		rotate(
+			arms.filter((arm) => arm !== 'facade' || p.facade),
+			round
+		).map((arm) => ({ page: p.id, arm }))
+	);
+}
+
+const statsOf = async (): Promise<Raw> =>
+	JSON.parse((await get(CONTROL_PORT, '/__stats', {}, false)).body) as Raw;
+
+/** a recorded page cold, `navs` times back to back in one window; the replay serves the corpus */
+async function runFirstView(config: Config, meter: Meter) {
+	const { chromium } = await import('playwright');
+	const corpus = firstViewCorpus(config.pages);
+	const probe = await chromium.launch({ channel: 'chromium', args: replayArgs(REPLAY_PORT) });
+	const version = probe.version();
+	await probe.close();
+	patchMeta(config.raw, { browser: `Chromium ${version}` });
+	const replay = spawn(
+		process.execPath,
+		[
+			join(HERE, 'first-view.ts'),
+			'serve',
+			'--corpus',
+			config.pages,
+			'--port',
+			String(REPLAY_PORT),
+			'--control',
+			String(CONTROL_PORT)
+		],
+		{ stdio: 'inherit' }
+	);
+	try {
+		for (let i = 0; ; i++) {
+			try {
+				await statsOf();
+				break;
+			} catch {
+				if (i > 40) throw new Error('the replay server did not answer within 10 s');
+				await sleep(250);
+			}
+		}
+		const arms = config.experiment === 'first-view-warm' ? (['warm'] as const) : undefined;
+		let windows = 0;
+		for (let round = 0; round < config.rounds; round++) {
+			for (const { page, arm } of firstViewWindows(corpus.pages, round, arms)) {
+				if (windows % 6 === 0) await idleWindow(meter, config, round);
+				const target = corpus.pages.find(
+					(p) => p.id === page
+				) as (typeof corpus.pages)[number];
+				if (arm === 'warm') await warmWindow(config, meter, target, round, version);
+				else await firstViewWindow(config, meter, target, arm, round, version);
+				windows++;
+			}
+		}
+	} finally {
+		replay.kill();
+	}
+}
+
+async function firstViewWindow(
+	config: Config,
+	meter: Meter,
+	page: ReturnType<typeof corpusPages>[number],
+	arm: 'original' | 'facade',
+	round: number,
+	version: string
+) {
+	const { chromium } = await import('playwright');
+	const select = JSON.parse(
+		(await get(CONTROL_PORT, `/select?id=${page.id}&arm=${arm}`, {}, false)).body
+	) as { facade: boolean };
+	if (arm === 'facade' && !select.facade) {
+		throw new Error(`${page.id} has no iframe the facade arm changes`);
+	}
+	const browser = await chromium.launch({ channel: 'chromium', args: replayArgs(REPLAY_PORT) });
+	const userAgentOf = userAgent(version);
+	let navErrors = 0;
+	const before = await statsOf();
+	const w = await meter.window(async () => {
+		for (let i = 0; i < config.navs; i++) {
+			const context = await browser.newContext({
+				serviceWorkers: 'block',
+				userAgent: userAgentOf,
+				viewport: VIEWPORT
+			});
+			const tab = await context.newPage();
+			await tab.goto(page.url, { waitUntil: 'load', timeout: 45_000 }).catch(() => {
+				navErrors++;
+			});
+			await sleep(QUIET_MS);
+			await context.close();
+		}
+	});
+	const after = await statsOf();
+	await browser.close();
+	emit(config, {
+		arm,
+		page: page.id,
+		site: page.site,
+		round,
+		navs: config.navs,
+		elapsedMs: w.elapsedMs,
+		pkgJ: w.pkgJ,
+		load0: w.load0,
+		load1: w.load1,
+		otherCpuMs: w.others,
+		served: after.served,
+		servedTotal: after.servedTotal,
+		requests: after.requests,
+		missed: after.missed,
+		outside: after.outside,
+		originCpuMs: ((after.cpuUs as number) - (before.cpuUs as number)) / 1000,
+		navErrors
+	});
+	await sleep(QUIET_MS);
+}
+
+const PERF_METRICS = [
+	'ScriptDuration',
+	'LayoutDuration',
+	'RecalcStyleDuration',
+	'TaskDuration',
+	'JSHeapUsedSize'
+] as const;
+
+/** the cumulative page metrics of one tab, as the browser reports them */
+async function performanceMetrics(cdp: import('playwright').CDPSession): Promise<Raw> {
+	const { metrics } = (await cdp.send('Performance.getMetrics')) as {
+		metrics: Array<{ name: string; value: number }>;
+	};
+	return Object.fromEntries(
+		PERF_METRICS.map((name) => {
+			const found = metrics.find((m) => m.name === name);
+			if (!found) throw new Error(`Performance.getMetrics has no ${name}`);
+			return [name, found.value];
+		})
+	);
+}
+
+/**
+ * A repeat view: `navs` pairs, each in a fresh context. The first navigation of a pair fills the HTTP
+ * cache and is not metered; after the same quiet period its tab closes. Then every pair's second
+ * navigation runs in a new tab of the same context, inside one meter window, so the window holds
+ * the repeat views only and the cache is the only thing that carries over.
+ */
+async function warmWindow(
+	config: Config,
+	meter: Meter,
+	page: ReturnType<typeof corpusPages>[number],
+	round: number,
+	version: string
+) {
+	const { chromium } = await import('playwright');
+	await get(CONTROL_PORT, `/select?id=${page.id}&arm=original`, {}, false);
+	const spki = spkiOf(readFileSync(join(config.pages, 'tls', 'cert.pem'), 'utf8'));
+	const browser = await chromium.launch({
+		channel: 'chromium',
+		args: warmReplayArgs(REPLAY_PORT, spki)
+	});
+	const userAgentOf = userAgent(version);
+	const contexts: Array<import('playwright').BrowserContext> = [];
+	let navErrors = 0;
+	for (let i = 0; i < config.navs; i++) {
+		const context = await browser.newContext({
+			serviceWorkers: 'block',
+			userAgent: userAgentOf,
+			viewport: VIEWPORT
+		});
+		const tab = await context.newPage();
+		await tab.goto(page.url, { waitUntil: 'load', timeout: 45_000 }).catch(() => {
+			navErrors++;
+		});
+		await sleep(QUIET_MS);
+		await tab.close();
+		contexts.push(context);
+	}
+	const before = await statsOf();
+	const metrics: Array<{ before: Raw; after: Raw }> = [];
+	const w = await meter.window(async () => {
+		for (const context of contexts) {
+			const tab = await context.newPage();
+			const cdp = await context.newCDPSession(tab);
+			await cdp.send('Performance.enable');
+			const start = await performanceMetrics(cdp);
+			await tab.goto(page.url, { waitUntil: 'load', timeout: 45_000 }).catch(() => {
+				navErrors++;
+			});
+			await sleep(QUIET_MS);
+			metrics.push({ before: start, after: await performanceMetrics(cdp) });
+			await tab.close();
+		}
+	});
+	const after = await statsOf();
+	for (const context of contexts) await context.close();
+	await browser.close();
+	const delta = (key: string) => (after[key] as number) - (before[key] as number);
+	const servedBefore = before.served as Raw;
+	const served = Object.fromEntries(
+		Object.entries(after.served as Raw).map(([c, v]) => [c, (v as number) - servedBefore[c]])
+	);
+	emit(config, {
+		arm: 'warm',
+		page: page.id,
+		site: page.site,
+		round,
+		navs: config.navs,
+		elapsedMs: w.elapsedMs,
+		pkgJ: w.pkgJ,
+		load0: w.load0,
+		load1: w.load1,
+		otherCpuMs: w.others,
+		served,
+		servedTotal: delta('servedTotal'),
+		requests: delta('requests'),
+		missed: delta('missed'),
+		outside: delta('outside'),
+		originCpuMs: ((after.cpuUs as number) - (before.cpuUs as number)) / 1000,
+		navErrors,
+		warmServed: delta('requests') - delta('missed') - delta('outside'),
+		warmRevalidated: delta('conditional'),
+		warm304: delta('notModified'),
+		warmMetrics: metrics
+	});
+	await sleep(QUIET_MS);
+}
+
+const CHUNK_PORT = 8981;
+
+/** the windows of a chunk-split run and the floor of its wall time: quiet periods and idle windows, before page loads */
+export function chunkSchedule(rounds: number, idleS: number, navs: number) {
+	const windows = rounds * CHUNK_ARMS.length;
+	const idleWindows = Math.ceil(windows / 6);
+	const windowS = (navs + 1) * (QUIET_MS / 1000);
+	return {
+		arms: CHUNK_ARMS.length,
+		windows,
+		idleWindows,
+		windowS,
+		wallFloorS: windows * windowS + idleWindows * (idleS + 2)
+	};
+}
+
+/** the origin's counters before and after one window, and each navigation's Chromium metrics */
+async function chunkWindow(config: Config, meter: Meter, arm: ChunkArm, round: number) {
+	const { chromium } = await import('playwright');
+	const url = `http://127.0.0.1:${CHUNK_PORT}/k/${arm.chunks}/`;
+	const browser = await chromium.launch({ channel: 'chromium' });
+	let navErrors = 0;
+	const navMetrics: Array<{ before: Raw; after: Raw }> = [];
+	const before = await stats(CHUNK_PORT);
+	const w = await meter.window(async () => {
+		for (let i = 0; i < config.navs; i++) {
+			const context = await browser.newContext({
+				serviceWorkers: 'block',
+				viewport: VIEWPORT
+			});
+			const tab = await context.newPage();
+			const cdp = await context.newCDPSession(tab);
+			await cdp.send('Performance.enable');
+			const start = await performanceMetrics(cdp);
+			await tab.goto(url, { waitUntil: 'load', timeout: 45_000 }).catch(() => {
+				navErrors++;
+			});
+			await sleep(QUIET_MS);
+			navMetrics.push({ before: start, after: await performanceMetrics(cdp) });
+			await context.close();
+		}
+	});
+	const after = await stats(CHUNK_PORT);
+	await browser.close();
+	emit(config, {
+		arm: 'chunks',
+		chunks: arm.chunks,
+		rttMs: arm.rttMs,
+		round,
+		navs: config.navs,
+		elapsedMs: w.elapsedMs,
+		pkgJ: w.pkgJ,
+		load0: w.load0,
+		load1: w.load1,
+		otherCpuMs: w.others,
+		requests: after.requests - before.requests,
+		servedTotal: after.servedTotal - before.servedTotal,
+		originCpuMs: ((after.cpuUs as number) - (before.cpuUs as number)) / 1000,
+		navErrors,
+		navMetrics
+	});
+	await sleep(QUIET_MS);
+}
+
+/** cold navigations of one page served as 1, 5, 25 or 50 files, at 0 and 40 ms of emulated delay */
+async function runChunkSplit(config: Config, meter: Meter) {
+	const origin = spawn('node', [join(HERE, 'rapl-chunk.ts')], {
+		stdio: 'inherit',
+		env: { ...process.env, PORT: String(CHUNK_PORT) }
+	});
+	try {
+		for (let i = 0; ; i++) {
+			try {
+				await stats(CHUNK_PORT);
+				break;
+			} catch {
+				if (i > 40) throw new Error('the chunk origin did not answer within 10 s');
+				await sleep(250);
+			}
+		}
+		let windows = 0;
+		for (let round = 0; round < config.rounds; round++) {
+			for (const arm of rotate(CHUNK_ARMS, round)) {
+				if (windows % 6 === 0) await idleWindow(meter, config, round);
+				await get(CHUNK_PORT, `/__rtt?ms=${arm.rttMs}`, {}, false);
+				await chunkWindow(config, meter, arm, round);
+				windows++;
+			}
+		}
+	} finally {
+		origin.kill();
+	}
+}
+
+/** merges `patch` into the run's meta file */
+function patchMeta(raw: string, patch: Raw) {
+	const path = `${raw}.meta.json`;
+	const meta = JSON.parse(readFileSync(path, 'utf8')) as Raw;
+	writeFileSync(path, `${JSON.stringify({ ...meta, ...patch }, null, '\t')}\n`);
 }
 
 // #endregion
@@ -1545,6 +2117,138 @@ export function publishDraft(
 			rows: raw.map((r) => stripRow(r))
 		};
 	}
+	if (experiment === 'first-view') {
+		if (raw.some((r) => r.pkgJ === null)) {
+			throw new Error(
+				'first-view rows have no package joules (the run used --no-meter); no reading is written'
+			);
+		}
+		const corpus = meta.corpus as FirstViewCorpus;
+		const missed = [
+			...new Set(raw.filter((r) => Number(r.missed) > 0).map((r) => String(r.page)))
+		];
+		return {
+			...base,
+			question:
+				'package joules per first view of recorded public pages, served by a local replay of the recorded responses, with the same pages served again with their embeds as facades where an iframe changes',
+			machine,
+			software: { browser: String(meta.browser ?? 'unknown') },
+			method: {
+				corpus: {
+					pages: corpus.pages.length,
+					sites: corpus.sites,
+					'wire bytes': corpus.wireBytes,
+					'recorded on': corpus.date
+				},
+				'corpus pages': corpus.pages,
+				'navigations per window': meta.navs,
+				'quiet period ms': QUIET_MS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows': 'one before the first window and one after every 6 windows',
+				'arm order':
+					'pages rotated per round; the facade arm runs only on a page whose iframes the rewrite changes, and its order rotates too',
+				replay: 'Chromium through host-resolver-rules to a local HTTPS server that sends each recorded response with its recorded content-encoding; a new cold context per navigation; no service worker, no cache; requests to hosts the page never used are counted apart as outside',
+				'pages with missed requests': missed,
+				'origin CPU':
+					'the replay server runs on this host, so its CPU is inside the package counter; each row carries its CPU as originCpuMs and it is not subtracted',
+				'energy counter range uJ': meta.range
+			},
+			exclusions: [
+				...EXCLUSIONS,
+				...corpus.excluded.map((e) => `corpus page excluded, ${e}`)
+			],
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'first-view-warm') {
+		if (raw.some((r) => r.pkgJ === null)) {
+			throw new Error(
+				'first-view-warm rows have no package joules (the run used --no-meter); no reading is written'
+			);
+		}
+		const corpus = meta.corpus as FirstViewCorpus;
+		const missed = [
+			...new Set(raw.filter((r) => Number(r.missed) > 0).map((r) => String(r.page)))
+		];
+		return {
+			...base,
+			question:
+				'package joules per repeat view of recorded public pages: the second of two navigations to the same page in one browser context, after a cold first view there, with the HTTP cache the replay headers allow',
+			machine,
+			software: { browser: String(meta.browser ?? 'unknown') },
+			method: {
+				corpus: {
+					pages: corpus.pages.length,
+					sites: corpus.sites,
+					'wire bytes': corpus.wireBytes,
+					'recorded on': corpus.date
+				},
+				'corpus pages': corpus.pages,
+				'navigations per window': meta.navs,
+				'quiet period ms': QUIET_MS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows': 'one before the first window and one after every 6 windows',
+				pairs: 'each navigation of a window is a fresh context: a cold view (not metered), the quiet period, the tab closed; then every pair runs its repeat view in a new tab of its own context, inside one meter window',
+				tls: 'the warm arm accepts only the replay certificate (--ignore-certificate-errors-spki-list); the cold arm accepts every certificate error (--ignore-certificate-errors). The handshake is the same. Whether accepting a certificate error changes the cost of a cold view has not been measured',
+				replay: 'as first-view: a local HTTPS server that sends each recorded response with its recorded content-encoding and its cache-control; the replay keeps no validators, so a repeat view cannot revalidate and a 304 is not sent',
+				'pages with missed requests': missed,
+				'origin CPU':
+					'the replay server runs on this host, so its CPU is inside the package counter; each row carries its CPU as originCpuMs and it is not subtracted',
+				'energy counter range uJ': meta.range
+			},
+			exclusions: [
+				...EXCLUSIONS,
+				...corpus.excluded.map((e) => `corpus page excluded, ${e}`)
+			],
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'chunk-split') {
+		if (raw.some((r) => r.pkgJ === null)) {
+			throw new Error(
+				'chunk-split rows have no package joules (the run used --no-meter); no reading is written'
+			);
+		}
+		const summary = chunkSummary();
+		return {
+			...base,
+			question:
+				'package joules per cold navigation of one synthetic page of 50 classic scripts, served as 1, 5, 25 or 50 files of the same content, at 0 and 40 ms of emulated delay before each response',
+			machine,
+			software: {
+				browser: CHROMIUM,
+				origin: 'Node http server in the same container, HTTP/1.1 on loopback'
+			},
+			method: {
+				pieces: summary.pieces,
+				'piece bytes': summary.pieceBytes,
+				'file counts': [...CHUNK_COUNTS],
+				'bytes by file count': summary.arms,
+				compression:
+					'brotli quality 5, each file compressed on its own; scripts cache-control max-age=31536000, immutable; the page no-cache',
+				'page markup':
+					'the script tags differ by file count; the pieces and their work do not',
+				'emulated rtt ms': [...CHUNK_RTTS_MS],
+				'emulated rtt label':
+					'L3 condition: a fixed delay before each response stands in for a network and does not measure one',
+				'navigations per window': meta.navs,
+				'quiet period ms': QUIET_MS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows': 'one before the first window and one after every 6 windows',
+				'arm order': 'rotated per round; the eight arms alternate the two delays',
+				cache: 'a new context per navigation, so every navigation is cold',
+				'chromium metrics':
+					'Performance.getMetrics before and after each navigation in its own tab',
+				'origin CPU':
+					'the server runs on this host, so its CPU is inside the package counter; each row carries its CPU as originCpuMs and it is not subtracted',
+				'energy counter range uJ': meta.range
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
 	if (experiment === 'idle-activity') {
 		return {
 			...base,
@@ -1606,6 +2310,49 @@ export function publishDraft(
 				settle: 'the page loaded, a second tab opened and brought to the front, then 8 s before the window opens',
 				visibility:
 					'every row records document.visibilityState of the first tab at the end of its window, and a row that is not hidden stops the run'
+			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'idle-activity-tabs') {
+		return {
+			...base,
+			question:
+				'package joules per minute in a headed Chromium under a virtual display for one tab, for three tabs with every tab polling, for three tabs with one leader polling, for three quiet tabs, and for one tab hidden long enough for intensive throttling',
+			machine,
+			software: {
+				browser: CHROMIUM,
+				display: 'Xvfb through xvfb-run, no window manager',
+				driver: 'raw CDP over a WebSocket (no Playwright, which turns on focus emulation and makes every tab report visible)',
+				origin: 'Node http server in the same container'
+			},
+			method: {
+				arms: {
+					'tabs-1-poll':
+						'one tab, setInterval every 1000 ms with a fetch() of a 204 endpoint: the control',
+					'tabs-3-poll':
+						'three tabs in one window, each polling as tabs-1-poll does; the first is visible and the two others hidden',
+					'tabs-3-leader':
+						'three tabs; the tab that holds the Web Lock "poll" polls every 1000 ms and posts each result on a BroadcastChannel, and the other two only listen. The leader is written in the rig page, not in spool, which ships no leader election',
+					'tabs-3-quiet':
+						'three tabs in one window with no timers: the floor of three open tabs',
+					'poll-hidden-long':
+						'one tab polling as tabs-1-poll does, hidden for at least 330 s before its window opens, so that Chromium has started intensive throttling'
+				},
+				'window s': meta.windowS,
+				'long window s': meta.longWindowS,
+				rounds: meta.rounds,
+				'idle window s': meta.idleS,
+				'idle windows':
+					'four per round, no browser running; the drift between them is in the rows',
+				'arm order':
+					'rotated per round; an idle window before the first arm, after every second arm and after the last',
+				settle: 'the first tab loaded, the other tabs opened, the first tab brought to the front, then 8 s before a short window opens; a long window opens 330 s after the first tab was hidden',
+				'hidden time':
+					'hiddenForS on each row: seconds from the front tab last changing to the window start',
+				counts: 'pageEvents: polls sent by every tab in the window; leaderPolls: polls sent by the tab that held the lock; messages: BroadcastChannel messages received by every tab',
+				visibility:
+					'every row records document.visibilityState of each tab at the end of its window; a row whose tabs are not the expected set stops the run'
 			},
 			rows: raw.map((r) => stripRow(r))
 		};
@@ -1687,6 +2434,21 @@ export function publishDraft(
 					'no stylesheet pair of the sizing corpus had a dictionary that beat plain brotli by a margin the encode could show; the churned JavaScript aggregates did',
 				cache: 'every load asks for a new query string, which the dictionary match ignores, so no load is a cache hit'
 			},
+			rows: raw.map((r) => stripRow(r))
+		};
+	}
+	if (experiment === 'drupal-render') {
+		if (raw.some((r) => r.pkgJ === null)) {
+			throw new Error(
+				'drupal-render rows have no package joules (the run used --no-meter); no reading is written'
+			);
+		}
+		return {
+			...base,
+			question: DRUPAL_QUESTION,
+			machine,
+			software: drupalSoftware(meta),
+			method: drupalMethod(meta),
 			rows: raw.map((r) => stripRow(r))
 		};
 	}
@@ -1815,7 +2577,7 @@ export function publishDraft(
 // #endregion
 
 const HELP = `usage:
-  rapl.ts run <${EXPERIMENTS.join('|')}> [--rounds N] [--idle-s S] [--navs N] [--requests N] [--raw FILE] [--rapl DIR] [--cgroup DIR] [--mirror DIR] [--data DIR]
+  rapl.ts run <${EXPERIMENTS.join('|')}> [--rounds N] [--idle-s S] [--window-s S] [--long-window-s S] [--navs N] [--requests N] [--raw FILE] [--rapl DIR] [--cgroup DIR] [--mirror DIR] [--data DIR]
   rapl.ts publish <experiment> --raw FILE [--timer-raw FILE] [--gpu CSV] [--machine-json JSON] [--date D] [--out DIR] [--force]
   rapl.ts data [--data DIR]        builds the synthetic databases
   rapl.ts mirror <origin> <dir>    snapshots a site for the views and compute origins
@@ -1831,7 +2593,16 @@ export function plan(parsed: ReturnType<typeof parse>) {
 		idleS: config.idleS,
 		raw: config.raw,
 		rapl: config.rapl,
-		output: `measurements/rapl/${parsed.date ?? utcDate()}-${config.experiment}.json`
+		output: `measurements/rapl/${parsed.date ?? utcDate()}-${config.experiment}.json`,
+		...(config.experiment === 'idle-activity-tabs' && {
+			schedule: tabsPlan(config.rounds, config.idleS, config.windowS, config.longWindowS)
+		}),
+		...(config.experiment === 'chunk-split' && {
+			schedule: chunkSchedule(config.rounds, config.idleS, config.navs)
+		}),
+		...(config.experiment === 'drupal-render' && {
+			schedule: drupalPlan(config.rounds, config.idleS)
+		})
 	};
 }
 
@@ -1846,7 +2617,7 @@ if (isMain(import.meta.url)) {
 		console.log(buildAll(config.data).join('\n'));
 	} else if (command === 'run') {
 		writeFileSync(config.raw, '');
-		const meter = new Meter(config.rapl, config.cgroup);
+		const meter = new Meter(config.noMeter ? null : config.rapl, config.cgroup);
 		const meta: Raw = {
 			rounds: config.rounds,
 			idleS: config.idleS,
@@ -1858,7 +2629,9 @@ if (isMain(import.meta.url)) {
 			nreq: config.nreq,
 			model: config.model,
 			set: config.set,
-			ncpu: readdirSync('/sys/devices/system/cpu').filter((x) => /^cpu\d+$/.test(x)).length,
+			ncpu: config.noMeter
+				? cpus().length
+				: readdirSync('/sys/devices/system/cpu').filter((x) => /^cpu\d+$/.test(x)).length,
 			governor: config.governor,
 			started: new Date().toISOString()
 		};
@@ -1876,6 +2649,11 @@ if (isMain(import.meta.url)) {
 				}
 			).pages;
 		}
+		if (config.experiment === 'idle-activity-tabs') meta.longWindowS = config.longWindowS;
+		if (config.experiment === 'first-view' || config.experiment === 'first-view-warm') {
+			meta.corpus = firstViewCorpus(config.pages);
+			meta.meter = config.noMeter ? 'none' : 'rapl';
+		}
 		writeFileSync(`${config.raw}.meta.json`, `${JSON.stringify(meta, null, '\t')}\n`);
 		const runs: Record<Experiment, (c: Config, m: Meter) => Promise<void>> = {
 			views: runViews,
@@ -1889,7 +2667,12 @@ if (isMain(import.meta.url)) {
 			'image-encode': runImageEncode,
 			'dictionary-load': runDictionaryLoad,
 			'idle-activity': runIdleActivity,
-			'idle-activity-hidden': runIdleActivityHidden
+			'idle-activity-hidden': runIdleActivityHidden,
+			'idle-activity-tabs': runIdleActivityTabs,
+			'first-view': runFirstView,
+			'first-view-warm': runFirstView,
+			'drupal-render': runDrupalRender,
+			'chunk-split': runChunkSplit
 		};
 		await runs[config.experiment](config, meter);
 		writeFileSync(`${config.raw}.DONE`, new Date().toISOString());
