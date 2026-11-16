@@ -258,10 +258,8 @@ type SpoolWrites = {
 };
 
 test('two queued edits leave as one request and one origin write when the page is hidden, and a stale version parks', async ({
-	page,
-	browserName
+	page
 }) => {
-	test.skip(browserName !== 'chromium', 'declared writes are checked in Chromium only');
 	await fx.stop();
 	const db = new Map<string, { version: number; value: unknown }>();
 	let applies = 0;
@@ -475,10 +473,8 @@ const heldDatasets = (page: Page) =>
 	);
 
 test('a held principal query makes no request, and the next user sees only their own rows', async ({
-	page,
-	browserName
+	page
 }) => {
-	test.skip(browserName !== 'chromium', 'the counted case runs in Chromium');
 	const site = await startOrders();
 	try {
 		await page.goto(`${site.origin}/about`);
