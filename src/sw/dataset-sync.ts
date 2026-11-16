@@ -5,6 +5,7 @@ import {
 	type DatasetRequest,
 	type DatasetResponse
 } from '../protocol/dataset.js';
+import { HEADERS } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
 import type { DatasetStore, Staging } from './dataset.js';
 
@@ -16,10 +17,18 @@ export type DatasetRefusal =
 	| 'proof'
 	/** the server has no such dataset, or refused the request */
 	| 'unavailable'
+	/** the server declined the seed: the dataset does not beat v0.3 and native HTTP (`provision: 'auto'`) */
+	| 'declined'
 	/** the server's answer was not a dataset response, or its paging did not advance */
 	| 'bad-response'
 	/** the replica was wiped while the apply ran */
 	| 'epoch'
+	/** a principal dataset's answer named another partition than the one held, or none */
+	| 'partition'
+	/** the server answered a principal dataset with a sign-in request: the session ended */
+	| 'ended'
+	/** the server forbids this principal the dataset: its held rows were dropped */
+	| 'revoked'
 	/** the storage transaction failed, for example on quota */
 	| 'storage';
 
@@ -31,7 +40,7 @@ export type DatasetRefusal =
 export type DatasetOutcome = { name: string; requests: number } & (
 	| { status: 'seeded' | 'reseeded' | 'patched' | 'current'; cursor: number; rows: number }
 	| { status: 'offline' }
-	| { status: 'refused'; reason: DatasetRefusal }
+	| { status: 'refused'; reason: DatasetRefusal; by?: string | null }
 );
 
 /** what a sync needs from the worker around it */
@@ -43,13 +52,38 @@ export type DatasetSyncDeps = {
 	epoch(): number;
 	/** the most bytes of rows one dataset may use; undefined when the device cannot tell */
 	budget(): Promise<number | undefined>;
+	/**
+	 * Set for a principal dataset: reads what a response says about whose rows it carries before
+	 * anything in it is parsed. Anything but `ok` ends the sync with that refusal and applies nothing.
+	 */
+	guard?(response: Response): 'ok' | DatasetGuardVerdict;
 };
+
+/** why a guard stopped a response */
+export type DatasetGuardVerdict = 'partition' | 'ended' | 'revoked';
+
+/**
+ * The guard of a principal dataset held in `partition`: `401` ends the session, `403` revokes the
+ * dataset, and a success that does not name exactly this partition is another principal's or none.
+ */
+export function principalGuard(partition: string): NonNullable<DatasetSyncDeps['guard']> {
+	return (response) => {
+		if (response.status === 401) return 'ended';
+		if (response.status === 403) return 'revoked';
+		if (response.ok && response.headers.get(HEADERS.partition) !== partition)
+			return 'partition';
+		return 'ok';
+	};
+}
 
 /** seed pages followed before a sync gives up on a server whose paging does not end */
 export const DATASET_MAX_PAGES = 1000;
 
 class Refused extends Error {
-	constructor(readonly reason: DatasetRefusal) {
+	constructor(
+		readonly reason: DatasetRefusal,
+		readonly by?: string | null
+	) {
 		super(reason);
 	}
 }
@@ -74,6 +108,10 @@ export async function syncDataset(deps: DatasetSyncDeps, name: string): Promise<
 			`${origin}${PATHS.dataset}?${encodeDatasetRequest(request)}`,
 			{ cache: 'no-store', credentials: 'same-origin' }
 		);
+		const verdict = deps.guard?.(response) ?? 'ok';
+		if (verdict !== 'ok') throw new Refused(verdict);
+		if (response.status === 409)
+			throw new Refused('declined', response.headers.get(HEADERS.provisionReason));
 		if (response.status === 400 || response.status === 404) throw new Refused('unavailable');
 		if (!response.ok) throw new TypeError(`dataset answered ${response.status}`);
 		const parsed = parseDatasetResponse(await response.json());
@@ -87,6 +125,7 @@ export async function syncDataset(deps: DatasetSyncDeps, name: string): Promise<
 		status: 'seeded' | 'reseeded' | 'patched'
 	): Promise<DatasetOutcome> => {
 		try {
+			if (deps.epoch() !== epoch) throw new Refused('epoch');
 			if (!(await store.commit(staging, at, epoch))) throw new Refused('epoch');
 		} catch (error) {
 			if (error instanceof Refused) throw error;
@@ -153,8 +192,13 @@ export async function syncDataset(deps: DatasetSyncDeps, name: string): Promise<
 		await store.drop(name);
 		return await seed(undefined, 'reseeded', false);
 	} catch (error) {
-		if (error instanceof Refused)
-			return { name, requests, status: 'refused', reason: error.reason };
+		if (error instanceof Refused) {
+			// the server stopped admitting this principal to the dataset, so no row of it stays
+			if (error.reason === 'revoked' && deps.epoch() === epoch) {
+				await store.drop(name).catch(() => undefined);
+			}
+			return { name, requests, status: 'refused', reason: error.reason, by: error.by };
+		}
 		if (error instanceof ProtocolError) {
 			return { name, requests, status: 'refused', reason: 'bad-response' };
 		}

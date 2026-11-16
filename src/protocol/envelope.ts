@@ -10,7 +10,8 @@ export const HEADERS = {
 	vector: 'spool-vector',
 	partition: 'spool-partition',
 	vectorSeen: 'spool-vector-seen',
-	provision: 'spool-provision'
+	provision: 'spool-provision',
+	provisionReason: 'spool-provision-reason'
 } as const;
 
 /** `Spool-Clear` token that wipes everything the worker holds */

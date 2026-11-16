@@ -1,5 +1,5 @@
 import { gzipSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	datasetProof,
 	defineRoute,
@@ -805,32 +805,27 @@ describe('a static copy that is not kept', () => {
 	it.each(cases)(
 		'hands the visitor %s, cancels its copy, keeps nothing, and asks the network again',
 		async (_name, status, text, make) => {
-			const copies: Response[] = [];
-			const r = rig({
-				routes: [...routes, file],
-				app: (request) =>
-					new URL(request.url).pathname.startsWith('/file/') ? make() : undefined,
-				fetchWrap: (response) => {
-					const clone = response.clone.bind(response);
-					response.clone = () => {
-						const copy = clone();
-						copies.push(copy);
-						return copy;
-					};
-					return response;
-				}
-			});
-			const first = await r.drive(sub('/file/a'));
-			expect(first.status).toBe(status);
-			expect(await first.text()).toBe(text);
-			expect(copies).toHaveLength(1);
-			const [copy] = copies;
-			expect(copy?.body === null || copy?.bodyUsed).toBe(true);
-			expect(await r.runtime.replica.ids()).toEqual([]);
+			const cancelled = vi.spyOn(ReadableStream.prototype, 'cancel');
+			try {
+				const r = rig({
+					routes: [...routes, file],
+					app: (request) =>
+						new URL(request.url).pathname.startsWith('/file/') ? make() : undefined
+				});
+				const first = await r.drive(sub('/file/a'));
+				expect(first.status).toBe(status);
+				expect(await first.text()).toBe(text);
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				// a body-less answer has no copy stream to cancel
+				expect(cancelled).toHaveBeenCalledTimes(text === '' ? 0 : 1);
+				expect(await r.runtime.replica.ids()).toEqual([]);
 
-			r.log.length = 0;
-			await r.drive(sub('/file/a'));
-			expect(r.log).toEqual(['GET /file/a']);
+				r.log.length = 0;
+				await r.drive(sub('/file/a'));
+				expect(r.log).toEqual(['GET /file/a']);
+			} finally {
+				cancelled.mockRestore();
+			}
 		}
 	);
 });

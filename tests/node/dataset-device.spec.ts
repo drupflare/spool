@@ -1,16 +1,20 @@
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
 	applyChanges,
 	canonicalJson,
+	compileTemplate,
 	defineDataset,
 	digestAdd,
 	digestSub,
 	equivalent,
+	interpretTemplate,
 	PROOF_MISMATCH,
 	rowHash,
 	setProof,
 	type Dataset,
-	type DatasetResponse
+	type DatasetResponse,
+	type QueryPlan
 } from '../../src/protocol/index';
 import { createSpool, defineRoute, type Spool } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
@@ -297,6 +301,16 @@ async function expectHeld(h: Harness, name = NAME): Promise<void> {
 // #endregion
 
 describe('a first load', () => {
+	it('is refused as declined by a seed the server declines, and holds nothing', async () => {
+		const dir = await Directory.make(300);
+		const h = device(dir);
+		const declined = { ...directory(dir), provision: 'auto' as const };
+		h.useSpool(createSpool({ routes: [], store: memoryStore(), datasets: [declined] }));
+		expect(await h.sync()).toMatchObject({ status: 'refused', reason: 'declined' });
+		expect(h.requests).toHaveLength(1);
+		expect(await h.replica.datasets.get(NAME)).toBeFalsy();
+	});
+
 	it('seeds in one request, holds every row, and keeps the backend digest', async () => {
 		const dir = await Directory.make(200);
 		const h = device(dir);
@@ -807,7 +821,7 @@ const browse = (rows: Row[], search: string) => {
 	return { items: items.slice((page - 1) * 10, page * 10), total: items.length, page, pages };
 };
 
-async function queryRig() {
+async function queryRig(provision?: 'auto') {
 	const dir = await Directory.make(300);
 	const apps: string[] = [];
 	const app = (request: Request): Response => {
@@ -873,7 +887,7 @@ async function queryRig() {
 			})
 		],
 		app,
-		spool: { datasets: [directory(dir)] }
+		spool: { datasets: [{ ...directory(dir), ...(provision ? { provision } : {}) }] }
 	});
 	const get = async (r2: typeof r, path: string, target = r2.runtime) =>
 		(await r2.drive(sub(path), target)).text();
@@ -1049,6 +1063,39 @@ describe('a route that answers queries from the rows the device holds', () => {
 		});
 	});
 
+	it('refuses a seed the server declines as declined, counts it once, and does not ask again', async () => {
+		const { r } = await queryRig('auto');
+		const runtime = r.make();
+		for (let i = 0; i < 4; i++) await r.drive(sub('/api/directory'), runtime);
+		const status = await runtime.message({ type: 'spool:datasets' });
+		expect(status).toMatchObject({
+			type: 'spool:datasets',
+			datasets: [],
+			refused: { directory: 'declined' },
+			declined: { directory: 'native' },
+			outcomes: { 'directory:refused:declined': 1 }
+		});
+	});
+
+	it('sends a view after a declined dataset to the network, with no artifact or dataset request', async () => {
+		const { r } = await queryRig('auto');
+		const runtime = r.make();
+		await r.drive(sub('/api/directory'), runtime);
+		await r.drive(sub('/api/directory'), runtime);
+		r.reset();
+		await r.drive(sub('/api/directory'), runtime);
+		expect(r.log).toEqual(['GET /api/directory']);
+	});
+
+	it('answers a navigation to a route whose dataset was declined with the v0.3 requests, and no dataset request', async () => {
+		const { r } = await queryRig('auto');
+		const runtime = r.make();
+		for (let i = 0; i < 4; i++) await r.drive(sub('/api/directory'), runtime);
+		r.reset();
+		await r.visit('/browse', runtime);
+		expect(r.log).toEqual(['GET /browse', 'GET /.spool/artifact']);
+	});
+
 	it('tells the pages once, after the first dataset is held, to ask for persistent storage', async () => {
 		const { r } = await queryRig();
 		const told: unknown[] = [];
@@ -1188,3 +1235,199 @@ describe('declaring the rows a query route answers from', () => {
 		);
 	});
 });
+
+// #region a template renders rows a plan answers from the held datasets
+
+const PLAN: QueryPlan = {
+	from: ['id', 'dept'],
+	join: [{ dataset: 'other', on: ['id', null], type: 'left', as: 'o', fields: ['title'] }],
+	where: [{ field: 'dept', op: 'eq', param: 'dept', type: 'string' }],
+	group: { by: ['dept'], aggregates: { n: 'count', t: { min: 'o.title' } } },
+	pageSize: 10,
+	limit: 100
+};
+const PLAN_SOURCE =
+	'<main>{{#each rows}}<i>{{dept}} {{n}} {{t}}</i>{{/each}}<p>{{query.total}}</p></main>';
+const planTemplate = compileTemplate({ source: PLAN_SOURCE });
+
+/** the page the template makes of the rows, as the device must produce it */
+const planPage = (rows: unknown[]) =>
+	interpretTemplate(planTemplate, {
+		title: 'directory',
+		rows,
+		query: { total: rows.length, page: 1, pages: 1 }
+	});
+
+/** the group rows of the plan, as SQLite gives them for the visible rows of the directory */
+function planOracle(dir: Directory, dept?: string): unknown[] {
+	const db = new DatabaseSync(':memory:');
+	db.exec('CREATE TABLE base (id, dept, title)');
+	db.exec('CREATE TABLE other (id, dept, title)');
+	const insertBase = db.prepare('INSERT INTO base VALUES (?,?,?)');
+	const insertOther = db.prepare('INSERT INTO other VALUES (?,?,?)');
+	for (const row of dir.visibleRows()) {
+		insertBase.run(row.id, row.dept, row.title);
+		insertOther.run(row.id, row.dept, row.title);
+	}
+	const where = dept === undefined ? '' : 'WHERE b.dept = ?';
+	const args = dept === undefined ? [] : [dept];
+	const rows = db
+		.prepare(
+			`SELECT b.dept AS dept, COUNT(*) AS n, MIN(o.title) AS t FROM base b LEFT JOIN other o ON o.id = b.id ${where} GROUP BY b.dept ORDER BY b.dept`
+		)
+		.all(...args);
+	db.close();
+	return rows;
+}
+
+async function planRig() {
+	const dir = await Directory.make(300);
+	const app = (request: Request): Response => {
+		const url = new URL(request.url);
+		if (url.pathname !== '/plan')
+			return new Response('missing', { status: 404, headers: HTML });
+		const dept = url.searchParams.get('dept') ?? undefined;
+		return new Response(planPage(planOracle(dir, dept)), { headers: HTML });
+	};
+	const r = rig({
+		routes: [
+			defineRoute('/plan', {
+				strategy: 'template',
+				query: { list: 'rows', dataset: NAME, plan: PLAN },
+				template: { source: PLAN_SOURCE },
+				load: () => ({ title: 'directory' })
+			})
+		],
+		app,
+		spool: { datasets: [directory(dir), directory(dir, 'v1', 'other')] }
+	});
+	return { dir, r };
+}
+
+describe('a template route whose rows a plan answers from the held datasets', () => {
+	it('refuses a spool whose plan joins a dataset it does not serve', async () => {
+		const dir = await Directory.make(10);
+		expect(() =>
+			createSpool({
+				routes: [
+					defineRoute('/plan', {
+						strategy: 'template',
+						query: { list: 'rows', dataset: NAME, plan: PLAN },
+						template: { source: PLAN_SOURCE },
+						load: () => ({})
+					})
+				],
+				datasets: [directory(dir)],
+				store: memoryStore()
+			})
+		).toThrow('join dataset "other" is not declared');
+	});
+
+	it('renders the oracle rows with zero requests, filtered and unfiltered', async () => {
+		const { dir, r } = await planRig();
+		await r.visit('/plan');
+		await r.visit('/plan');
+		r.reset();
+		const all = await r.visit('/plan');
+		expect(r.log).toEqual([]);
+		expect(all).toContain(planPage(planOracle(dir)));
+		const math = await r.visit('/plan?dept=math');
+		expect(r.log).toEqual([]);
+		expect(math).toContain(planPage(planOracle(dir, 'math')));
+		expect(planOracle(dir)).toHaveLength(3);
+	});
+
+	it('answers from the patched rows once a patch lands, and not from the rows it replaced', async () => {
+		const { dir, r } = await planRig();
+		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=cs');
+		const before = await r.visit('/plan?dept=cs');
+		const target = dir.visibleRows().find((row) => row.dept === 'cs') as Row;
+		await dir.edit(target.id, { title: 'AAA first' });
+		r.advance(901);
+		await r.visit('/plan?dept=cs');
+		r.reset();
+		const after = await r.visit('/plan?dept=cs');
+		expect(r.log).toEqual([]);
+		expect(after).not.toBe(before);
+		expect(after).toContain(planPage(planOracle(dir, 'cs')));
+		expect(after).toContain('AAA first');
+	});
+
+	it('leaves a row out of the group it left when its department changes', async () => {
+		const { dir, r } = await planRig();
+		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=art');
+		await r.visit('/plan?dept=art');
+		const moved = dir.visibleRows().find((row) => row.dept === 'cs') as Row;
+		await dir.edit(moved.id, { dept: 'art' });
+		r.advance(901);
+		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=cs');
+		r.reset();
+		const cs = await r.visit('/plan?dept=cs');
+		expect(r.log).toEqual([]);
+		expect(cs).toContain(planPage(planOracle(dir, 'cs')));
+		r.reset();
+		const art = await r.visit('/plan?dept=art');
+		expect(r.log).toEqual([]);
+		expect(art).toContain(planPage(planOracle(dir, 'art')));
+	});
+
+	it('renders a joined field by its dotted name, and empty for a left join with no match', async () => {
+		const dir = await Directory.make(300);
+		const other = await Directory.make(300);
+		await other.remove('c00000');
+		await other.remove('c00003');
+		const source = '<main>{{#each rows}}<i>{{id}} {{o.title}}</i>{{/each}}</main>';
+		const joined: QueryPlan = {
+			from: ['id', 'dept'],
+			join: [
+				{ dataset: 'other', on: ['id', null], type: 'left', as: 'o', fields: ['title'] }
+			],
+			pageSize: 10,
+			limit: 1000
+		};
+		const r = rig({
+			routes: [
+				defineRoute('/joined', {
+					strategy: 'template',
+					query: { list: 'rows', dataset: NAME, plan: joined },
+					template: { source },
+					load: () => ({ title: 'directory' })
+				})
+			],
+			app: () => {
+				const rows = dir
+					.visibleRows()
+					.slice(0, 10)
+					.map((row) => {
+						const theirs = other.rows.get(row.id);
+						return {
+							id: row.id,
+							dept: row.dept,
+							o: { title: visible(theirs) ? theirs.title : null }
+						};
+					});
+				return new Response(
+					interpretTemplate(compileTemplate({ source }), { title: 'directory', rows }),
+					{
+						headers: HTML
+					}
+				);
+			},
+			spool: { datasets: [directory(dir), directory(other, 'v1', 'other')] }
+		});
+		await r.visit('/joined');
+		await r.visit('/joined');
+		r.reset();
+		const page = await r.visit('/joined');
+		expect(r.log).toEqual([]);
+		expect(page).toContain('<i>c00001 Item 0001</i>');
+		expect(page).toContain('<i>c00000 </i>');
+		expect(page).toContain('<i>c00003 </i>');
+	});
+});
+
+// #endregion

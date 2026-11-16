@@ -95,6 +95,9 @@ describe('collector config', () => {
 		);
 		expect(matchCollector(list, 'https://www.google-analytics.com/other')).toBeUndefined();
 		expect(matchCollector(list, 'http://www.google-analytics.com/g/collect')).toBeUndefined();
+		expect(
+			matchCollector(list, 'https://www.google-analytics.com/debug/mp/collect')
+		).toBeUndefined();
 		expect(matchCollector(list, 'not a url')).toBeUndefined();
 		expect(matchCollector(undefined, GA)).toBeUndefined();
 	});
@@ -362,6 +365,23 @@ describe('held collector requests in the worker', () => {
 		);
 		expect(response.status).toBe(404);
 		expect(w.r.log).toEqual(['POST /g/collect']);
+	});
+
+	it('holds a collect hit with no event name or an invalid one, and sends it to the sink without a Measurement Protocol request', async () => {
+		const w = ga4World();
+		await w.r.visit('/page/1');
+		w.r.reset();
+		await w.r.drive(sub(hit('&dl=https%3A%2F%2Fa.test%2F'), { method: 'POST', body: '' }));
+		await w.r.drive(sub(hit('&en=1bad'), { method: 'POST', body: '' }));
+		expect(w.r.log).toEqual([]);
+		w.r.advance(3 * 3600);
+		await w.r.visit('/page/2');
+		w.sync();
+		await w.r.drive(sub('/form', { method: 'POST', body: 'x' }));
+		expect(w.mp).toEqual([]);
+		expect(w.analytics.sent).toBe(0);
+		expect(w.analytics.dropped).toBe(0);
+		expect(w.sink.events.filter((e) => e.path === '/g/collect')).toHaveLength(2);
 	});
 });
 

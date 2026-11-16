@@ -2,6 +2,7 @@ import type { AssemblyBody, Scope } from './artifact.js';
 import { ProtocolError } from './errors.js';
 import type { Collector } from './graph.js';
 import { checkPattern, matchPattern, type Params } from './pattern.js';
+import { checkPlan } from './plan.js';
 import { DATASET_NAME, type QuerySchema } from './query.js';
 import { compileTemplate, type CompiledTemplate, type TemplateSource } from './template/compile.js';
 import type { Mode } from './view.js';
@@ -272,7 +273,7 @@ function bad(pattern: string, message: string): never {
 	throw new ProtocolError('bad-route', `${pattern}: ${message}`);
 }
 
-const QUERY_KEYS = ['list', 'filter', 'sort', 'pageSize', 'key', 'dataset'];
+const QUERY_KEYS = ['list', 'filter', 'sort', 'pageSize', 'key', 'dataset', 'plan'];
 const RESERVED = ['sort', 'page'];
 
 /** the validated copy of a route's `query`; throws `bad-route` for a schema the worker could not apply */
@@ -333,6 +334,14 @@ function checkQuery(pattern: string, value: unknown): QuerySchema {
 		}
 		if (key !== undefined) return bad(pattern, 'query.key and query.dataset are exclusive');
 		out.dataset = dataset;
+	}
+	const { plan } = given;
+	if (plan !== undefined) {
+		if (dataset === undefined) return bad(pattern, 'query.plan needs query.dataset');
+		if (filter !== undefined || sort !== undefined || pageSize !== undefined) {
+			return bad(pattern, 'query.plan replaces query.filter, query.sort and query.pageSize');
+		}
+		out.plan = checkPlan(pattern, plan);
 	}
 	return out;
 }
@@ -421,11 +430,17 @@ export function defineRoute(pattern: string, declaration: RouteDeclaration): Rou
 	}
 	const query = (declaration as { query?: unknown }).query;
 	if (query !== undefined) {
-		if (scope !== 'public') return bad(pattern, 'query applies to a public route');
 		if (!['template', 'projection', 'data'].includes(declaration.strategy)) {
 			return bad(pattern, `a ${declaration.strategy} route cannot declare query`);
 		}
 		route.query = checkQuery(pattern, query);
+		// a principal route holds no collection of its own; only a principal dataset can back it
+		if (scope === 'principal' && (route.query.dataset === undefined || route.query.plan)) {
+			return bad(
+				pattern,
+				'a principal route declares query only with query.dataset, without a plan'
+			);
+		}
 	}
 	if (declaration.strategy === 'template') {
 		if (!declaration.template) return bad(pattern, 'a template route needs a template');

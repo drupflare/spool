@@ -36,10 +36,11 @@ import {
 import { artifactTag, MAX_HAVE, parseHeld } from '../protocol/sync.js';
 import { clientTag, injectClientTag } from '../protocol/tag.js';
 import type { Mode } from '../protocol/view.js';
+import { serializeWrite, type Write } from '../protocol/write.js';
 import type { VersionStore } from '../stores/version-store.js';
 import { VERSION } from '../version.js';
 import { respondBeacon, type Bundle } from './beacon.js';
-import { respondDataset } from './dataset.js';
+import { respondDataset, type DatasetStats } from './dataset.js';
 import { CLIENT_CORE } from './embedded.js';
 import { partitionId, type IdentityOptions } from './identity.js';
 import type { Sink } from './sink.js';
@@ -47,6 +48,7 @@ import { compressedSize, type Sizer } from './size.js';
 import { workerResponse, workerScript } from './stub.js';
 import { json, respondSync } from './sync.js';
 import type { WorkSeries } from './work.js';
+import { createWriteServer } from './write.js';
 
 /** most changed tags a response carries inline before the worker is left to ask `/.spool/sync` */
 export const MAX_PIGGYBACK = 32;
@@ -63,6 +65,18 @@ export type SpoolOptions = {
 	store: VersionStore;
 	/** public datasets `/.spool/dataset` answers, each by its own name */
 	datasets?: readonly Dataset[];
+	/**
+	 * Lets `datasets` hold principal ones, whose rows differ per signed-in principal and which the
+	 * device keeps sealed in that principal's partition. Off by default: a principal dataset then
+	 * throws `bad-dataset`. Needs `identity`. Unreviewed.
+	 */
+	principalDatasets?: boolean;
+	/**
+	 * Declared last-value writes for principal routes, from `defineWrite`. Off unless `enabled` is
+	 * true: the worker then queues nothing and `/.spool/write` answers `writes-off`. Needs `identity`.
+	 * Unreviewed.
+	 */
+	writes?: { enabled?: boolean; classes: readonly Write[]; remember?: number };
 	identity?: IdentityOptions;
 	sink?: Sink;
 	/**
@@ -178,21 +192,83 @@ export function createSpool(options: SpoolOptions): Spool {
 		seen.add(route.pattern);
 	}
 	const datasets = new Map<string, Dataset>();
+	const principalOn = options.principalDatasets === true;
 	for (const dataset of options.datasets ?? []) {
 		if (datasets.has(dataset.name)) {
 			throw new ProtocolError('bad-dataset', `${dataset.name}: declared twice`);
+		}
+		if (dataset.scope === 'principal') {
+			if (!principalOn) {
+				throw new ProtocolError(
+					'bad-dataset',
+					`${dataset.name}: a principal dataset needs the principal datasets flag: set the principalDatasets option of createSpool`
+				);
+			}
+			if (!options.identity) {
+				throw new ProtocolError(
+					'bad-dataset',
+					`${dataset.name}: a principal dataset needs an identity option`
+				);
+			}
 		}
 		datasets.set(dataset.name, dataset);
 	}
 	for (const route of routes) {
 		const name = route.query?.dataset;
-		if (name !== undefined && !datasets.has(name)) {
+		if (name !== undefined) {
+			const dataset = datasets.get(name);
+			if (!dataset) {
+				throw new ProtocolError(
+					'bad-route',
+					`${route.pattern}: query.dataset "${name}" is not declared`
+				);
+			}
+			if (dataset.scope !== route.scope) {
+				throw new ProtocolError(
+					'bad-route',
+					`${route.pattern}: a ${route.scope} route cannot query the ${dataset.scope} dataset "${name}"`
+				);
+			}
+		}
+		for (const join of route.query?.plan?.join ?? []) {
+			if (!datasets.has(join.dataset)) {
+				throw new ProtocolError(
+					'bad-route',
+					`${route.pattern}: query.plan join dataset "${join.dataset}" is not declared`
+				);
+			}
+			if (datasets.get(join.dataset)?.scope !== route.scope) {
+				throw new ProtocolError(
+					'bad-route',
+					`${route.pattern}: query.plan join dataset "${join.dataset}" must be ${route.scope}`
+				);
+			}
+		}
+	}
+	const writes = [...(options.writes?.classes ?? [])];
+	const writeNames = new Set<string>();
+	for (const write of writes) {
+		if (writeNames.has(write.name)) {
+			throw new ProtocolError('bad-write', `${write.name}: declared twice`);
+		}
+		writeNames.add(write.name);
+		const target = routes.find((route) => route.pattern === write.path);
+		if (!target || target.scope !== 'principal') {
 			throw new ProtocolError(
-				'bad-route',
-				`${route.pattern}: query.dataset "${name}" is not declared`
+				'bad-write',
+				`${write.name}: path ${write.path} must be a declared principal route`
 			);
 		}
 	}
+	if (writes.length > 0 && !options.identity) {
+		throw new ProtocolError('bad-write', 'writes need an identity option');
+	}
+	const writesOn = options.writes?.enabled === true && writes.length > 0;
+	const writeServer = createWriteServer({
+		enabled: writesOn,
+		writes,
+		...(options.writes?.remember !== undefined ? { remember: options.writes.remember } : {})
+	});
 	const mode: Mode = options.mode ?? 'serve';
 	if (mode !== 'serve' && mode !== 'shadow') {
 		throw new ProtocolError('bad-route', `unknown mode "${String(mode)}"`);
@@ -226,6 +302,7 @@ export function createSpool(options: SpoolOptions): Spool {
 	const collectors = [...(options.collectors ?? [])];
 	checkCollectors(collectors);
 	const prior = priorFrom(options.provision);
+	const datasetStats = new Map<string, DatasetStats>();
 	const catalogueBytes = options.catalogueBytes ?? DEFAULT_CATALOGUE_BYTES;
 	if (!(Number.isFinite(catalogueBytes) && catalogueBytes >= 0)) {
 		throw new ProtocolError('bad-route', 'catalogueBytes must be a non-negative number');
@@ -264,6 +341,11 @@ export function createSpool(options: SpoolOptions): Spool {
 	if (logout.length > 0) config.logout = logout;
 	if (collectors.length > 0) config.collectors = collectors;
 	if (options.thirdParty) config.thirdParty = options.thirdParty;
+	if (writesOn) config.writes = writes.map(serializeWrite);
+	const principalSets = [...datasets.values()].flatMap((d) =>
+		d.scope === 'principal' ? [{ name: d.name, maxStaleMs: d.maxStaleMs as number }] : []
+	);
+	if (principalOn && principalSets.length > 0) config.principalDatasets = principalSets;
 	if (options.views === false) config.views = false;
 	let script: string | undefined;
 	const stub = () => workerResponse((script ??= workerScript(config, options.worker)));
@@ -359,7 +441,7 @@ export function createSpool(options: SpoolOptions): Spool {
 		}
 		for (const id of refs.rows ?? []) {
 			const at = splitRowId(id);
-			if (!at || !datasets.has(at.dataset)) {
+			if (!at || datasets.get(at.dataset)?.scope !== hit.route.scope) {
 				throw new ProtocolError(
 					'bad-artifact',
 					`${path} references row ${id} of no dataset here`
@@ -399,7 +481,9 @@ export function createSpool(options: SpoolOptions): Spool {
 		const trimmed = await trim(artifact, have);
 		if (weighed) {
 			const bytes = new TextEncoder().encode(JSON.stringify(trimmed)).length;
-			const budget = hit.route.provision?.maxBytes;
+			// a query.dataset route's rows are bounded by the dataset's maxBytes at its seed
+			const budget =
+				hit.route.query?.dataset === undefined ? hit.route.provision?.maxBytes : undefined;
 			if (budget !== undefined && bytes > budget) return { declined: 'budget' };
 			if (hit.route.scope === 'public') {
 				const mine = { ...prior, ...hit.route.provision };
@@ -453,7 +537,11 @@ export function createSpool(options: SpoolOptions): Spool {
 		if ('declined' in built) {
 			return new Response(null, {
 				status: 204,
-				headers: { 'cache-control': 'no-store', [HEADERS.provision]: 'declined' }
+				headers: {
+					'cache-control': 'no-store',
+					[HEADERS.provision]: 'declined',
+					[HEADERS.provisionReason]: built.declined
+				}
 			});
 		}
 		const headers: Record<string, string> = { [HEADERS.protocol]: String(PROTOCOL_VERSION) };
@@ -596,7 +684,26 @@ export function createSpool(options: SpoolOptions): Spool {
 			}
 			if (url.pathname === PATHS.artifact && get) return await respondArtifact(request, url);
 			if (url.pathname === PATHS.dataset && get) {
-				return await respondDataset(request, url, datasets);
+				return await respondDataset(
+					request,
+					url,
+					datasets,
+					{ prior, stats: datasetStats },
+					async () => {
+						const identity = await who(request);
+						if (!identity || !options.identity) return null;
+						return {
+							identity,
+							partition: await partitionId(
+								options.identity.secret,
+								identity.principal
+							)
+						};
+					}
+				);
+			}
+			if (url.pathname === PATHS.write) {
+				return await writeServer.respond(request, writesOn ? await who(request) : null);
 			}
 			if (url.pathname === PATHS.beacon) {
 				return await respondBeacon(request, sink, provide(request), catalogue(request));

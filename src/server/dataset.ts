@@ -10,7 +10,9 @@ import {
 } from '../protocol/dataset.js';
 import { HEADERS } from '../protocol/envelope.js';
 import { ProtocolError } from '../protocol/errors.js';
+import { datasetBenefit, type DatasetInputs, type ProvisionPrior } from '../protocol/provision.js';
 import { isSetProof, setProof, type SetProof } from '../protocol/query.js';
+import type { Identity } from '../protocol/route.js';
 import { json } from './sync.js';
 
 const encoder = new TextEncoder();
@@ -223,15 +225,165 @@ export async function answerDataset(
 	return seedOf(dataset, ask, ctx);
 }
 
-/** answers `/.spool/dataset`; `datasets` is keyed by name */
+/** days between a device's looks at a page, for the chance a native copy sees a change (L3) */
+export const NATIVE_LOOK_DAYS = 1;
+
+/** bytes of the 304 a plain HTTP cache gets back when nothing changed (L1, `measurements/dataset-baseline/2026-11-15.json`) */
+export const NOT_MODIFIED_BYTES = 220;
+
+const DAY_MS = 86_400_000;
+const PATCH_WEIGHT = 0.2;
+
+/** what the server has seen of one `provision: 'auto'` dataset, in memory */
+export type DatasetStats = {
+	/** compressed bytes of a full seed, once one has been built */
+	seedBytes?: number;
+	/** compressed bytes of a patch: the server's own one-update patch first, then an exponentially weighted mean of the patches answered */
+	patchBytes?: number;
+	/** the first and latest cursor the server answered, with the time */
+	first?: { cursor: number; at: number };
+	last?: { cursor: number; at: number };
+};
+
+/** the decision's inputs for one dataset; a size not seen yet takes its L3 stand-in */
+export function datasetInputs(
+	seed: number,
+	stats: DatasetStats,
+	prior: ProvisionPrior
+): DatasetInputs {
+	const perDay = updatesPerDay(stats) ?? prior.changesPerDay;
+	const changed = 1 - Math.exp(-perDay * NATIVE_LOOK_DAYS);
+	return {
+		seedBytes: seed,
+		patchBytes: stats.patchBytes ?? seed,
+		updatesPerDay: perDay,
+		v03: { seedBytes: seed, refetchBytes: seed },
+		nativeBytesPerView: changed * seed + (1 - changed) * NOT_MODIFIED_BYTES
+	};
+}
+
+function updatesPerDay(stats: DatasetStats): number | undefined {
+	const { first, last } = stats;
+	if (!first || !last || last.at <= first.at || last.cursor < first.cursor) return undefined;
+	return ((last.cursor - first.cursor) * DAY_MS) / (last.at - first.at);
+}
+
+async function gzipBytes(text: string): Promise<number> {
+	const packed = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+	return (await new Response(packed).arrayBuffer()).byteLength;
+}
+
+// walks every page of a seed without sending it, so the server knows what a device would fetch
+async function measureSeed(dataset: Dataset, stats: DatasetStats, ctx: DatasetContext) {
+	let total = 0;
+	let after: string | undefined;
+	for (;;) {
+		const ask: DatasetRequest =
+			after === undefined ? { name: dataset.name } : { name: dataset.name, after };
+		const body = await answerDataset(dataset, ask, ctx);
+		total += await gzipBytes(JSON.stringify(body));
+		if (body.next === undefined) break;
+		after = body.next;
+	}
+	stats.seedBytes = total;
+	return total;
+}
+
+// built before any device holds the dataset, so the first decision has a patch to weigh
+async function measurePatch(dataset: Dataset, stats: DatasetStats, ctx: DatasetContext) {
+	const { cursor } = await dataset.head(ctx);
+	if (cursor < 1) return;
+	const body = await answerDataset(
+		dataset,
+		{ name: dataset.name, schema: dataset.schema, since: cursor - 1 },
+		ctx
+	);
+	if (!body.reset) stats.patchBytes = await gzipBytes(JSON.stringify(body));
+}
+
+/** the admission inputs `respondDataset` needs from the server: its prior and what it has seen, by dataset name */
+export type Admission = { prior: ProvisionPrior; stats: Map<string, DatasetStats> };
+
+/** who is asking a principal dataset, and the `Spool-Partition` value that names them */
+export type DatasetPrincipal = { identity: Identity; partition: string };
+
+/**
+ * Answers a principal dataset. Everything the dataset's functions see comes from the identity the
+ * server resolved, never from the URL, and a request with no identity gets `401`. The answer is
+ * never shared-cacheable and names the partition it belongs to, which the device checks before it
+ * applies a row.
+ */
+async function respondPrincipalDataset(
+	request: Request,
+	url: URL,
+	dataset: Dataset,
+	ask: DatasetRequest,
+	who: (() => Promise<DatasetPrincipal | null>) | undefined
+): Promise<Response> {
+	const caller = who ? await who() : null;
+	if (!caller) return json({ error: 'sign in' }, 401, { 'cache-control': 'private, no-store' });
+	let body: DatasetResponse;
+	try {
+		body = await answerDataset(dataset, ask, { request, url, principal: caller.identity });
+	} catch (error) {
+		if (error instanceof ProtocolError && error.code === 'dataset-forbidden') {
+			return json({ error: 'forbidden' }, 403, { 'cache-control': 'private, no-store' });
+		}
+		throw error;
+	}
+	return json(body, 200, {
+		[HEADERS.protocol]: '1',
+		[HEADERS.partition]: caller.partition,
+		'cache-control': 'private, no-store'
+	});
+}
+
+/**
+ * answers `/.spool/dataset`; `datasets` is keyed by name. A `provision: 'auto'` dataset answers its
+ * first seed only while `datasetBenefit` says it beats both controls, and otherwise answers `409`
+ * with the control that bound.
+ */
 export async function respondDataset(
 	request: Request,
 	url: URL,
-	datasets: ReadonlyMap<string, Dataset>
+	datasets: ReadonlyMap<string, Dataset>,
+	admission: Admission,
+	who?: () => Promise<DatasetPrincipal | null>
 ): Promise<Response> {
 	const ask = parseDatasetRequest(url.searchParams);
 	const dataset = datasets.get(ask.name);
 	if (!dataset) return json({ error: 'no dataset' }, 404);
-	const body = await answerDataset(dataset, ask, { request, url });
+	if (dataset.scope === 'principal')
+		return respondPrincipalDataset(request, url, dataset, ask, who);
+	const ctx = { request, url };
+	if (dataset.provision !== 'auto') {
+		const body = await answerDataset(dataset, ask, ctx);
+		return json(body, 200, { [HEADERS.protocol]: '1' });
+	}
+	const stats = admission.stats.get(dataset.name) ?? {};
+	admission.stats.set(dataset.name, stats);
+	if (ask.since === undefined && ask.after === undefined) {
+		const seedBytes = stats.seedBytes ?? (await measureSeed(dataset, stats, ctx));
+		if (stats.patchBytes === undefined) await measurePatch(dataset, stats, ctx);
+		const inputs = datasetInputs(seedBytes, stats, admission.prior);
+		const decision = datasetBenefit(inputs, admission.prior);
+		if (!decision.ship) {
+			return json({ error: 'declined', controls: decision.controls }, 409, {
+				[HEADERS.provision]: 'declined',
+				[HEADERS.provisionReason]: decision.controls
+			});
+		}
+	}
+	const body = await answerDataset(dataset, ask, ctx);
+	const now = Date.now();
+	stats.first ??= { cursor: body.cursor, at: now };
+	stats.last = { cursor: body.cursor, at: now };
+	if (!body.reset) {
+		const bytes = await gzipBytes(JSON.stringify(body));
+		stats.patchBytes =
+			stats.patchBytes === undefined
+				? bytes
+				: (1 - PATCH_WEIGHT) * stats.patchBytes + PATCH_WEIGHT * bytes;
+	}
 	return json(body, 200, { [HEADERS.protocol]: '1' });
 }

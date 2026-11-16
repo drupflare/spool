@@ -1,6 +1,13 @@
 import { PROTOCOL_VERSION } from '../protocol/artifact.js';
 import { PATHS } from '../protocol/config.js';
-import type { Hello, Status, ViewId } from '../sw/runtime.js';
+import type {
+	WriteFlush,
+	WriteQueued,
+	WriteRefusal,
+	WriteResolved,
+	WriteStatus
+} from '../protocol/write.js';
+import type { Hello, Status, ViewId, WriteReply } from '../sw/runtime.js';
 import { closeOnPageHide, type Closable } from './lifecycle.js';
 
 /** what `register` takes */
@@ -33,7 +40,31 @@ export type SpoolClient = {
 	persisted(): boolean | null;
 	/** closes `db` when the page is hidden, so the page stays eligible for the back/forward cache */
 	track(db: Closable): () => void;
+	/**
+	 * Queues `value` as the newest for a declared write class and key, edited from `version`. Never
+	 * throws: it answers a refusal with a `code` while declared writes are off, the class is not
+	 * declared or no principal is signed in.
+	 */
+	write(
+		name: string,
+		key: string,
+		value: unknown,
+		version: string
+	): Promise<WriteQueued | WriteRefusal>;
+	/** sends every queued value now, one request per key; call it before a logout navigation */
+	flush(): Promise<({ ok: true } & WriteFlush) | WriteRefusal>;
+	/** the state of each queued value of the signed-in partition, without the values */
+	writes(): Promise<{ ok: true; writes: WriteStatus[] } | WriteRefusal>;
+	/** settles a conflicted key with the local value (re-based and flushed) or the server's */
+	resolve(
+		name: string,
+		key: string,
+		use: 'local' | 'server'
+	): Promise<WriteResolved | WriteRefusal>;
 };
+
+/** how long a flush may take to answer; the requests it sends are the wait */
+const FLUSH_WAIT_MS = 30_000;
 
 function ask<T>(worker: ServiceWorker, message: object, timeoutMs: number): Promise<T> {
 	return new Promise((resolve, reject) => {
@@ -84,6 +115,12 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 	container.addEventListener?.('message', (event) => {
 		const data = event.data as { type?: unknown; reason?: unknown } | null;
 		if (data?.type === 'spool:persist') void persist();
+		if (data?.type === 'spool:written') {
+			const { queued, flushed, conflicted } = data as unknown as WriteFlush;
+			(options.target ?? window).dispatchEvent(
+				new CustomEvent('spool:written', { detail: { queued, flushed, conflicted } })
+			);
+		}
 		if (data?.type !== 'spool:cleared') return;
 		(options.target ?? window).dispatchEvent(
 			new CustomEvent('spool:cleared', { detail: { reason: data.reason } })
@@ -102,6 +139,19 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 		{ type: 'spool:hello', protocol: PROTOCOL_VERSION },
 		timeout
 	);
+	// a write call never throws: a worker that is gone or silent is a refusal like any other
+	const askWrite = async <R>(
+		message: { type: WriteReply['type'] } & Record<string, unknown>,
+		waitMs = timeout
+	): Promise<R | WriteRefusal> => {
+		try {
+			const reply = await ask<WriteReply>(registration.active ?? active, message, waitMs);
+			if (reply?.type === message.type) return reply.result as R;
+		} catch {
+			// falls through to the refusal
+		}
+		return { ok: false, code: 'unavailable', message: 'the worker did not answer' };
+	};
 	return {
 		registration,
 		hello,
@@ -122,6 +172,12 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 				origins
 			}),
 		persisted: () => granted,
-		track: (db) => closeOnPageHide(db)
+		track: (db) => closeOnPageHide(db),
+		write: (name, key, value, version) =>
+			askWrite({ type: 'spool:write', name, key, value, version }),
+		flush: () => askWrite({ type: 'spool:flush' }, Math.max(timeout, FLUSH_WAIT_MS)),
+		writes: () => askWrite({ type: 'spool:writes' }),
+		resolve: (name, key, use) =>
+			askWrite({ type: 'spool:resolve', name, key, use }, Math.max(timeout, FLUSH_WAIT_MS))
 	};
 }

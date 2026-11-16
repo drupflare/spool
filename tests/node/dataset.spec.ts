@@ -160,6 +160,7 @@ type Options = {
 	pageSize?: number;
 	maxRows?: number;
 	maxBytes?: number;
+	provision?: 'always' | 'auto';
 };
 
 function directory(dir: Directory, options: Options = {}): Dataset<Row> {
@@ -169,6 +170,7 @@ function directory(dir: Directory, options: Options = {}): Dataset<Row> {
 		schema,
 		maxRows: options.maxRows ?? 100_000,
 		maxBytes: options.maxBytes ?? 100_000_000,
+		provision: options.provision,
 		key: (row) => row.id,
 		seed: (ctx) => {
 			dir.seeds += 1;
@@ -743,6 +745,86 @@ describe('the set proof', () => {
 			true
 		);
 		expect(await verifyProof(schema, { rows: [...rows].reverse(), proof })).toBe(false);
+	});
+});
+
+describe("provision: 'auto' on the seed", () => {
+	const seed = async (spool: Spool) =>
+		(await spool.respond(
+			new Request(`https://site.test/.spool/dataset?name=${NAME}`)
+		)) as Response;
+
+	it('refuses the seed with 409 and the control that bound at the default priors', async () => {
+		const dir = await Directory.make(100, 3);
+		await dir.put({ ...(dir.visibleRows()[0] as Row), title: 'changed once' });
+		await dir.put({ ...(dir.visibleRows()[1] as Row), title: 'changed twice' });
+		const spool = createSpool({
+			routes: [],
+			store: memoryStore(),
+			datasets: [directory(dir, { provision: 'auto' })]
+		});
+		const reply = await seed(spool);
+		expect(reply.status).toBe(409);
+		expect(reply.headers.get('spool-provision')).toBe('declined');
+		expect(reply.headers.get('spool-provision-reason')).toBe('native');
+		expect(await reply.json()).toEqual({ error: 'declined', controls: 'native' });
+	});
+
+	it('answers the seed when its priors make the dataset beat both controls', async () => {
+		const dir = await Directory.make(100, 3);
+		await dir.put({ ...(dir.visibleRows()[0] as Row), title: 'changed once' });
+		await dir.put({ ...(dir.visibleRows()[1] as Row), title: 'changed twice' });
+		const spool = createSpool({
+			routes: [],
+			store: memoryStore(),
+			datasets: [directory(dir, { provision: 'auto' })],
+			provision: { reuse: 1, futureViews: 1000 }
+		});
+		const reply = await seed(spool);
+		expect(reply.status).toBe(200);
+		expect(await reply.json()).toMatchObject({ reset: true, name: NAME });
+	});
+
+	it("answers every seed of a dataset that says 'always', at the default priors", async () => {
+		const spool = createSpool({
+			routes: [],
+			store: memoryStore(),
+			datasets: [directory(await Directory.make(100, 3), { provision: 'always' })]
+		});
+		expect((await seed(spool)).status).toBe(200);
+	});
+
+	it('refuses a provision value that is neither always nor auto', async () => {
+		const dir = await Directory.make(1, 0);
+		expect(() => directory(dir, { provision: 'sometimes' as never })).toThrow(
+			/provision must be "always" or "auto"/
+		);
+	});
+
+	it("holds a seed to the dataset's maxBytes, and not to the maxBytes of a route that reads it", async () => {
+		const route = defineRoute('/list', {
+			strategy: 'template',
+			template: { source: '<main></main>' },
+			query: { list: 'rows', dataset: NAME },
+			provision: { maxBytes: 10 },
+			depends: () => ['dataset'],
+			load: () => ({ rows: [] })
+		});
+		const served = createSpool({
+			routes: [route],
+			store: memoryStore(),
+			datasets: [directory(await Directory.make(3, 4))]
+		});
+		const page = await served.respond(
+			new Request('https://site.test/.spool/artifact?path=/list')
+		);
+		expect(page?.status).toBe(200);
+		const capped = createSpool({
+			routes: [],
+			store: memoryStore(),
+			datasets: [directory(await Directory.make(3, 4), { maxBytes: 10 })]
+		});
+		expect((await seed(capped)).status).toBe(400);
 	});
 });
 

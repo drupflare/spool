@@ -10,6 +10,7 @@ import {
 	rowHash,
 	setProof
 } from './query.js';
+import type { Identity } from './route.js';
 
 /** a row of a dataset: a flat or nested JSON object, replaced whole when it changes */
 export type DatasetRow = Plain;
@@ -20,6 +21,8 @@ export type DatasetContext = {
 	request: Request;
 	/** the request URL, parsed */
 	url: URL;
+	/** who is asking; set for a principal dataset and absent, not null, for a public one */
+	principal?: Identity;
 };
 
 /** what `seed` receives: the context, and the key after which to start when the request pages */
@@ -60,8 +63,18 @@ type MaybePromise<T> = T | Promise<T>;
 
 /** the declaration `defineDataset` takes */
 export type DatasetDeclaration<Row extends DatasetRow = DatasetRow> = {
-	/** `public` only; a principal dataset is not built yet */
-	scope: 'public';
+	/**
+	 * `public` rows are the same for everyone. A `principal` dataset holds rows that differ per
+	 * signed-in principal; it needs `maxStaleMs`, `defineDataset`'s `principalDatasets` option and
+	 * `createSpool`'s `principalDatasets` flag. Unreviewed.
+	 */
+	scope: 'public' | 'principal';
+	/**
+	 * Principal datasets only, and required there: how long held rows may answer a query after the
+	 * last sync that returned and verified. Past it the query goes to the network. It is also the
+	 * longest a device keeps serving rows after the server stopped admitting its principal.
+	 */
+	maxStaleMs?: number;
 	/** the row's key; unique, and stable while the row exists */
 	key(row: Row): string;
 	/**
@@ -85,6 +98,11 @@ export type DatasetDeclaration<Row extends DatasetRow = DatasetRow> = {
 	maxRows: number;
 	/** most bytes of row JSON a seed may hold */
 	maxBytes: number;
+	/**
+	 * `always` (the default) answers every seed. `auto` answers a seed only while `datasetBenefit`
+	 * says the dataset beats both v0.3 and native HTTP; otherwise the seed is refused with `409`.
+	 */
+	provision?: 'always' | 'auto';
 };
 
 /** a validated dataset */
@@ -99,26 +117,47 @@ function bad(name: string, message: string): never {
 	throw new ProtocolError('bad-dataset', `${name}: ${message}`);
 }
 
+/** what `defineDataset` may be told besides the declaration */
+export type DefineDatasetOptions = {
+	/** accept `scope: 'principal'`; `createSpool` still refuses it unless its own flag is on */
+	principalDatasets?: boolean;
+};
+
 /**
  * Declares a dataset. Validates the name, the scope and the limits and returns the declaration with
- * the name attached. Throws `bad-dataset` for a principal scope, which waits for the principal
- * datasets flag.
+ * the name attached. Throws `bad-dataset` for a principal scope unless `options.principalDatasets`
+ * is true, and for a principal dataset without a positive `maxStaleMs` or with `provision: 'auto'`.
  */
 export function defineDataset<Row extends DatasetRow = DatasetRow>(
 	name: string,
-	declaration: DatasetDeclaration<Row>
+	declaration: DatasetDeclaration<Row>,
+	options: DefineDatasetOptions = {}
 ): Dataset<Row> {
 	if (typeof name !== 'string' || !NAME.test(name)) {
 		return bad(String(name), 'a dataset name is 1 to 128 of letters, digits and . _ : -');
 	}
 	const scope: string = declaration.scope;
-	if (scope === 'principal') {
+	if (scope === 'principal' && options.principalDatasets !== true) {
 		return bad(
 			name,
-			'a principal dataset needs the principal datasets flag, which is not built yet; only scope "public" works'
+			'a principal dataset needs the principal datasets flag: pass { principalDatasets: true } here and set the principalDatasets option of createSpool'
 		);
 	}
-	if (scope !== 'public') return bad(name, `unknown scope "${scope}"`);
+	if (scope !== 'public' && scope !== 'principal') return bad(name, `unknown scope "${scope}"`);
+	if (scope === 'principal') {
+		const stale = declaration.maxStaleMs;
+		if (typeof stale !== 'number' || !Number.isSafeInteger(stale) || stale < 1) {
+			return bad(
+				name,
+				'a principal dataset needs maxStaleMs, a positive integer of milliseconds'
+			);
+		}
+		if (declaration.provision === 'auto') {
+			return bad(name, 'a principal dataset cannot use provision "auto"');
+		}
+	} else if (declaration.maxStaleMs !== undefined) {
+		return bad(name, 'maxStaleMs applies to a principal dataset');
+	}
 	for (const fn of ['key', 'seed', 'read', 'changes', 'horizon', 'head'] as const) {
 		if (typeof declaration[fn] !== 'function') return bad(name, `${fn} must be a function`);
 	}
@@ -130,6 +169,12 @@ export function defineDataset<Row extends DatasetRow = DatasetRow>(
 		if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
 			return bad(name, `${limit} must be a positive integer`);
 		}
+	}
+	if (
+		declaration.provision !== undefined &&
+		!['always', 'auto'].includes(declaration.provision)
+	) {
+		return bad(name, 'provision must be "always" or "auto"');
 	}
 	return { ...declaration, name };
 }

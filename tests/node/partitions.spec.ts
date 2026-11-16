@@ -423,6 +423,34 @@ describe('logout and the end of a session', () => {
 		expect(held.dropped).toEqual({});
 	});
 
+	it('drops the held same-origin beacons of the last session when a response names another partition', async () => {
+		const w = world();
+		await signIn(w, 'A');
+		await w.drive(sub('/track', { method: 'POST', body: 'one' }));
+		w.user.current = 'B';
+		await w.visit('/about');
+		expect(w.tracked).toEqual([]);
+		const left = await w.storage.readBeacons();
+		expect(left.filter((b) => b.event.path === '/track')).toEqual([]);
+		const held = (await w.runtime.message({ type: 'spool:held' })) as {
+			dropped: Record<string, number>;
+		};
+		expect(held.dropped).toEqual({ 'same-origin': 1 });
+	});
+
+	it.fails(
+		'replays a held same-origin beacon to the next user when a sign-in names no partition',
+		async () => {
+			const w = world();
+			await signIn(w, 'A');
+			await w.drive(sub('/track', { method: 'POST', body: 'one' }));
+			w.user.current = 'B';
+			w.advance(25 * 3600);
+			await w.visit('/about');
+			expect(w.tracked).toEqual([]);
+		}
+	);
+
 	it('reads a valid Spool-Clear beside a malformed spool header, and a malformed Spool-Clear as a wipe', async () => {
 		const cases: Array<Record<string, string>> = [
 			{ 'spool-artifact': 'noequals', 'spool-clear': '*' },

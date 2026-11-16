@@ -1,6 +1,7 @@
 export { defineDataset } from '../protocol/dataset.js';
 export { datasetProof } from '../protocol/query.js';
 export { defineRoute } from '../protocol/route.js';
+export { defineWrite } from '../protocol/write.js';
 export * from './ga4.js';
 export * from './identity.js';
 export * from './sink.js';

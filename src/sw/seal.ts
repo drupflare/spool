@@ -1,5 +1,6 @@
 import type { ProjectionEntry, RecordEntry } from '../protocol/graph.js';
 import type { Retention } from '../protocol/route.js';
+import type { PrincipalDatasets } from './principal-dataset.js';
 import type { ReplicaStorage, StoredArtifact } from './storage.js';
 
 /** where the keys that seal a partition live */
@@ -45,9 +46,14 @@ export function memoryVault(): KeyVault {
 }
 
 /** a sealed value as it sits in storage, beside the id and version the store needs as keys */
-type Row = { sealed: { iv: Uint8Array; data: ArrayBuffer; at: Retention } };
+export type Row = { sealed: { iv: Uint8Array; data: ArrayBuffer; at: Retention } };
 
-async function seal(key: CryptoKey, aad: string, value: unknown, at: Retention): Promise<Row> {
+export async function seal(
+	key: CryptoKey,
+	aad: string,
+	value: unknown,
+	at: Retention
+): Promise<Row> {
 	const iv = crypto.getRandomValues(new Uint8Array(12));
 	const data = await crypto.subtle.encrypt(
 		{ name: 'AES-GCM', iv, additionalData: encoder.encode(aad) as BufferSource },
@@ -57,7 +63,7 @@ async function seal(key: CryptoKey, aad: string, value: unknown, at: Retention):
 	return { sealed: { iv, data, at } };
 }
 
-async function unseal<T>(
+export async function unseal<T>(
 	vault: KeyVault,
 	partition: string,
 	aad: string,
@@ -91,6 +97,8 @@ export type SealOptions = {
 	retentionOf(id: string): Retention;
 	/** the retention for records, projections and the bookkeeping, which no one route owns */
 	shared: Retention;
+	/** the sealed dataset store of this partition; absent while principal datasets are off */
+	datasets?: PrincipalDatasets;
 };
 
 /** a partition's storage that can be shut for good */
@@ -123,7 +131,10 @@ export function sealedStorage(inner: ReplicaStorage, options: SealOptions): Seal
 		unseal<T>(vault, partition, aad(kind, id), row as Row | undefined);
 
 	return {
-		kill: () => void (dead = true),
+		kill: () => {
+			dead = true;
+			options.datasets?.kill();
+		},
 		async getArtifact(id) {
 			if (dead) return undefined;
 			const row = await inner.getArtifact(id);
@@ -211,10 +222,12 @@ export function sealedStorage(inner: ReplicaStorage, options: SealOptions): Seal
 		},
 		deleteProjections: (ids) => (dead ? Promise.resolve() : inner.deleteProjections(ids)),
 		clearGraph: () => (dead ? Promise.resolve() : inner.clearGraph()),
-		// datasets are public only; a partition holds none and refuses to be given one
-		getDatasets: async () => [],
-		readDataset: async () => [],
-		commitDataset: () => Promise.reject(new Error('a principal partition holds no dataset')),
-		clearDatasets: async () => undefined
+		// without the principal datasets flag a partition holds no dataset and refuses to be given one
+		getDatasets: options.datasets?.getDatasets ?? (async () => []),
+		readDataset: options.datasets?.readDataset ?? (async () => []),
+		commitDataset:
+			options.datasets?.commitDataset ??
+			(() => Promise.reject(new Error('a principal partition holds no dataset'))),
+		clearDatasets: options.datasets?.clearDatasets ?? (async () => undefined)
 	};
 }

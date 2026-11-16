@@ -3,6 +3,7 @@ import type { CollectorConfig } from './collector.js';
 import type { SerializedRoute } from './route.js';
 import type { CompiledTemplate } from './template/compile.js';
 import type { Mode } from './view.js';
+import type { WriteConfig } from './write.js';
 
 /** every path under this prefix belongs to spool */
 export const SPOOL_PREFIX = '/.spool/';
@@ -13,6 +14,7 @@ export const PATHS = {
 	artifact: '/.spool/artifact',
 	dataset: '/.spool/dataset',
 	beacon: '/.spool/beacon',
+	write: '/.spool/write',
 	worker: '/spool-sw.js'
 } as const;
 
@@ -101,4 +103,8 @@ export type SwConfig = {
 	 * refuses a seed whose rows would use more; 1 when absent.
 	 */
 	datasetShare?: number;
+	/** the declared write classes; absent while declared writes are off, which is the default */
+	writes?: WriteConfig[];
+	/** the principal datasets and how long each may answer after its last confirmed sync; absent while the flag is off */
+	principalDatasets?: Array<{ name: string; maxStaleMs: number }>;
 };

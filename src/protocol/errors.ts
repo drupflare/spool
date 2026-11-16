@@ -10,7 +10,9 @@ export type ProtocolErrorCode =
 	| 'bad-manifest'
 	| 'bad-nav'
 	| 'bad-dataset'
-	| 'dataset-limit';
+	| 'dataset-limit'
+	| 'dataset-forbidden'
+	| 'bad-write';
 
 /** thrown for malformed protocol input; `code` names the family so callers can map it to a status */
 export class ProtocolError extends Error {

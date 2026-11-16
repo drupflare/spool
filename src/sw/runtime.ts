@@ -24,9 +24,23 @@ import {
 	type ViewEvent,
 	type ViewReason
 } from '../protocol/view.js';
+import {
+	ifMatch,
+	WRITE_HEADERS,
+	type WriteFlush,
+	type WriteQueued,
+	type WriteRefusal,
+	type WriteResolved,
+	type WriteStatus
+} from '../protocol/write.js';
 import { BeaconQueue, LOGOUT_SEND_MS } from './analytics.js';
 import { collectorAnswer } from './collect.js';
-import { syncDataset, type DatasetOutcome, type DatasetRefusal } from './dataset-sync.js';
+import {
+	principalGuard,
+	syncDataset,
+	type DatasetOutcome,
+	type DatasetRefusal
+} from './dataset-sync.js';
 import { verdict } from './freshness.js';
 import type { PartitionHost } from './partition.js';
 import { policyHeaders, type HeaderSet } from './policy.js';
@@ -54,6 +68,7 @@ import {
 } from './static.js';
 import type { DatasetMeta, ReplicaStorage } from './storage.js';
 import { THIRD_CACHE, THIRD_HEADERS, versionClass, type VersionClass } from './thirdparty.js';
+import { WriteQueue, type WriteRecord } from './write.js';
 
 /** the slice of a `Cache` the runtime uses */
 export type CacheLike = {
@@ -128,6 +143,8 @@ export type PartitionStatus = {
 	artifacts: string[];
 	records: string[];
 	projections: string[];
+	/** the principal datasets held for this partition; always empty while the flag is off */
+	datasets: DatasetMeta[];
 };
 
 /** the worker's answer to `spool:assets`: the mode asked for and whether Static Routing took effect */
@@ -154,8 +171,16 @@ export type DatasetStatus = {
 	persisted: boolean | null;
 };
 
+/** the worker's answer to `spool:write`, `spool:flush`, `spool:writes` and `spool:resolve` */
+export type WriteReply =
+	| { type: 'spool:write'; result: WriteQueued | WriteRefusal }
+	| { type: 'spool:flush'; result: ({ ok: true } & WriteFlush) | WriteRefusal }
+	| { type: 'spool:writes'; result: { ok: true; writes: WriteStatus[] } | WriteRefusal }
+	| { type: 'spool:resolve'; result: WriteResolved | WriteRefusal };
+
 /** every reply the worker gives a page */
 export type Reply =
+	| WriteReply
 	| Hello
 	| Status
 	| ViewId
@@ -222,6 +247,10 @@ type Side = {
 	scheduler: Scheduler;
 	deferred: Set<string>;
 	loaded: Promise<void>;
+	/** the declared-writes queue of this partition, made on first use */
+	writes?: WriteQueue;
+	/** set when the side is replaced or wiped; a sync that began under it discards its result */
+	dead: boolean;
 };
 
 /** builds the request pipeline: local render, sync, provisioning, asset cache and beacon queue */
@@ -238,7 +267,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	const ledger = new Ledger();
 	const background = new Set<Promise<unknown>>();
 	const provisioning = new Map<string, Promise<void>>();
-	const declined = new Set<string>();
+	const declined = new Map<string, string | null>();
 	const wants = new Set<string>();
 	const asked = new Set<string>();
 	let currentPath: string | null = null;
@@ -458,7 +487,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		replica,
 		scheduler: makeScheduler(replica),
 		deferred: new Set(),
-		loaded: Promise.resolve()
+		loaded: Promise.resolve(),
+		dead: false
 	};
 	const scheduler = publicSide.scheduler;
 
@@ -468,6 +498,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	const datasetCounts: Record<string, number> = {};
 	const datasetRefused = new Map<string, DatasetRefusal>();
 	const datasetsDeferred = new Set<string>();
+	/** principal datasets whose held rows are past maxStaleMs; the next network moment syncs them */
+	const principalDeferred = new Set<string>();
 	let persistAsked = false;
 	let persisted: boolean | null = null;
 
@@ -497,8 +529,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				? `${outcome.name}:refused:${outcome.reason}`
 				: `${outcome.name}:${outcome.status}`;
 		datasetCounts[key] = (datasetCounts[key] ?? 0) + 1;
-		if (outcome.status === 'refused') datasetRefused.set(outcome.name, outcome.reason);
-		else if (outcome.status !== 'offline') datasetRefused.delete(outcome.name);
+		if (outcome.status === 'refused') {
+			datasetRefused.set(outcome.name, outcome.reason);
+			if (outcome.reason === 'declined') declined.set(outcome.name, outcome.by ?? null);
+		} else if (outcome.status !== 'offline') datasetRefused.delete(outcome.name);
 		const held = outcome.status !== 'offline' && outcome.status !== 'refused';
 		if (held && !persistAsked) {
 			persistAsked = true;
@@ -506,17 +540,44 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 	};
 
-	/** brings one dataset current; a second caller joins the run in flight */
-	function syncDatasetOnce(name: string): Promise<DatasetOutcome> {
-		const running = datasetRuns.get(name);
+	/** the principal datasets the server declared, with how long each may answer after a confirmed sync */
+	const principalLimits = () =>
+		new Map((config.principalDatasets ?? []).map((d) => [d.name, d.maxStaleMs]));
+
+	/**
+	 * A principal dataset's request, read for who it answers. A late answer for a partition the
+	 * worker has left is returned untouched, since the sync discards it; a session that ended wipes
+	 * the store, and an answer for another partition swaps it, exactly as a navigation does.
+	 */
+	async function principalFetch(side: Side, url: string, init?: RequestInit): Promise<Response> {
+		const response = await deps.fetch(url, init);
+		if (side.dead || principal !== side) return response;
+		if (response.status === 401) await wipePartition('session-ended');
+		else if (response.ok) {
+			if (response.headers.has(HEADERS.partition)) {
+				await early(decodeEnvelopeOrClear(response.headers), true);
+			} else await wipePartition('session-ended');
+		}
+		return response;
+	}
+
+	/** brings one dataset current; a second caller joins the run in flight, for the same side */
+	function syncDatasetOnce(name: string, side: Side = publicSide): Promise<DatasetOutcome> {
+		const key = `${side.id ?? ''}\u0000${name}`;
+		const running = datasetRuns.get(key);
 		if (running) return running;
+		const partition = side.id;
 		const run = syncDataset(
 			{
-				store: replica.datasets,
-				fetch: (url, init) => deps.fetch(url, init),
+				store: side.replica.datasets,
+				fetch:
+					partition === null
+						? (url, init) => deps.fetch(url, init)
+						: (url, init) => principalFetch(side, url, init),
 				origin,
-				epoch: () => replica.epoch,
-				budget: datasetBudget
+				epoch: () => (side.dead ? -1 : side.replica.epoch),
+				budget: datasetBudget,
+				...(partition === null ? {} : { guard: principalGuard(partition) })
 			},
 			name
 		)
@@ -524,8 +585,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				tally(outcome);
 				return outcome;
 			})
-			.finally(() => datasetRuns.delete(name));
-		datasetRuns.set(name, run);
+			.finally(() => datasetRuns.delete(key));
+		datasetRuns.set(key, run);
 		return run;
 	}
 
@@ -533,8 +594,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		outcome.status !== 'offline' && outcome.status !== 'refused';
 
 	/** seeds a dataset in the background unless this run already learned it will not be held */
-	function seedDataset(name: string): void {
-		if (!datasetRefused.has(name) && !datasetRuns.has(name)) track(syncDatasetOnce(name));
+	function seedDataset(name: string, side: Side = publicSide): void {
+		if (side !== publicSide && !principalLimits().has(name)) return;
+		const key = `${side.id ?? ''}\u0000${name}`;
+		if (!datasetRefused.has(name) && !datasetRuns.has(key)) track(syncDatasetOnce(name, side));
 	}
 
 	// #endregion
@@ -549,14 +612,20 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			: 'session';
 
 	function makeSide(id: string): Side {
-		const sealed = (host as PartitionHost).open(id, retentionOf, sharedRetention());
+		const sealed = (host as PartitionHost).open(
+			id,
+			retentionOf,
+			sharedRetention(),
+			config.principalDatasets !== undefined
+		);
 		const target = new Replica(sealed, config.version, now);
 		return {
 			id,
 			replica: target,
 			scheduler: makeScheduler(target),
 			deferred: new Set(),
-			loaded: target.load()
+			loaded: target.load(),
+			dead: false
 		};
 	}
 
@@ -574,12 +643,21 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		return side;
 	}
 
+	/** marks a side left for good, and forgets what the next principal must not inherit */
+	function retire(side: Side): void {
+		side.dead = true;
+		principalDeferred.clear();
+		for (const name of principalLimits().keys()) datasetRefused.delete(name);
+	}
+
 	/** shuts the principal store, shreds its keys and deletes it; true when there was one */
 	function wipePartition(reason: string): Promise<boolean> {
 		return serial(async () => {
 			await ready();
 			const old = principal;
 			principal = null;
+			old?.writes?.kill();
+			if (old) retire(old);
 			if (!old || !host) return false;
 			await host.setCurrent(null);
 			await host.destroy(old.id as string);
@@ -595,6 +673,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			const old = principal;
 			if (old?.id === id) return;
 			principal = makeSide(id);
+			old?.writes?.kill();
+			if (old) retire(old);
 			await (host as PartitionHost).setCurrent(id);
 			if (old) {
 				await (host as PartitionHost).destroy(old.id as string);
@@ -619,14 +699,75 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		await ready();
 		const clear = envelope.clear ?? [];
 		if (clear.includes('*') || (principal && clear.includes(principal.id as string))) {
+			await analytics.dropSameOrigin();
 			await wipePartition('clear');
 			return;
 		}
 		// the answer to a logout request still names the identity of the request it answered
 		if (signedOut) return;
 		if (envelope.partition !== undefined) {
-			if (principal?.id !== envelope.partition) await switchTo(envelope.partition);
-		} else if (navigation && principal) await wipePartition('session-ended');
+			if (principal?.id !== envelope.partition) {
+				await analytics.dropSameOrigin();
+				await switchTo(envelope.partition);
+			}
+		} else if (navigation && principal) {
+			await analytics.dropSameOrigin();
+			await wipePartition('session-ended');
+		}
+	}
+
+	// #endregion
+
+	// #region writes
+
+	// a worker in shadow mode only observes, so it queues nothing
+	const writesOn = () => config.writes !== undefined && config.mode !== 'shadow';
+	const writeRefusal = (code: WriteRefusal['code'], message: string): WriteRefusal => ({
+		ok: false,
+		code,
+		message
+	});
+
+	async function sendWrite(record: WriteRecord): Promise<{ status: number; body?: unknown }> {
+		const query = `name=${encodeURIComponent(record.name)}&key=${encodeURIComponent(record.key)}`;
+		const response = await deps.fetch(`${origin}${PATHS.write}?${query}`, {
+			method: 'PUT',
+			headers: {
+				'content-type': 'application/json',
+				'if-match': ifMatch(record.base),
+				[WRITE_HEADERS.id]: record.id
+			},
+			body: JSON.stringify({ value: record.value }),
+			cache: 'no-store',
+			credentials: 'same-origin'
+		});
+		const body: unknown = await response.json().catch(() => undefined);
+		return { status: response.status, body };
+	}
+
+	function queueOf(side: Side): WriteQueue | null {
+		if (!writesOn() || !host?.openWrites) return null;
+		side.writes ??= new WriteQueue({
+			store: host.openWrites(side.id as string),
+			classes: () => config.writes ?? [],
+			now,
+			send: sendWrite,
+			onFlush: (flush) => deps.broadcast?.({ type: 'spool:written', ...flush })
+		});
+		return side.writes;
+	}
+
+	async function pageQueue(): Promise<WriteQueue | WriteRefusal> {
+		if (!writesOn()) return writeRefusal('writes-off', 'declared writes are off');
+		const side = await principalSide();
+		if (!side) return writeRefusal('no-partition', 'no signed-in principal is held');
+		return queueOf(side) ?? writeRefusal('unavailable', 'this worker has no partition storage');
+	}
+
+	/** sends the signed-in partition's queue at a network moment that is happening anyway */
+	async function flushWrites(): Promise<void> {
+		const queue = principal ? queueOf(principal) : null;
+		if (queue) await queue.flush();
 	}
 
 	// #endregion
@@ -646,7 +787,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			{ cache: 'no-store', credentials: 'same-origin' }
 		);
 		if (response.status === 204 && response.headers.get(HEADERS.provision) === 'declined') {
-			declined.add(path);
+			declined.set(path, response.headers.get(HEADERS.provisionReason));
 			return;
 		}
 		if (!response.ok) {
@@ -730,7 +871,12 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			const names = [...datasetsDeferred];
 			datasetsDeferred.clear();
 			for (const name of names) await syncDatasetOnce(name);
+			const owed = [...principalDeferred];
+			principalDeferred.clear();
+			const side = principal;
+			if (side) for (const name of owed) await syncDatasetOnce(name, side);
 			await analytics.flushAtMoment();
+			await flushWrites();
 			await revalidateThirdParty();
 		}
 	}
@@ -860,16 +1006,20 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 
 		// a page answers from the rows the device holds, so their age bounds the answer too
-		const queried = route.scope === 'public' ? route.query?.dataset : undefined;
-		const dsNames =
-			route.scope === 'public'
-				? [
-						...new Set([
-							...(queried ? [queried] : []),
-							...(await rep.datasetsOf(stored.artifact))
-						])
-					]
-				: [];
+		const queried = route.query?.dataset;
+		const joined = (route.query?.plan?.join ?? []).map((j) => j.dataset);
+		const dsNames = [
+			...new Set([
+				...(queried ? [queried] : []),
+				...joined,
+				...(await rep.datasetsOf(stored.artifact))
+			])
+		];
+		// a principal side answers only from the principal datasets the server declared
+		const limits = side === publicSide ? undefined : principalLimits();
+		if (limits && dsNames.some((name) => !limits.has(name))) {
+			return { reason: 'refused', staleSec: staleSec() };
+		}
 		const heldAt = async () =>
 			Promise.all(
 				dsNames.map(async (name) => (await rep.datasets.get(name))?.meta.appliedAt)
@@ -877,8 +1027,19 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		let appliedAt = await heldAt();
 		const missing = dsNames.filter((_, i) => appliedAt[i] === undefined);
 		if (missing.length > 0) {
-			if (!dry) for (const name of missing) seedDataset(name);
+			if (!dry) for (const name of missing) seedDataset(name, side);
 			return { reason: 'refused', staleSec: staleSec() };
+		}
+		if (limits) {
+			// held principal rows answer only while the last confirmed sync is inside maxStaleMs
+			const stale = dsNames.filter((name, i) => {
+				const age = now() - (appliedAt[i] as number);
+				return !(age >= 0 && age < (limits.get(name) as number));
+			});
+			if (stale.length > 0) {
+				if (!dry) for (const name of stale) principalDeferred.add(name);
+				return { reason: 'refused', staleSec: staleSec() };
+			}
 		}
 		const known = (at: Array<number | undefined>) =>
 			at.filter((v): v is number => v !== undefined);
@@ -904,9 +1065,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			reason = 'hard-sync';
 			if (!dry) {
 				const synced = await sched.sync(need, age);
-				const dsSynced = (await Promise.all(dsNames.map(syncDatasetOnce))).every(
-					datasetCurrent
-				);
+				const dsSynced = (
+					await Promise.all(dsNames.map((name) => syncDatasetOnce(name, side)))
+				).every(datasetCurrent);
 				if (!(synced && dsSynced) && route.offline === 'refuse')
 					return { reason: 'hard-refused', staleSec: age };
 				if (dsNames.length > 0) {
@@ -926,7 +1087,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			if (route.sync === 'deferred') {
 				reason = 'soft-deferred';
 				if (!dry && need && sched.defer(need, age)) side.deferred.add(path);
-				if (!dry) for (const name of dsNames) datasetsDeferred.add(name);
+				if (!dry) {
+					for (const name of dsNames) {
+						(side === publicSide ? datasetsDeferred : principalDeferred).add(name);
+					}
+				}
 			} else {
 				reason = 'soft-sync';
 				if (!dry) {
@@ -935,7 +1100,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 							if (ok && need) await rep.validate(path);
 						})
 					);
-					for (const name of dsNames) track(syncDatasetOnce(name));
+					for (const name of dsNames) track(syncDatasetOnce(name, side));
 				}
 			}
 		}
@@ -954,17 +1119,33 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const plain = await rep.materialize(stored.artifact);
 		if (!plain.ok) {
 			// rows of a dataset not held yet: the page is sound, so keep it and seed the dataset
-			if (plain.datasets && side === publicSide) {
-				if (!dry) for (const name of plain.datasets) seedDataset(name);
+			if (plain.datasets) {
+				if (!dry) for (const name of plain.datasets) seedDataset(name, side);
 				return { reason: 'refused', staleSec: age };
 			}
 			// a reference with nothing behind it: drop the page so the next network view fetches it whole
 			await rep.drop([path]);
 			return { reason: 'refused', staleSec: age };
 		}
-		const rows = queried === undefined ? undefined : await rep.datasets.rows(queried);
-		if (queried !== undefined && !rows) return { reason: 'refused', staleSec: age };
-		const rendered = await renderLocal(config, route, plain.artifact, renderers, search, rows);
+		const planned = route.query?.plan !== undefined;
+		const rows =
+			queried === undefined || planned ? undefined : await rep.datasets.rows(queried);
+		if (queried !== undefined && !planned && !rows) return { reason: 'refused', staleSec: age };
+		const tables =
+			queried !== undefined && planned
+				? await rep.datasets.tables(queried, joined)
+				: undefined;
+		if (queried !== undefined && planned && !tables)
+			return { reason: 'refused', staleSec: age };
+		const rendered = await renderLocal(
+			config,
+			route,
+			plain.artifact,
+			renderers,
+			search,
+			rows,
+			tables
+		);
 		if (!rendered.ok) {
 			// a collection that fails its proof is dropped, so the next network view fetches it whole
 			if (rendered.reason === PROOF_MISMATCH) await rep.drop([path]);
@@ -1553,7 +1734,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 						partition: null,
 						artifacts: [],
 						records: [],
-						projections: []
+						projections: [],
+						datasets: []
 					};
 				}
 				await side.replica.held();
@@ -1562,7 +1744,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 					partition: side.id,
 					artifacts: await side.replica.ids(),
 					records: side.replica.graph.records.ids(),
-					projections: side.replica.graph.projections.ids()
+					projections: side.replica.graph.projections.ids(),
+					datasets: await side.replica.datasets.list()
 				};
 			}
 			if (message.type === 'spool:assets') {
@@ -1575,6 +1758,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 					datasets: await replica.datasets.list(),
 					outcomes: { ...datasetCounts },
 					refused: Object.fromEntries(datasetRefused),
+					declined: Object.fromEntries(declined),
 					evicted: replica.datasets.evicted,
 					persisted
 				};
@@ -1582,6 +1766,55 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			if (message.type === 'spool:persisted') {
 				persisted = (message as { granted?: unknown }).granted === true;
 				return undefined;
+			}
+			if (message.type === 'spool:write') {
+				const { name, key, value, version } = message as Record<string, unknown>;
+				const queue = await pageQueue();
+				return {
+					type: 'spool:write',
+					result:
+						queue instanceof WriteQueue
+							? await queue.write(
+									typeof name === 'string' ? name : '',
+									typeof key === 'string' ? key : '',
+									value,
+									version
+								)
+							: queue
+				};
+			}
+			if (message.type === 'spool:flush') {
+				const queue = await pageQueue();
+				return {
+					type: 'spool:flush',
+					result:
+						queue instanceof WriteQueue ? { ok: true, ...(await queue.flush()) } : queue
+				};
+			}
+			if (message.type === 'spool:writes') {
+				const queue = await pageQueue();
+				return {
+					type: 'spool:writes',
+					result:
+						queue instanceof WriteQueue
+							? { ok: true, writes: await queue.list() }
+							: queue
+				};
+			}
+			if (message.type === 'spool:resolve') {
+				const { name, key, use } = message as Record<string, unknown>;
+				const queue = await pageQueue();
+				return {
+					type: 'spool:resolve',
+					result:
+						queue instanceof WriteQueue
+							? await queue.resolve(
+									typeof name === 'string' ? name : '',
+									typeof key === 'string' ? key : '',
+									use as 'local' | 'server'
+								)
+							: queue
+				};
 			}
 			if (message.type === 'spool:held') {
 				const cache = await cacheNamed(THIRD_CACHE);

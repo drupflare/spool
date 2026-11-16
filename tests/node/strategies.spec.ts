@@ -774,6 +774,6 @@ describe('query routes on the server', () => {
 				load: () => ({}),
 				query: { list: 'a' }
 			})
-		).toThrow(/public route/);
+		).toThrow(/only with query\.dataset/);
 	});
 });

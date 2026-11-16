@@ -243,6 +243,21 @@ export class BeaconQueue {
 		await this.#report(lost);
 	}
 
+	/**
+	 * Drops the held same-origin requests without sending them, for a response that names another
+	 * partition or ends the session. The browser already holds the new session's cookies by then, so a
+	 * replay would carry them. Counted under {@link SAME_ORIGIN_VENDOR}.
+	 */
+	async dropSameOrigin(): Promise<void> {
+		if (this.#flushing) await this.#flushing.catch(() => false);
+		const mine = (await this.#deps.storage.readBeacons()).filter(
+			({ event }) => !inBatch(event) && event.origin === undefined
+		);
+		if (mine.length === 0) return;
+		await this.#deps.storage.removeBeacons(mine.map((b) => b.key));
+		await this.#report(mine.map(() => SAME_ORIGIN_VENDOR));
+	}
+
 	async #run(): Promise<boolean> {
 		const { storage, send, replay, want, catalogue } = this.#deps;
 		await this.#expire();

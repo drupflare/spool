@@ -141,7 +141,7 @@ describe('defineRoute query', () => {
 	});
 
 	const cases: Array<[string, Record<string, unknown>, RegExp]> = [
-		['a principal route', { scope: 'principal', query }, /public route/],
+		['a principal route', { scope: 'principal', query }, /only with query\.dataset/],
 		[
 			'an assembly route',
 			{ strategy: 'assembly', load: () => ({ shell: 's' }), query },

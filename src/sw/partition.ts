@@ -1,6 +1,12 @@
 import type { Retention } from '../protocol/route.js';
 import { idbStorage } from './idb.js';
+import {
+	destroyPrincipalDatasets,
+	idbPrincipalDatasets,
+	sealedDatasets
+} from './principal-dataset.js';
 import { sealedStorage, type KeyVault, type SealedStorage } from './seal.js';
+import { destroyWrites, idbWriteStore, type WriteStore } from './write.js';
 
 const KEYS_DB = 'spool-keys';
 const KEYS = 'keys';
@@ -100,10 +106,14 @@ export interface PartitionHost {
 	open(
 		id: string,
 		retentionOf: (artifactId: string) => Retention,
-		shared: Retention
+		shared: Retention,
+		/** whether the store holds principal datasets; false creates no dataset database */
+		datasets?: boolean
 	): SealedStorage;
 	/** shreds the keys first, then deletes the store; the store is shut before either */
 	destroy(id: string): Promise<void>;
+	/** the sealed write queue of a partition; `destroy` deletes its rows */
+	openWrites?(id: string): WriteStore;
 }
 
 /** partitions as IndexedDB databases named for the partition, sealed under `vault` */
@@ -139,19 +149,36 @@ export function idbPartitions(
 				if (id === null) await wrap(s.delete(CURRENT));
 				else await wrap(s.put(id, CURRENT));
 			}),
-		open(id, retentionOf, shared) {
+		open(id, retentionOf, shared, datasets = false) {
 			const found = opened.get(id);
 			if (found) return found.sealed;
 			const base = idbStorage(factory, dbName(id));
-			const sealed = sealedStorage(base, { partition: id, vault, retentionOf, shared });
+			const sealed = sealedStorage(base, {
+				partition: id,
+				vault,
+				retentionOf,
+				shared,
+				...(datasets
+					? {
+							datasets: sealedDatasets(idbPrincipalDatasets(factory, id), {
+								partition: id,
+								vault,
+								retention: shared
+							})
+						}
+					: {})
+			});
 			opened.set(id, { sealed, destroy: base.destroy });
 			return sealed;
 		},
+		openWrites: (id) => idbWriteStore(factory, id, vault),
 		async destroy(id) {
 			const held = opened.get(id);
 			held?.sealed.kill();
 			opened.delete(id);
 			await vault.shred(id);
+			await destroyWrites(factory, id);
+			await destroyPrincipalDatasets(factory, id);
 			if (held) await held.destroy();
 			else {
 				await new Promise<void>((resolve) => {
