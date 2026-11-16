@@ -19,7 +19,7 @@ class for a comment, a cart, a payment, a counter, an inventory change or an aud
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">WriteDeclaration</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#kind">kind</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;last-value&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxbytes">maxBytes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxpending">maxPending</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#name">name</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#path">path</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#scope">scope</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;principal&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#apply-1">apply</a><span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.WriteContext.html" class="tsd-signature-type tsd-kind-type-alias">WriteContext</a><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">key</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">value</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">expectedVersion</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><a href="index.WriteApplied.html" class="tsd-signature-type tsd-kind-type-alias">WriteApplied</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#key-1">key</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.WriteContext.html" class="tsd-signature-type tsd-kind-type-alias">WriteContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Request</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-call-signature" href="#read-1">read</a><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="index.WriteContext.html" class="tsd-signature-type tsd-kind-type-alias">WriteContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">key</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><a href="index.WriteRead.html" class="tsd-signature-type tsd-kind-type-alias">WriteRead</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L124">src/protocol/write.ts:124</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L124">src/protocol/write.ts:124</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -62,7 +62,7 @@ the site's own storage.</p>
 <li><span><span class="tsd-kind-parameter">expectedVersion</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><a href="index.WriteApplied.html" class="tsd-signature-type tsd-kind-type-alias">WriteApplied</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L141">src/protocol/write.ts:141</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L141">src/protocol/write.ts:141</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="key"><span>key</span><a href="#key" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -78,7 +78,7 @@ the site's own storage.</p>
 <li><span><span class="tsd-kind-parameter">request</span>: <span class="tsd-signature-type">Request</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L133">src/protocol/write.ts:133</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L133">src/protocol/write.ts:133</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="read"><span>read</span><a href="#read" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -94,7 +94,7 @@ the site's own storage.</p>
 <li><span><span class="tsd-kind-parameter">key</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">MaybePromise</span><span class="tsd-signature-symbol">&lt;</span><a href="index.WriteRead.html" class="tsd-signature-type tsd-kind-type-alias">WriteRead</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L135">src/protocol/write.ts:135</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L135">src/protocol/write.ts:135</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -104,40 +104,40 @@ the site's own storage.</p>
 <div class="tsd-comment tsd-typography"><p>the compaction; <code>last-value</code> is the only kind there is</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L129">src/protocol/write.ts:129</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L129">src/protocol/write.ts:129</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxbytes"><span>max<wbr/>Bytes</span><a href="#maxbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxBytes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the most bytes of one value's JSON body</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L148">src/protocol/write.ts:148</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L148">src/protocol/write.ts:148</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxpending"><span>max<wbr/>Pending</span><a href="#maxpending" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxPending</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the most queued keys of this class one partition holds on a device</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L150">src/protocol/write.ts:150</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L150">src/protocol/write.ts:150</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="name"><span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L125">src/protocol/write.ts:125</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L125">src/protocol/write.ts:125</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="path"><span>path</span><a href="#path" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">path</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>the pattern of the principal route this write edits; <code>createSpool</code> refuses a public route</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L131">src/protocol/write.ts:131</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L131">src/protocol/write.ts:131</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="scope"><span>scope</span><a href="#scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">scope</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;principal&quot;</span></div>
 <div class="tsd-comment tsd-typography"><p><code>principal</code> only; a public write is refused</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/85ba905ce36b61eb11058cb21ca034b3629c5721/src/protocol/write.ts#L127">src/protocol/write.ts:127</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/953436e4d53c51f26990e81d4bf78b69a3534773/src/protocol/write.ts#L127">src/protocol/write.ts:127</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

@@ -10,16 +10,22 @@
 <h1>@drupflare/spool - v0.4.0</h1></div>
 <div class="tsd-panel tsd-typography"><h1 id="🧵-spool" class="tsd-anchor-link">🧵 spool<a href="#🧵-spool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <blockquote>
-<p>An incremental application replica for the browser</p>
+<p>A browser replica that removes repeated demand from your server</p>
 </blockquote>
 <p><a href="https://github.com/drupflare/spool/actions/workflows/build.yml"><img src="https://github.com/drupflare/spool/actions/workflows/build.yml/badge.svg" alt="Build"></a>
 <a href="https://github.com/drupflare/spool/actions/workflows/browser.yml"><img src="https://github.com/drupflare/spool/actions/workflows/browser.yml/badge.svg" alt="Browser"></a>
 <a href="https://github.com/drupflare/spool/actions/workflows/prettier.yml"><img src="https://github.com/drupflare/spool/actions/workflows/prettier.yml/badge.svg" alt="Prettier"></a>
 <a href="https://codecov.io/gh/drupflare/spool"><img src="https://codecov.io/gh/drupflare/spool/branch/master/graph/badge.svg" alt="codecov"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a></p>
-<p>spool keeps a replica of what a page needs on the visitor's device. The server sends templates
-and authorised, versioned data. A service worker stores them and computes eligible pages on the
-device, so a repeat view makes no request and costs the server no work.</p>
+<p>spool removes repeated execution demand from your server. It keeps a replica of what a page needs
+on the visitor's device. The server sends templates and authorised, versioned data, and a service
+worker computes eligible pages from them. A page answered there is a request that never reaches
+your Worker or origin, and server work that never runs. The contract is a count: a test asserts
+the server hits of a local view, and in Chromium and Firefox the count is zero.</p>
+<p>spool has three uses. In a drupflare deployment it takes eligible public views off the Worker.
+For a team on a free or constrained plan it lowers the requests the plan has to carry, by an
+amount that depends on the site's traffic (<a href="#request-arithmetic">Request Arithmetic</a>). It is also
+a research system: every figure it reports carries a layer and a method.</p>
 <p>It runs on any runtime that speaks <code>Request</code> and <code>Response</code>, bridges <code>node:http</code> for the rest, and
 has no runtime dependencies. A site with no server code can load it from two files and a manifest.</p>
 <hr>
@@ -48,6 +54,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 <li><a href="#-capacity-reports">Capacity Reports</a></li>
 <li><a href="#-security">Security</a></li>
 <li><a href="#-energy-reporting">Energy Reporting</a></li>
+<li><a href="#-prior-art">Prior Art</a></li>
 <li><a href="#-out-of-scope">Out of Scope</a></li>
 <li><a href="#-browser-support">Browser Support</a></li>
 <li><a href="#-subpath-exports">Subpath Exports</a></li>
@@ -58,6 +65,9 @@ has no runtime dependencies. A site with no server code can load it from two fil
 </ul>
 <hr>
 <h2 id="🎯-why-spool" class="tsd-anchor-link">🎯 Why Spool<a href="#🎯-why-spool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A local view removes, in order, a request that would have reached the Worker, the server work
+behind it (rendering, queries, Durable Object and database reads), and the bytes of a document the
+device already holds. Energy follows from those and is one objective an administrator may weigh.</p>
 <p>A response is a deterministic transformation of a set of authorised, versioned dependencies. The
 server half names those dependencies and sends the snapshot the visitor may hold. The worker keeps
 a graph of records, projections and responses, with their versions, and syncs only what the next
@@ -68,8 +78,8 @@ the worker cannot answer goes to the network, so adopting spool changes no page 
 declared.</p>
 <p>A collection of thousands of rows, such as a directory or a course catalogue, can be held as a
 <a href="#-datasets">dataset</a>. The device seeds it once and then receives only the rows that changed.</p>
-<p><a href="documents/impact.html">docs/impact.md</a> holds the energy model and the measurements behind it. See
-<a href="#-energy-reporting">Energy Reporting</a>.</p>
+<p><a href="documents/impact.html">docs/impact.md</a> holds the request, cost and energy figures and the measurements
+behind them. See <a href="#-energy-reporting">Energy Reporting</a>.</p>
 <hr>
 <h2 id="📥-install" class="tsd-anchor-link">📥 Install<a href="#📥-install" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="package" class="tsd-anchor-link">Package<a href="#package" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
@@ -1326,6 +1336,30 @@ institutions.</p>
 numbers are made up. <code>channelRows</code> lists the metered, attributional, capacity and avoided-demand
 channels as separate rows, and nothing in the module sums them. <a href="documents/impact.html#channels">docs/impact.md</a>
 says what each one counts.</p>
+<h3 id="request-arithmetic" class="tsd-anchor-link">Request Arithmetic<a href="#request-arithmetic" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>On a plan that limits requests, the question is how many views the plan carries. Name three
+inputs, each a scenario (L3) until a site's traffic supplies it:</p>
+<ul>
+<li><code>h</code>, the share of views answered on the device</li>
+<li><code>r</code>, the requests a network view makes to the platform, and <code>rho</code>, the part of them a local view
+removes (one for the document when the page's API calls still leave)</li>
+<li><code>s</code>, the requests spool sends itself per local view: syncs, beacon flushes, catalogue asks and
+worker script checks</li>
+</ul>
+<p>The platform sees <code>r - h * rho + h * s</code> requests per view, so a limit <code>L</code> carries
+<code>L / (r - h * rho + h * s)</code> views. With <code>r = rho = 1</code> this is <code>freeTierCeiling</code> in
+<code>@drupflare/spool/report</code>. Three things bound <code>h</code> below 1:</p>
+<ul>
+<li>A device's first view of a site, a view after the browser evicted the replica, and a view past a
+freshness bound all reach the network. A device that makes <code>v</code> views in a freshness window
+answers at most <code>v - 1</code> of them locally, so <code>h &lt;= 1 - 1/v</code> for that device.</li>
+<li>A client that does not register the worker, such as a crawler, answers none.</li>
+<li>A request outside every route family always leaves.</li>
+</ul>
+<p>A limit on CPU per request, such as the 10 ms of the Workers Free plan, does not change with <code>h</code>.
+The docs' free-tier table uses one sync per 20 local views as an illustration. No multiplier
+follows from the formula until a site's <code>v</code>, its share of clients that cannot answer locally and
+<code>s</code> are measured.</p>
 <hr>
 <h2 id="🔒-security" class="tsd-anchor-link">🔒 Security<a href="#🔒-security" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Authorisation stays on the server. The device holds only what the server already sent that
@@ -1340,6 +1374,9 @@ each claim and lists the open limitations in one table. Report a vulnerability a
 <a href="https://github.com/drupflare/spool/blob/master/SECURITY.md">SECURITY.md</a> describes.</p>
 <hr>
 <h2 id="🔋-energy-reporting" class="tsd-anchor-link">🔋 Energy Reporting<a href="#🔋-energy-reporting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Energy is one objective among those spool reports, and the administrator decides how much weight
+it gets. The energy of one deployment is small against an institution's total, and small against
+the idle and hosting energy drupflare removes per site. The figures below are research figures.</p>
 <p><a href="documents/impact.html">docs/impact.md</a> is generated from the readings in <code>measurements/</code> by
 <code>bun run impact</code>, and <code>bun run impact:check</code> fails when the page differs from them. Energy is
 reported in kWh per million views, and nothing sets a target intensity. Every figure carries a
@@ -1350,6 +1387,50 @@ never add to the local-view figure.</p>
 <p><a href="documents/impact.html#an-institutions-figures">An Institution's Figures</a> leads with economics, storage
 and trust and treats energy as a research figure. <a href="documents/impact.html#what-this-does-not-claim">What This Does Not
 Claim</a> lists what the page leaves unsaid.</p>
+<hr>
+<h2 id="🧬-prior-art" class="tsd-anchor-link">🧬 Prior Art<a href="#🧬-prior-art" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>spool is a server-authoritative replica whose freshness policy lets a provisioned view render with
+no per-view validation request, with shadow mode and a fall back to the server for anything it
+cannot answer. HTTP caching, service-worker precaching and earlier replication systems cover parts
+of it. What is shared and what differs:</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>What it does</th>
+<th>Shared with spool</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP caching</td>
+<td>reuses a response within <code>max-age</code> with no validation</td>
+<td>a repeat view with no request</td>
+<td>one response at a time; no per-dependency invalidation and no held collections</td>
+</tr>
+<tr>
+<td>Workbox precaching</td>
+<td>answers a precached navigation from the cache with no request</td>
+<td>a worker answering a navigation with no request</td>
+<td>the list and its revisions are fixed at build time and refresh when a new worker installs</td>
+</tr>
+<tr>
+<td>Fawkes (NSDI 2020)</td>
+<td>caches static page templates and sends a patch of DOM updates</td>
+<td>a cached template, the server authoritative</td>
+<td>the patch is requested on every load, so a cached template never answers a view alone</td>
+</tr>
+<tr>
+<td>Speculation Rules</td>
+<td>prefetches or prerenders pages the visitor may open next</td>
+<td>acting on a predicted next view</td>
+<td>the origin answers every speculated request, used or not</td>
+</tr>
+</tbody>
+</table>
+<p>Sync Kit (WWW 2010) also keeps templates and data in the browser to reduce server load. The
+<a href="media/TECHNICAL_REPORT.md#executive-summary">technical report</a> states the narrow claim.</p>
 <hr>
 <h2 id="🚫-out-of-scope" class="tsd-anchor-link">🚫 Out of Scope<a href="#🚫-out-of-scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
@@ -1599,8 +1680,12 @@ page lists what may change without a new number.</li>
 <li><a href="#dictionary-transport"><span>Dictionary <wbr/>Transport</span></a></li>
 <li><a href="#defaults"><span>Defaults</span></a></li></ul></li>
 <li><a href="#📈-capacity-reports"><span>📈 <wbr/>Capacity <wbr/>Reports</span></a></li>
+<li>
+<ul>
+<li><a href="#request-arithmetic"><span>Request <wbr/>Arithmetic</span></a></li></ul></li>
 <li><a href="#🔒-security"><span>🔒 <wbr/>Security</span></a></li>
 <li><a href="#🔋-energy-reporting"><span>🔋 <wbr/>Energy <wbr/>Reporting</span></a></li>
+<li><a href="#🧬-prior-art"><span>🧬 <wbr/>Prior <wbr/>Art</span></a></li>
 <li><a href="#🚫-out-of-scope"><span>🚫 <wbr/>Out of <wbr/>Scope</span></a></li>
 <li><a href="#🌐-browser-support"><span>🌐 <wbr/>Browser <wbr/>Support</span></a></li>
 <li><a href="#🧭-subpath-exports"><span>🧭 <wbr/>Subpath <wbr/>Exports</span></a></li>
