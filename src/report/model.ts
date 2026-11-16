@@ -73,6 +73,11 @@ export function viewsChannelMWh(
 	return (annualViews * localShare * jPerView) / J_PER_MWH;
 }
 
+/** the reporting unit: kWh per million views when each view takes `joules` */
+export function kwhPerMv(joules: number): number {
+	return (joules * 1e6) / J_PER_KWH;
+}
+
 /** a year of one server's facility draw, in MWh */
 export function serverYearMWh(watts = SERVER_WATTS.value, pue = PUE.value): number {
 	return (watts * pue * HOURS_PER_YEAR) / 1e6;

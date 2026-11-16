@@ -1,4 +1,6 @@
 import type { TimedView } from '../protocol/view.js';
+import { loaded, median } from './derive.js';
+import type { Row } from './measurement.js';
 
 /** what a third-party origin is for, as far as the table below knows */
 export type OriginClass =
@@ -106,6 +108,151 @@ export type ThirdPartyReport = {
 	/** origins by `soloViews`, then `views`, then name */
 	rows: ThirdPartyRow[];
 };
+
+/** how long a third-party response may be kept without asking its origin */
+export type Cacheability = 'immutable' | 'long' | 'short' | 'uncacheable';
+
+const DAY_S = 86400;
+const YEAR_S = 365 * DAY_S;
+const CLASSES: readonly Cacheability[] = ['immutable', 'long', 'short', 'uncacheable'];
+
+/**
+ * The class of one recorded response from its cache headers. `immutable` is an `immutable`
+ * directive or a max-age of a year; `long` a max-age of a day up to a year; `short` a max-age under
+ * a day, or a validator with no freshness; `uncacheable` a `no-store`, or neither freshness nor a
+ * validator. The reading keeps `expires` as a flag only, so it is not read.
+ */
+export function cacheability(response: Row): Cacheability {
+	const directives = new Map<string, string>();
+	for (const part of String(response.cacheControl ?? '').split(',')) {
+		const [name = '', value = ''] = part.trim().toLowerCase().split('=');
+		if (name) directives.set(name, value.replace(/"/g, ''));
+	}
+	if (directives.has('no-store')) return 'uncacheable';
+	const raw = directives.get('max-age');
+	const maxAge = raw === undefined ? NaN : Number(raw);
+	if (directives.has('immutable') || maxAge >= YEAR_S) return 'immutable';
+	if (maxAge >= DAY_S) return 'long';
+	if (Number.isFinite(maxAge)) return 'short';
+	return response.etag === true || response.lastModified === true ? 'short' : 'uncacheable';
+}
+
+/** third-party network bytes and requests of one repeat view, by cacheability */
+export type CacheSplit = {
+	bytes: Record<Cacheability, number>;
+	requests: Record<Cacheability, number>;
+	/** third-party network bytes */
+	total: number;
+	/** bytes from a cache-remedy origin that is immutable or long: what a worker could answer */
+	answerable: number;
+	/** bytes, and immutable or long bytes, by origin class and remedy, keyed `class|remedy` */
+	byOrigin: Record<string, { bytes: number; longLived: number }>;
+};
+
+/**
+ * The third-party requests of one repeat view that reached the network, split by cacheability.
+ * First-party requests and requests the browser cache answered are left out, as in `splitRequestBytes`.
+ */
+export function thirdPartyCacheSplit(requests: readonly Row[]): CacheSplit {
+	const zeros = (): Record<Cacheability, number> => ({
+		immutable: 0,
+		long: 0,
+		short: 0,
+		uncacheable: 0
+	});
+	const split: CacheSplit = {
+		bytes: zeros(),
+		requests: zeros(),
+		total: 0,
+		answerable: 0,
+		byOrigin: {}
+	};
+	for (const request of requests) {
+		if (request.fromCache === true || request.sameOrigin === true) continue;
+		const bytes = typeof request.bytes === 'number' ? request.bytes : 0;
+		const kind = cacheability(request);
+		const { class: origin, remedy } = classifyOrigin(String(request.url ?? ''));
+		const longLived = kind === 'immutable' || kind === 'long' ? bytes : 0;
+		split.bytes[kind] += bytes;
+		split.requests[kind] += 1;
+		split.total += bytes;
+		if (remedy === 'cache') split.answerable += longLived;
+		const key = `${origin}|${remedy}`;
+		const cell = split.byOrigin[key] ?? { bytes: 0, longLived: 0 };
+		cell.bytes += bytes;
+		cell.longLived += longLived;
+		split.byOrigin[key] = cell;
+	}
+	return split;
+}
+
+/** {@link thirdPartyCacheSplit} for each site's loaded home-page repeat view, picked as `repeatSplitBySite` picks it */
+export function thirdPartyCacheBySite(rows: readonly Row[]): Map<string, CacheSplit> {
+	const out = new Map<string, CacheSplit>();
+	for (const row of rows) {
+		for (const nav of (row.navs as Row[] | undefined) ?? []) {
+			if (loaded(nav) && nav.kind === 'warm-home-repeat' && Array.isArray(nav.requestList)) {
+				out.set(String(row.site ?? ''), thirdPartyCacheSplit(nav.requestList as Row[]));
+			}
+		}
+	}
+	return out;
+}
+
+/** cross-site figures of {@link CacheSplit}s; shares are over the sites that had third-party bytes */
+export type CacheabilityFigures = {
+	/** sites with a loaded repeat view */
+	sites: number;
+	/** sites whose repeat view had third-party network bytes */
+	withThirdParty: number;
+	/** each class's share of a site's third-party bytes, and its pooled share */
+	shares: Record<Cacheability, { median: number; mean: number; pooled: number }>;
+	/** answerable bytes per site, over every site, zero included */
+	answerableBytes: { median: number; mean: number };
+	/** answerable bytes as a share of a site's third-party bytes, and pooled */
+	answerableShare: { median: number; mean: number; pooled: number };
+};
+
+const ratio = (part: number, whole: number) => (whole === 0 ? 0 : part / whole);
+const mean = (xs: readonly number[]) =>
+	xs.length === 0 ? 0 : xs.reduce((s, x) => s + x, 0) / xs.length;
+const middle = (xs: readonly number[]) => (xs.length === 0 ? 0 : median(xs));
+
+/** the median, mean and pooled figures of the splits, one per class and for the answerable bytes */
+export function cacheabilityFigures(splits: readonly CacheSplit[]): CacheabilityFigures {
+	const timed = splits.filter((s) => s.total > 0);
+	const pooledTotal = splits.reduce((n, s) => n + s.total, 0);
+	const shares = {} as CacheabilityFigures['shares'];
+	for (const kind of CLASSES) {
+		const xs = timed.map((s) => s.bytes[kind] / s.total);
+		shares[kind] = {
+			median: middle(xs),
+			mean: mean(xs),
+			pooled: ratio(
+				splits.reduce((n, s) => n + s.bytes[kind], 0),
+				pooledTotal
+			)
+		};
+	}
+	const answerable = timed.map((s) => s.answerable / s.total);
+	return {
+		sites: splits.length,
+		withThirdParty: timed.length,
+		shares,
+		answerableBytes: {
+			median: middle(splits.map((s) => s.answerable)),
+			mean: mean(splits.map((s) => s.answerable))
+		},
+		answerableShare: {
+			median: middle(answerable),
+			mean: mean(answerable),
+			pooled: ratio(
+				splits.reduce((n, s) => n + s.answerable, 0),
+				pooledTotal
+			)
+		}
+	};
+}
 
 /**
  * What blocks zero-network on this site: for each third-party origin the views that loaded from it,

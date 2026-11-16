@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { aggregatesOf, churnFigures, isAggregate } from '../../src/report/index';
 import {
 	buildTrimManifest,
 	decodeEntities,
@@ -321,6 +322,137 @@ describe('trimKey and stripTrimParam', () => {
 		expect(stripTrimParam('?a=1')).toBe('?a=1');
 		expect(stripTrimParam('')).toBe('');
 		expect(trimKey('/x.css?spool-trim=0&v=1')).toBe('/x.css?v=1');
+	});
+});
+
+describe('trim churn between two readings', () => {
+	const agg = (
+		url: string,
+		kind: 'css' | 'js',
+		transfer: number | null,
+		base: object | null = null
+	) => ({
+		url,
+		kind,
+		origin: 'same',
+		raw: 1000,
+		transfer,
+		base
+	});
+	const page = (files: object[]) => ({ files });
+	const OLD_CSS = 'https://a.test/sites/default/files/css/css_old1.css?delta&language';
+	const NEW_CSS = 'https://a.test/sites/default/files/css/css_new1.css?delta&language';
+	const JS = 'https://a.test/sites/default/files/js/js_same.js?scope=footer';
+	const prior = [
+		{
+			site: 'https://a.test/',
+			pages: [
+				page([
+					agg(OLD_CSS, 'css', 1000),
+					agg(JS, 'js', 500),
+					{
+						url: 'https://cdn.x/y.css',
+						kind: 'css',
+						origin: 'third',
+						raw: 9,
+						transfer: 9
+					}
+				])
+			]
+		},
+		{
+			site: 'https://b.test/',
+			pages: [page([agg('https://b.test/sites/default/files/css/css_b.css', 'css', 300)])]
+		}
+	];
+	const base = { url: OLD_CSS, status: 200, zstdAlone: 400, zstdDict: 100 };
+	const current = [
+		{
+			site: 'https://a.test/',
+			pages: [
+				page([agg(NEW_CSS, 'css', 800, base), agg(JS, 'js', 500)]),
+				page([agg(NEW_CSS, 'css', 0, null)])
+			]
+		},
+		{
+			site: 'https://b.test/',
+			pages: [page([agg('https://b.test/sites/default/files/css/css_b.css', 'css', 300)])]
+		},
+		{
+			site: 'https://c.test/',
+			pages: [page([agg('https://c.test/sites/default/files/css/css_c.css', 'css', 1)])]
+		}
+	];
+
+	it('recognises a Drupal aggregate by its files css or js folder only', () => {
+		expect(isAggregate('https://a.test/sites/default/files/css/css_x.css?delta')).toBe(true);
+		expect(isAggregate('https://a.test/sites/g/files/js/js_y.js')).toBe(true);
+		expect(isAggregate('https://a.test/themes/site/app.css')).toBe(false);
+		expect(isAggregate('https://a.test/sites/default/files/css/')).toBe(false);
+	});
+
+	it('keeps one aggregate per path, with the largest transfer any page recorded', () => {
+		const files = aggregatesOf(current).get('https://a.test/') ?? [];
+		expect(files).toHaveLength(2);
+		const css = files.find((a) => a.path.endsWith('css_new1.css'));
+		expect(css?.transfer).toBe(800);
+		expect(css?.base).toEqual(base);
+	});
+
+	it('leaves out third-party files and reads the aggregates of each site', () => {
+		const names = aggregatesOf(prior)
+			.get('https://a.test/')
+			?.map((a) => a.path);
+		expect(names).toEqual([
+			'/sites/default/files/css/css_old1.css',
+			'/sites/default/files/js/js_same.js'
+		]);
+	});
+
+	it('gives each site its changed share and its dictionary ratio, and the medians across sites', () => {
+		const figures = churnFigures(prior, current);
+		// site c has no first reading, so it is not compared
+		expect(figures.sites.map((s) => s.site)).toEqual(['https://a.test/', 'https://b.test/']);
+		const [a, b] = figures.sites;
+		// css_new1 is 800 of 1300 bytes and its name is new; js_same is unchanged
+		expect(a?.changedShare).toBeCloseTo(800 / 1300, 12);
+		expect(a?.compared).toBe(1);
+		expect(a?.dictRatio).toBe(0.25);
+		expect(a?.unchanged).toBe(false);
+		expect(b?.changedShare).toBe(0);
+		expect(b?.dictRatio).toBeNull();
+		expect(b?.unchanged).toBe(true);
+		expect(figures.changedShare.sites).toBe(2);
+		expect(figures.changedShare.median).toBeCloseTo(800 / 1300 / 2, 12);
+		expect(figures.dictRatio).toEqual({ median: 0.25, mean: 0.25, sites: 1 });
+		expect(figures.unchangedSites).toBe(1);
+	});
+
+	it('reports no ratio for a changed name whose base did not load', () => {
+		const unloaded = [
+			{
+				site: 'https://a.test/',
+				pages: [
+					page([
+						agg(NEW_CSS, 'css', 800, {
+							url: OLD_CSS,
+							status: 404,
+							zstdAlone: null,
+							zstdDict: null
+						})
+					])
+				]
+			}
+		];
+		const [site] = churnFigures(prior, unloaded).sites;
+		expect(site?.changed).toBe(1);
+		expect(site?.compared).toBe(0);
+		expect(site?.dictRatio).toBeNull();
+		expect(churnFigures(prior, unloaded).dictRatio).toEqual({
+			median: null,
+			mean: null,
+			sites: 0
+		});
 	});
 });
 

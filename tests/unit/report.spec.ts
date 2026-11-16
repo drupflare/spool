@@ -8,16 +8,21 @@ import {
 	capacityMWh,
 	coverageFigures,
 	dataCentreJoules,
+	datasetFigures,
 	egressUsd,
 	electricityPrice,
 	fleetFor,
 	footprintMwh,
 	freeTierCeiling,
 	gPerKwhFromLbPerMwh,
+	halves,
 	institutionReport,
 	joulesPerView,
 	joulesPerViewWithOrigin,
+	kwhPerMv,
 	linearFit,
+	loopClasses,
+	loopFigures,
 	median,
 	monthlyGb,
 	onWireFigures,
@@ -37,12 +42,16 @@ import {
 	saving,
 	serverYearMWh,
 	serversAfter,
+	siteFigures,
 	splitRequestBytes,
 	spread,
 	swdTotal,
 	trimFigures,
 	viewsChannelMWh,
+	wilson,
 	zeroNetworkFigures,
+	type DatasetUpdate,
+	type LoopSecond,
 	type Row
 } from '../../src/report/index';
 import { DOCUMENT_BYTES, G_PER_LB } from '../../src/report/inputs';
@@ -74,6 +83,22 @@ describe('the views channel', () => {
 	it('scales with the local share, tier by tier', () => {
 		const mwh = Object.values(TIERS).map((z) => viewsChannelMWh(VIEWS, z));
 		expect(mwh.map((v) => Number(v.toFixed(2)))).toEqual([0.1, 0.22, 0.31]);
+	});
+});
+
+describe('energy per million views', () => {
+	it('converts joules a view to kWh per million views', () => {
+		expect(kwhPerMv(1)).toBeCloseTo(0.2778, 4);
+		expect(kwhPerMv(12.4)).toBeCloseTo(3.44, 2);
+		expect(kwhPerMv(0.8)).toBeCloseTo(0.222, 3);
+		expect(kwhPerMv(31)).toBeCloseTo(8.61, 2);
+		expect(kwhPerMv(3.6)).toBeCloseTo(1, 12);
+		expect(kwhPerMv(0)).toBe(0);
+	});
+
+	it('scales linearly, so a million views of one joule is one megajoule', () => {
+		expect(kwhPerMv(2 * 5)).toBeCloseTo(2 * kwhPerMv(5), 12);
+		expect(kwhPerMv(joulesPerView())).toBeCloseTo((joulesPerView() * 1e6) / 3.6e6, 12);
 	});
 });
 
@@ -847,5 +872,286 @@ describe('institution figures', () => {
 		for (const w of rollup.water) {
 			expect(Object.keys(w).sort()).toEqual(['directLitres', 'indirectLitres', 'name']);
 		}
+	});
+});
+
+describe('avoidable loops', () => {
+	const second = (over: Partial<LoopSecond> = {}): LoopSecond => ({
+		visibility: 'visible',
+		raf: 0,
+		timers: { lt100: 0, lt1s: 0, gte1s: 0 },
+		calls: { fetch: 0, xhr: 0, beacon: 0, websocket: 0, eventSource: 0 },
+		requests: { same: {}, cross: {} },
+		videoAdvancing: 0,
+		infiniteAnimations: 0,
+		...over
+	});
+	const windowOf = (
+		f: (i: number) => Partial<LoopSecond> = () => ({}),
+		visibility = 'visible'
+	) => ({
+		seconds: Array.from({ length: 20 }, (_, i) => second({ visibility, ...f(i) }))
+	});
+	const page = (over: Record<string, unknown> = {}): Row => ({
+		kind: 'page',
+		site: 'https://a.example',
+		page: 'https://a.example/',
+		pageKind: 'home',
+		ok: true,
+		docStatus: 200,
+		visible: windowOf(),
+		hidden: windowOf(() => ({}), 'hidden'),
+		...over
+	});
+
+	it('counts a visible frame loop at 20 callbacks a second on 15 of 20 seconds', () => {
+		const at = (n: number) => page({ visible: windowOf((i) => ({ raf: i < n ? 20 : 19 })) });
+		expect(loopClasses(at(15))?.['visible-frame-loop']).toBe(true);
+		expect(loopClasses(at(14))?.['visible-frame-loop']).toBe(false);
+	});
+
+	it('leaves a class null, not false, when its window was in the wrong state for 3 seconds', () => {
+		const shown = (hidden: number) =>
+			page({
+				visible: {
+					seconds: Array.from({ length: 20 }, (_, i) =>
+						second({ visibility: i < hidden ? 'hidden' : 'visible', raf: 60 })
+					)
+				}
+			});
+		expect(loopClasses(shown(2))?.['visible-frame-loop']).toBe(true);
+		expect(loopClasses(shown(3))?.['visible-frame-loop']).toBeNull();
+	});
+
+	it('counts a hidden timer loop only from timers registered at a second or more', () => {
+		const sub = page({
+			hidden: windowOf(() => ({ timers: { lt100: 1, lt1s: 1, gte1s: 0 } }), 'hidden')
+		});
+		expect(loopClasses(sub)?.['hidden-timer-loop']).toBe(false);
+		expect(loopClasses(sub)?.['hidden-timer-any']).toBe(true);
+		const long = page({
+			hidden: windowOf(() => ({ timers: { lt100: 0, lt1s: 0, gte1s: 1 } }), 'hidden')
+		});
+		expect(loopClasses(long)?.['hidden-timer-loop']).toBe(true);
+	});
+
+	it('counts a hidden frame loop at one callback a second on 15 of 20 seconds', () => {
+		const at = (n: number) =>
+			page({ hidden: windowOf((i) => ({ raf: i < n ? 1 : 0 }), 'hidden') });
+		expect(loopClasses(at(15))?.['hidden-frame-loop']).toBe(true);
+		expect(loopClasses(at(14))?.['hidden-frame-loop']).toBe(false);
+	});
+
+	it('counts a poll at three requests in the visible window, of any type and origin', () => {
+		const three = page({
+			visible: windowOf((i): Partial<LoopSecond> =>
+				i === 0
+					? { requests: { same: { Fetch: 2 }, cross: {} } }
+					: i === 1
+						? { requests: { same: {}, cross: { Image: 1 } } }
+						: {}
+			)
+		});
+		expect(loopClasses(three)?.poll).toBe(true);
+		const two = page({
+			visible: windowOf((i) =>
+				i === 0 ? { requests: { same: { Fetch: 2 }, cross: {} } } : {}
+			)
+		});
+		expect(loopClasses(two)?.poll).toBe(false);
+	});
+
+	it('counts autoplay and an infinite animation from one advancing second each', () => {
+		const classes = loopClasses(
+			page({
+				visible: windowOf((i) =>
+					i === 5 ? { videoAdvancing: 1, infiniteAnimations: 1 } : {}
+				)
+			})
+		);
+		expect(classes?.autoplay).toBe(true);
+		expect(classes?.['css-animation']).toBe(true);
+	});
+
+	it('marks any when one class holds, and null when none holds and one is unmeasured', () => {
+		const advancing = page({
+			visible: windowOf((i) => (i === 0 ? { videoAdvancing: 1 } : {}))
+		});
+		expect(loopClasses(advancing)?.any).toBe(true);
+		const unmeasured = page({
+			visible: {
+				seconds: Array.from({ length: 20 }, (_, i) =>
+					second({ visibility: i < 3 ? 'hidden' : 'visible' })
+				)
+			}
+		});
+		expect(loopClasses(unmeasured)?.any).toBeNull();
+	});
+
+	it('leaves a page that failed to load out of the counts', () => {
+		const figures = loopFigures([
+			page({ ok: 'load timeout', visible: null, hidden: null }),
+			page()
+		]);
+		expect(figures.pages).toBe(1);
+	});
+
+	it('counts a site once for a class when any of its pages has it', () => {
+		const withLoop = page({
+			page: 'https://a.example/x',
+			visible: windowOf((i) => (i === 0 ? { videoAdvancing: 1 } : {}))
+		});
+		const figures = loopFigures([page(), withLoop]);
+		expect(figures.sites).toBe(1);
+		expect(figures.classes.autoplay).toMatchObject({ count: 1, n: 2, siteCount: 1, siteN: 1 });
+	});
+
+	it('splits the page rows into the first floor(n / 2) and the rest, counting each half alone', () => {
+		const advancing = (site: string, kind = 'page') => ({
+			...page({ site, visible: windowOf((i) => (i === 0 ? { videoAdvancing: 1 } : {})) }),
+			kind
+		});
+		const rows = [
+			advancing('https://n.example', 'note'),
+			page({ site: 'https://a.example', visible: windowOf(() => ({ raf: 20 })) }),
+			page({ site: 'https://b.example' }),
+			advancing('https://a.example'),
+			page({ site: 'https://c.example' }),
+			page({ site: 'https://d.example' })
+		];
+		const { all, first, second } = halves(rows);
+		expect(all.pages).toBe(5);
+		expect(all.classes.autoplay).toMatchObject({ count: 1, n: 5, siteCount: 1, siteN: 4 });
+		expect(first.pages).toBe(2);
+		expect(second.pages).toBe(3);
+		expect(first.classes.autoplay).toMatchObject({ count: 0, n: 2, siteCount: 0, siteN: 2 });
+		expect(first.classes['visible-frame-loop']).toMatchObject({ count: 1, n: 2, share: 0.5 });
+		expect(second.classes.autoplay).toMatchObject({ count: 1, n: 3, siteCount: 1, siteN: 3 });
+		expect(second.classes['visible-frame-loop']).toMatchObject({ count: 0, n: 3, share: 0 });
+	});
+
+	it('takes a slice of page rows by position, with the sites counted within it', () => {
+		const advancing = (site: string) =>
+			page({ site, visible: windowOf((i) => (i === 0 ? { videoAdvancing: 1 } : {})) });
+		const rows = [
+			advancing('https://a.example'),
+			page({ site: 'https://b.example' }),
+			page({ site: 'https://b.example' }),
+			advancing('https://a.example')
+		];
+		const slice = loopFigures(rows, { from: 2, to: 4 });
+		expect(slice.pages).toBe(2);
+		expect(slice.sites).toBe(2);
+		expect(slice.classes.autoplay).toMatchObject({ count: 1, n: 2, siteN: 2, siteCount: 1 });
+	});
+
+	it('gives a Wilson 95% interval, and nothing for an empty count', () => {
+		const interval = wilson(5, 10);
+		expect(interval?.low).toBeCloseTo(0.2366, 3);
+		expect(interval?.high).toBeCloseTo(0.7634, 3);
+		expect(wilson(0, 0)).toBeNull();
+	});
+});
+
+describe('the dataset model', () => {
+	const scenario = (over: Row) => ({
+		kind: 'scenario',
+		shape: 'list',
+		arm: 'gate open',
+		n: 50,
+		change: 'change-1',
+		changedRows: 1,
+		seed: { brotli: 1000 },
+		refetchWithHave: null,
+		refetchWithout: { brotli: 1200 },
+		...over
+	});
+	const rows: Row[] = [
+		scenario({}),
+		scenario({ change: 'change-1pct', changedRows: 2, refetchWithout: { brotli: 1300 } }),
+		scenario({ shape: 'list', arm: 'as shipped', seed: { brotli: 0 } }),
+		scenario({
+			shape: 'records',
+			refetchWithHave: { brotli: 300 },
+			refetchWithout: { brotli: 1200 }
+		}),
+		{ kind: 'v04', n: 50, change: 'change-1', seed: { brotli: 1100 }, patch: { brotli: 100 } },
+		{
+			kind: 'v04',
+			n: 50,
+			change: 'change-1pct',
+			seed: { brotli: 1100 },
+			patch: { brotli: 180 }
+		},
+		{
+			kind: 'native',
+			n: 50,
+			change: 'change-1',
+			firstLoad: { socketBytes: 1250 },
+			revalidateChanged: { socketBytes: 1260 }
+		},
+		{
+			kind: 'native',
+			n: 50,
+			change: 'change-1pct',
+			firstLoad: { socketBytes: 1250 },
+			revalidateChanged: { socketBytes: 1270 }
+		}
+	];
+
+	it('reads each arm from the gate-open rows and ignores a declined arm', () => {
+		const figures = datasetFigures(rows);
+		expect(figures.seeds).toEqual({ 50: { v03: 1000, v04: 1100, native: 1250 } });
+		expect(figures.updates).toEqual([
+			{
+				rows: 50,
+				change: 'change-1',
+				changedRows: 1,
+				v03: 1200,
+				v03Records: 300,
+				v04: 100,
+				native: 1260
+			},
+			{
+				rows: 50,
+				change: 'change-1pct',
+				changedRows: 2,
+				v03: 1300,
+				v03Records: null,
+				v04: 180,
+				native: 1270
+			}
+		]);
+	});
+
+	it('refuses a reading that lacks a row for a collection and change', () => {
+		expect(() => datasetFigures(rows.slice(0, 3))).toThrow(RangeError);
+	});
+
+	it('prices a site per device per day, with the seed spread over the hold', () => {
+		const update = datasetFigures(rows).updates[0] as DatasetUpdate;
+		const figures = siteFigures(
+			{ name: 'fixture', viewsPerDay: 1000, updatesPerDay: 0.5, devices: 500 },
+			{ v03: 1000, v04: 1100, native: 1250 },
+			update
+		);
+		expect(figures.served).toBeCloseTo(1, 12);
+		expect(figures.fetches).toBeCloseTo(0.5, 12);
+		expect(figures.bytesPerDay.v03).toBeCloseTo(1000 / 7 + 0.5 * 1200, 9);
+		expect(figures.bytesPerDay.v04).toBeCloseTo(1100 / 7 + 0.5 * 100, 9);
+		expect(figures.bytesPerDay.native).toBeCloseTo(
+			(1 - Math.exp(-0.5)) * 1260 + Math.exp(-0.5) * 220,
+			9
+		);
+	});
+
+	it('gives the break-even as the seed extra over the bytes each update saves', () => {
+		const update = datasetFigures(rows).updates[0] as DatasetUpdate;
+		const figures = siteFigures(
+			{ name: 'fixture', viewsPerDay: 1000, updatesPerDay: 0.5, devices: 500 },
+			{ v03: 1000, v04: 1100, native: 1250 },
+			update
+		);
+		expect(figures.breakEven).toBeCloseTo(100 / 1100, 12);
 	});
 });

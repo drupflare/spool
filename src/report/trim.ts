@@ -1,4 +1,4 @@
-import { quantile } from './derive.js';
+import { median, quantile } from './derive.js';
 import type { Row } from './measurement.js';
 import { attributionalJoules } from './model.js';
 
@@ -202,6 +202,154 @@ function shares(
 		const total = same.reduce((t, f) => t + f.raw, 0);
 		return total > 0 ? [same.reduce((t, f) => t + f[field], 0) / total] : [];
 	});
+}
+
+/** a changed aggregate's comparison with an earlier file of its kind; the zstd sizes are null when the base did not load */
+export type Base = {
+	url: string | null;
+	status: number | null;
+	zstdAlone: number | null;
+	zstdDict: number | null;
+};
+
+/** one same-origin CSS or JS aggregate of a site, keyed by its path with the query dropped */
+export type Aggregate = {
+	path: string;
+	kind: 'css' | 'js';
+	raw: number;
+	/** the largest transfer a page recorded for it, or null when no page did */
+	transfer: number | null;
+	/** only on a reading taken with an earlier reading to compare against, for a name that changed */
+	base: Base | null;
+};
+
+/** whether a URL is a Drupal aggregate: a CSS or JS file directly under a `files/css/` or `files/js/` folder */
+export function isAggregate(url: string): boolean {
+	return /\/files\/(css|js)\/[^/]+$/.test(new URL(url).pathname);
+}
+
+type AggregateFile = {
+	url: string;
+	kind: 'css' | 'js';
+	origin: 'same' | 'third';
+	raw: number;
+	transfer: number | null;
+	base?: Base | null;
+};
+
+/** the aggregates of each site of a trim reading, one entry per path across its pages */
+export function aggregatesOf(rows: readonly Row[]): Map<string, Aggregate[]> {
+	const out = new Map<string, Aggregate[]>();
+	for (const row of rows as unknown as Array<{
+		site: string;
+		pages?: Array<{ files?: AggregateFile[] }>;
+	}>) {
+		const byPath = new Map<string, Aggregate>();
+		for (const page of row.pages ?? []) {
+			for (const file of page.files ?? []) {
+				if (file.origin !== 'same' || !isAggregate(file.url)) continue;
+				const path = new URL(file.url).pathname;
+				const entry = byPath.get(path) ?? {
+					path,
+					kind: file.kind,
+					raw: file.raw,
+					transfer: null,
+					base: null
+				};
+				if (
+					file.transfer !== null &&
+					(entry.transfer === null || file.transfer > entry.transfer)
+				)
+					entry.transfer = file.transfer;
+				entry.base ??= file.base ?? null;
+				byPath.set(path, entry);
+			}
+		}
+		out.set(row.site, [...byPath.values()]);
+	}
+	return out;
+}
+
+/** one site's aggregates on the second reading against the first */
+export type ChurnSite = {
+	site: string;
+	/** aggregates on the second reading */
+	aggregates: number;
+	/** of which the name is new since the first reading */
+	changed: number;
+	/** the changed names' share of the second reading's aggregate transfer bytes; null without any transfer */
+	changedShare: number | null;
+	/** changed aggregates whose base loaded, and the zstd dictionary size over standalone size across them */
+	compared: number;
+	dictRatio: number | null;
+	/** the same non-empty set of names on both readings */
+	unchanged: boolean;
+};
+
+/** the median and mean over the sites that have a value, and how many did */
+export type Summary = { median: number | null; mean: number | null; sites: number };
+
+/** the churn between two readings of the same sites, over the sites both hold */
+export type ChurnFigures = {
+	sites: ChurnSite[];
+	changedShare: Summary;
+	dictRatio: Summary;
+	/** sites whose aggregate names are identical on both readings */
+	unchangedSites: number;
+};
+
+const summary = (xs: readonly number[]): Summary => ({
+	median: xs.length === 0 ? null : median(xs),
+	mean: xs.length === 0 ? null : xs.reduce((n, x) => n + x, 0) / xs.length,
+	sites: xs.length
+});
+
+/**
+ * Churn between an earlier and a later trim reading. Names are compared by path, so a changed
+ * name is an aggregate the later reading holds and the earlier one did not. The dictionary ratio
+ * uses the base sizes the later reading recorded; the earlier reading carries none.
+ */
+export function churnFigures(prior: readonly Row[], current: readonly Row[]): ChurnFigures {
+	const before = aggregatesOf(prior);
+	const now = aggregatesOf(current);
+	const sites: ChurnSite[] = [];
+	for (const [site, files] of now) {
+		const earlier = before.get(site);
+		if (!earlier) continue;
+		const old = new Set(earlier.map((a) => a.path));
+		const sized = files.filter((a) => a.transfer !== null);
+		const changed = files.filter((a) => !old.has(a.path));
+		const changedSized = changed.filter((a) => a.transfer !== null);
+		const total = sized.reduce((n, a) => n + (a.transfer ?? 0), 0);
+		const changedBytes = changedSized.reduce((n, a) => n + (a.transfer ?? 0), 0);
+		const pairs = changed.flatMap((a) => {
+			const b = a.base;
+			return b && b.zstdAlone !== null && b.zstdDict !== null
+				? [{ alone: b.zstdAlone, dict: b.zstdDict }]
+				: [];
+		});
+		const alone = pairs.reduce((n, p) => n + p.alone, 0);
+		sites.push({
+			site,
+			aggregates: files.length,
+			changed: changed.length,
+			changedShare: total > 0 ? changedBytes / total : null,
+			compared: pairs.length,
+			dictRatio: pairs.length > 0 ? pairs.reduce((n, p) => n + p.dict, 0) / alone : null,
+			unchanged:
+				files.length > 0 &&
+				files.length === earlier.length &&
+				files.every((a) => old.has(a.path))
+		});
+	}
+	return {
+		sites,
+		changedShare: summary(
+			sites.flatMap((s) => (s.changedShare === null ? [] : [s.changedShare]))
+		),
+		dictRatio: summary(sites.flatMap((s) => (s.dictRatio === null ? [] : [s.dictRatio]))),
+		unchangedSites: sites.filter((s) => s.unchanged).length
+	};
 }
 
 /** coverage shares of the coverage reading (`measurements/trim/<date>.json`), pooled over its pages */

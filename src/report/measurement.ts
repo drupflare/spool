@@ -16,7 +16,8 @@ export const RIGS = [
 	'nav-replay',
 	'first-payload',
 	'embed-markup',
-	'dataset-baseline'
+	'dataset-baseline',
+	'avoidable-loops'
 ] as const;
 
 /** one of {@link RIGS} */

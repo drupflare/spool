@@ -9,7 +9,15 @@ import {
 	type ThirdPartyConfig,
 	type ViewEvent
 } from '../../src/protocol/index';
-import { classifyOrigin, thirdPartyReport } from '../../src/report/index';
+import {
+	cacheability,
+	cacheabilityFigures,
+	classifyOrigin,
+	thirdPartyCacheBySite,
+	thirdPartyCacheSplit,
+	thirdPartyReport,
+	type CacheSplit
+} from '../../src/report/index';
 import { viewsOf } from '../../src/server/index';
 import { THIRD_HEADERS, versionClass } from '../../src/sw/thirdparty';
 import { sub } from './helpers';
@@ -260,6 +268,126 @@ describe('loads reports with origins', () => {
 			Array.from({ length: MAX_LOAD_ORIGINS + 1 }, (_, i) => [`https://o${i}.test`, 1])
 		);
 		expect(bad(many)).toBeNull();
+	});
+});
+
+describe('cacheability of a recorded response', () => {
+	const headers = (cacheControl: string | null, etag = false, lastModified = false) => ({
+		cacheControl,
+		etag,
+		lastModified
+	});
+
+	it('reads immutable and a year or more of max-age as immutable', () => {
+		expect(cacheability(headers('public, max-age=31536000, immutable'))).toBe('immutable');
+		expect(cacheability(headers('max-age=31536000'))).toBe('immutable');
+	});
+
+	it('reads a day up to a year as long, and under a day as short', () => {
+		expect(cacheability(headers('max-age=86400'))).toBe('long');
+		expect(cacheability(headers('max-age=31535999'))).toBe('long');
+		expect(cacheability(headers('max-age=86399'))).toBe('short');
+		expect(cacheability(headers('max-age=0'))).toBe('short');
+	});
+
+	it('reads no-store as uncacheable, whatever validator it carries', () => {
+		expect(cacheability(headers('no-store', true, true))).toBe('uncacheable');
+	});
+
+	it('reads no-cache or no freshness with a validator as short, and without one as uncacheable', () => {
+		expect(cacheability(headers('no-cache', true))).toBe('short');
+		expect(cacheability(headers(null, false, true))).toBe('short');
+		expect(cacheability(headers('no-cache'))).toBe('uncacheable');
+		expect(cacheability(headers(null))).toBe('uncacheable');
+	});
+});
+
+describe('third-party cacheability of a repeat view', () => {
+	const row = (url: string, bytes: number, cacheControl: string | null, extra = {}) => ({
+		url,
+		host: new URL(url).host,
+		sameOrigin: false,
+		type: 'Script',
+		bytes,
+		fromCache: false,
+		cacheControl,
+		etag: false,
+		lastModified: false,
+		...extra
+	});
+	const siteA = [
+		row('https://cdn.jsdelivr.net/npm/a.js', 100, 'public, max-age=31536000, immutable'),
+		row('https://cdnjs.cloudflare.com/x.css', 50, 'max-age=86400'),
+		row('https://www.google-analytics.com/collect', 10, 'no-store'),
+		row('https://fonts.gstatic.com/a.woff2', 40, 'max-age=3600', { etag: true }),
+		row('https://site.test/own.js', 999, 'max-age=31536000', { sameOrigin: true }),
+		row('https://cdn.jsdelivr.net/npm/b.js', 0, 'max-age=31536000', { fromCache: true })
+	];
+	const siteB = [row('https://cdnjs.cloudflare.com/y.js', 80, 'max-age=60')];
+	const siteC = [row('https://site.test/only.js', 5, 'max-age=60', { sameOrigin: true })];
+
+	it('splits third-party network bytes by class and leaves out first-party and cache-answered requests', () => {
+		const split = thirdPartyCacheSplit(siteA);
+		expect(split.total).toBe(200);
+		expect(split.bytes).toEqual({ immutable: 100, long: 50, short: 40, uncacheable: 10 });
+		expect(split.requests).toEqual({ immutable: 1, long: 1, short: 1, uncacheable: 1 });
+	});
+
+	it('counts as answerable only cache-remedy origins whose class is immutable or long', () => {
+		// the fonts host is cache-remedy but its response is short, so it is not answerable
+		expect(thirdPartyCacheSplit(siteA).answerable).toBe(150);
+		expect(thirdPartyCacheSplit(siteB).answerable).toBe(0);
+	});
+
+	it('keys each site by its loaded repeat view and skips a site without one', () => {
+		const rows = [
+			{
+				site: 'https://a.test/',
+				navs: [
+					{ kind: 'warm-home-repeat', ok: true, docStatus: 200, requestList: siteA },
+					{ kind: 'cold-home', ok: true, docStatus: 200, requestList: siteB }
+				]
+			},
+			{
+				site: 'https://blocked.test/',
+				navs: [{ kind: 'warm-home-repeat', ok: true, docStatus: 403, requestList: siteB }]
+			},
+			{ site: 'https://none.test/', navs: [] }
+		];
+		const bySite = thirdPartyCacheBySite(rows);
+		expect([...bySite.keys()]).toEqual(['https://a.test/']);
+		expect(bySite.get('https://a.test/')?.total).toBe(200);
+	});
+
+	it('gives the median and mean of class shares, and the pooled share beside them', () => {
+		const splits = [siteA, siteB, siteC].map((list) => thirdPartyCacheSplit(list));
+		const figures = cacheabilityFigures(splits);
+		expect(figures.sites).toBe(3);
+		expect(figures.withThirdParty).toBe(2);
+		// site A has 0.5 immutable, site B none: median and mean both 0.25; pooled 100 of 280
+		expect(figures.shares.immutable.median).toBe(0.25);
+		expect(figures.shares.immutable.mean).toBe(0.25);
+		expect(figures.shares.immutable.pooled).toBeCloseTo(100 / 280, 12);
+		// site A 0.05 uncacheable, site B none
+		expect(figures.shares.uncacheable.median).toBe(0.025);
+	});
+
+	it('gives the answerable bytes per site over every site, and their share of third-party bytes', () => {
+		const splits = [siteA, siteB, siteC].map((list) => thirdPartyCacheSplit(list));
+		const figures = cacheabilityFigures(splits);
+		// per site: 150, 0 and 0 bytes answerable; the median site is one with none
+		expect(figures.answerableBytes.median).toBe(0);
+		expect(figures.answerableBytes.mean).toBe(50);
+		// shares over sites with third-party bytes: 0.75 and 0
+		expect(figures.answerableShare.median).toBe(0.375);
+		expect(figures.answerableShare.pooled).toBeCloseTo(150 / 280, 12);
+	});
+
+	it('reports zeros, not a median of nothing, for a stream with no third-party bytes', () => {
+		const empty: CacheSplit[] = [thirdPartyCacheSplit(siteC.filter((r) => r.sameOrigin))];
+		const figures = cacheabilityFigures(empty);
+		expect(figures.withThirdParty).toBe(0);
+		expect(figures.answerableShare).toEqual({ median: 0, mean: 0, pooled: 0 });
 	});
 });
 

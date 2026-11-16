@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defineRoute, type SerializedRoute, type SwConfig } from '../../src/protocol/index';
 import { attributionalJoules, ORIGIN_J } from '../../src/report/index';
+import { datasetInputs, NATIVE_LOOK_DAYS, NOT_MODIFIED_BYTES } from '../../src/server/dataset';
 import { createSpool } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
 import {
@@ -334,89 +335,100 @@ describe('shadow decisions', () => {
 });
 
 describe('dataset admission against v0.3 and native HTTP', () => {
-	// Brotli bytes from measurements/dataset-baseline (records 50 seed, its change-1 response with
-	// all 50 ids held, list seeds and refetches). The list patch is the refetch over its rows. The
-	// 300 byte native response is a fixture for a revalidation, not a measurement.
+	// Brotli wire bytes from measurements/dataset-baseline/2026-11-15.json: the v04 seed and one-row
+	// patch, the gate-open list refetch (v03), and the native first load of the same rows. The native
+	// view is a changed body with P = 1 - exp(-updatesPerDay x NATIVE_LOOK_DAYS), else the 304.
+	const changed = 1 - Math.exp(-1 * NATIVE_LOOK_DAYS);
+	const nativeView = (body: number) => changed * body + (1 - changed) * NOT_MODIFIED_BYTES;
 	const records50 = {
-		seedBytes: 2511,
-		patchBytes: 373,
+		seedBytes: 2313,
+		patchBytes: 227,
 		updatesPerDay: 1,
 		v03: { seedBytes: 2224, refetchBytes: 2236 },
-		nativeBytesPerView: 300
+		nativeBytesPerView: nativeView(2092)
 	};
 	const list500 = {
-		seedBytes: 19_965,
-		patchBytes: 40,
+		seedBytes: 20_832,
+		patchBytes: 228,
 		updatesPerDay: 1,
 		v03: { seedBytes: 19_965, refetchBytes: 19_981 },
-		nativeBytesPerView: 19_965
+		nativeBytesPerView: nativeView(19_957)
 	};
 	const list5000 = {
-		seedBytes: 193_107,
-		patchBytes: 38,
+		seedBytes: 206_988,
+		patchBytes: 232,
 		updatesPerDay: 1,
 		v03: { seedBytes: 193_107, refetchBytes: 191_744 },
-		nativeBytesPerView: 193_107
+		nativeBytesPerView: nativeView(192_952)
 	};
 	const wide = { ...DEFAULT_PRIOR, reuse: 1, futureViews: 1000 };
 	const sticky = { ...DEFAULT_PRIOR, reuse: 1, futureViews: 20 };
 
 	it('declines a 500-row list at the default priors, and native HTTP binds', () => {
-		expect(datasetBenefit(list500)).toEqual({
-			net: { 'v0.3': 9970.5, native: -12002.5 },
-			controls: 'native',
-			ship: false
-		});
+		const got = datasetBenefit(list500);
+		expect(got.net['v0.3']).toBe(9009.5);
+		expect(got.net.native).toBeCloseTo(-16597.9, 1);
+		expect(got).toMatchObject({ controls: 'native', ship: false });
 	});
 
 	it('ships a 500-row list at the gate-open priors, bound by v0.3', () => {
-		expect(datasetBenefit(list500, wide)).toEqual({
-			net: { 'v0.3': 139587, native: 10946255 },
-			controls: 'v0.3',
-			ship: true
-		});
+		const got = datasetBenefit(list500, wide);
+		expect(got.net['v0.3']).toBe(137404);
+		expect(got.net.native).toBeCloseTo(7309653.7, 0);
+		expect(got).toMatchObject({ controls: 'v0.3', ship: true });
 	});
 
 	it('scales a 5,000-row list the same way', () => {
-		expect(datasetBenefit(list5000)).toEqual({
-			net: { 'v0.3': 95853, native: -98572.5 },
-			controls: 'native',
-			ship: false
-		});
-		expect(datasetBenefit(list5000, wide)).toEqual({
-			net: { 'v0.3': 1341942, native: 97344127 },
-			controls: 'v0.3',
-			ship: true
-		});
+		const small = datasetBenefit(list5000);
+		expect(small.net['v0.3']).toBe(81875);
+		expect(small.net.native).toBeCloseTo(-148079.1, 0);
+		expect(small).toMatchObject({ controls: 'native', ship: false });
+		const big = datasetBenefit(list5000, wide);
+		expect(big.net['v0.3']).toBe(1326703);
+		expect(big.net.native).toBeCloseTo(61800317.8, 0);
+		expect(big).toMatchObject({ controls: 'v0.3', ship: true });
 	});
 
 	it('lets v0.3 bind and decline when a change rewrites every row', () => {
-		expect(datasetBenefit({ ...records50, patchBytes: 2236, survival: 0.8 }, sticky)).toEqual({
-			net: { 'v0.3': -287, native: 2637 },
-			controls: 'v0.3',
-			ship: false
-		});
+		const got = datasetBenefit({ ...records50, patchBytes: 2236, survival: 0.8 }, sticky);
+		expect(got.net['v0.3']).toBe(-89);
+		expect(got.net.native).toBeCloseTo(20488.3, 1);
+		expect(got).toMatchObject({ controls: 'v0.3', ship: false });
 	});
 
 	it('lets native HTTP bind at the defaults when v0.3 alone would ship', () => {
-		expect(datasetBenefit(records50)).toEqual({
-			net: { 'v0.3': 644.5, native: -4547.5 },
-			controls: 'native',
-			ship: false
-		});
+		const got = datasetBenefit(records50);
+		expect(got.net['v0.3']).toBe(915.5);
+		expect(got.net.native).toBeCloseTo(-3724.8, 1);
+		expect(got).toMatchObject({ controls: 'native', ship: false });
 	});
 
-	it('flips on survival: 0.8 ships and 0.2 does not', () => {
-		expect(datasetBenefit({ ...records50, survival: 0.8 }, sticky)).toEqual({
-			net: { 'v0.3': 12754, native: 15678 },
-			controls: 'v0.3',
-			ship: true
+	it('flips on survival: 0.8 ships and 0.1 does not', () => {
+		const high = datasetBenefit({ ...records50, survival: 0.8 }, sticky);
+		expect(high.net['v0.3']).toBe(13974);
+		expect(high.net.native).toBeCloseTo(34551.3, 1);
+		expect(high).toMatchObject({ controls: 'v0.3', ship: true });
+		const low = datasetBenefit({ ...records50, survival: 0.1 }, sticky);
+		expect(low.net['v0.3']).toBe(3929);
+		expect(low.net.native).toBeCloseTo(-1960, 0);
+		expect(low).toMatchObject({ controls: 'native', ship: false });
+	});
+
+	it('reads the update rate from the cursor advance per day, and holds the sizes it saw', () => {
+		const day = 86_400_000;
+		const seen = {
+			seedBytes: 20_832,
+			patchBytes: 228,
+			first: { cursor: 10, at: 0 },
+			last: { cursor: 13, at: 3 * day }
+		};
+		expect(datasetInputs(20_832, seen, DEFAULT_PRIOR)).toMatchObject({
+			seedBytes: 20_832,
+			patchBytes: 228,
+			updatesPerDay: 1
 		});
-		expect(datasetBenefit({ ...records50, survival: 0.2 }, sticky)).toEqual({
-			net: { 'v0.3': 7165, native: -4803 },
-			controls: 'native',
-			ship: false
-		});
+		const same = { ...seen, last: { cursor: 13, at: 0 } };
+		expect(datasetInputs(20_832, same, DEFAULT_PRIOR).updatesPerDay).toBe(1);
 	});
 
 	it('uses the survival and hold defaults when the inputs leave them out', () => {
@@ -460,9 +472,28 @@ describe('server admission: budget and override', () => {
 		const over = await ask([big({ reuse: 1, futureViews: 1000, maxBytes: 1000 })]);
 		expect(over?.status).toBe(204);
 		expect(over?.headers.get('spool-provision')).toBe('declined');
+		expect(over?.headers.get('spool-provision-reason')).toBe('budget');
 		expect(
 			(await ask([big({ reuse: 1, futureViews: 1000, maxBytes: 1_000_000 })]))?.status
 		).toBe(200);
+	});
+
+	it('declines a whole-body data route at the default priors, and a priors override serves it', async () => {
+		const one = (provision?: { reuse: number; futureViews: number }) =>
+			defineRoute('/one', {
+				strategy: 'data',
+				load: () => ({ title: 'one' }),
+				...(provision ? { provision } : {})
+			});
+		const page = (routes: ReturnType<typeof one>[]) =>
+			createSpool({ routes, store: memoryStore() }).respond(
+				new Request('https://site.test/.spool/artifact?path=/one')
+			);
+		const declined = await page([one()]);
+		expect(declined?.status).toBe(204);
+		expect(declined?.headers.get('spool-provision')).toBe('declined');
+		expect(declined?.headers.get('spool-provision-reason')).toBe('benefit');
+		expect((await page([one({ reuse: 1, futureViews: 5 })]))?.status).toBe(200);
 	});
 
 	it('declines a template over the avoided-bytes prior, and a priors override serves it', async () => {

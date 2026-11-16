@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
 	deviceCpuFigures,
+	drupalRenderFigures,
 	findLeaks,
 	inferenceFigures,
 	MeasurementError,
@@ -145,6 +146,131 @@ describe('the published files', () => {
 	it('lists every rig in the README table', () => {
 		const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
 		for (const rig of RIGS) expect(readme).toContain(`\`${rig}\``);
+	});
+});
+
+describe('drupal-render derivation', () => {
+	const rows = [
+		{ arm: 'idle', round: 0, n: 0, elapsedMs: 10_000, pkgJ: 20, otherCpuMs: 0 },
+		{ arm: 'idle', round: 1, n: 0, elapsedMs: 10_000, pkgJ: 22, otherCpuMs: 0 },
+		{
+			arm: 'null',
+			url: 'null',
+			phase: 'steady',
+			round: 0,
+			n: 100,
+			elapsedMs: 1000,
+			pkgJ: 2.5,
+			otherCpuMs: 0,
+			status: { '200': 100 },
+			pageCache: { none: 100 },
+			dynamicCache: { none: 100 }
+		},
+		{
+			arm: 'null',
+			url: 'null',
+			phase: 'steady',
+			round: 1,
+			n: 100,
+			elapsedMs: 1000,
+			pkgJ: 2.7,
+			otherCpuMs: 0,
+			status: { '200': 100 },
+			pageCache: { none: 100 },
+			dynamicCache: { none: 100 }
+		},
+		{
+			arm: 'uncached',
+			url: 'front',
+			phase: 'steady',
+			round: 0,
+			n: 40,
+			elapsedMs: 4000,
+			pkgJ: 18,
+			otherCpuMs: 0,
+			status: { '200': 40 },
+			pageCache: { MISS: 40 },
+			dynamicCache: { MISS: 40 }
+		},
+		{
+			arm: 'uncached',
+			url: 'front',
+			phase: 'steady',
+			round: 1,
+			n: 40,
+			elapsedMs: 4000,
+			pkgJ: 19.8,
+			otherCpuMs: 0,
+			status: { '200': 40 },
+			pageCache: { MISS: 40 },
+			dynamicCache: { MISS: 40 }
+		},
+		{
+			arm: 'uncached',
+			url: 'front',
+			phase: 'first',
+			round: 0,
+			n: 1,
+			elapsedMs: 300,
+			pkgJ: 1.2,
+			otherCpuMs: 0,
+			status: { '200': 1 },
+			pageCache: { MISS: 1 },
+			dynamicCache: { MISS: 1 }
+		},
+		{
+			arm: 'uncached',
+			url: 'front',
+			phase: 'first',
+			round: 1,
+			n: 1,
+			elapsedMs: 300,
+			pkgJ: 1.5,
+			otherCpuMs: 0,
+			status: { '200': 1 },
+			pageCache: { MISS: 1 },
+			dynamicCache: { MISS: 1 }
+		},
+		{
+			arm: 'uncached',
+			url: 'front',
+			phase: 'steady',
+			round: 1,
+			n: 40,
+			elapsedMs: 1000,
+			pkgJ: 99,
+			otherCpuMs: 5000,
+			status: { '200': 40 },
+			pageCache: { MISS: 40 },
+			dynamicCache: { MISS: 40 }
+		}
+	];
+
+	it('nets each window against the null route of its round and drops a contaminated window', () => {
+		const figures = drupalRenderFigures(rows);
+		expect(figures.dropped).toBe(1);
+		expect(figures.rounds).toBe(2);
+		expect(figures.idleWatts.median).toBeCloseTo(2.1, 10);
+		expect(figures.arms['null/null/steady']?.net).toBeNull();
+
+		const steady = figures.arms['uncached/front/steady'];
+		expect(steady?.gross.median).toBeCloseTo(0.2625, 10);
+		expect(steady?.net?.median).toBeCloseTo(0.2575, 10);
+		expect(steady?.net?.min).toBeCloseTo(0.245, 10);
+		expect(steady?.net?.max).toBeCloseTo(0.27, 10);
+		expect(steady?.net?.n).toBe(2);
+
+		const first = figures.arms['uncached/front/first'];
+		expect(first?.net?.median).toBeCloseTo(0.715, 10);
+		expect(first?.net?.min).toBeCloseTo(0.595, 10);
+		expect(first?.net?.max).toBeCloseTo(0.835, 10);
+	});
+
+	it('counts the cache headers and statuses of each arm', () => {
+		const steady = drupalRenderFigures(rows).arms['uncached/front/steady'];
+		expect(steady?.cache.dynamic).toEqual({ MISS: 80 });
+		expect(steady?.cache.page).toEqual({ MISS: 80 });
+		expect(steady?.status).toEqual({ '200': 80 });
 	});
 });
 
