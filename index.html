@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.3.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><link rel="stylesheet" href="assets/custom.css"/><script defer src="assets/main.js"></script><script defer src="assets/custom.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="index.html" class="title">@drupflare/spool - v0.3.0</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@drupflare/spool - v0.4.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><link rel="stylesheet" href="assets/custom.css"/><script defer src="assets/main.js"></script><script defer src="assets/custom.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="index.html" class="title">@drupflare/spool - v0.4.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -7,7 +7,7 @@
 <div class="container container-main">
 <div class="col-content">
 <div class="tsd-page-title">
-<h1>@drupflare/spool - v0.3.0</h1></div>
+<h1>@drupflare/spool - v0.4.0</h1></div>
 <div class="tsd-panel tsd-typography"><h1 id="🧵-spool" class="tsd-anchor-link">🧵 spool<a href="#🧵-spool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <blockquote>
 <p>An incremental application replica for the browser</p>
@@ -34,7 +34,9 @@ has no runtime dependencies. A site with no server code can load it from two fil
 <li><a href="#-static-sites">Static Sites</a></li>
 <li><a href="#-strategies">Strategies</a></li>
 <li><a href="#-freshness-contracts">Freshness Contracts</a></li>
+<li><a href="#-datasets">Datasets</a></li>
 <li><a href="#-authenticated-data">Authenticated Data</a></li>
+<li><a href="#-declared-writes">Declared Writes</a></li>
 <li><a href="#-catalogue">Catalogue</a></li>
 <li><a href="#-analytics-batching">Analytics Batching</a></li>
 <li><a href="#-third-party-files">Third-Party Files</a></li>
@@ -44,10 +46,13 @@ has no runtime dependencies. A site with no server code can load it from two fil
 <li><a href="#-trimmed-stylesheets">Trimmed Stylesheets</a></li>
 <li><a href="#-images-and-video">Images and Video</a></li>
 <li><a href="#-capacity-reports">Capacity Reports</a></li>
+<li><a href="#-security">Security</a></li>
+<li><a href="#-energy-reporting">Energy Reporting</a></li>
 <li><a href="#-out-of-scope">Out of Scope</a></li>
 <li><a href="#-browser-support">Browser Support</a></li>
 <li><a href="#-subpath-exports">Subpath Exports</a></li>
 <li><a href="#-testing">Testing</a></li>
+<li><a href="#-documentation">Documentation</a></li>
 <li><a href="#-related-repositories">Related Repositories</a></li>
 <li><a href="#-license">License</a></li>
 </ul>
@@ -57,10 +62,14 @@ has no runtime dependencies. A site with no server code can load it from two fil
 server half names those dependencies and sends the snapshot the visitor may hold. The worker keeps
 a graph of records, projections and responses, with their versions, and syncs only what the next
 page needs.</p>
-<p>Your application keeps every write, every access decision and every page it cannot reproduce
-safely on the device. A route the worker cannot answer goes to the network, so adopting spool
-changes no page that was not declared.</p>
-<p><a href="documents/impact.html">docs/impact.md</a> holds the energy model and the measurements behind it.</p>
+<p>Your application keeps every access decision and every page it cannot reproduce safely on the
+device. It keeps every write too, except the last-value writes you declare, which ship off. A route
+the worker cannot answer goes to the network, so adopting spool changes no page that was not
+declared.</p>
+<p>A collection of thousands of rows, such as a directory or a course catalogue, can be held as a
+<a href="#-datasets">dataset</a>. The device seeds it once and then receives only the rows that changed.</p>
+<p><a href="documents/impact.html">docs/impact.md</a> holds the energy model and the measurements behind it. See
+<a href="#-energy-reporting">Energy Reporting</a>.</p>
 <hr>
 <h2 id="📥-install" class="tsd-anchor-link">📥 Install<a href="#📥-install" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="package" class="tsd-anchor-link">Package<a href="#package" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
@@ -125,8 +134,9 @@ that the release notes list for your version. The URL defaults to that version's
 it against the hash, so a changed file never runs. Release files are never overwritten. If the
 script fails to load, the page works as it did before.</p>
 <p>The script registers <code>/spool-sw.js</code> and exposes <code>window.spool.ready</code>, which resolves to the client
-handle or to <code>null</code> where service workers do not exist. To bundle the runtime yourself, import
-<code>register</code> from <code>@drupflare/spool/client</code>.</p>
+handle or to <code>null</code> where service workers do not exist. It also exposes <code>window.spool.activity</code>,
+described below, and the write calls of <a href="#-declared-writes">Declared Writes</a>. To bundle the runtime
+yourself, import <code>register</code> from <code>@drupflare/spool/client</code>.</p>
 <h3 id="activity-hooks" class="tsd-anchor-link">Activity Hooks<a href="#activity-hooks" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>A loop that keeps running while nobody can see its output costs the visitor's device power. The
 page runtime exposes <code>window.spool.activity.register</code>, which lets a page hand spool a <code>pause</code> and
@@ -525,7 +535,7 @@ from one directory:</p>
 <li><code>client.js</code>, the page script, from the same place.</li>
 <li><code>spool.json</code>, the list of files the worker may keep.</li>
 </ul>
-<p>Each page loads the script with the tag from <a href="#-install">CDN Script</a>, or from the site's own copy.
+<p>Each page loads the script with the tag from <a href="#cdn-script">CDN Script</a>, or from the site's own copy.
 The worker has no server to talk to, so it reads <code>spool.json</code> from the directory its own script
 sits in.</p>
 <pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;schema&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;routes&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;pattern&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;static&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;sha256-&lt;base64 digest of the page&gt;&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;freshness&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;maxStale&quot;</span><span class="hl-1">: </span><span class="hl-15">3600</span><span class="hl-1">, </span><span class="hl-16">&quot;mode&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;soft&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">    { </span><span class="hl-16">&quot;pattern&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/about&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;static&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;sha256-&lt;base64 digest of the page&gt;&quot;</span><span class="hl-1"> },</span><br/><span class="hl-1">    { </span><span class="hl-16">&quot;pattern&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/css/site.css&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;static&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;build-42&quot;</span><span class="hl-1"> },</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;pattern&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/client.js&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;static&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-16">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;sha384-&lt;base64 digest of the file&gt;&quot;</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">  ]</span><br/><span class="hl-1">}</span>
@@ -672,8 +682,9 @@ sorts descending. Ties keep the stored order. Strings compare by UTF-16 code uni
 and no case folding, so the application's own sort has to agree. A database that compares bytes,
 such as SQLite by default, agrees except for characters above U+FFFF, and a case-insensitive or
 locale collation does not. <code>pageSize</code> sets the items per page and <code>page</code> counts from 1; without it
-the route is one page of everything. A route with <code>principal</code> scope, or any
-other strategy, cannot declare <code>query</code>.</p>
+the route is one page of everything. A route with <code>static</code> or <code>assembly</code> strategy cannot declare
+<code>query</code>. A route with <code>principal</code> scope can declare it only with <code>query.dataset</code>, which
+<a href="#-datasets">Datasets</a> describes.</p>
 <p><code>load</code> returns the array at <code>list</code> and a <code>proof</code> made by <code>datasetProof</code>. The server refuses to
 build the artifact when the proof is missing or does not match the array. The worker computes the
 proof again from the stored copy before it answers a query. The proof shows that the device holds
@@ -717,6 +728,60 @@ for the next network request that happens anyway.</p>
 leads the sync for every tab of an origin. A response to a request that happens anyway can carry
 invalidations, so a sync does not always need a request of its own.</p>
 <hr>
+<h2 id="💾-datasets" class="tsd-anchor-link">💾 Datasets<a href="#💾-datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A route that lists thousands of rows, such as a staff directory, makes a device fetch the whole
+collection again after each change. A dataset lets the device hold the rows and receive only the
+rows that changed. The device seeds a dataset once, then asks for a patch from the cursor it holds.
+A patch carries the rows to put, the keys to delete and a proof the device checks before it stores
+anything.</p>
+<p><code>defineDataset(name, declaration)</code> from <code>@drupflare/spool/server</code> declares a dataset, and
+<code>createSpool({ datasets })</code> serves it at <code>GET /.spool/dataset</code>. The declaration gives the
+functions <code>key</code>, <code>seed</code>, <code>read</code>, <code>changes</code>, <code>horizon</code> and <code>head</code>, a <code>schema</code> string, and the
+<code>maxRows</code> and <code>maxBytes</code> of a seed. A dataset has its own integer cursor, which your backend holds.
+It does not use the site's version vector. <code>changes(since)</code> returns the net change after a cursor
+and decides which rows are in scope. <code>read(ids)</code> is a keyed read that never runs a route's <code>load</code>.
+A device whose cursor is below <code>horizon</code>, or whose <code>schema</code> differs, seeds again.</p>
+<p>The proof is the number of rows and the sum of every row's hash. A sum does not depend on order, so
+a patch moves it by the rows it touches. The device applies a seed or a patch to a staging copy,
+compares the result with the proof, and writes the rows and their metadata in one transaction. A
+failed proof clears that dataset and seeds it once more. The proof catches corruption and a
+half-applied patch. It does not defend against a server that sends rows and a digest that agree.</p>
+<p>A route reads a dataset in two ways. <code>query.dataset</code> names it in place of <code>list</code>: the worker takes
+the held rows in key order and applies the route's filter, sort and page, and goes to the network
+while the dataset is not held. <code>ctx.row(dataset, key)</code> puts a reference to one row in the route's
+data. The reference resolves when the page renders, so a changed row needs no new artifact.</p>
+<p>A route with <code>query.dataset</code> may also declare <code>query.plan</code>, a read-only plan written as JSON with
+joins, conditions, groups and aggregates over held datasets. It replaces <code>filter</code>, <code>sort</code> and
+<code>pageSize</code>. The worker compares values the way SQLite compares a column with no declared type, and
+sends the query to the network when a plan could give another answer than SQLite would. The server
+never evaluates a plan.</p>
+<p>A dataset declared with <code>provision: 'auto'</code> reaches a device only while it beats two controls: the
+held page under v0.3, and one plain resource that a browser cache revalidates with an <code>ETag</code>.
+Otherwise the seed request gets <code>409</code> with <code>Spool-Provision: declined</code>, and the worker holds
+nothing and does not ask again in that session. The default, <code>'always'</code>, answers every seed. The worker also
+refuses a seed whose rows would not fit the headroom that <code>navigator.storage.estimate()</code> reports,
+and the page runtime asks the browser for persistent storage once the first dataset is held.</p>
+<p>On synthetic rows (L1, no real site measured), one changed row of 500 costs 228 bytes as a patch and
+19,981 bytes as a v0.3 list refetch, and the first load costs 867 bytes more than under v0.3
+(<a href="documents/impact.html#dataset-patches">docs/impact.md</a>). <a href="documents/protocol.html#datasets">docs/protocol.md</a>
+has the declaration rules, the wire format, query plans and the device store.</p>
+<h3 id="principal-datasets" class="tsd-anchor-link">Principal Datasets<a href="#principal-datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Principal datasets are off by default and unreviewed: no external review of this feature has
+happened. They hold rows that differ for each signed-in principal. Two switches turn them on, and
+both are needed. <code>defineDataset(name, declaration, { principalDatasets: true })</code> accepts
+<code>scope: 'principal'</code>, and <code>createSpool({ principalDatasets: true, identity })</code> serves the dataset.
+A principal dataset declares <code>maxStaleMs</code>, which has no default, and cannot use
+<code>provision: 'auto'</code>.</p>
+<p>The server takes the identity from the request and passes it to every dataset function as
+<code>ctx.principal</code>. Which rows a principal may see is your code, and spool does not check what the
+functions return. The device keeps the rows sealed in the principal's partition, as
+<a href="#-authenticated-data">Authenticated Data</a> describes, and wipes them with it. Held rows answer a
+query for <code>maxStaleMs</code> after the last verified sync, so a principal removed on the server can read
+held rows for up to that long. A principal route can declare <code>query</code> only with <code>query.dataset</code> and
+no plan, and a route and its dataset need the same scope.
+<a href="documents/security.html#principal-datasets">docs/security.md</a> lists the threat modes and the test that
+holds each one.</p>
+<hr>
 <h2 id="🔐-authenticated-data" class="tsd-anchor-link">🔐 Authenticated Data<a href="#🔐-authenticated-data" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Set <code>scope: 'principal'</code> on a route that depends on who is signed in, and give <code>createSpool</code> an
 <code>identity</code> option. The server sends <code>Spool-Partition</code>, an HMAC of the principal under your secret,
@@ -753,6 +818,32 @@ on the worker's wipe.</p>
 should be opaque too. The worker syncs a principal page with <code>need</code>, which names only the tags
 that page reads.</p>
 <hr>
+<h2 id="📝-declared-writes" class="tsd-anchor-link">📝 Declared Writes<a href="#📝-declared-writes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Declared writes are off by default and unreviewed: no external review of this feature has
+happened. A declared write queues one kind of edit on the device and sends it at a network moment.
+The last value for a key wins. <code>createSpool({ identity, writes: { enabled: true, classes } })</code>
+turns them on. With the flag off the worker queues nothing, the page calls answer <code>writes-off</code>, and
+<code>PUT /.spool/write</code> answers <code>403</code>.</p>
+<p><code>defineWrite</code> from <code>@drupflare/spool/server</code> declares a class. Its <code>scope</code> has to be <code>principal</code>,
+and its <code>path</code> a declared principal route. <code>key</code> says which key this principal may write, and
+<code>read</code> gives that key's current version. <code>apply</code> writes the value only when the key is still at the
+version the device edited from, in one atomic step, and returns the new version or the conflict.
+<code>maxBytes</code> and <code>maxPending</code> bound one value and the queue. The only <code>kind</code> is <code>last-value</code>, so a
+declaration cannot queue a comment, a cart, a payment, a counter, an inventory change or an audit
+record.</p>
+<p>The page calls <code>window.spool.write(name, key, value, version)</code>, <code>window.spool.flush()</code>,
+<code>window.spool.writes()</code> and <code>window.spool.resolve(name, key, 'local' | 'server')</code>. Each answers
+<code>{ ok: true }</code> with its result or <code>{ ok: false, code, message }</code>, and none throws. Edits of one key
+replace each other, so several edits cost one request. A flush sends <code>PUT /.spool/write</code> with the
+version in <code>If-Match</code> and a <code>Spool-Write-Id</code> that stays the same across retries. The page runtime
+flushes when the page is hidden. A stale version gets <code>412</code>, and the record waits as <code>conflicted</code>
+until <code>resolve</code> settles it.</p>
+<p>The queue is sealed in the principal's partition and deleted with it. A value that no flush has
+sent is lost at logout, so call <code>window.spool.flush()</code> before the logout navigation. The server
+remembers recent write ids in memory, 10,000 by default, so a site with several instances stores
+<code>ctx.writeId</code> with the value in <code>apply</code>. <a href="documents/protocol.html#declared-writes">docs/protocol.md</a> has
+the request and its answers, and <a href="documents/security.html#declared-writes">docs/security.md</a> the limits.</p>
+<hr>
 <h2 id="📚-catalogue" class="tsd-anchor-link">📚 Catalogue<a href="#📚-catalogue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>A catalogue sends the data of pages a visitor may open next, so that opening one makes no
 request. An entry costs its bytes whether or not the page is opened, and an opened one saves a
@@ -769,7 +860,7 @@ is larger. An entry is data for a <code>template</code>, <code>projection</code>
 next, each with the share expected to. Take the share from your own <code>nextShare</code> over the sink
 (each <code>spool.view</code> names the route the visitor came from), from link position, or from a fixed
 prior. Pass <code>{ first: true }</code> to <code>nextShare</code> to count only first views, which is what an entry
-saves: the share over all views ran 1.5 to 7 times high in the bins that decide an entry in a replay
+saves: the share over all views ran 1.5 to 6.6 times high in the bins that decide an entry in a replay
 of public visitors (<a href="documents/impact.html#next-page-prediction">docs/impact.md</a>). <code>documentBytes</code> on the entry's route says what a hit saves, and the provisioning prior is
 used when it is absent.</p>
 <p>A share taken from counts can carry <code>n</code>, the observations behind it. <code>catalogueConfidence</code> on
@@ -871,13 +962,10 @@ that. <code>passthrough</code> leaves assets to the browser's cache and never to
 asks the browser through <code>InstallEvent.addRoutes</code> to send only navigations, beacons and routed
 paths to the worker and the rest of the origin to the network, and acts as <code>passthrough</code> where the
 API does not exist: Chromium has it, Playwright's WebKit has it on macOS and not on Linux, and
-Firefox does not. Both options cut the service worker's fetch events (Static Routing took them from
-32 to 3 per view on a desktop Chromium rig); neither changes server-side Worker invocations.
-Neither is measured to save energy. In the same run, new-tab views drew 2.78 J,
-2.83 J and 2.84 J of RAPL package energy above idle with CacheStorage, navigation-only handling
-and Static Routing (8 rounds each), and the ranges overlap. Under Static Routing a same-origin write no
-longer reaches the worker, so it is not a network moment and its response cannot carry
-invalidations; navigations still are.</p>
+Firefox does not. Static Routing keeps the requests it does not route out of the worker's fetch
+handler, and neither option changes server-side Worker invocations. Neither is measured to save
+energy, and <a href="documents/impact.html">docs/impact.md</a> holds no reading for them. Under Static Routing a same-origin write no longer reaches the worker,
+so it is not a network moment and its response cannot carry invalidations; navigations still are.</p>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createSpool</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">routes</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;./routes&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">spool</span><span class="hl-1"> = </span><span class="hl-0">createSpool</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">routes</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">assets:</span><span class="hl-1"> </span><span class="hl-2">&#39;static-routing&#39;</span><br/><span class="hl-1">});</span>
 </code><button type="button">Copy</button></pre>
 
@@ -911,7 +999,8 @@ cold visit made 1 request and 1 origin fetch where it made 2 and 2 before.</p>
 artifact. <code>routes</code> lists overrides, such as a shorter freshness bound for one pattern. They
 match first and take the same fields as <code>defineRoute</code>, without <code>load</code>.</p>
 <p>On Node the handler goes through <code>toNodeListener</code>. <code>origin</code> is the address of the real server
-and has no path.</p>
+and has no path. <code>fetch</code> replaces the global <code>fetch</code> the proxy calls the origin with, such as a
+Workers service binding.</p>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createServer</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:http&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">toNodeListener</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/node&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">proxy</span><span class="hl-1"> = </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-9">process</span><span class="hl-1">.</span><span class="hl-9">env</span><span class="hl-1">[</span><span class="hl-2">&#39;ORIGIN&#39;</span><span class="hl-1">] </span><span class="hl-8">as</span><span class="hl-1"> </span><span class="hl-12">string</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">  </span><span class="hl-9">purgeSecret:</span><span class="hl-1"> </span><span class="hl-9">process</span><span class="hl-1">.</span><span class="hl-9">env</span><span class="hl-1">[</span><span class="hl-2">&#39;PURGE_SECRET&#39;</span><span class="hl-1">]</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">server</span><span class="hl-1"> = </span><span class="hl-0">createServer</span><span class="hl-1">(</span><span class="hl-0">toNodeListener</span><span class="hl-1">(</span><span class="hl-9">proxy</span><span class="hl-1">));</span>
 </code><button type="button">Copy</button></pre>
 
@@ -1111,8 +1200,10 @@ sorts first. <code>baseMatcher</code> turns the choices into a <code>base</code>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">promisify</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:util&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">brotliCompressSync</span><span class="hl-1">, </span><span class="hl-9">zstdCompress</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;node:zlib&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">baseMatcher</span><span class="hl-1">, </span><span class="hl-9">chooseBases</span><span class="hl-1">, </span><span class="hl-9">spoolProxy</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/proxy&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">compress</span><span class="hl-1"> = </span><span class="hl-0">promisify</span><span class="hl-1">(</span><span class="hl-9">zstdCompress</span><span class="hl-1">);</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">crawl</span><span class="hl-1"> = [</span><br/><span class="hl-1">  { </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/a.css&#39;</span><span class="hl-1">, </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">, </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.b{margin:0}&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/b.css&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.c{margin:1px}&#39;</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  {</span><br/><span class="hl-1">    </span><span class="hl-9">url:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu/css/c.css&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">kind:</span><span class="hl-1"> </span><span class="hl-2">&#39;style&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-9">text:</span><span class="hl-1"> </span><span class="hl-2">&#39;.a{color:red}.d{margin:2px}&#39;</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">] </span><span class="hl-8">as</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-0">bytes</span><span class="hl-1"> = (</span><span class="hl-9">index</span><span class="hl-1">: </span><span class="hl-12">number</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-9">Buffer</span><span class="hl-1">.</span><span class="hl-0">from</span><span class="hl-1">(</span><span class="hl-9">crawl</span><span class="hl-1">[</span><span class="hl-9">index</span><span class="hl-1">]?.</span><span class="hl-9">text</span><span class="hl-1"> ?? </span><span class="hl-2">&#39;&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">choices</span><span class="hl-1"> = </span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">chooseBases</span><span class="hl-1">(</span><br/><span class="hl-1">  </span><span class="hl-9">crawl</span><span class="hl-1">.</span><span class="hl-0">map</span><span class="hl-1">(({ </span><span class="hl-9">url</span><span class="hl-1">, </span><span class="hl-9">kind</span><span class="hl-1">, </span><span class="hl-9">text</span><span class="hl-1"> }) </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({ </span><span class="hl-9">url</span><span class="hl-1">, </span><span class="hl-9">kind</span><span class="hl-1">, </span><span class="hl-9">plain:</span><span class="hl-1"> </span><span class="hl-0">brotliCompressSync</span><span class="hl-1">(</span><span class="hl-9">text</span><span class="hl-1">).</span><span class="hl-9">length</span><span class="hl-1"> })),</span><br/><span class="hl-1">  </span><span class="hl-10">async</span><span class="hl-1"> (</span><span class="hl-9">file</span><span class="hl-1">, </span><span class="hl-9">dictionary</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><br/><span class="hl-1">    (</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">compress</span><span class="hl-1">(</span><span class="hl-0">bytes</span><span class="hl-1">(</span><span class="hl-9">file</span><span class="hl-1">), { </span><span class="hl-9">dictionary:</span><span class="hl-1"> </span><span class="hl-0">bytes</span><span class="hl-1">(</span><span class="hl-9">dictionary</span><span class="hl-1">) })).</span><span class="hl-9">length</span><br/><span class="hl-1">);</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">proxy</span><span class="hl-1"> = </span><span class="hl-0">spoolProxy</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">origin:</span><span class="hl-1"> </span><span class="hl-2">&#39;https://origin.example.edu&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">spool:</span><span class="hl-1"> { </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">() },</span><br/><span class="hl-1">  </span><span class="hl-9">dictionary:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">encoder</span><span class="hl-9">:</span><span class="hl-1"> </span><span class="hl-10">async</span><span class="hl-1"> (</span><span class="hl-9">dictionary</span><span class="hl-1">, </span><span class="hl-9">input</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-10">new</span><span class="hl-1"> </span><span class="hl-0">Uint8Array</span><span class="hl-1">(</span><span class="hl-8">await</span><span class="hl-1"> </span><span class="hl-0">compress</span><span class="hl-1">(</span><span class="hl-9">input</span><span class="hl-1">, { </span><span class="hl-9">dictionary</span><span class="hl-1"> })),</span><br/><span class="hl-1">    </span><span class="hl-9">base:</span><span class="hl-1"> </span><span class="hl-0">baseMatcher</span><span class="hl-1">(</span><span class="hl-9">choices</span><span class="hl-1">)</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">});</span>
 </code><button type="button">Copy</button></pre>
 
-<p>On the 10 Drupal sites of the reading, a base chosen this way and already held by the browser saves
-30% of the stylesheet and script bytes at the median site (L1, <a href="documents/impact.html#savings-today-and-at-maximum">docs/impact.md</a>).
+<p>On the 10 Drupal sites of the reading, a base chosen this way and held from an earlier visit saves
+29.9% of the brotli 11 bytes of new stylesheets and scripts at the median site with <code>dcz</code>, and a
+visit that has to fetch the base first saves 3.9%
+(L1, <a href="documents/impact.html#savings-today-and-at-maximum">docs/impact.md</a>).
 <code>scripts/measure/dictionary-size.ts</code> records the same choice for a site's crawl.</p>
 <h3 id="defaults" class="tsd-anchor-link">Defaults<a href="#defaults" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>Every option is absent by default. The table shows what a feature does once its parent option is
@@ -1222,7 +1313,12 @@ work series records.</p>
 production telemetry, an invoice total before and after, and a ledger of retired equipment. The
 plan says what could change, <code>observed</code> what changed, the invoices what was paid, and the ledger
 what was removed. The physical result reads only the ledger, and an entry needs the evidence for
-its removal. With no ledger the statement reads <code>No physical capacity saving demonstrated.</code></p>
+its removal. With no ledger the statement reads <code>No physical capacity saving demonstrated.</code> The
+report also returns <code>economics</code>, <code>storage</code>, <code>trust</code> and <code>research</code> blocks. Each is null without its
+input: an <code>institution</code> profile for <code>economics</code> and <code>research</code>, <code>storage</code> for the held bytes, and
+<code>views</code> for <code>trust</code>.
+<a href="documents/impact.html#an-institutions-figures">docs/impact.md</a> prints them for three example
+institutions.</p>
 <pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">capacityPlan</span><span class="hl-1">, </span><span class="hl-9">institutionReport</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/report&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">plan</span><span class="hl-1"> = </span><span class="hl-0">capacityPlan</span><span class="hl-1">(</span><br/><span class="hl-1">  [</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-9">start:</span><span class="hl-1"> </span><span class="hl-9">Date</span><span class="hl-1">.</span><span class="hl-0">UTC</span><span class="hl-1">(</span><span class="hl-15">2026</span><span class="hl-1">, </span><span class="hl-15">8</span><span class="hl-1">, </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-15">14</span><span class="hl-1">),</span><br/><span class="hl-1">      </span><span class="hl-9">seconds:</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">demand:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">9000</span><span class="hl-1"> },</span><br/><span class="hl-1">      </span><span class="hl-9">avoided:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">6300</span><span class="hl-1"> }</span><br/><span class="hl-1">    },</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-9">start:</span><span class="hl-1"> </span><span class="hl-9">Date</span><span class="hl-1">.</span><span class="hl-0">UTC</span><span class="hl-1">(</span><span class="hl-15">2026</span><span class="hl-1">, </span><span class="hl-15">8</span><span class="hl-1">, </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-15">14</span><span class="hl-1">, </span><span class="hl-15">5</span><span class="hl-1">),</span><br/><span class="hl-1">      </span><span class="hl-9">seconds:</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-9">demand:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">7000</span><span class="hl-1"> },</span><br/><span class="hl-1">      </span><span class="hl-9">avoided:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">4900</span><span class="hl-1"> }</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">  ],</span><br/><span class="hl-1">  { </span><span class="hl-9">perNode:</span><span class="hl-1"> { </span><span class="hl-9">busyMs:</span><span class="hl-1"> </span><span class="hl-15">700</span><span class="hl-1"> }, </span><span class="hl-9">spares:</span><span class="hl-1"> </span><span class="hl-15">1</span><span class="hl-1">, </span><span class="hl-9">floor:</span><span class="hl-1"> </span><span class="hl-15">2</span><span class="hl-1"> }</span><br/><span class="hl-1">);</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">report</span><span class="hl-1"> = </span><span class="hl-0">institutionReport</span><span class="hl-1">({ </span><span class="hl-9">plan</span><span class="hl-1">, </span><span class="hl-9">planLayer:</span><span class="hl-1"> </span><span class="hl-2">&#39;L3&#39;</span><span class="hl-1"> });</span>
 </code><button type="button">Copy</button></pre>
 
@@ -1231,12 +1327,37 @@ numbers are made up. <code>channelRows</code> lists the metered, attributional, 
 channels as separate rows, and nothing in the module sums them. <a href="documents/impact.html#channels">docs/impact.md</a>
 says what each one counts.</p>
 <hr>
+<h2 id="🔒-security" class="tsd-anchor-link">🔒 Security<a href="#🔒-security" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Authorisation stays on the server. The device holds only what the server already sent that
+principal, and the worker has no access rule. Principal data sits in a per-partition IndexedDB
+database sealed with AES-GCM, and deleting the key at logout is crypto-shredding of data at rest.
+That does not protect against script running on your origin. A revoked permission can still show
+for up to a route's <code>maxStale</code>, because nothing pushes a revocation to a device. Tag names are
+readable through <code>/.spool/sync</code>, so use opaque ids for anything sensitive. Principal datasets and
+declared writes ship off and have had no external review.</p>
+<p><a href="documents/security.html">docs/security.md</a> is the threat model. It names the file and the test behind
+each claim and lists the open limitations in one table. Report a vulnerability as
+<a href="https://github.com/drupflare/spool/blob/master/SECURITY.md">SECURITY.md</a> describes.</p>
+<hr>
+<h2 id="🔋-energy-reporting" class="tsd-anchor-link">🔋 Energy Reporting<a href="#🔋-energy-reporting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><a href="documents/impact.html">docs/impact.md</a> is generated from the readings in <code>measurements/</code> by
+<code>bun run impact</code>, and <code>bun run impact:check</code> fails when the page differs from them. Energy is
+reported in kWh per million views, and nothing sets a target intensity. Every figure carries a
+layer: L0 published, L1 measured here, L2 derived, L3 scenario. A per-view figure that spreads a
+published intensity over bytes is an allocation of that figure, and the page prints the metered
+reading beside it. The savings from trimming, images and dictionaries apply to network views and
+never add to the local-view figure.</p>
+<p><a href="documents/impact.html#an-institutions-figures">An Institution's Figures</a> leads with economics, storage
+and trust and treats energy as a research figure. <a href="documents/impact.html#what-this-does-not-claim">What This Does Not
+Claim</a> lists what the page leaves unsaid.</p>
+<hr>
 <h2 id="🚫-out-of-scope" class="tsd-anchor-link">🚫 Out of Scope<a href="#🚫-out-of-scope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>spool never authorises on the client. The device holds only what the server already sent that
 principal.</li>
 <li>It never shows a hard route past its bound without validating it first.</li>
-<li>It never writes. Your application owns every write, and <code>invalidate</code> only announces one.</li>
+<li>It never writes on its own. Your application owns every write, and <code>invalidate</code> only announces
+one. The one exception is a declared write class, which is off until you enable it.</li>
 <li>It never infers dependencies from opaque HTML. A route names its tags, or the records it
 reads, and in proxy mode the origin names them in its cache tag headers.</li>
 <li>It never replaces a published release file on the CDN.</li>
@@ -1291,7 +1412,7 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/server</code></td>
-<td><code>createSpool</code>, <code>defineRoute</code>, <code>datasetProof</code>, sinks, identity and work series</td>
+<td><code>createSpool</code>, <code>defineRoute</code>, <code>defineDataset</code>, <code>defineWrite</code>, <code>datasetProof</code>, sinks, identity and work series</td>
 </tr>
 <tr>
 <td><code>@drupflare/spool/node</code></td>
@@ -1315,7 +1436,7 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/client</code></td>
-<td><code>register</code> and the page handle</td>
+<td><code>register</code>, the page handle and <code>createActivity</code></td>
 </tr>
 <tr>
 <td><code>@drupflare/spool/report</code></td>
@@ -1327,18 +1448,29 @@ loads per view and reports the view as such.</p>
 </tr>
 <tr>
 <td><code>@drupflare/spool/media</code></td>
-<td><code>tinyimgEncoder</code>, <code>imageVariant</code> and <code>rewriteVideo</code></td>
+<td><code>tinyimgEncoder</code>, <code>imageVariant</code>, <code>rewriteVideo</code> and <code>rewriteEmbeds</code></td>
 </tr>
 </tbody>
 </table>
 <hr>
 <h2 id="🧪-testing" class="tsd-anchor-link">🧪 Testing<a href="#🧪-testing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<pre><code class="sh"><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">typecheck</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test:coverage</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test:browser</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">prettier:check</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">docs:build</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span>
+<pre><code class="sh"><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">typecheck</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test:coverage</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">test:browser</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">prettier:check</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">impact:check</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">docs:build</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span>
 </code><button type="button">Copy</button></pre>
 
-<p><code>test</code> runs the unit project in workerd and the node project, which includes a test that packs the
+<p><code>impact:check</code> fails when <code>docs/impact.md</code> differs from the readings in <code>measurements/</code>. A node
+test fails when <code>src/server/embedded.ts</code> differs from the source under <code>src/protocol</code>, <code>src/sw</code>
+and <code>src/client</code>, and <code>bun run build:sw</code> regenerates it. <code>test</code> runs the unit project in workerd and the node project, which includes a test that packs the
 package and imports every subpath in plain Node. <code>test:browser</code> runs Chromium, Firefox and WebKit
 against real servers and counts the requests that reach them. <code>bunx playwright install chromium firefox webkit</code> fetches the browsers.</p>
+<hr>
+<h2 id="📖-documentation" class="tsd-anchor-link">📖 Documentation<a href="#📖-documentation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><a href="documents/protocol.html">docs/protocol.md</a> holds the paths, headers, JSON bodies and limits for anyone
+who writes an adapter or a second server. A test pins what <code>Spool-Protocol: 1</code> freezes, and the
+page lists what may change without a new number.</li>
+<li><a href="documents/security.html">docs/security.md</a> holds the threat model and the open limitations.</li>
+<li><a href="documents/impact.html">docs/impact.md</a> holds the energy model, the readings and what they leave unsaid.</li>
+</ul>
 <hr>
 <h2 id="🔗-related-repositories" class="tsd-anchor-link">🔗 Related Repositories<a href="#🔗-related-repositories" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <table>
@@ -1438,7 +1570,12 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#projection-and-data-routes"><span>Projection and <wbr/>Data <wbr/>Routes</span></a></li>
 <li><a href="#query-routes"><span>Query <wbr/>Routes</span></a></li></ul></li>
 <li><a href="#⏳-freshness-contracts"><span>⏳ <wbr/>Freshness <wbr/>Contracts</span></a></li>
+<li><a href="#💾-datasets"><span>💾 <wbr/>Datasets</span></a></li>
+<li>
+<ul>
+<li><a href="#principal-datasets"><span>Principal <wbr/>Datasets</span></a></li></ul></li>
 <li><a href="#🔐-authenticated-data"><span>🔐 <wbr/>Authenticated <wbr/>Data</span></a></li>
+<li><a href="#📝-declared-writes"><span>📝 <wbr/>Declared <wbr/>Writes</span></a></li>
 <li><a href="#📚-catalogue"><span>📚 <wbr/>Catalogue</span></a></li>
 <li><a href="#📡-analytics-batching"><span>📡 <wbr/>Analytics <wbr/>Batching</span></a></li>
 <li>
@@ -1462,14 +1599,17 @@ against real servers and counts the requests that reach them. <code>bunx playwri
 <li><a href="#dictionary-transport"><span>Dictionary <wbr/>Transport</span></a></li>
 <li><a href="#defaults"><span>Defaults</span></a></li></ul></li>
 <li><a href="#📈-capacity-reports"><span>📈 <wbr/>Capacity <wbr/>Reports</span></a></li>
+<li><a href="#🔒-security"><span>🔒 <wbr/>Security</span></a></li>
+<li><a href="#🔋-energy-reporting"><span>🔋 <wbr/>Energy <wbr/>Reporting</span></a></li>
 <li><a href="#🚫-out-of-scope"><span>🚫 <wbr/>Out of <wbr/>Scope</span></a></li>
 <li><a href="#🌐-browser-support"><span>🌐 <wbr/>Browser <wbr/>Support</span></a></li>
 <li><a href="#🧭-subpath-exports"><span>🧭 <wbr/>Subpath <wbr/>Exports</span></a></li>
 <li><a href="#🧪-testing"><span>🧪 <wbr/>Testing</span></a></li>
+<li><a href="#📖-documentation"><span>📖 <wbr/>Documentation</span></a></li>
 <li><a href="#🔗-related-repositories"><span>🔗 <wbr/>Related <wbr/>Repositories</span></a></li>
 <li><a href="#📄-license"><span>📄 <wbr/>License</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="modules.html">@drupflare/spool - v0.3.0</a>
+<nav class="tsd-navigation"><a href="modules.html">@drupflare/spool - v0.4.0</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>

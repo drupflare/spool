@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>protocol | @drupflare/spool - v0.3.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.3.0</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>protocol | @drupflare/spool - v0.4.0</title><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool - v0.4.0</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -23,7 +23,7 @@
 <li>A refusal is <code>{&quot;error&quot;: &quot;&lt;message&gt;&quot;}</code>. A <code>ProtocolError</code> (<code>src/protocol/errors.ts</code>) answers <code>400</code> with its message. Any other exception answers <code>500</code> with <code>{&quot;error&quot;:&quot;internal error&quot;}</code> and no detail.</li>
 </ul>
 <h2 id="paths" class="tsd-anchor-link">Paths<a href="#paths" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p><code>PATHS</code> (<code>src/protocol/config.ts</code>) names the four paths a server half owns.</p>
+<p><code>PATHS</code> (<code>src/protocol/config.ts</code>) names the six paths a server half owns.</p>
 <table>
 <thead>
 <tr>
@@ -47,10 +47,22 @@
 <td><code>respondArtifact</code>, <code>src/server/spool.ts</code></td>
 </tr>
 <tr>
+<td><code>dataset</code></td>
+<td><code>/.spool/dataset</code></td>
+<td>GET, HEAD</td>
+<td><code>respondDataset</code>, <code>src/server/dataset.ts</code></td>
+</tr>
+<tr>
 <td><code>beacon</code></td>
 <td><code>/.spool/beacon</code></td>
 <td>POST</td>
 <td><code>respondBeacon</code>, <code>src/server/beacon.ts</code></td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td><code>/.spool/write</code></td>
+<td>PUT</td>
+<td><code>createWriteServer</code>, <code>src/server/write.ts</code></td>
 </tr>
 <tr>
 <td><code>worker</code></td>
@@ -147,8 +159,14 @@
 <tr>
 <td><code>provision</code></td>
 <td><code>spool-provision</code></td>
-<td>server, on a <code>204</code> from <code>/.spool/artifact</code></td>
+<td>server, on a <code>204</code> from <code>/.spool/artifact</code> or a <code>409</code> from <code>/.spool/dataset</code></td>
 <td><code>declined</code></td>
+</tr>
+<tr>
+<td><code>provisionReason</code></td>
+<td><code>spool-provision-reason</code></td>
+<td>server, beside <code>provision</code></td>
+<td><code>benefit</code>, <code>budget</code>, <code>v0.3</code> or <code>native</code> (the control that bound a dataset)</td>
 </tr>
 </tbody>
 </table>
@@ -849,7 +867,7 @@ Vary: Spool-Vector-Seen
 <p>A route with <code>scope: 'principal'</code> is stored per partition. The server tells the worker which partition a response belongs to with <code>Spool-Partition</code>, and the worker keeps each partition in its own store.</p>
 <ul>
 <li><code>Spool-Partition</code> is an opaque token matching <code>^[A-Za-z0-9_-]{1,128}$</code>. <code>partitionId</code> (<code>src/server/identity.ts</code>) is the reference derivation: HMAC-SHA-256 under the server secret over <code>spool-partition:1</code>, a NUL byte and the principal, base64url without padding, which is 43 characters. The worker never recomputes it and compares tokens for equality.</li>
-<li>A response whose <code>Spool-Partition</code> differs from the one the worker holds replaces the store. The old partition is destroyed first.</li>
+<li>A response whose <code>Spool-Partition</code> differs from the one the worker holds replaces the store. The old partition is destroyed first, and the held same-origin requests are dropped before the swap, counted under <code>same-origin</code>.</li>
 <li>A navigation whose response carries spool headers and no <code>Spool-Partition</code> ends the session when the worker holds a principal partition: it wipes the principal store (<code>session-ended</code>). A response with no spool headers at all changes nothing.</li>
 <li><code>Spool-Clear: *</code> wipes the principal store and the public replica. <code>Spool-Clear: &lt;partition id&gt;</code> wipes that partition when it is the one held, and leaves the public replica alone.</li>
 <li><code>SwConfig.logout</code> lists patterns (the <a href="#route-patterns">route pattern language</a>). A same-origin request whose path matches one, with any method, wipes the principal store when it reaches the worker, before the request is sent and after the worker has sent the held same-origin beacons or dropped them. The answer to that request cannot bring a partition back, even though it still names one.</li>
@@ -862,7 +880,7 @@ Vary: Spool-Vector-Seen
 <pre><code class="text">reuse * futureViews * avoided - provision - maintain
 </code><button type="button">Copy</button></pre>
 
-<p>Each term is in bytes, with a request counted as <code>requestBytes</code>. An artifact is sent when the result is positive. A <code>data</code> route weighs against its own size. Principal artifacts are not weighed.</p>
+<p>Each term is in bytes, with a request counted as <code>requestBytes</code>. An artifact is sent when the result is positive. A <code>data</code> route weighs against its own size. Principal artifacts are not weighed. A route's <code>provision.maxBytes</code> refuses an artifact whose stored JSON is over that many bytes, for every scope, before the benefit is weighed.</p>
 <p><code>DEFAULT_PRIOR</code> (<code>src/protocol/provision.ts</code>) holds the scenario priors the worker and the server use until telemetry replaces them. Every one is an assumption. <code>ProvisionConfig</code> in <code>src/protocol/config.ts</code> overrides them, and a route's <code>provision</code> field overrides <code>reuse</code> and <code>futureViews</code> for that route.</p>
 <table>
 <thead>
@@ -1018,7 +1036,7 @@ Vary: Spool-Vector-Seen
 <h2 id="query-strings" class="tsd-anchor-link">Query Strings<a href="#query-strings" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>An artifact is keyed by path alone, so the worker answers a navigation or a <code>data</code> read that has a query string only on a route that declares <code>query</code> (see <a href="#query-routes">Query Routes</a>). On every other route (<code>classify</code>, <code>src/sw/router.ts</code>) a navigation with a query goes to the network, and a <code>data</code> read with a query is handled as an ordinary subresource. A <code>static</code> route read as a subresource is matched on the pathname, and its file is stored under the pathname plus the query string: <code>/app.js?v=2</code> is a different file from <code>/app.js</code>, and a query string the worker has not stored goes to the network. On a server half the worker keeps only a response whose <code>Spool-Artifact</code> id equals that key, and the server advertises the pathname, so a queried URL is never kept there. With a static manifest the worker keeps the queried file under its own key once it has fetched it, and checks it against the route's <code>version</code> like any other. The proxy treats a request with a query string as ineligible and forwards it untouched, whatever the routes behind it declare.</p>
 <h3 id="query-routes" class="tsd-anchor-link">Query Routes<a href="#query-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<p>A public <code>template</code>, <code>projection</code> or <code>data</code> route may declare <code>query</code> (<code>QuerySchema</code>, <code>src/protocol/query.ts</code>). <code>defineRoute</code> throws <code>ProtocolError</code> with code <code>bad-route</code> for a <code>principal</code> route, any other strategy, an option other than these four, or a value outside the rules.</p>
+<p>A <code>template</code>, <code>projection</code> or <code>data</code> route may declare <code>query</code> (<code>QuerySchema</code>, <code>src/protocol/query.ts</code>). <code>defineRoute</code> throws <code>ProtocolError</code> with code <code>bad-route</code> for any other strategy, for a <code>principal</code> route unless it names a principal dataset in <code>query.dataset</code> and declares no <code>plan</code> (<a href="#principal-datasets">Principal Datasets</a>), for an option other than these four, or for a value outside the rules.</p>
 <table>
 <thead>
 <tr>
@@ -1046,7 +1064,7 @@ Vary: Spool-Vector-Seen
 </tbody>
 </table>
 <p>The only new wire fact is <code>query</code> in the worker's route entry (<code>SerializedRoute.query</code>), a copy of the validated schema. The artifact format, the envelope, <code>/.spool/artifact</code> and <code>/.spool/sync</code> are unchanged.</p>
-<p><strong>The proof.</strong> A query route's <code>load</code> returns an object that holds the collection, an array, at <code>list</code> and carries <code>proof: { count, digest }</code>. <code>datasetProof(items)</code> makes it: <code>count</code> is the array's length and <code>digest</code> is the base64url SHA-256, without padding, of <code>canonicalJson(items)</code>. <code>canonicalJson</code> writes JSON with object keys in code-unit order at every depth, no whitespace, and <code>toJSON</code> followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is <code>undefined</code> and writes <code>null</code> for one in an array, as <code>JSON.stringify</code> does. <code>createSpool</code> builds the artifact only when <code>verifyProof</code> holds, which needs an array at <code>list</code>, a <code>proof</code> object whose <code>count</code> equals the array's length, and a <code>digest</code> that matches. Otherwise it throws <code>ProtocolError</code> with code <code>bad-artifact</code>, and <code>/.spool/artifact</code> answers <code>400</code>. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.</p>
+<p><strong>The proof.</strong> A query route's <code>load</code> returns an object that holds the collection, an array, at <code>list</code> and carries <code>proof: { count, digest }</code>. <code>datasetProof(items)</code> makes it: <code>count</code> is the array's length and <code>digest</code> is the base64url SHA-256, without padding, of <code>canonicalJson(items)</code>. <code>canonicalJson</code> writes JSON with object keys in code-unit order at every depth, no whitespace, and <code>toJSON</code> followed, so the server's value and its parsed copy give the same text. It drops an object key whose value is <code>undefined</code> and writes <code>null</code> for one in an array, as <code>JSON.stringify</code> does. <code>createSpool</code> builds the artifact only when <code>verifyProof</code> holds, which needs an array at <code>list</code>, a <code>proof</code> object whose <code>count</code> equals the array's length, and a <code>digest</code> that matches. When the list holds <code>$record</code> or <code>$projection</code> refs, the proof is over the resolved rows: <code>createSpool</code> resolves the refs against what the load registered before it checks, and the worker checks after it materialises the page. A proof over the refs is refused. Otherwise it throws <code>ProtocolError</code> with code <code>bad-artifact</code>, and <code>/.spool/artifact</code> answers <code>400</code>. A beacon, a catalogue or an inline build that fails this way sends nothing for the route.</p>
 <p><strong>Evaluation.</strong> <code>evaluateQuery(schema, data, search)</code> takes the loaded data and the request's query string, with or without its <code>?</code>, and returns <code>{ items, total, page, pages }</code> or <code>null</code>. It returns <code>null</code> when:</p>
 <ul>
 <li>the data is not an object, <code>list</code> is not an own key holding an array, or an item is not an object</li>
@@ -1059,6 +1077,192 @@ Vary: Spool-Vector-Seen
 <p><strong>Rendering.</strong> <code>shapeQuery</code> checks the proof, evaluates the query and returns the stored data with the array at <code>list</code> replaced by the page's items and one key added, <code>query</code>: <code>{ total, page, pages }</code>. The compiled template receives that object. A <code>projection</code> renderer receives an artifact whose <code>body.data</code> is that object, and a <code>data</code> route answers with it as JSON. A URL without a query string renders the stored data as it is.</p>
 <p><strong>The worker.</strong> <code>classify</code> treats a navigation, or for a <code>data</code> route a GET, that has a query string on a route that declares <code>query</code> like one without it. The artifact is the path's own: <code>Spool-Artifact</code> names the pathname for a query URL, <code>/.spool/artifact?path=</code> takes no query string and answers <code>404 no route</code> for one that has it, and the worker never stores an artifact or a security header set under a URL with a query string. A query is answered locally when the artifact is held and fresh under the route's freshness contract, so a stale <code>hard</code> route syncs first as it does for the path, its proof verifies, and <code>evaluateQuery</code> returns a result. Anything else goes to the network as it would without <code>query</code>. A copy that fails its proof is dropped, so the next network view provisions the collection again. A cold query URL goes to the network, and the advertised artifact of its path is provisioned like any other. The view event is an ordinary one with the route's pattern and the reason the path's artifact gives. In shadow mode the worker compares the local render with the network answer for the same URL.</p>
 <p><strong>Provisioning.</strong> The collection is an ordinary artifact, so the rule in <a href="#provisioning">Provisioning</a> weighs its bytes against its expected reuse, and the route's <code>provision</code> field sets the priors.</p>
+<h2 id="datasets" class="tsd-anchor-link">Datasets<a href="#datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A dataset is a public collection of thousands of rows that a device seeds once and then keeps current with patches of only the changed rows. <code>defineDataset(name, declaration)</code> (<code>src/protocol/dataset.ts</code>) declares one and <code>createSpool({ datasets })</code> serves it at <code>GET /.spool/dataset</code>. It does not use the site's version vector, which never prunes tag versions: a dataset has its own integer cursor, held by the backend. Route integration is not part of this section.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scope</code></td>
+<td><code>public</code>. <code>principal</code> throws <code>bad-dataset</code> unless the flag is on; see <a href="#principal-datasets">Principal Datasets</a></td>
+</tr>
+<tr>
+<td><code>key(row)</code></td>
+<td>a non-empty string, unique among the rows</td>
+</tr>
+<tr>
+<td><code>seed(ctx)</code></td>
+<td>every row in strictly ascending key order, as an array or as pages of rows. <code>ctx.after</code> lets a backend skip rows at or before a key. It runs once to admit a seed and once per page</td>
+</tr>
+<tr>
+<td><code>read(ids, ctx)</code></td>
+<td>a keyed read of those rows. A row it omits is sent as a delete. The route's <code>load</code> never runs</td>
+</tr>
+<tr>
+<td><code>changes(since, ctx)</code></td>
+<td>the net change after <code>since</code>: <code>{ cursor, puts, deletes, proof? }</code> with <code>puts</code> as keys and <code>deletes</code> as <code>{ key, cursor }</code>, or <code>'reset'</code>. It decides scope membership, so a row that moves in is a put and one that moves out is a delete, with its version unchanged</td>
+</tr>
+<tr>
+<td><code>horizon(ctx)</code></td>
+<td>the oldest cursor <code>changes</code> can answer. A <code>since</code> below it reseeds the device</td>
+</tr>
+<tr>
+<td><code>head(ctx)</code></td>
+<td><code>{ cursor, proof? }</code>: the cursor a seed starts from, read before the first page</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>a version string. A device that holds another one reseeds</td>
+</tr>
+<tr>
+<td><code>maxRows</code>, <code>maxBytes</code></td>
+<td>the seed's limits, in rows and in bytes of row JSON. A seed over either throws <code>dataset-limit</code>, and the endpoint answers <code>400</code></td>
+</tr>
+</tbody>
+</table>
+<p>A request is <code>?name=&lt;n&gt;&amp;since=&lt;cursor&gt;&amp;schema=&lt;v&gt;</code> for a patch, or <code>?name=&lt;n&gt;</code> for a seed, with <code>after=&lt;key&gt;&amp;limit=&lt;n&gt;</code> for the pages after the first. <code>since</code> needs <code>schema</code> and excludes <code>after</code>. A <code>since</code> below the horizon, a different schema, a <code>'reset'</code> from the backend, or a cursor ahead of the backend's answers with the first seed page. The body is <code>DatasetResponse</code>:</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;protocol&quot;</span><span class="hl-1">: </span><span class="hl-15">1</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;name&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;directory&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;schema&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;v1&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;cursor&quot;</span><span class="hl-1">: </span><span class="hl-15">42</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;reset&quot;</span><span class="hl-1">: </span><span class="hl-10">false</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;puts&quot;</span><span class="hl-1">: [{ </span><span class="hl-16">&quot;key&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;c00007&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;row&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;id&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;c00007&quot;</span><span class="hl-1"> } }],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;deletes&quot;</span><span class="hl-1">: [{ </span><span class="hl-16">&quot;key&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;c00003&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;cursor&quot;</span><span class="hl-1">: </span><span class="hl-15">41</span><span class="hl-1"> }],</span><br/><span class="hl-1">  </span><span class="hl-16">&quot;proof&quot;</span><span class="hl-1">: { </span><span class="hl-16">&quot;kind&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;set&quot;</span><span class="hl-1">, </span><span class="hl-16">&quot;count&quot;</span><span class="hl-1">: </span><span class="hl-15">1700</span><span class="hl-1">, </span><span class="hl-16">&quot;digest&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;&lt;64 hex digits&gt;&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">}</span>
+</code><button type="button">Copy</button></pre>
+
+<p>A seed page has <code>reset: true</code>, at most <code>limit</code> rows (500 by default, 5,000 at most) and no deletes. A page with more to come carries <code>next</code>, the <code>after</code> of the next request, and no <code>proof</code>. The last page carries <code>proof</code>. A page after the first echoes <code>after</code>, and a device clears its rows only on a reset response without <code>after</code>. The cursor of the first page is the one a device keeps. If rows changed while the pages were read, the proof on the last page fails and the device asks for a patch from that cursor.</p>
+<p><strong>The proof.</strong> <code>kind: 'set'</code> is the count of rows and the sum, modulo 2^256, of every row's hash, in 64 lowercase hex digits. A row's hash is the SHA-256 of its key, a NUL byte and <code>canonicalJson(row)</code>. A sum does not depend on order, so a patch moves it by <code>digestSub</code> for each row it replaces or deletes and <code>digestAdd</code> for each it puts. <code>applyChanges(rows, response, digest?)</code> does that on a map of rows, hashing only the rows the response touches when the caller passes the digest it holds, and reports whether the result equals <code>response.proof</code>. The proof catches corruption, a missed apply and a half-applied patch. A server that sends rows and a digest that agree is not caught, so it is not a defence against a malicious server. Without <code>kind</code>, or with <code>kind: 'ordered'</code>, a proof is the v0.3 ordered one, and <code>verifyProof</code> still checks it as before. A set proof needs <code>verifyProof(schema, data, keyOf)</code>.</p>
+<p>A backend that keeps its own digest returns it in <code>head().proof</code> and <code>changes().proof</code>, and a patch then costs the feed and a keyed read. Without one, spool reads the whole collection through <code>seed</code> to make the proof: one full read per patch, and one on the last seed page after the first. The first seed page always reads every row once to count it against <code>maxRows</code> and <code>maxBytes</code>.</p>
+<h3 id="the-device-store" class="tsd-anchor-link">The device store<a href="#the-device-store" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The worker holds a dataset in IndexedDB: one record per row by <code>[name, key]</code> with the row's hash, and one meta record per dataset (<code>name</code>, <code>schema</code>, <code>cursor</code>, <code>count</code>, <code>digest</code>, <code>bytes</code>, <code>appliedAt</code>). A seed or a patch is applied to a staging copy, checked against the response's proof, and then written in one transaction with <code>durability: 'strict'</code>, rows and meta together. A failed write leaves the store and the memory copy as they were. A dataset load sums the stored row hashes and compares them with the meta, so a store that lost rows is cleared for that dataset alone and reseeded.</p>
+<p>A sync asks <code>?name&amp;since&amp;schema</code>. A reset, another schema or a failed proof clears that dataset and seeds it again, once; a second failed proof leaves it not held. A seed whose rows moved between pages is repaired by one patch from the first page's cursor before any reseed. A wipe of the replica clears the datasets, and a vector reset keeps them. An apply that began before a wipe is dropped.</p>
+<p>Outcomes are <code>seeded</code>, <code>reseeded</code>, <code>patched</code>, <code>current</code>, <code>offline</code> and <code>refused</code> with a reason: <code>budget</code>, <code>proof</code>, <code>unavailable</code>, <code>bad-response</code>, <code>epoch</code> or <code>storage</code>, and <code>revoked</code> for a <code>403</code> on a principal dataset. The <code>spool:datasets</code> message returns what is held, the counts by outcome, the refused and declined datasets, the evictions and the persistence answer. A seed is refused when its rows would use more than <code>datasetShare</code> (default 1) of the headroom <code>navigator.storage.estimate()</code> reports. After the first dataset is held the worker sends <code>spool:persist</code>, and <code>register</code> asks <code>navigator.storage.persist()</code> once and answers with <code>spool:persisted</code>.</p>
+<p>A route reaches rows in two ways. <code>query.dataset</code> names a dataset: the route's data carries no list, and the worker uses the held rows in ascending key order, applies the filter, sort and page of <code>query</code>, and goes to the network when the dataset is not held. <code>ctx.row(dataset, key)</code> puts <code>{ &quot;$row&quot;: &quot;dataset/key&quot; }</code> in the data; the row resolves when the page renders, so a put needs no new artifact, and a delete drops only the pages and projections that referenced the row. A list that carries a set proof in its data names the field that holds each key with <code>query.key</code>, which is exclusive with <code>query.dataset</code>. A route's freshness bounds the age of every dataset it reads.</p>
+<h3 id="query-plans" class="tsd-anchor-link">Query Plans<a href="#query-plans" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A route with <code>query.dataset</code> may declare <code>query.plan</code>: a read-only plan written as JSON, with joins, conditions, groups and aggregates. <code>list</code> still names the key the result goes under, and <code>filter</code>, <code>sort</code> and <code>pageSize</code> move into the plan, so they cannot appear beside it. The plan has these parts:</p>
+<ul>
+<li><code>from</code>: the base fields the plan may read. Each output row carries exactly these fields.</li>
+<li><code>join</code>: equi-joins from the base row, each <code>{ dataset, on, type, as, fields }</code>. <code>on</code> is <code>[base field, right field]</code>, or <code>[base field, null]</code> to match the right row's key. <code>type</code> is <code>inner</code> or <code>left</code>. The joined row appears under <code>as</code>. Joins go one level deep, from the base row only. A joined dataset that is not held or not current makes the answer not local.</li>
+<li><code>where</code>: conditions that are all ANDed, each <code>{ field, op, param, type, fold? }</code>. <code>op</code> is <code>eq</code>, <code>in</code> (a repeated parameter), <code>gte</code>, <code>lte</code> or <code>prefix</code>. A parameter the URL omits skips its condition. <code>prefix</code> may take <code>fold: &quot;ascii&quot;</code>, which folds ASCII letters only, as SQLite's <code>lower()</code> does.</li>
+<li><code>group</code>: <code>{ by, aggregates }</code>. <code>by</code> names base fields. An aggregate is <code>&quot;count&quot;</code>, <code>{ count }</code>, <code>{ sum }</code>, <code>{ min }</code>, <code>{ max }</code> or <code>{ avg }</code>, each over one field. Sums and averages accept integers within the safe range only.</li>
+<li><code>sort</code>: the field and aggregate names the <code>sort</code> parameter may name. A leading minus sorts descending.</li>
+<li><code>pageSize</code> and <code>limit</code>: the page size, and the most result rows the plan answers locally.</li>
+</ul>
+<p>Values compare the way SQLite compares a column with no declared type. NULL sorts first, then numbers, then text in code point order. A number never matches text. Ties break on the base key, then on each joined key; a group is ordered by its group values. Parameters are read as numbers only when they are finite numbers.</p>
+<p>The worker answers a query from held rows only when the plan gives the same result as SQLite would. It sends everything else to the network: an unknown or repeated parameter, a boolean, object or lone surrogate in a declared field, a float in a sum or average, a result over <code>limit</code>, or a page past the last. The template gets the page's rows under <code>query.list</code>, and <code>query</code> holds <code>total</code>, <code>page</code> and <code>pages</code>.</p>
+<p>The server does not evaluate plans. A row's authenticity comes from the dataset's set proof. A plan's correctness comes from its test against <code>node:sqlite</code> and from the route's <code>load</code>. A table keeps one index per field it reads once it holds at least 200 rows. The index is built on first use, is not stored, and is dropped on every commit.</p>
+<h3 id="admission" class="tsd-anchor-link">Admission<a href="#admission" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A dataset declared with <code>provision: 'auto'</code> reaches a device only while it beats two controls: the held page under v0.3, which refetches the whole artifact on each change, and native HTTP, one plain resource with an <code>ETag</code> that a browser cache revalidates. The default, <code>provision: 'always'</code>, answers every seed as before.</p>
+<p>For an <code>auto</code> dataset, a seed request runs <code>datasetBenefit</code> (<code>src/protocol/provision.ts</code>). When the dataset does not beat both controls, the server answers <code>409</code> with <code>{ &quot;error&quot;: &quot;declined&quot;, &quot;controls&quot;: &quot;v0.3&quot; }</code> or <code>&quot;native&quot;</code>, naming the control that bound, and sets <code>Spool-Provision: declined</code>. The worker records the refusal as <code>declined</code>, holds nothing, and does not ask again in that session. Its next page view costs what a v0.3 route costs. Patches and later pages of a seed are not refused.</p>
+<p>The server keeps its inputs in memory. Until it has measured a size, the input takes a stand-in: the seed is the dataset's declared <code>maxBytes</code>, and the patch is the seed's size. The seed is measured by walking every page once, and the patch by building the patch for the latest change once. The update rate is the cursor's advance per day, and the prior's <code>changesPerDay</code> applies until two answers are apart in time. The native body is the seed's size with probability <code>1 - exp(-rate)</code>, the chance a device's look sees a change in one day, and otherwise the 304 of 220 bytes measured in <code>measurements/dataset-baseline/2026-11-15.json</code>. Survival and the hold period stay at their defaults (0.5 and 7 days), which the worker does not measure.</p>
+<h3 id="principal-datasets" class="tsd-anchor-link">Principal Datasets<a href="#principal-datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Principal datasets are off by default and unreviewed: no external review of this feature has happened. A principal dataset holds rows that differ per signed-in principal. Two switches turn it on, and both are needed: <code>defineDataset(name, declaration, { principalDatasets: true })</code> accepts <code>scope: 'principal'</code>, and <code>createSpool({ principalDatasets: true, identity })</code> serves it. Without the first, <code>defineDataset</code> throws <code>bad-dataset</code> naming the option. Without the second, <code>createSpool</code> throws <code>bad-dataset</code>, <code>/.spool/dataset</code> answers <code>404</code> for the name, <code>SwConfig.principalDatasets</code> is absent, and the worker opens no dataset database for a partition.</p>
+<p>A principal dataset declares <code>maxStaleMs</code>, a required positive integer with no default, and keeps <code>schema</code>, <code>maxRows</code> and <code>maxBytes</code>. <code>provision: 'auto'</code> is refused, because the server's admission statistics are shared across principals. <code>ctx.principal</code> (<code>{ principal, roles? }</code>) is set for a principal dataset and absent for a public one, whose functions never see an identity.</p>
+<p><strong>Wire.</strong> The server resolves the identity from the request and never from the URL. With none, the answer is <code>401</code> <code>{ &quot;error&quot;: &quot;sign in&quot; }</code>. The 200 answer carries <code>Spool-Partition: &lt;partition&gt;</code>, <code>Spool-Protocol: 1</code> and <code>Cache-Control: private, no-store</code>, the same cache header a principal artifact has, and no <code>Vary</code>. A dataset function that throws <code>ProtocolError('dataset-forbidden')</code> makes the answer <code>403</code> <code>{ &quot;error&quot;: &quot;forbidden&quot; }</code>. <code>head</code>, <code>horizon</code>, <code>changes</code>, <code>read</code> and <code>seed</code> all run with <code>ctx.principal</code>, so cursors, horizons and set proofs belong to one <code>(dataset, principal)</code>. A <code>since</code>, <code>after</code> or <code>principal</code> parameter naming another principal's feed reaches only the caller's own feed, since the dataset function sees nothing but <code>ctx.principal</code>. That scoping is the dataset author's code; spool passes the identity and does not check what the functions return.</p>
+<p><strong>Routes.</strong> A principal route may declare <code>query</code> only with <code>query.dataset</code>, with no <code>plan</code>. A route and its dataset must have the same scope: a public route naming a principal dataset, or the reverse, throws <code>bad-route</code> in <code>createSpool</code>. Row references (<code>ctx.row</code>) follow the same rule.</p>
+<p><strong>Device store.</strong> Rows live in <code>spool-principal-datasets</code> (version 1), apart from <code>spool-datasets</code> and the shared <code>spool</code> database, which stay as they were so older workers keep opening them. Every record starts with the partition in its key. The key of a row is the SHA-256 of a per-dataset random salt, the dataset name and the row key, so no key, field name or value sits in the clear. The row record, the meta with its digest, and the salt are AES-GCM ciphertext under the partition's key, bound to the partition, dataset and slot as additional data. A record copied into another partition or slot does not open. The key's retention is the one records and projections use. A commit is one <code>durability: 'strict'</code> transaction. A meta that no longer opens, for example after a lost session key, clears its dataset, which then reseeds.</p>
+<p><strong>Accepting an answer.</strong> A response is applied only when its <code>Spool-Partition</code> equals the partition the worker holds. One with none, or another one, is refused (<code>partition</code>) and applies nothing. A <code>401</code> ends the session and wipes the partition (<code>session-ended</code>). A <code>403</code> refuses with <code>revoked</code> and drops that dataset's rows for the partition. A late answer for a partition the worker has since left is discarded without a write: the side is marked dead, the sync's epoch no longer matches, and the sealed store is shut. A response that names a different partition than the one held swaps the store as a navigation does. A replayed patch with a lower cursor changes nothing and does not move the confirmation time. A patch whose proof fails is dropped, and the next sync reseeds once.</p>
+<p><strong>Freshness and revocation.</strong> Held rows answer a query locally while <code>now - appliedAt &lt; maxStaleMs</code>, where <code>appliedAt</code> is the last sync or patch that returned and verified, including a &quot;no change&quot; answer. A clock set back counts as stale. Past the bound the view goes to the network, and the next network moment syncs the dataset. A row that leaves a principal's scope arrives as a delete. A principal removed on the server is reached only by the device's next sync, so rows can be served for up to <code>maxStaleMs</code> after removal; that window is the bound, and a short <code>maxStaleMs</code> shortens it.</p>
+<p><strong>Wipes.</strong> The logout pattern, <code>Spool-Clear</code>, a change of partition and <code>session-ended</code> delete the partition's dataset rows with the rest of the partition, and shred its key. Without the flag, nothing is created, and a wipe only checks whether the database exists.</p>
+<h2 id="declared-writes" class="tsd-anchor-link">Declared Writes<a href="#declared-writes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Declared writes are off by default and unreviewed. <code>createSpool({ writes: { enabled: true, classes } })</code> turns them on, and only then does <code>SwConfig.writes</code> list the classes. With the flag off the worker queues nothing and opens no <code>spool-writes</code> database, the page API answers <code>writes-off</code>, and <code>PUT /.spool/write</code> answers <code>403</code> with the same code.</p>
+<p>A class comes from <code>defineWrite</code> (<code>src/protocol/write.ts</code>) and means one thing: the last value for a key wins. <code>scope</code> must be <code>principal</code>, and <code>path</code> must be a declared principal route; a public write throws <code>bad-write</code>. <code>kind</code> accepts only <code>last-value</code>. A comment, a cart, a payment, a counter, an inventory change and an audit record are never queued, because no kind exists for them and a declaration cannot name one.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td>the key this principal may write for the request; any other key is refused with <code>forbidden</code></td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>the key's version now; used when a flush that already applied is repeated</td>
+</tr>
+<tr>
+<td><code>apply</code></td>
+<td>writes only when the key is at <code>expectedVersion</code>, as one atomic step; returns <code>{ version }</code> or <code>{ conflict }</code></td>
+</tr>
+<tr>
+<td><code>maxBytes</code></td>
+<td>most bytes of one body, at most <code>MAX_WRITE_BYTES</code></td>
+</tr>
+<tr>
+<td><code>maxPending</code></td>
+<td>most queued keys of the class per partition on a device, at most <code>MAX_WRITE_PENDING</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The request.</strong> <code>PUT /.spool/write?name=&lt;name&gt;&amp;key=&lt;key&gt;</code> with <code>If-Match: &quot;&lt;version&gt;&quot;</code>, a <code>Spool-Write-Id</code> of 16 to 64 characters from <code>A-Za-z0-9_-</code>, and a JSON body <code>{ &quot;value&quot;: ... }</code>. A version is 1 to 128 characters from <code>A-Za-z0-9._:~-</code>. The answers:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>200</code></td>
+<td></td>
+<td>applied, or a repeat of the last applied id and body; <code>{ &quot;version&quot;: &quot;&lt;v&gt;&quot; }</code></td>
+</tr>
+<tr>
+<td><code>412</code></td>
+<td><code>conflict</code></td>
+<td>the key moved; <code>{ &quot;code&quot;: &quot;conflict&quot;, &quot;conflict&quot;: { &quot;version&quot;, &quot;value&quot;? } }</code></td>
+</tr>
+<tr>
+<td><code>401</code></td>
+<td><code>sign-in</code></td>
+<td>no principal</td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td><code>forbidden</code></td>
+<td>the key is not the one <code>key()</code> derives for this principal</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>unknown-write</code></td>
+<td>no class of that name</td>
+</tr>
+<tr>
+<td><code>405</code></td>
+<td><code>bad-method</code></td>
+<td>not <code>PUT</code></td>
+</tr>
+<tr>
+<td><code>413</code></td>
+<td><code>too-large</code></td>
+<td>the body is over <code>maxBytes</code></td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>id-reused</code></td>
+<td>the last applied id arrived with another body</td>
+</tr>
+<tr>
+<td><code>428</code></td>
+<td><code>missing-version</code></td>
+<td>no <code>If-Match</code></td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>bad-key</code>, <code>bad-version</code>, <code>bad-id</code>, <code>bad-body</code></td>
+<td>a malformed part</td>
+</tr>
+</tbody>
+</table>
+<p>The server keeps the last applied write id and a hash of its body per class, principal and key, in memory, up to <code>remember</code> slots (10,000 by default), oldest forgotten first. Requests for one slot run one at a time. A repeat of the remembered id answers <code>200</code> with the current <code>read</code> version and calls <code>apply</code> zero times. The memory belongs to one server instance, so a deployment with several instances needs <code>apply</code> to store <code>ctx.writeId</code> with the value; otherwise a retry that lands on another instance reads as a conflict. <code>ctx.writeId</code> is passed to every site function for that purpose.</p>
+<p><strong>The device queue.</strong> One record per partition, class and key sits in its own IndexedDB database, <code>spool-writes</code> version 1. The shared <code>spool</code> database stays at version 2. The partition, class and key are readable as keys; the value, versions, write id and conflict are AES-GCM ciphertext under the partition's persistent key. The queue is deleted with the partition: a logout, a <code>Spool-Clear</code> or a switch of account removes it, and a value not yet flushed is lost. The page calls <code>spool.flush()</code> before a logout navigation.</p>
+<p>A new edit of a key replaces the value and keeps the version the first edit started from, so N edits cost one request and one origin write. An edit made while a request is in flight, or after a flush that failed with an unknown outcome, waits in <code>next</code>, so a retry sends the same id and body. A record leaves the queue after a <code>200</code>. A network failure, a <code>5xx</code> and a store failure leave it queued, and the retry sends the same id. A <code>401</code>, a <code>429</code> and <code>writes-off</code> leave it queued and stop the pass. A <code>412</code> or another <code>4xx</code> sets the record to <code>conflicted</code>: the local value stays, the server's version and value are stored, and nothing retries it. <code>resolve(name, key, 'local')</code> re-bases onto the server version, takes a new id and flushes that key. <code>resolve(name, key, 'server')</code> drops the local value and returns the server's.</p>
+<p>A flush happens when the page is hidden after it queued something, at a navigation, and when <code>spool.flush()</code> is called. A worker in global shadow mode queues nothing. A worker whose config has no <code>writes</code> neither sends nor drops the rows an earlier worker queued: the rows stay sealed, and a logout, a <code>Spool-Clear</code> or a switch of account still deletes them. A later worker with <code>writes</code> sends them with their original id and version, and <code>If-Match</code> decides whether each applies.</p>
+<p><strong>The page API.</strong> <code>spool.write(name, key, value, version)</code>, <code>spool.flush()</code>, <code>spool.writes()</code> and <code>spool.resolve(name, key, use)</code> answer <code>{ ok: true, ... }</code> or <code>{ ok: false, code, message }</code> and never throw. <code>version</code> is the version the page edited from. The refusal codes are <code>writes-off</code>, <code>unknown-write</code>, <code>bad-key</code>, <code>missing-version</code>, <code>bad-version</code>, <code>bad-body</code>, <code>too-large</code>, <code>too-many</code>, <code>no-partition</code>, <code>no-record</code>, <code>not-conflicted</code> and <code>unavailable</code>.</p>
 <h2 id="freshness" class="tsd-anchor-link">Freshness<a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Each route declares a <code>Freshness</code> (<code>src/protocol/route.ts</code>): <code>maxStale</code> in seconds and a mode.</p>
 <table>
@@ -1205,7 +1409,7 @@ Vary: Spool-Vector-Seen
 <tr>
 <td><code>spool:partition</code></td>
 <td></td>
-<td><code>{ type, partition, artifacts, records, projections }</code>: ids held for the current partition</td>
+<td><code>{ type, partition, artifacts, records, projections, datasets }</code>: ids held for the current partition, and its principal dataset metas</td>
 </tr>
 <tr>
 <td><code>spool:assets</code></td>
@@ -1217,9 +1421,29 @@ Vary: Spool-Vector-Seen
 <td></td>
 <td><code>{ type, dropped, third }</code>: drops by vendor, and third-party URLs held</td>
 </tr>
+<tr>
+<td><code>spool:write</code></td>
+<td><code>name</code>, <code>key</code>, <code>value</code>, <code>version</code></td>
+<td><code>{ type, result }</code>: <code>{ ok: true, state, edits }</code> or a refusal; see <a href="#declared-writes">Declared Writes</a></td>
+</tr>
+<tr>
+<td><code>spool:flush</code></td>
+<td></td>
+<td><code>{ type, result }</code>: <code>{ ok: true, queued, flushed, conflicted }</code> or a refusal</td>
+</tr>
+<tr>
+<td><code>spool:writes</code></td>
+<td></td>
+<td><code>{ type, result }</code>: <code>{ ok: true, writes }</code>, the state of each queued key without its value, or a refusal</td>
+</tr>
+<tr>
+<td><code>spool:resolve</code></td>
+<td><code>name</code>, <code>key</code>, <code>use</code></td>
+<td><code>{ type, result }</code>: <code>{ ok: true, flush?, server? }</code> or a refusal</td>
+</tr>
 </tbody>
 </table>
-<p>The worker also posts <code>spool:cleared</code> to every page, as above. The replies list ids and counts, never stored content.</p>
+<p>The worker also posts <code>spool:cleared</code> to every page, as above, <code>spool:written</code> with <code>queued</code>, <code>flushed</code> and <code>conflicted</code> after each flush that tried a record, and <code>spool:persist</code> to a page once a dataset is held. A page answers <code>spool:persist</code> with <code>spool:persisted</code> (<code>granted</code>, no reply). <code>spool:datasets</code> takes no fields and replies <code>{ type, datasets, outcomes, refused, declined, evicted, persisted }</code>. The replies list ids and counts, never stored content.</p>
 <h2 id="proxy-additions" class="tsd-anchor-link">Proxy Additions<a href="#proxy-additions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p><code>spoolProxy</code> (<code>src/proxy/proxy.ts</code>) answers the paths above and forwards everything else to an origin. It adds ten things to the wire.</p>
 <p><strong>Tag headers.</strong> The origin names a page's dependencies in <code>Cache-Tag</code> (commas), <code>Surrogate-Key</code> and <code>X-Drupal-Cache-Tags</code> (spaces) or <code>xkey</code> (spaces or commas). <code>readTags</code> merges the four in first-seen order without repeats. The proxy removes them from the response unless <code>exposeTags</code> is set. A page with no tags depends on <code>proxy:path:&lt;path&gt;</code>.</p>
@@ -1283,6 +1507,43 @@ Vary: Spool-Vector-Seen
 <p><strong>Embed facades.</strong> With <code>embeds: { providers, thumbnail, ignoreCsp }</code> (<code>src/media/embeds.ts</code>) the proxy replaces a server-rendered <code>&lt;iframe src&gt;</code> that points at <code>youtube.com/embed/&lt;id&gt;</code>, <code>youtube-nocookie.com/embed/&lt;id&gt;</code> or <code>player.vimeo.com/video/&lt;id&gt;</code> (an id of 6 to 64 letters, digits, <code>-</code> and <code>_</code>) with an <code>&lt;iframe&gt;</code> whose <code>srcdoc</code> is a small document: one link to the original embed URL with <code>autoplay=1</code> added, and for YouTube the thumbnail <code>https://i.ytimg.com/vi/&lt;id&gt;/hqdefault.jpg</code> when <code>thumbnail</code> is not false. A click navigates the iframe to the player, so the page needs no script. The facade keeps <code>width</code>, <code>height</code>, <code>title</code>, <code>class</code>, <code>style</code>, <code>allow</code>, <code>allowfullscreen</code>, <code>loading</code>, <code>id</code>, <code>sandbox</code> and <code>referrerpolicy</code>, escapes every value it writes, and takes its label from <code>title</code> (default <code>Play video</code>). An iframe inside a comment or <code>&lt;noscript&gt;</code>, one that already has <code>srcdoc</code>, one whose URL sets <code>enablejsapi=1</code>, and a <code>/embed/videoseries</code> playlist stay as they are. A response that sends <code>Content-Security-Policy</code> is left alone unless <code>ignoreCsp</code> is true. <code>proxy.embeds</code> counts <code>pages</code>, <code>rewritten</code> and <code>skipped</code> by <code>csp</code> or <code>jsapi</code>.</p>
 <p><strong>Dictionary transport.</strong> With <code>dictionary: { encoder, match, base, maxBytes, formats, cacheBytes }</code> (<code>src/proxy/dictionary.ts</code>, RFC 9842) the proxy marks a <code>GET</code> answered <code>200</code> as <code>text/css</code> or JavaScript, whose pathname matches <code>match</code> (default <code>/\.(?:css|m?js)$/i</code>), and that <code>decline</code> would keep as public with the request's cookies and query ignored, so a later request can name it as a dictionary. The response gains <code>Use-As-Dictionary: match=&quot;&lt;directory&gt;/*&quot;, match-dest=(&quot;style&quot;)</code> (<code>&quot;script&quot;</code> for JavaScript) and <code>Vary: Accept-Encoding, Available-Dictionary</code>, and its bytes are held under the base64 of their SHA-256 in a cache of <code>cacheBytes</code> (default 16 MiB, least recently used first). With <code>base</code> (a function of the pathname, a regular expression or a list of them) only the responses it names get <code>Use-As-Dictionary</code> and are held, and every other response of <code>match</code> keeps the <code>Vary</code> and is still encoded against a held base the request names. A directory with a character outside <code>A-Z a-z 0-9 / _ . ~ % -</code> gets no header (<code>skipped.pattern</code>). A request with <code>Available-Dictionary: :&lt;base64 of the SHA-256&gt;:</code> for a held dictionary and an <code>Accept-Encoding</code> that lists a coding of <code>formats</code> (default <code>['dcz']</code>, in the order given) gets the file as <code>Content-Encoding: dcz</code> or <code>dcb</code>, with no <code>Content-Length</code> and a weak <code>ETag</code>. The body is the coding's magic bytes (<code>5e 2a 4d 18 20 00 00 00</code> for <code>dcz</code>, <code>ff 44 43 42</code> for <code>dcb</code>), the 32-byte SHA-256 of the dictionary, then the stream the <code>encoder</code> returns. The plain response goes out when the request names no held dictionary or no listed coding (<code>skipped.unavailable</code>), carries <code>Range</code> (<code>range</code>), is over <code>maxBytes</code> (<code>size</code>), when the encoder throws (<code>failed</code>) and when the framed body is not smaller (<code>larger</code>). <code>proxy.dictionary</code> counts <code>registered</code>, <code>encoded</code>, <code>bytesIn</code>, <code>bytesOut</code> and <code>skipped</code>.</p>
 <p><strong>Video tags.</strong> With <code>video: &lt;options&gt;</code> (<code>src/media/video.ts</code>) the proxy rewrites the <code>&lt;video&gt;</code> start tags of every HTML response to a <code>GET</code> that is not <code>204</code>, <code>205</code> or <code>304</code>, after the trim guard. A tag inside an HTML comment, <code>&lt;audio&gt;</code>, <code>&lt;source&gt;</code> and <code>&lt;iframe&gt;</code> are not touched, and nothing outside an edited start tag changes. <code>preload</code> is set to <code>none</code> (or <code>metadata</code>), keeping the quote style of an existing attribute. <code>autoplay: 'defer'</code> replaces the <code>autoplay</code> attribute with <code>data-spool-autoplay</code>, adds <code>controls</code> when absent and sets <code>preload</code> to <code>none</code> unless the option is <code>metadata</code>. A rewritten page's <code>ETag</code> becomes weak, and <code>proxy.video</code> counts <code>pages</code> and <code>rewritten</code> tags. With <code>when: 'always'</code> the rewrite is also applied to the artifact shell the proxy builds, so a held copy carries it. With <code>when: 'save-data'</code> (needs <code>Save-Data: on</code>) or <code>'slow'</code> (needs an <code>ECT</code> of <code>slow-2g</code>, <code>2g</code> or <code>3g</code>, or <code>Save-Data: on</code>) a rewritten response also gets <code>private</code> in <code>Cache-Control</code> (<code>public</code> is replaced, a header with none gets <code>private, max-age=0</code>) and <code>Save-Data, ECT</code> in <code>Vary</code>. <code>decline</code> then refuses the page through its <code>private</code> verdict, so it is never a replica or a shared cache entry, and the artifact shell is built from the origin's tags. A page that triggered no rewrite keeps its headers, apart from the <code>Accept-CH</code> above.</p>
+<h2 id="stability" class="tsd-anchor-link">Stability<a href="#stability" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>This section says what <code>Spool-Protocol: 1</code> freezes and what may change without a new number. <code>tests/node/protocol-freeze.spec.ts</code> pins the frozen surface as literal values. A change to a pinned item fails that file until the same diff changes the pinned value.</p>
+<h3 id="what-is-frozen" class="tsd-anchor-link">What Is Frozen<a href="#what-is-frozen" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>PROTOCOL_VERSION</code>, the <code>Spool-Protocol</code> value, every name in <code>HEADERS</code> and <code>WRITE_HEADERS</code>, and every path in <code>PATHS</code>.</li>
+<li>The envelope encoding: the fields and their order in <code>Spool-Artifact</code>, the grammar of <code>Spool-Invalidate</code> and <code>Spool-Clear</code>, and how the fixed header strings in the test decode. An unknown field or header is ignored. A malformed value throws <code>bad-header</code>.</li>
+<li>The key set and the JSON type of each field in the success bodies of <code>/.spool/sync</code> (with <code>from</code> and with <code>need</code>), <code>/.spool/artifact</code> (with and without <code>have</code>), <code>/.spool/beacon</code> (with <code>want</code>, with <code>catalogue</code>, and with both), <code>/.spool/dataset</code> (a seed page, a page with <code>next</code>, a page with <code>after</code> and its proof, a patch, a reset, a <code>409</code> decline, and a refused backend proof) and <code>/.spool/write</code> (<code>200</code> and <code>412</code>). Each <code>/.spool/write</code> refusal is pinned by its status and its <code>code</code> and <code>error</code> keys.</li>
+<li>The constants in the limits tables on this page, with their values and the file that exports each one.</li>
+<li>The static manifest, <code>spool.json</code>: <code>MANIFEST_SCHEMA</code>, the keys of the manifest and of each route, and the required route fields <code>pattern</code>, <code>strategy</code> and <code>version</code>. <code>parseManifest</code> refuses a wrong <code>schema</code>, an over-long <code>version</code> and a duplicate pattern with <code>bad-manifest</code>, and ignores an unknown field on the manifest or a route.</li>
+<li>The public export names of each entry point in <code>package.json</code>.</li>
+</ul>
+<h3 id="what-may-change-without-a-new-number" class="tsd-anchor-link">What May Change Without a New Number<a href="#what-may-change-without-a-new-number" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>New optional fields in a response. A reader ignores a field it does not know. <code>tests/unit/envelope.spec.ts</code> checks that unknown fields are ignored and parses the <code>h</code> field the way a v0.2 worker reads <code>Spool-Artifact</code>.</li>
+<li>New optional request parameters.</li>
+<li>New paths under <code>/.spool/</code>. A path that no row of the path table claims answers <code>404</code>.</li>
+<li>New refusal codes on <code>/.spool/dataset</code> or <code>/.spool/write</code>, if the status is one an older reader already treats as a failure it does not act on. No test pins this yet; see below.</li>
+<li>A new limit, provided it refuses no request the current code accepts. This is the reading the freeze uses for &quot;tightening&quot;; a limit that changes what a current sender may send needs a new number.</li>
+</ul>
+<h3 id="what-needs-spool-protocol-2" class="tsd-anchor-link">What Needs Spool-Protocol 2<a href="#what-needs-spool-protocol-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>Renaming or removing any pinned item.</li>
+<li>Changing the type or the meaning of a field.</li>
+<li>Changing the meaning of an existing limit.</li>
+</ul>
+<h3 id="compatibility-evidence" class="tsd-anchor-link">Compatibility Evidence<a href="#compatibility-evidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>tests/browser/upgrade.pw.ts</code> runs a v0.2 and a v0.3 worker against a v0.4 server, and a v0.4 worker against a site that still serves v0.2 or v0.3, in Chromium, Firefox and WebKit.</li>
+<li>The shared <code>spool</code> IndexedDB database stays at version 2 (<code>factory.open(name, 2)</code> in <code>src/sw/idb.ts</code>). New stores live in their own databases: <code>spool-datasets</code> (version 1), <code>spool-writes</code> (version 1) and <code>spool-principal-datasets</code> (version 1). Raising the shared database above version 2 fails the v0.2 and v0.3 upgrade cases with a <code>VersionError</code>, because those workers open it at version 2.</li>
+<li>The v0.2.0 and v0.3.0 source never requests <code>/.spool/dataset</code> or <code>/.spool/write</code>. That is why an old worker does not meet the two v0.4 paths. No test sends either path to an old worker, so the behaviour of an old worker against them is not pinned.</li>
+</ul>
+<h3 id="what-this-section-does-not-claim" class="tsd-anchor-link">What This Section Does Not Claim<a href="#what-this-section-does-not-claim" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>No external review of principal datasets or declared writes. Both are off by default.</li>
+<li>No multi-day device trace.</li>
+<li>No measurement on a real site.</li>
+</ul>
 <h2 id="limits" class="tsd-anchor-link">Limits<a href="#limits" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Every constant exported from <code>src/protocol/index.ts</code> whose name begins <code>MAX_</code> is in the first table. <code>tests/node/docs.spec.ts</code> compares the value column with the source.</p>
 <table>
@@ -1348,6 +1609,24 @@ Vary: Spool-Vector-Seen
 <td>32</td>
 <td><code>src/protocol/view.ts</code></td>
 <td>origins one loads report names</td>
+</tr>
+<tr>
+<td><code>MAX_WRITE_KEY</code></td>
+<td>256</td>
+<td><code>src/protocol/write.ts</code></td>
+<td>characters in a write key</td>
+</tr>
+<tr>
+<td><code>MAX_WRITE_BYTES</code></td>
+<td>1,048,576</td>
+<td><code>src/protocol/write.ts</code></td>
+<td>the most a class may declare for <code>maxBytes</code></td>
+</tr>
+<tr>
+<td><code>MAX_WRITE_PENDING</code></td>
+<td>1000</td>
+<td><code>src/protocol/write.ts</code></td>
+<td>the most a class may declare for <code>maxPending</code></td>
 </tr>
 </tbody>
 </table>
@@ -1637,13 +1916,29 @@ Vary: Spool-Vector-Seen
 <li>
 <ul>
 <li><a href="#query-routes"><span>Query <wbr/>Routes</span></a></li></ul></li>
+<li><a href="#datasets"><span>Datasets</span></a></li>
+<li>
+<ul>
+<li><a href="#the-device-store"><span>The device store</span></a></li>
+<li><a href="#query-plans"><span>Query <wbr/>Plans</span></a></li>
+<li><a href="#admission"><span>Admission</span></a></li>
+<li><a href="#principal-datasets"><span>Principal <wbr/>Datasets</span></a></li></ul></li>
+<li><a href="#declared-writes"><span>Declared <wbr/>Writes</span></a></li>
 <li><a href="#freshness"><span>Freshness</span></a></li>
 <li><a href="#static-manifest"><span>Static <wbr/>Manifest</span></a></li>
 <li><a href="#page-and-worker-messages"><span>Page and <wbr/>Worker <wbr/>Messages</span></a></li>
 <li><a href="#proxy-additions"><span>Proxy <wbr/>Additions</span></a></li>
+<li><a href="#stability"><span>Stability</span></a></li>
+<li>
+<ul>
+<li><a href="#what-is-frozen"><span>What <wbr/>Is <wbr/>Frozen</span></a></li>
+<li><a href="#what-may-change-without-a-new-number"><span>What <wbr/>May <wbr/>Change <wbr/>Without a <wbr/>New <wbr/>Number</span></a></li>
+<li><a href="#what-needs-spool-protocol-2"><span>What <wbr/>Needs <wbr/>Spool-<wbr/>Protocol 2</span></a></li>
+<li><a href="#compatibility-evidence"><span>Compatibility <wbr/>Evidence</span></a></li>
+<li><a href="#what-this-section-does-not-claim"><span>What <wbr/>This <wbr/>Section <wbr/>Does <wbr/>Not <wbr/>Claim</span></a></li></ul></li>
 <li><a href="#limits"><span>Limits</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.3.0</a>
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v0.4.0</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
