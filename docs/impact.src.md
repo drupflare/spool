@@ -20,13 +20,31 @@ On the server, a local view sent nothing in all but one window per runtime, and 
 
 Spool does not claim that the headline is a meter reading, a saving in radio wakes, a capacity saving without evidence that equipment was removed, or a figure for paced or cellular phone use. The full list is under What This Does Not Claim.
 
-### A Worked Example
+## Unit and Scope
 
-Take an institution with {{value:scaleViews}} views a year, a scale chosen for the example that names no institution (L3). Spool's tiers name the share of those views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy those local views avoid at each of the three per-view figures.
+The per-view figures on this page are reported in kWh per million views, so they compare at any throughput. A reader multiplies one by their own yearly views in millions. One joule a view is one megajoule per million views, which is {{value:kwhPerMvPerJoule}} kWh per million views (L2). The unit is for research and communication. Nothing in this report sets a target intensity.
+
+A CMS website uses little energy next to an institution's whole IT estate, so energy is a research and communication item here and not a business one. The largest part of drupflare's saving is idle and hosting energy per site-year, which is not a per-view quantity. That saving keeps its own units in [Economics](#economics), where the peak-sized hosting counterfactual sits, and in [Capacity](#capacity), where a retired server-year is {{value:serverYear}} MWh (L2). This page computes no per-view equivalent of it.
+
+Every kWh per million views figure assumes a view mix: the share of cold first views against repeat views, the page weight and the device. The table names the mix of each row. The first-view rows are cold views of landing pages from university sites, not weighted by traffic. The repeat rows are repeat views. Where a table needs a cold share it takes one from an L3 input. A fleet-wide kWh per million views is never printed without its mix.
+
+Two kinds of kWh appear. The attributional figure is SWD v4 over wire bytes, an allocation (L2). The metered figure is the package energy of one desktop (L1) or the whole phone. Where both exist they sit side by side and are labelled. The attributional column is the upper reading. Where a metered reading exists, what to build is decided on the metered column.
+
+{{#unit-first-view}}
+On the first-view pages the metered figure is {{value:unitFvRatio}} of the attributional one, the mean of the metered joules over the mean of the attributional joules (L2).
+
+{{/unit-first-view}}
+{{table:unit-status}}
+
+The first rows are what one local view saves. A row marked as a cost is the energy a view spends, which is not a saving. The ranges and rounds behind the metered figures are under Measured Readings.
+
+### Energy by Tier
+
+Spool's tiers name the share of views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy per million views at each of the three per-view figures, which is the tier's share times the figure.
 
 {{table:views-channel}}
 
-The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a view count and a tier share. One retired server-year is {{value:serverYear}} MWh (L2), the unit to compare each cell with. Multiply a row by your own yearly views over {{value:scaleViews}}.
+The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a tier share. The view mix is repeat views of the median document.
 
 ## Bandwidth and Request Costs
 
@@ -40,13 +58,13 @@ Egress is priced at the first paid tier of each host. A free allowance is used u
 
 {{table:bandwidth-per-million}}
 
-The dollar figure is small. A million local views save between {{value:perMillionLow}} and {{value:perMillionHigh}} at these list prices. Scaled to the institution above:
+The dollar figure is small. A million local views save between {{value:perMillionLow}} and {{value:perMillionHigh}} at these list prices. At each of the three tiers of local views:
 
 {{table:bandwidth-worked}}
 
-At the Transformative tier that is {{value:topWorkedLow}} to {{value:topWorkedHigh}} a year across these hosts. The bytes and requests behind it, a month at a time:
+At the Transformative tier that is {{value:topWorkedLow}} to {{value:topWorkedHigh}} per million views across these hosts. The bytes and requests behind it:
 
-{{table:monthly-gb}}
+{{table:bytes-per-tier}}
 
 The same rule holds for requests. Cloudflare Workers and CloudFront each include 10 million requests a month, and that allowance is used by all of the site's requests. Past it, each request spool removes saves the request price in the table.
 
@@ -92,7 +110,7 @@ The trust block counts what the worker's own views record. It counts sampled sha
 
 These figures are research. Energy and carbon do not decide a default or a sales claim, and the energy figures are not a business case.
 
-For Institution A, the attributional saving at the high case is {{value:instAAttrMwh}} MWh a year (L3). It splits across three meter boundaries: visitors' devices take {{value:deviceShare}}%, networks {{value:networkShare}}% and data centres {{value:dataCentreShare}}% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
+For Institution A, the attributional saving at the high case is {{value:instAAttrMwh}} MWh a year, or {{value:instAKwhPerMv}} kWh per million views (L3). Every per-million-views column in this section uses the average view of the footprint paragraph below, a mix of cold first views and repeat views. It splits across three meter boundaries: visitors' devices take {{value:deviceShare}}%, networks {{value:networkShare}}% and data centres {{value:dataCentreShare}}% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
 
 {{table:institution-boundary}}
 
@@ -106,9 +124,13 @@ Water covers the data-centre share only. Direct water is used on site. Indirect 
 
 {{table:institution-carbon-water}}
 
-The goal ladder sets each goal as a share of a page view's own footprint. An average view costs {{value:avgViewJoules}} J on the attributional basis (L2). First views carry the central share of 60% (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of {{value:goalHighShare}}% is a scenario (L3). Each cell gives kWh a year.
+The goal ladder sets each goal as a share of a page view's own footprint. An average view costs {{value:avgViewJoules}} J on the attributional basis, which is {{value:avgViewKwhPerMv}} kWh per million views (L2). First views carry the central share of {{value:firstViewShareCentral}} (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of {{value:goalHighShare}}% is a scenario (L3). Each cell gives kWh a year.
 
 {{table:goal-ladder}}
+
+The same shares as an intensity, in kWh per million views. The mix is the average view above, with cold first views at the central share (L3).
+
+{{table:footprint-intensity}}
 
 Unconfirmed inputs: the Dartmouth footprint is a 2019 preliminary figure, and the record holds no campus electricity price, no energy-only share of a bill, and no lifecycle or marginal grid factor. Ember's boundary is unstated.
 
@@ -147,6 +169,20 @@ The share of views that are network views of a page the visitor has not seen is 
 Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at each host's first paid tier, which is the high end for a site large enough to reach a later tier. A free allowance is used up by everything the site serves, so a site under its allowance saves no dollars. Cloudflare Workers bills no egress and its row is $0.
 
 {{table:trim-prices}}
+
+### Churn Between Two Readings
+
+The trim rig read the same ten Drupal sites on {{value:churnFirstDate}} and again on {{value:churnSecondDate}}, {{value:churnDays}} days apart, with the same method. Two readings show churn between two deployments at most. They say nothing about a rate: there is one interval and no third reading to show a trend.
+
+An aggregate is a same-origin CSS or JS file under a `files/css/` or `files/js/` folder. Names are compared by path with the query dropped, across every page the rig visited on each date. The first reading kept sizes and transfer bytes only. So for it, the names are the only comparison available. A content hash, and the zstd size of a changed file against the earlier file of its kind, exist only on the second reading. The earlier file was fetched by its path on the second date, so a dictionary figure exists only where that path still answers. Content under an unchanged name cannot be compared at all, since the first reading holds no hash.
+
+The cause of a name change was not read. Drupal's aggregate names depend on the asset library set and on the site's own cache rebuilds; this reading does not separate those.
+
+- {{value:churnUnchangedSites}} of {{value:churnSites}} sites kept the same set of aggregate names (L1).
+- The changed names carry a median of {{value:churnChangedMedian}} of a site's aggregate transfer bytes, and a mean of {{value:churnChangedMean}} (L2).
+- Across the {{value:churnDictSites}} sites with a changed file whose earlier file answered, the zstd 3 dictionary size over the standalone size has a median of {{value:churnDictMedian}} and a mean of {{value:churnDictMean}} (L2). Lower is better. A ratio of 1 means the earlier file saved nothing.
+
+{{table:trim-churn}}
 
 ## First Payload
 
@@ -194,9 +230,9 @@ A browser that picks the latest earlier file of the same directory saves {{value
 
 {{table:ledger-first-view}}
 
-The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. Views are the two scales this page uses: 100 million and 420 million a year. One retired server-year is {{value:serverYear}} MWh (L2), the unit to compare each cell with.
+The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. The table gives each figure as kWh per million views, the unit of Unit and Scope, at the three shares. The mix is the corpus named in each row, with the cold-view share as the L3 input.
 
-{{table:ledger-mwh}}
+{{table:ledger-intensity}}
 
 Local views add a second ceiling that does not depend on any lever above: a local view replaces the whole repeat view if every file in it is answered locally. The median whole repeat view is {{value:ledgerWholeKb}} ({{value:ledgerWholeJ}} J, L2). An optimized HTTP cache already keeps the static files of a repeat view, so most of that figure is the baseline fix's saving and not spool's. It is the upper bound on what a local repeat view could remove.
 
@@ -222,6 +258,24 @@ A visible page with no timers drew {{value:activityQuietExtra}} W above the idle
 
 {{value:dictLoadText}}
 
+{{#idle-activity-tabs}}
+
+### Tabs and Hidden Polls
+
+A page that polls costs more when the browser holds more tabs, and a poll in a tab hidden for a long time may cost a different amount again. This reading ran in one headed Chromium on one desktop, under a virtual display. Each row is one window of {{value:tabsWindowS}} seconds, and the long hidden window is {{value:tabsLongWindowS}} seconds, over {{value:tabsRounds}} rounds. The idle draw ran at {{value:tabsIdleRange}} W. {{value:tabsDropped}} windows were dropped for contamination from other containers, and {{value:tabsUnmatched}} three-tab windows had no quiet window in their round to net against.
+
+{{table:idle-activity-tabs}}
+
+The two three-tab polling arms are netted against the three-tab quiet arm of their round. The one-tab and hidden arms net against the idle draw alone, because the rig has no quiet arm of their own. The ratio to one tab therefore compares a netted figure with one that still carries one open tab. The three-tab poll costs {{value:tabsRatioLeader}} times the leader arm and {{value:tabsRatioPoll1}} times the one-tab control.
+
+The leader is written into the rig's page. spool ships no leader election. The tab that holds the Web Lock polls and posts each result on a BroadcastChannel, and the two other tabs only listen. The window counts the polls each tab sent and the messages each received. The lock holder sent a median of {{value:tabsLeaderPolls}} polls a window, and the tabs together received a median of {{value:tabsLeaderMessages}} messages. A poll from a tab without the lock stops the run.
+
+The hidden tab waited {{value:tabsHiddenMin}} seconds after it was hidden before its window opened, which is past the five minutes at which Chromium starts intensive throttling. In that window it sent {{value:tabsLongPings}} origin requests a minute.
+
+The reading covers one browser on one machine. Its rows hold raw quantities, and the per-minute figures and ratios are derived from them (L2). It changes no input in `src/report/inputs.ts`. The retake rule in `scripts/impact.ts` (`ORIGINAL_RAPL`) does not list this experiment, because it has no earlier reading.
+
+{{/idle-activity-tabs}}
+
 ### Lazy Loading Before the First Scroll
 
 Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The crawl loaded pages twice, once as the origin sent them and once with `loading="lazy"` added by the proxy's rewrite. Both loads went through the same Playwright route, so neither had a browser cache. The columns are image bytes requested before the first scroll. This is not part of the tables above, which count bytes any visitor receives. The first rows are the first crawl, with the first rule and `skip` 2. The other rows are three later crawls of up to five pages per site, one per `skip`, with the rule that also leaves an image with `fetchpriority`, one that a preload link names and one inside a `<header>`.
@@ -236,7 +290,7 @@ Every number on this page comes from a reading in [`measurements/`](../measureme
 
 Two channels carry the energy numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at {{value:serverYear}} MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.
 
-Tiers on this page are relative to an institution's own views. The tables use {{value:scaleViews}} views a year as a scale, an L3 choice that names no institution.
+Tiers on this page are relative to an institution's own views. The tables give energy per million views, so no table depends on a traffic assumption. Only the Institution blocks use yearly view counts, because those counts are their scenario inputs.
 
 ### Measurement Labels
 
@@ -309,20 +363,20 @@ A default local view replaces one request, the page's document. The model prices
 
 Each finding forced a mechanism in code. Labels give what was read: full text, abstract only, or a web page.
 
-| finding                                                                                                                                                 | source (label)                                    | mechanism                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| A page rendered from cache with no network used 6.8% to 40.5% of the networked load's energy; one analytics request erased the saving on 15 of 25 sites | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
-| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                          | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
-| Safari deletes script-writable storage after 7 days without interaction                                                                                 | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
-| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                            | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
-| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                   | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
-| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
-| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                        | the views reading (L1)                            | beacon queueing in the worker                                                               |
-| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
-| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                    | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
-| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                 | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
-| A server cache already removes recompute, and a projection relocates work                                                                               | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
-| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                           | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
+| finding                                                                                                                                                                                                                   | source (label)                                    | mechanism                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| On 10 of 25 sites a page rendered from cache used 6.8% to 40.5% of the networked load's energy; on the other 15, dynamic script and style requests could not be cached, and the paper names Google Analytics as one cause | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
+| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                                                                                            | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
+| Safari deletes script-writable storage after 7 days without interaction                                                                                                                                                   | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
+| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                                                                                              | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
+| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                                                                                     | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
+| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                                                                                  | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
+| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                                                                                          | the views reading (L1)                            | beacon queueing in the worker                                                               |
+| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                                                                                  | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
+| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                                                                                      | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
+| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                                                                                   | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
+| A server cache already removes recompute, and a projection relocates work                                                                                                                                                 | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
+| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                                                                                             | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
 
 ### Baselines
 
@@ -359,6 +413,52 @@ Over cellular, with the Wi-Fi switched off, the idle windows were steadier and b
 
 Back to back, a local view saves {{value:cellBurstSaving}} J over cellular, about what it saves over Wi-Fi. At one view every {{value:cellPacedSeconds}} seconds, each view costs 11 to 18 times its back-to-back cost (most likely the cost of waking the phone from idle for one view; not measured separately), and the network view and the local view cost about the same ({{value:cellPacedSaving}} J apart, inside the spread across rounds). A second reading isolates the request. The phone ran the same WebDriver script every {{value:radioSeconds}} s over {{value:radioRounds}} rounds, once with a `fetch` to a Worker that answers 204 with no body and once without it. Above idle, a call with the request cost {{value:radioRequest}} J and a call without it {{value:radioScript}} J: the medians are {{value:radioDifference}} J apart and the ranges overlap. No radio wake can be attributed to the request at this resolution, so the headline carries 0 J for it. The earlier scenario value of 5 J per phone view stays out until a reading attributes one.
 
+{{#first-view}}
+
+### First Views
+
+The first-view mechanisms (images, video, scripts and facades) are credited at the attributional rate: the page's wire bytes times SWD v4's 0.194 kWh per GB (L2). The metered figure measures something else. It is the package energy a desktop browser spends on a cold first view of a recorded page, above the idle draw of the same round (L1 windows, L2 per page). This reading covers {{value:fvPages}} pages from {{value:fvSites}} sites, {{value:fvWireMb}} MB on the wire, over {{value:fvRounds}} rounds of {{value:fvNavs}} cold navigations per window. {{value:fvDropped}} windows were dropped for contamination from other containers.
+
+{{table:first-view}}
+
+On these pages the package spent {{value:fvRatioMean}} of the attributional figure on average, and the median page spent {{value:fvRatioMedian}}. The site means run from {{value:fvSiteMin}} to {{value:fvSiteMax}} over {{value:fvSiteCount}} sites. The ratio describes the pages measured here. It is not a correction factor for the allocation.
+
+The class fit regresses each page's metered joules on its image, script and other bytes. It has {{value:fvFitN}} pages and a residual standard error of {{value:fvFitResidual}} J (L2). The shares below come from the point fit.
+
+{{table:first-view-fit}}
+
+The intervals in the next table are 95% bootstrap intervals over pages: 2,000 resamples of the pages with a fixed seed, and the 2.5th and 97.5th percentiles of the coefficients (L2).
+
+{{table:first-view-uncertainty}}
+
+The script coefficient is {{value:fvScriptCoef}} J per MB {{value:fvScriptCi}}, and the image coefficient is {{value:fvImageCoef}} J per MB {{value:fvImageCi}} (L2). {{value:fvOrdering}} Dividing one point estimate by the other gives a ratio that these intervals do not bound. Bytes alone explain {{value:fvBytesR2}} of the variance of the joules (R squared, total MB only; L2). {{value:fvRequestSentence}}
+
+More rounds would not narrow these intervals much. Each page's figure is already a median over its rounds, and the intervals measure the spread between pages. Only more pages would narrow them.
+
+demo.drupflare.com runs spool, so it is not a no-spool page. Without its pages, the median is {{value:fvNoDemoMedian}} J and the script coefficient is {{value:fvNoDemoScript}} J per MB {{value:fvNoDemoScriptCi}} (L2).
+
+{{#first-view-facade}}
+The facade arm serves the same pages with each YouTube or Vimeo iframe replaced by a link to the player, on the {{value:fvFacadePages}} pages where that rewrite changes the page. A facade saves {{value:fvFacadeSavedJ}} J per first view on average and {{value:fvFacadeSavedMedianJ}} J at the median, so a few pages carry the mean. It saves {{value:fvFacadeSavedKb}} KB of body bytes on average and {{value:fvFacadeShare}}% of the page's metered joules (L1 windows, L2 derived). {{value:fvFacadePages}} pages are too few to say how much a facade saves on a page that has an embed.
+{{/first-view-facade}}
+
+The desktop idle draw was {{value:fvIdleW}} W (median). {{value:fvMissedPages}} pages made requests the replay could not answer. The reading keeps them and lists them.
+
+The metered figure covers the desktop package only. It excludes the network, the display and the data centre, so it is not a per-view energy for a visitor's device.
+{{#first-view-warm}}
+
+#### Repeat views
+
+A repeat view is the second of two navigations to the same recorded page, in one browser context. The first navigation fills the HTTP cache and is not metered. The second is metered. It still parses, runs scripts, lays out and decodes; only the bytes can come from the cache. This reading covers {{value:wvPages}} pages over {{value:wvRounds}} rounds of {{value:wvNavs}} repeat navigations per window. It comes from one Chromium on one desktop, against the recorded pages replayed over loopback with no network latency. {{value:wvDropped}} windows were dropped for contamination from other containers.
+
+{{table:first-view-warm}}
+
+The HTTP cache is the only reuse in this measurement. Nothing in spool reuses execution today, so a repeat view is a ceiling for what reusing rendering or computation could save on a repeat visit, not a forecast. Restores from the back-forward cache are not measured.
+
+The median page spent {{value:wvRatioMedian}} times its cold first view on the repeat view. Task time in a repeat navigation went to script ({{value:wvScript}}), layout ({{value:wvLayout}}) and style recalculation ({{value:wvRecalc}}), as medians over pages. The three can overlap, so they are not summed. {{value:wvRefetchPages}} pages ({{value:wvRefetchShare}}%) fetched more than half of their cold view's bytes again. The repeat navigations sent {{value:wvConditional}} conditional requests, and the replay answered {{value:wvNotModified}} with a 304. The replay keeps no ETag or Last-Modified, so the browser has no validator to send.
+
+The M8 closure used a guess of {{value:wvM8Guess}} J per local view, which is {{value:wvM8KwhPerMv}} kWh per million views (L3). The guess was not measured. The measured repeat view averages {{value:wvJoulesMean}} J, which is {{value:wvKwhPerMv}} kWh per million views and {{value:wvVsGuess}} times the guess (L3). That is arithmetic on the desktop reading, not a saving. The decision on C10 is not made here.
+{{/first-view-warm}}{{/first-view}}
+
 ### Server Runtimes
 
 The same small site ran under spool 0.1 in four server runtimes on paisley-park, one container at a time, with Chromium on another machine reaching it over Tailscale. Each window was {{value:runtimeViews}} views. The server's package energy and its interface byte counters were read per window, less the idle window of the same round. The overlay interface carries the HTTP traffic; the physical interface adds the relay's framing, since this path went through a Tailscale relay in every round.
@@ -392,6 +492,23 @@ Each origin figure is package energy above idle on paisley-park (L1, {{value:com
 {{table:compute-server}}
 
 The null route is the transaction floor: loopback HTTP, keep-alive, no body. A cache hit costs about as much as the floor. A CMS render costs {{value:cmsRenderRatio}} times a cache hit and the analytics page about {{value:analyticsRatio}} thousand times. Across the two recompute rows the rule of thumb is {{value:mjPerCpuMs}} mJ of package energy per busy CPU millisecond, for one boosted core in a closed loop. A shared and loaded server amortises idle power differently.
+
+{{#drupal-render}}
+
+#### A Drupal Render
+
+These are the request costs of one real Drupal 11 site, served by PHP 8.5's built-in server in a container on paisley-park (L1). The site is generated: 300 article nodes with seeded text, two of 20 tags each, and the standard front page. Every request is anonymous. Each figure is the package energy of a window above the round's idle draw, per request, less the null route measured in the same round ({{value:drupalRounds}} rounds, {{value:drupalDropped}} windows dropped for contamination; L2).
+
+{{table:drupal-render}}
+
+An uncached render costs {{value:drupalUncachedJ}} J per request, the median over the three URL classes. The internal page cache answering the same URL costs {{value:drupalCachedJ}} J, so the uncached render costs {{value:drupalRatio}} times as much. The null route costs {{value:drupalNullJ}} J per request. The client and the connection pay that cost in every arm, so the null route is what the other arms are net of.
+
+{{table:drupal-render-cache}}
+
+The plan holds two figures for one uncached origin request: 15 mJ, from a synthetic Node template, and 30 J, an estimate for a Drupal invalidation render. This reading is {{value:drupalNear}}. Its uncached figure is {{value:drupalVs15mJ}} times 15 mJ, and 30 J is {{value:drupalVs30J}} times the uncached figure. Neither plan figure has been changed. One reading does not settle which one holds.
+
+The render was measured on one machine, with one generated site. PHP's built-in server stands in for php-fpm, so nothing here measures php-fpm. The package's idle draw was {{value:drupalIdleW}} W (median over the rounds). The uncacheable share of a real site's requests is not measured here.
+{{/drupal-render}}
 
 #### Against a Server Cache
 
@@ -433,8 +550,8 @@ Published per-request figures for hyperscale serving (0.24 Wh median for a Gemin
 
 The first column is the energy one avoided operation saves on this machine. The second is that energy for a million avoided operations, in kWh, an L2 product.
 
-- If every one of {{value:scaleViews}} views a year were an uncached analytics read, the origin term would add up to {{value:analyticsCeiling}} MWh (L3).
-- At a CMS render's cost, {{value:scaleViews}} avoided renders save {{value:cmsCeiling}} kWh.
+- If every view were an uncached analytics read, the origin term would add up to {{value:analyticsCeiling}} kWh per million views (L3).
+- At a CMS render's cost, a million avoided renders save {{value:cmsCeiling}} kWh.
 - Model inference is the one class whose per-operation joules are large, and it counts only for model-derived results that repeat for identical authorised inputs. Free-form prompts rarely repeat.
 
 The origin term is measured per workload against the origin's real baseline. It is close to zero where a server cache exists and it is net of device work a projection relocates.
@@ -454,6 +571,30 @@ Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and
 The Workers free plan carries {{value:freeTierViews}} views a month at one request per view. A local view makes no request, and the protocol syncs when it has something to learn. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.
 
 {{table:free-tier}}
+
+{{#avoidable-loops}}
+
+### Loops in Real Pages
+
+A hook that stops a page's loop helps only where the page keeps one running. The crawl loaded the home page of {{value:loopSites}} public sites and one inner page of each, each in a fresh browser context, and counted each page for 20 seconds in front and 20 seconds behind a second tab. {{value:loopPages}} pages loaded (L1). The shares are shares of pages loaded fresh, not of page views, and no traffic weighting applies. Each share has a Wilson 95% interval (L2).
+
+{{table:loop-classes}}
+
+The crawl ran on a machine its operator was using. The operator says the early part may have been disturbed and the second half should be clean. The reading records no per-window time or load, so the file cannot locate or measure any disturbance. Every window met the 18-of-20 visibility rule. The all-pages column is the pre-registered figure. The second-half column is a sensitivity check: the first half has {{value:loopFirstPages}} loaded pages and the second half has {{value:loopSecondPages}}. {{value:loopOverlap}} No result was dropped, and the crawl was not rerun.
+
+The thresholds of each class are in the reading's method and were fixed before the crawl. A window counts only when its page was in the state it was recorded in for at least 18 of its 20 seconds. A class that needs a window that failed that test is marked not measured, not false.
+
+Most loaded pages had at least one class in their front window, and the `any` row is that union. No page reached the hidden frame-loop threshold. In some hidden windows the page ran nothing at all, not even a one-second timer, while the same page had activity in front. The crawl cannot yet separate a stopped page from a quiet one, so the hidden rows may read low.
+{{/avoidable-loops}}
+
+{{#second-time-point}}
+
+### Second Time Point
+
+Some desktop experiments were run again on paisley-park on a later date. Each retake sits beside its original, with the percent difference of the two medians. The retake is a second time point on the same machine. It does not replicate the result independently. The headline figures elsewhere on this page stay on the original readings, and nothing here is averaged with them.
+
+{{table:second-time-point}}
+{{/second-time-point}}
 
 ## Per-Site Figures
 
@@ -484,6 +625,58 @@ The classified origins move little: ad calls total {{value:splitAdsBytes}} B at 
 {{table:repeat-nav}}
 
 Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
+
+### Third-Party Cacheability
+
+Each third-party request of the home-page repeat view that reached the network is put in one class by its cache headers (L1, counts from the reading). `immutable` is an `immutable` directive or a `max-age` of a year or more. `long` is a `max-age` from a day to under a year. `short` is a `max-age` under a day, or no freshness with a validator. `uncacheable` is `no-store`, or neither freshness nor a validator. The class is computed from the recorded `cache-control` value and the presence of `etag` and `last-modified`. The reading keeps `expires` as a flag only, so it is not read.
+
+The reading does not record whether a URL carried a version token, so the share of versioned files is unknown and is not estimated. The answerable bytes count every immutable or long response from a host the origin table calls cache-remedy, versioned or not. They are therefore an upper bound on what a worker could answer without an origin visit. Requests the browser cache answered are left out, as in the split above.
+
+Shares are over the {{value:cacheWithThird}} of {{value:cacheSites}} sites whose repeat view had third-party network bytes (L2). The median site's share is immutable {{value:cacheImmutableMedian}}, long {{value:cacheLongMedian}}, short {{value:cacheShortMedian}} and uncacheable {{value:cacheUncacheableMedian}}.
+
+{{table:third-party-cacheability}}
+
+{{table:third-party-cache-shares}}
+
+Answerable bytes per site, over every site, have a median of {{value:cacheAnswerableMedianBytes}} B and a mean of {{value:cacheAnswerableMeanBytes}} B. That is a median of {{value:cacheAnswerableMedianShare}} of a site's third-party bytes (L2), and {{value:cacheAnswerablePooledShare}} pooled. These are a ceiling, not a forecast. A worker answers only what its own store holds, and the reading does not show how often that store would hold these responses.
+
+The origin classes and remedies come from the table in `src/report/thirdparty.ts`. They are not measured here.
+
+{{table:third-party-cache-origins}}
+
+## Dataset Patches
+
+A dataset is a collection the server holds per row, such as a course catalogue or a staff roster. A device keeps the rows, and each update sends only the rows that changed. This section compares that patch with two controls: the held page under v0.3, which refetches the whole artifact on each change, and a plain HTTP resource that a browser cache revalidates with its ETag. The ship gate is v0.3.
+
+The readings come from `measurements/dataset-baseline/2026-11-15.json`: synthetic rows, one machine, one run each. No real site has been measured. Every byte figure below is L1.
+
+### Measured Bytes
+
+Bytes are brotli for the v0.3 and v0.4 bodies. The native column is socket bytes, so it includes the HTTP headers: about 270 bytes on each 200 and 220 on each 304. The v0.3 list refetch is the control the gate uses. The records column is the records shape with `have`, a cheaper v0.3 variant at 50 rows; at 500 and 5,000 rows the server names at most 256 ids, so it still refetches most of the collection.
+
+{{table:dataset-arms}}
+
+The first load costs more under v0.4 than under v0.3 at 50 and 500 rows, and less than native at 50 rows. The v0.4 seed is the sum of the dataset's pages, so the rig counts every page of the 5,000-row seed.
+
+{{table:dataset-seeds}}
+
+### Break-Even
+
+A seed is repaid when the bytes an update saves exceed the seed's extra bytes. At one changed row the seed is repaid after {{value:datasetRepayLow}} to {{value:datasetRepayHigh}} updates per device, across the three sizes. The number is per device over one hold, and a device needs at least that many updates within it to repay the seed.
+
+{{table:dataset-breakeven}}
+
+### What a Site Pays
+
+A device holds one copy for {{value:datasetHold}} days (L3), then refetches the seed. A held copy answers the device's views, scaled by a return survival of {{value:datasetSurvival}} (L3). A patch or refetch is fetched at most once per answered view. The table prices one update that changes one row in a 500-row collection (L1 bytes), for three illustrative sites. The views are 2,000 a day across 400 devices, and each row carries the site's own update rate (L3). The joules use the allocation constant, 0.194 kWh/GB (L2). They are not a meter reading.
+
+{{table:dataset-sites}}
+
+The v0.4 patch sends fewer bytes than the v0.3 refetch in every row. The native column depends on how often the resource changes between views: a weekly roster sends almost only 304s, so the seed is the larger part of v0.4's cost there.
+
+### Admission and the Model
+
+The server's admission rule, `datasetBenefit` in `src/protocol/provision.ts`, counts views per copy from the prior: reuse times survival times future views. The site table counts views from traffic. The two agree on the arithmetic and differ on where the views come from. The server measures gzip for its seed size, and this reading uses brotli, so the decision inputs are not the reading's exact bytes. This section does not claim that the rule and the table reach the same decision at any site.
 
 ## Channels
 
@@ -519,7 +712,7 @@ A node that stays in service can still draw less. Removing a request from a spar
 
 Across the sweep a steady stream below 200 requests per second fits {{value:fitSteadyLow}}, while a bursty stream fits {{value:fitBursty}}, which is the closed-loop work cost. A generator that only fires its timer costs {{value:timerWake}} mJ per tick at 50 per second, so an isolated request carries about one wake. That brackets the saving of one sparse isolated request at {{value:wakeLow}} to {{value:wakeHigh}} mJ against {{value:workMj}} mJ of work. Batched arrivals save the work and nothing more, and above about 500 requests per second the marginal cost falls below the work cost.
 
-The effect is bounded by the node's whole above-idle energy. At three origin requests per network view it comes to {{value:powerStateMwh}} MWh a year per {{value:scaleViews}} views (L2 over an L3 request count). It is the retained-node part of this channel. A node is either retired, and counted once at its full retired energy, or retained, and counted once here, never both. The scheduler batches beacons and syncs for this reason as well as for the radio.
+The effect is bounded by the node's whole above-idle energy. At three origin requests per network view it comes to {{value:powerStateKwhPerMv}} kWh per million views (L2 over an L3 request count). It is the retained-node part of this channel. A node is either retired, and counted once at its full retired energy, or retained, and counted once here, never both. The scheduler batches beacons and syncs for this reason as well as for the radio.
 
 ### Embodied Energy
 

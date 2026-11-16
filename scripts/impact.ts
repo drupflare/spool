@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
+import { DATASET_DEFAULTS } from '../src/protocol/provision';
 import {
 	DICTIONARY_ARMS,
 	DOCUMENT_BYTES,
@@ -13,6 +14,7 @@ import {
 	GOAL_HIGH_SHARE,
 	GOAL_SHARES,
 	HOSTS,
+	LOOP_CLASSES,
 	MOBILE_SHARE,
 	MODELLED_VIEW,
 	ORIGIN_J,
@@ -32,28 +34,34 @@ import {
 	addLevers,
 	attributionalJoules,
 	bandwidthUsd,
+	cacheabilityFigures,
 	capacityMWh,
 	channelRows,
+	churnFigures,
 	classifyOrigin,
 	coverageFigures,
 	crawlLevers,
 	dataCentreJoules,
+	datasetFigures,
 	deviceCpuFigures,
 	dictionaryArms,
+	drupalRenderFigures,
 	egressUsd,
+	firstViewFigures,
+	firstViewFit,
 	footprintMwh,
 	freeTierCeiling,
 	gPerKwhFromLbPerMwh,
+	halves,
 	inferenceFigures,
 	institutionReport,
 	joulesPerView,
 	joulesPerViewWithOrigin,
+	kwhPerMv,
 	lazyUnscrolled,
 	ledgerJoules,
-	ledgerMWh,
 	leverStats,
 	median,
-	monthlyGb,
 	onWireFigures,
 	parseMeasurementText,
 	peakCut,
@@ -69,10 +77,13 @@ import {
 	saving,
 	serverYearMWh,
 	serversAfter,
+	siteFigures,
 	spread,
+	tabsFigures,
+	thirdPartyCacheBySite,
 	trimFigures,
 	trimLevers,
-	viewsChannelMWh,
+	warmFigures,
 	windowCounts,
 	zeroNetworkFigures,
 	type ByteSplit,
@@ -80,10 +91,12 @@ import {
 	type DictionaryArm,
 	type Fit,
 	type InstitutionProfile,
+	type LoopFigure,
 	type Measurement,
 	type OpFigures,
 	type OriginClass,
 	type Quartiles,
+	type RaplRun,
 	type Spread,
 	type WindowCount
 } from '../src/report/index';
@@ -91,11 +104,10 @@ import { isMain } from './measure/lib';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** the scale every table uses: yearly views, an L3 choice that names no institution */
-export const SCALE_VIEWS = 100e6;
-
-const J_PER_MWH = 3.6e9;
 const J_PER_KWH = 3.6e6;
+
+// the M8 closure's guess; it was never measured
+const M8_GUESS_J = 0.2;
 
 /** the readings by path under `measurements/`, each validated */
 export type Readings = Map<string, Measurement>;
@@ -148,6 +160,44 @@ export function latest(readings: Readings, rig: string, experiment?: string | nu
 	return readings.get(name) as Measurement;
 }
 
+/** the reading at `name` under `measurements/`, which must exist; for figures the prose pins to one date */
+export function pinned(readings: Readings, name: string): Measurement {
+	const found = readings.get(name);
+	if (!found) throw new Error(`no ${name} reading under measurements/`);
+	return found;
+}
+
+/** the original reading of each rapl experiment that has a retake; headlines read these, never a retake */
+export const ORIGINAL_RAPL = {
+	views: 'rapl/2026-10-19-views.json',
+	'sw-request': 'rapl/2026-10-20-sw-request.json',
+	'compute-server': 'rapl/2026-10-19-compute-server.json',
+	'compute-browser': 'rapl/2026-10-19-compute-browser.json',
+	projection: 'rapl/2026-10-19-projection.json',
+	'dictionary-load': 'rapl/2026-10-22-dictionary-load.json',
+	'image-decode': 'rapl/2026-10-22-image-decode.json',
+	'image-encode': 'rapl/2026-10-22-image-encode.json',
+	'idle-activity': 'rapl/2026-10-26-idle-activity.json',
+	'idle-activity-hidden': 'rapl/2026-10-26-idle-activity-hidden.json'
+} as const;
+
+/** a rapl experiment with a retake, as a key of {@link ORIGINAL_RAPL} */
+export type RetakenExperiment = keyof typeof ORIGINAL_RAPL;
+
+/** the reading of `experiment` dated after its original with the latest date, or `undefined` */
+export function retakeOf(
+	readings: Readings,
+	experiment: RetakenExperiment
+): Measurement | undefined {
+	const pattern = new RegExp(`^rapl/(\\d{4}-\\d{2}-\\d{2})-${experiment}\\.json$`);
+	const originalDate = pattern.exec(ORIGINAL_RAPL[experiment])?.[1] ?? '';
+	const later = [...readings.keys()]
+		.filter((name) => (pattern.exec(name)?.[1] ?? '') > originalDate)
+		.sort(byReading);
+	const name = later[later.length - 1];
+	return name === undefined ? undefined : readings.get(name);
+}
+
 // #region formatting
 
 /** `value` with `digits` decimals and thousands separators */
@@ -178,13 +228,21 @@ const pct = (z: number) => `${Math.round(z * 100)}%`;
 /** dollars: cents under ten, whole dollars above */
 const usd = (n: number): string => (n === 0 ? '$0' : `$${fixed(n, n < 10 ? 2 : 0)}`);
 
+/** a yearly total per million views a year */
+const perMv = (total: number, viewsPerYear: number): number => (total * 1e6) / viewsPerYear;
+
 /** a list price at the precision vendors print it */
 const price = (n: number): string => (n === 0 ? '$0' : `$${fixed(n, n < 0.1 ? 3 : 2)}`);
 
 // #endregion
 
 /** the numbers the page prints, by placeholder name */
-export type Figures = { values: Record<string, string>; tables: Record<string, string> };
+export type Figures = {
+	values: Record<string, string>;
+	tables: Record<string, string>;
+	/** named sections of the page, kept when set and removed when not */
+	blocks?: Record<string, boolean>;
+};
 
 const arm = (run: { arms: Record<string, OpFigures> }, name: string): OpFigures => {
 	const found = run.arms[name];
@@ -445,6 +503,81 @@ export function buildFigures(readings: Readings): Figures {
 		]),
 		[1, 2, 3]
 	);
+	// #region third-party cacheability
+	{
+		const cache = thirdPartyCacheBySite(splitReading.rows);
+		const figs = cacheabilityFigures([...cache.values()]);
+		const pct = (z: number) => `${fixed(z * 100, 1)}%`;
+		v.cacheSites = fixed(figs.sites);
+		v.cacheWithThird = fixed(figs.withThirdParty);
+		v.cacheImmutableMedian = pct(figs.shares.immutable.median);
+		v.cacheLongMedian = pct(figs.shares.long.median);
+		v.cacheShortMedian = pct(figs.shares.short.median);
+		v.cacheUncacheableMedian = pct(figs.shares.uncacheable.median);
+		v.cacheAnswerableMedianBytes = fixed(figs.answerableBytes.median);
+		v.cacheAnswerableMeanBytes = fixed(figs.answerableBytes.mean);
+		v.cacheAnswerableMedianShare = pct(figs.answerableShare.median);
+		v.cacheAnswerablePooledShare = pct(figs.answerableShare.pooled);
+		t['third-party-cacheability'] = table(
+			[
+				'site',
+				'third-party B',
+				'immutable B',
+				'long B',
+				'short B',
+				'uncacheable B',
+				'answerable B (upper bound)'
+			],
+			[...cache].map(([site, s]) => [
+				new URL(site).hostname,
+				fixed(s.total),
+				fixed(s.bytes.immutable),
+				fixed(s.bytes.long),
+				fixed(s.bytes.short),
+				fixed(s.bytes.uncacheable),
+				fixed(s.answerable)
+			]),
+			[1, 2, 3, 4, 5, 6]
+		);
+		const shareRows: Array<[string, { median: number; mean: number; pooled: number }]> = [
+			['immutable', figs.shares.immutable],
+			['long', figs.shares.long],
+			['short', figs.shares.short],
+			['uncacheable', figs.shares.uncacheable],
+			['answerable (cache remedy, immutable or long)', figs.answerableShare]
+		];
+		t['third-party-cache-shares'] = table(
+			['class', 'median share of a site', 'mean share of a site', 'pooled share of bytes'],
+			shareRows.map(([name, z]) => [name, pct(z.median), pct(z.mean), pct(z.pooled)]),
+			[1, 2, 3]
+		);
+		const origins = new Map<string, { bytes: number; longLived: number }>();
+		for (const s of cache.values()) {
+			for (const [key, cell] of Object.entries(s.byOrigin)) {
+				const sum = origins.get(key) ?? { bytes: 0, longLived: 0 };
+				sum.bytes += cell.bytes;
+				sum.longLived += cell.longLived;
+				origins.set(key, sum);
+			}
+		}
+		t['third-party-cache-origins'] = table(
+			[
+				'origin class',
+				'remedy in the table',
+				'bytes over all sites',
+				'immutable or long bytes'
+			],
+			[...origins]
+				.sort((a, b) => b[1].bytes - a[1].bytes || (a[0] < b[0] ? -1 : 1))
+				.map(([key, o]) => {
+					const [kind = '', remedy = ''] = key.split('|');
+					return [kind, remedy, fixed(o.bytes), fixed(o.longLived)];
+				}),
+			[2, 3]
+		);
+	}
+	// #endregion
+
 	const kinds: Array<[string, string]> = [
 		['cold-home', 'Cold home page'],
 		['warm-internal', 'Warm internal page'],
@@ -553,7 +686,7 @@ export function buildFigures(readings: Readings): Figures {
 	// #endregion
 
 	// #region desktop views
-	const views = raplRun(latest(readings, 'rapl', 'views').rows);
+	const views = raplRun(pinned(readings, ORIGINAL_RAPL.views).rows);
 	const net = arm(views, 'network');
 	const spool = arm(views, 'spool');
 	const shipping = arm(views, 'shipping');
@@ -736,9 +869,9 @@ export function buildFigures(readings: Readings): Figures {
 	// #endregion
 
 	// #region origin term
-	const server = raplRun(latest(readings, 'rapl', 'compute-server').rows);
+	const server = raplRun(pinned(readings, ORIGINAL_RAPL['compute-server']).rows);
 	v.computeRounds = fixed(arm(server, 'null').windows);
-	const pages = raplRun(latest(readings, 'rapl', 'compute-browser').rows);
+	const pages = raplRun(pinned(readings, ORIGINAL_RAPL['compute-browser']).rows);
 	const origins: Array<[string, number, string]> = [
 		['Modelled origin request (the headline)', ORIGIN_J.conventional.value, 'L1, modelled'],
 		['Cache hit', arm(server, 'cms-cache-200').joules.median, 'L1'],
@@ -831,7 +964,7 @@ export function buildFigures(readings: Readings): Figures {
 	// #endregion
 
 	// #region worker request cost
-	const swReading = latest(readings, 'rapl', 'sw-request');
+	const swReading = pinned(readings, ORIGINAL_RAPL['sw-request']);
 	const sw = raplRun(swReading.rows);
 	const swMj = (k: string) => arm(sw, k).joules.median * 1000;
 	const mj = (s: Spread): Spread => ({
@@ -872,7 +1005,7 @@ export function buildFigures(readings: Readings): Figures {
 	// #endregion
 
 	// #region projection
-	const projMeasurement = latest(readings, 'rapl', 'projection');
+	const projMeasurement = pinned(readings, ORIGINAL_RAPL.projection);
 	const proj = raplRun(projMeasurement.rows);
 	const projRows: Array<[string, string]> = [
 		['proj-srv-recompute', 'Server computes every navigation'],
@@ -969,8 +1102,8 @@ export function buildFigures(readings: Readings): Figures {
 		],
 		[1, 2]
 	);
-	v.analyticsCeiling = sig((SCALE_VIEWS * anaRun.joules.median) / J_PER_MWH);
-	v.cmsCeiling = sig((SCALE_VIEWS * cmsRun.joules.median) / 3.6e6);
+	v.analyticsCeiling = sig(kwhPerMv(anaRun.joules.median));
+	v.cmsCeiling = sig(kwhPerMv(cmsRun.joules.median));
 	// #endregion
 
 	// #region power state
@@ -1012,7 +1145,7 @@ export function buildFigures(readings: Readings): Figures {
 	v.workMj = fixed(work, 1);
 	v.wakeLow = fixed(work + wake);
 	v.wakeHigh = fixed(high);
-	v.powerStateMwh = sig((SCALE_VIEWS * 3 * (high / 1000)) / J_PER_MWH, 2);
+	v.powerStateKwhPerMv = sig(kwhPerMv(3 * (high / 1000)), 2);
 	// #endregion
 
 	// #region tiers
@@ -1021,16 +1154,16 @@ export function buildFigures(readings: Readings): Figures {
 		[
 			'tier',
 			'Z_annual',
-			`attributional, ${fixed(joulesPerView(), 0)} J`,
-			`measured desktop, ${v.desktopSaving} J`,
-			`measured phone, ${v.phoneSaving} J`
+			`attributional, ${fixed(joulesPerView(), 0)} J, kWh per million views`,
+			`measured desktop, ${v.desktopSaving} J, kWh per million views`,
+			`measured phone, ${v.phoneSaving} J, kWh per million views`
 		],
 		tiers.map(([k, z]) => [
 			tierName(k),
 			pct(z),
-			`${sig(viewsChannelMWh(SCALE_VIEWS, z))} MWh`,
-			`${sig(viewsChannelMWh(SCALE_VIEWS, z, saved))} MWh`,
-			`${sig(viewsChannelMWh(SCALE_VIEWS, z, phoneSaved))} MWh`
+			sig(kwhPerMv(z * joulesPerView())),
+			sig(kwhPerMv(z * saved)),
+			sig(kwhPerMv(z * phoneSaved))
 		]),
 		[1, 2, 3, 4]
 	);
@@ -1216,11 +1349,10 @@ export function buildFigures(readings: Readings): Figures {
 	const gbMoved = (host: (typeof HOSTS)[number], views: number) =>
 		(views * bytes) / host.bytesPerUnit;
 	v.pricesRead = PRICES_READ;
-	v.scaleViews = `${fixed(SCALE_VIEWS / 1e6)} million`;
 	v.documentKb = fixed(bytes / 1000, 1);
 	v.gbPerMillion = fixed((1e6 * bytes) / 1e9, 1);
 	v.pantheonOverage = `$${fixed(PANTHEON_OVERAGE.value)}`;
-	const topViews = SCALE_VIEWS * TIERS.transformative;
+	const topViews = 1e6 * TIERS.transformative;
 	const costs = HOSTS.map((h) => bandwidthUsd(1e6, h));
 	v.perMillionLow = usd(Math.min(...costs));
 	v.perMillionHigh = usd(Math.max(...costs));
@@ -1263,36 +1395,75 @@ export function buildFigures(readings: Readings): Figures {
 		[
 			'host',
 			...Object.entries(TIERS).map(
-				([k, z]) => `${tierName(k)}, ${fixed((SCALE_VIEWS * z) / 1e6)}M local views`
+				([k, z]) => `${tierName(k)}, ${fixed(z * 1e6)} local views per million`
 			)
 		],
 		HOSTS.map((h) => [
 			h.name,
-			...Object.values(TIERS).map((z) => `${usd(bandwidthUsd(SCALE_VIEWS * z, h))} a year`)
+			...Object.values(TIERS).map((z) => `${usd(bandwidthUsd(1e6 * z, h))} per million views`)
 		]),
 		[1, 2, 3]
 	);
-	t['monthly-gb'] = table(
+	t['bytes-per-tier'] = table(
 		[
 			'tier',
-			'local views a year',
-			'local views a month, requests no longer sent',
-			'bytes no longer moved, GB a month'
+			'local views per million views',
+			'requests no longer sent per million views',
+			'bytes no longer moved, GB per million views'
 		],
 		Object.entries(TIERS).map(([k, z]) => [
 			tierName(k),
-			`${fixed((SCALE_VIEWS * z) / 1e6)} million`,
-			`${fixed((SCALE_VIEWS * z) / 12 / 1e6, 1)} million`,
-			fixed(monthlyGb(SCALE_VIEWS * z))
+			fixed(1e6 * z),
+			fixed(1e6 * z),
+			fixed((1e6 * z * bytes) / 1e9, 1)
 		]),
 		[1, 2, 3]
 	);
 	// #endregion
 
+	// #region trim churn
+	{
+		const first = pinned(readings, 'trim/2026-10-19.json');
+		const second = pinned(readings, 'trim/2026-11-15.json');
+		const churn = churnFigures(first.rows, second.rows);
+		const pct = (z: number | null) => (z === null ? 'none' : `${fixed(z * 100, 1)}%`);
+		const ratio = (z: number | null) => (z === null ? 'none' : fixed(z, 2));
+		v.churnFirstDate = first.date;
+		v.churnSecondDate = second.date;
+		v.churnDays = fixed((Date.parse(second.date) - Date.parse(first.date)) / 864e5);
+		v.churnSites = fixed(churn.sites.length);
+		v.churnUnchangedSites = fixed(churn.unchangedSites);
+		v.churnChangedMedian = pct(churn.changedShare.median);
+		v.churnChangedMean = pct(churn.changedShare.mean);
+		v.churnDictSites = fixed(churn.dictRatio.sites);
+		v.churnDictMedian = ratio(churn.dictRatio.median);
+		v.churnDictMean = ratio(churn.dictRatio.mean);
+		t['trim-churn'] = table(
+			[
+				'site',
+				'aggregates on the second reading',
+				'changed names',
+				'changed names, share of transfer bytes',
+				'changed files compared',
+				'dictionary over standalone size'
+			],
+			churn.sites.map((s) => [
+				new URL(s.site).hostname,
+				fixed(s.aggregates),
+				fixed(s.changed),
+				pct(s.changedShare),
+				fixed(s.compared),
+				ratio(s.dictRatio)
+			]),
+			[1, 2, 3, 4, 5]
+		);
+	}
+	// #endregion
+
 	// #region asset trimming
 	{
 		const trimRun = trimFigures(latest(readings, 'trim', 'trimmed').rows);
-		const coverage = coverageFigures(latest(readings, 'trim', null).rows);
+		const coverage = coverageFigures(pinned(readings, 'trim/2026-10-19.json').rows);
 		const iqr = (q: Quartiles | null, f: (n: number) => string = sig) =>
 			q ? `${f(q.median)} (${f(q.p25)} to ${f(q.p75)})` : 'none';
 		const kb = (n: number) => `${fixed(n / 1000, 1)} KB`;
@@ -1467,7 +1638,7 @@ export function buildFigures(readings: Readings): Figures {
 		const crawlLeversList = crawlLevers(crawl.rows);
 		const drupalLevers = trimLevers(
 			latest(readings, 'trim', 'trimmed').rows,
-			latest(readings, 'trim', null).rows
+			pinned(readings, 'trim/2026-10-19.json').rows
 		);
 		const lazy = lazyUnscrolled(crawl.rows);
 		const kb = (n: number) => `${fixed(n / 1000, 1)} KB`;
@@ -1548,17 +1719,15 @@ export function buildFigures(readings: Readings): Figures {
 			['Central', FIRST_VIEW_SHARE.central.value],
 			['High', FIRST_VIEW_SHARE.high.value]
 		] as const;
-		const mwh = (bytes: number, views: number, share: number) =>
-			sig(ledgerMWh(ledgerJoules(bytes), views, share));
-		t['ledger-mwh'] = table(
+		const intensity = (bytes: number, share: number) =>
+			sig(kwhPerMv(ledgerJoules(bytes) * share));
+		t['ledger-intensity'] = table(
 			[
 				'Corpus',
 				'First-view share (L3)',
 				'Figure',
-				'Built, 100 million views (MWh)',
-				'Ceiling, 100 million views (MWh)',
-				'Built, 420 million views (MWh)',
-				'Ceiling, 420 million views (MWh)'
+				'Built, kWh per million views',
+				'Ceiling, kWh per million views'
 			],
 			corpora.flatMap((c) =>
 				shares.flatMap(([tier, share]) =>
@@ -1568,29 +1737,22 @@ export function buildFigures(readings: Readings): Figures {
 							c.name,
 							`${tier}, ${fixed(share * 100)}%`,
 							names[which],
-							mwh(s.today, 100e6, share),
-							mwh(s.max, 100e6, share),
-							mwh(s.today, 420e6, share),
-							mwh(s.max, 420e6, share)
+							intensity(s.today, share),
+							intensity(s.max, share)
 						];
 					})
 				)
 			),
-			[3, 4, 5, 6]
+			[3, 4]
 		);
 		const whole = Number(v.revisitWholeMedian.replace(/,/g, ''));
 		t['ledger-repeat'] = table(
-			[
-				'Local share of views',
-				'Repeat-view ceiling, 100 million views (MWh)',
-				'Repeat-view ceiling, 420 million views (MWh)'
-			],
+			['Local share of views', 'Repeat-view ceiling, kWh per million views'],
 			Object.entries(TIERS).map(([name, z]) => [
 				`${tierName(name)}, ${fixed(z * 100)}%`,
-				mwh(whole, 100e6, z),
-				mwh(whole, 420e6, z)
+				intensity(whole, z)
 			]),
-			[1, 2]
+			[1]
 		);
 		const total = (xs: readonly number[]) => xs.reduce((s, x) => s + x, 0);
 		v.ledgerCrawlSites = fixed(new Set(crawlLeversList[0]?.sites).size);
@@ -1743,7 +1905,7 @@ export function buildFigures(readings: Readings): Figures {
 			rows.push([quantity, armName, value, windowsText, 'L1']);
 		const ratio = (a: number, b: number) => fixed(a / b, 2);
 
-		const viewsReading = latest(readings, 'rapl', 'views');
+		const viewsReading = pinned(readings, ORIGINAL_RAPL.views);
 		add(
 			'J saved per local view against optimized HTTP caching',
 			'paisley-park desktop, Chromium',
@@ -1757,7 +1919,7 @@ export function buildFigures(readings: Readings): Figures {
 			`${v.phoneRounds} rounds`
 		);
 
-		const decodeReading = latest(readings, 'rapl', 'image-decode');
+		const decodeReading = pinned(readings, ORIGINAL_RAPL['image-decode']);
 		const decode = raplRun(decodeReading.rows);
 		const decodeCounts = windowCounts(decodeReading.rows);
 		const decodeLabel: Record<string, string> = {
@@ -1799,7 +1961,7 @@ export function buildFigures(readings: Readings): Figures {
 			Object.values(counts).reduce((sum, c) => sum + c.dropped, 0);
 		v.decodeDropped = fixed(dropped(decodeCounts));
 
-		const encodeReading = latest(readings, 'rapl', 'image-encode');
+		const encodeReading = pinned(readings, ORIGINAL_RAPL['image-encode']);
 		const encode = raplRun(encodeReading.rows);
 		const encodeCounts = windowCounts(encodeReading.rows);
 		const encodeLabel: Record<string, string> = {
@@ -1856,7 +2018,7 @@ export function buildFigures(readings: Readings): Figures {
 		v.encodeBreakEvenNative = breakEven('warm-native', 'img-native');
 		v.transferJPerKb = fixed(attributionalJoules(1000), 2);
 
-		const activityReading = latest(readings, 'rapl', 'idle-activity');
+		const activityReading = pinned(readings, ORIGINAL_RAPL['idle-activity']);
 		const activity = activityFigures(activityReading.rows);
 		const activityLabel: Record<string, string> = {
 			quiet: 'a quiet visible page',
@@ -1932,7 +2094,7 @@ export function buildFigures(readings: Readings): Figures {
 			'poll-hidden-plain': 'a hidden page polling once a second',
 			'poll-hidden-hook': 'the hidden polling page with the pause hook'
 		};
-		const hiddenReading = latest(readings, 'rapl', 'idle-activity-hidden');
+		const hiddenReading = pinned(readings, ORIGINAL_RAPL['idle-activity-hidden']);
 		const hidden = activityFigures(hiddenReading.rows);
 		for (const name of Object.keys(hiddenLabel)) {
 			const a = hidden.arms[name];
@@ -1964,7 +2126,7 @@ export function buildFigures(readings: Readings): Figures {
 				? `The hidden pair ran in headed Chromium under a virtual display, with a second tab brought to the front by the DevTools protocol so that the first tab reports \`hidden\` (every row records it, and a row that did not would have stopped the run). Background throttling did not stop the poll: the plain page's callback fired ${fixed(hiddenEvents[Math.floor(hiddenEvents.length / 2)] as number)} times in a ${hiddenWindowS} s window. Over ${hiddenRounds} rounds the idle windows ran at ${fixed(hidden.idleWatts.median, 1)} W. The hidden quiet page drew ${fixed(hidden.arms['quiet-hidden']?.extraWatts.median as number, 2)} W above idle, the plain poll ${fixed(hidden.arms['poll-hidden-plain']?.extraWatts.median as number, 2)} W and the poll with the hook, which clears its interval after the page has been hidden for 1 s, ${fixed(hidden.arms['poll-hidden-hook']?.extraWatts.median as number, 2)} W. The hook removed ${fixed(hiddenGain.saved.median, 2)} W from the same hidden page, with a range of ${fixed(hiddenGain.saved.min, 2)} to ${fixed(hiddenGain.saved.max, 2)} W, and the page with the hook drew ${fixed(hiddenGain.residual, 2)} W above the hidden quiet page. The range includes zero, so this page claims no saving from the hidden-page pause. It rests on one desktop, one browser and a once-a-second poll.`
 				: "The hook's pause after a page has been hidden has contract tests in three engines and no power reading.";
 
-		const dictReading = latest(readings, 'rapl', 'dictionary-load');
+		const dictReading = pinned(readings, ORIGINAL_RAPL['dictionary-load']);
 		const probe = dictReading.rows.find((r) => r.arm === 'negotiation') as Record<
 			string,
 			unknown
@@ -2030,6 +2192,7 @@ export function buildFigures(readings: Readings): Figures {
 	const a = rows.find((r) => r.name === 'A');
 	if (!a) throw new Error('no institution A');
 	v.instAAttrMwh = fixed(a.profile.attributionalMwh, 1);
+	v.instAKwhPerMv = sig(perMv(a.profile.attributionalMwh * 1000, a.profile.viewsPerYear));
 	v.instADataCentre = fixed(a.economics.dataCentreMwh, 1);
 	v.instAOffMeter = fixed(a.economics.offMeterMwh, 1);
 	v.deviceShare = fixed(a.research.boundary.devices.share * 100, 1);
@@ -2037,6 +2200,8 @@ export function buildFigures(readings: Readings): Figures {
 	v.dataCentreShare = fixed(a.research.boundary.dataCentres.share * 100, 1);
 	v.goalHighShare = fixed(GOAL_HIGH_SHARE.value * 100, 1);
 	v.avgViewJoules = fixed(footprintMwh(1) * 3.6e9);
+	v.firstViewShareCentral = `${fixed(FIRST_VIEW_SHARE.central.value * 100)}%`;
+	v.avgViewKwhPerMv = sig(kwhPerMv(footprintMwh(1) * 3.6e9));
 	v.indirectGapPct = fixed((WATER_INDIRECT.value / WATER_INDIRECT_LBNL.value - 1) * 100, 1);
 
 	t['institution-economics'] = table(
@@ -2047,6 +2212,7 @@ export function buildFigures(readings: Readings): Figures {
 			'kWh a site',
 			'Host-meter MWh a year',
 			'Dollars, industrial',
+			'Dollars per million views, industrial',
 			'Dollars, commercial'
 		],
 		rows.flatMap((r) =>
@@ -2057,10 +2223,11 @@ export function buildFigures(readings: Readings): Figures {
 				fixed(c.kwhPerSite, 1),
 				fixed(c.mwh, 1),
 				usd(c.usdIndustrial),
+				usd(perMv(c.usdIndustrial, r.profile.viewsPerYear)),
 				usd(c.usdCommercial)
 			])
 		),
-		[1, 3, 4, 5, 6]
+		[1, 3, 4, 5, 6, 7]
 	);
 	t['institution-prices'] = table(
 		['State', 'Commercial, cents per kWh', 'Industrial, cents per kWh', 'Layer'],
@@ -2120,6 +2287,7 @@ export function buildFigures(readings: Readings): Figures {
 		[
 			'Institution',
 			'Attributional MWh',
+			'Attributional kWh per million views',
 			'Devices, MWh',
 			'Networks, MWh',
 			'Data centres, MWh',
@@ -2128,33 +2296,38 @@ export function buildFigures(readings: Readings): Figures {
 		rows.map((r) => [
 			r.name,
 			fixed(r.profile.attributionalMwh, 1),
+			sig(perMv(r.profile.attributionalMwh * 1000, r.profile.viewsPerYear)),
 			fixed(r.research.boundary.devices.mwh, 1),
 			fixed(r.research.boundary.networks.mwh, 1),
 			fixed(r.economics.dataCentreMwh, 1),
 			fixed(r.economics.offMeterMwh, 1)
 		]),
-		[1, 2, 3, 4, 5]
+		[1, 2, 3, 4, 5, 6]
 	);
 	t['institution-carbon-water'] = table(
 		[
 			'Institution',
 			'eGRID subregion',
 			'tCO2e, eGRID',
+			'kgCO2e per million views, eGRID',
 			'tCO2e, Ember',
 			'Direct water, L',
 			'Indirect water, L (drupflare)',
+			'Indirect water, L per million views (drupflare)',
 			'Indirect water, L (LBNL)'
 		],
 		rows.map((r) => [
 			r.name,
 			r.research.carbon.subregion,
 			fixed(r.research.carbon.tonnes, 1),
+			sig(perMv(r.research.carbon.tonnes * 1000, r.profile.viewsPerYear)),
 			fixed(r.research.carbon.ember.tonnes, 1),
 			fixed(r.research.water.directLitres),
 			fixed(r.research.water.indirectLitres),
+			sig(perMv(r.research.water.indirectLitres, r.profile.viewsPerYear)),
 			fixed(r.research.water.indirectLbnlLitres)
 		]),
-		[2, 3, 4, 5, 6]
+		[2, 3, 4, 5, 6, 7, 8]
 	);
 	const scales: Array<[string, number]> = [
 		['1.2M a year (100k a month)', 1.2e6],
@@ -2183,14 +2356,922 @@ export function buildFigures(readings: Readings): Figures {
 	);
 	// #endregion
 
+	// #region first views
+	const blocks: Record<string, boolean> = {};
+	let fvFigures: ReturnType<typeof firstViewFigures> | undefined;
+	let warmMeanJ: number | undefined;
+	// the repeat-view section compares with the cold views, so it is nested in the first-view section
+	const warmName = (n: string) => n.startsWith('rapl/') && n.endsWith('-first-view-warm.json');
+	const coldName = (n: string) => n.startsWith('rapl/') && n.endsWith('-first-view.json');
+	if ([...readings.keys()].some(warmName) && ![...readings.keys()].some(coldName))
+		throw new Error('a first-view-warm reading needs a first-view reading to compare with');
+	if ([...readings.keys()].some(coldName)) {
+		const reading = latest(readings, 'rapl', 'first-view');
+		const fv = firstViewFigures(reading);
+		fvFigures = fv;
+		const share = (z: number) => `${fixed(z * 100, 1)}%`;
+		v.fvPages = fixed(fv.pages);
+		v.fvSites = fixed(fv.sites);
+		v.fvRounds = fixed(fv.rounds);
+		v.fvNavs = fixed(Number(reading.method['navigations per window']));
+		v.fvWireMb = fixed(fv.wireBytes / 1e6, 1);
+		v.fvDropped = fixed(fv.dropped);
+		v.fvIdleW = fixed(fv.idleWatts.median, 2);
+		v.fvMissedPages = fixed(fv.missedPages.length);
+		const pct = (ratio: number) => `${fixed(ratio * 100, 2)}%`;
+		v.fvRatioMean = pct(fv.ratio.mean);
+		v.fvRatioMedian = pct(fv.ratio.median);
+		v.fvSiteMin = pct(fv.ratio.siteMin);
+		v.fvSiteMax = pct(fv.ratio.siteMax);
+		v.fvSiteCount = fixed(fv.ratio.sites);
+		v.fvFitN = fixed(fv.fit.n);
+		v.fvFitResidual = fixed(fv.fit.residualSe, 2);
+		t['first-view'] = table(
+			['quantity', 'value', 'layer'],
+			[
+				[
+					'metered package J per first view, mean over pages',
+					fixed(fv.joules.mean, 2),
+					'L2'
+				],
+				[
+					'metered package J per first view, median over pages',
+					fixed(fv.joules.median, 2),
+					'L2'
+				],
+				[
+					'attributional J per first view (SWD v4 over wire bytes), mean',
+					fixed(fv.attributional.mean, 2),
+					'L2'
+				],
+				['attributional J per first view, median', fixed(fv.attributional.median, 2), 'L2'],
+				['metered over attributional, mean of the page ratios', pct(fv.ratio.mean), 'L2'],
+				[
+					'metered over attributional, median of the page ratios',
+					pct(fv.ratio.median),
+					'L2'
+				],
+				['metered mean over attributional mean', pct(fv.ratio.ofMeans), 'L2'],
+				[
+					'per-site mean ratio, lowest to highest',
+					`${pct(fv.ratio.siteMin)} to ${pct(fv.ratio.siteMax)}`,
+					'L2'
+				]
+			],
+			[1]
+		);
+		t['first-view-fit'] = table(
+			['term', 'J per MB', 'share of metered joules', 'layer'],
+			[
+				[
+					'intercept, J per page',
+					fixed(fv.fit.intercept, 2),
+					share(fv.fit.shares.intercept),
+					'L2'
+				],
+				['image bytes', sig(fv.fit.image), share(fv.fit.shares.image), 'L2'],
+				['script bytes', sig(fv.fit.script), share(fv.fit.shares.script), 'L2'],
+				[
+					'other bytes (document, stylesheet, font, media, other)',
+					sig(fv.fit.other),
+					share(fv.fit.shares.other),
+					'L2'
+				]
+			],
+			[1, 2]
+		);
+		const fit = firstViewFit(reading);
+		const fitNoDemo = firstViewFit(reading, ['demo.drupflare.com']);
+		const coefOf = (f: typeof fit.classFit, name: string) => f?.coef[name];
+		const ci = (e: { low: number; high: number } | undefined) =>
+			e === undefined ? 'not estimable' : `[${fixed(e.low, 2)}, ${fixed(e.high, 2)}]`;
+		const cell = (e: { value: number; low: number; high: number } | undefined) =>
+			e === undefined ? 'not estimable' : `${fixed(e.value, 2)} ${ci(e)}`;
+		const plain = (x: number | undefined, digits = 2) =>
+			x === undefined ? 'not estimable' : fixed(x, digits);
+		const script = coefOf(fit.classFit, 'script');
+		const image = coefOf(fit.classFit, 'image');
+		const reqCoef = coefOf(fit.classRequestFit, 'requests');
+		const overlap =
+			script !== undefined &&
+			image !== undefined &&
+			script.low <= image.high &&
+			image.low <= script.high;
+		v.fvScriptCoef = plain(script?.value);
+		v.fvScriptCi = ci(script);
+		v.fvImageCoef = plain(image?.value);
+		v.fvImageCi = ci(image);
+		v.fvOrdering =
+			script === undefined || image === undefined
+				? 'The class fit is not estimable at this many pages.'
+				: overlap
+					? 'The script and image intervals overlap, so these pages do not establish that a script byte costs more than an image byte.'
+					: 'The script and image intervals do not overlap. That is a 95% comparison on one bootstrap, not a formal test, and it does not replace more pages.';
+		v.fvBytesR2 = plain(fit.bytesFit?.r2);
+		v.fvRequestSentence =
+			reqCoef === undefined
+				? 'The request term is not estimable at this many pages.'
+				: `The request term is not resolved. In the class fit with requests it is ${plain(reqCoef.value)} J per request ${ci(reqCoef)}, ${reqCoef.low <= 0 && reqCoef.high >= 0 ? 'an interval that includes zero' : 'an interval that excludes zero'} (L2).`;
+		v.fvNoDemoMedian = fixed(fitNoDemo.joulesMedian, 1);
+		v.fvNoDemoScript = plain(coefOf(fitNoDemo.classFit, 'script')?.value);
+		v.fvNoDemoScriptCi = ci(coefOf(fitNoDemo.classFit, 'script'));
+		t['first-view-uncertainty'] = table(
+			['quantity', 'all pages', 'without demo.drupflare.com', 'layer'],
+			[
+				['pages', fixed(fit.pages), fixed(fitNoDemo.pages), 'L2'],
+				[
+					'median metered J per first view',
+					fixed(fit.joulesMedian, 1),
+					fixed(fitNoDemo.joulesMedian, 1),
+					'L2'
+				],
+				[
+					'class fit: residual standard error, J',
+					plain(fit.classFit?.residualSe),
+					plain(fitNoDemo.classFit?.residualSe),
+					'L2'
+				],
+				[
+					'class fit: R squared',
+					plain(fit.classFit?.r2, 3),
+					plain(fitNoDemo.classFit?.r2, 3),
+					'L2'
+				],
+				[
+					'class fit: intercept, J per page',
+					cell(coefOf(fit.classFit, 'intercept')),
+					cell(coefOf(fitNoDemo.classFit, 'intercept')),
+					'L2'
+				],
+				[
+					'class fit: image, J per MB',
+					cell(coefOf(fit.classFit, 'image')),
+					cell(coefOf(fitNoDemo.classFit, 'image')),
+					'L2'
+				],
+				[
+					'class fit: script, J per MB',
+					cell(script),
+					cell(coefOf(fitNoDemo.classFit, 'script')),
+					'L2'
+				],
+				[
+					'class fit: other bytes, J per MB',
+					cell(coefOf(fit.classFit, 'other')),
+					cell(coefOf(fitNoDemo.classFit, 'other')),
+					'L2'
+				],
+				[
+					'bytes only: R squared',
+					plain(fit.bytesFit?.r2, 3),
+					plain(fitNoDemo.bytesFit?.r2, 3),
+					'L2'
+				],
+				[
+					'bytes only: correlation of joules with total MB',
+					plain(fit.corrTotalMb),
+					plain(fitNoDemo.corrTotalMb),
+					'L2'
+				],
+				[
+					'total MB and requests: total MB, J per MB',
+					cell(coefOf(fit.requestFit, 'total')),
+					cell(coefOf(fitNoDemo.requestFit, 'total')),
+					'L2'
+				],
+				[
+					'total MB and requests: requests, J per request',
+					cell(coefOf(fit.requestFit, 'requests')),
+					cell(coefOf(fitNoDemo.requestFit, 'requests')),
+					'L2'
+				],
+				[
+					'class fit and requests: requests, J per request',
+					cell(reqCoef),
+					cell(coefOf(fitNoDemo.classRequestFit, 'requests')),
+					'L2'
+				],
+				[
+					'bootstrap resamples that fit, class fit',
+					plain(fit.classFit?.replicates, 0),
+					plain(fitNoDemo.classFit?.replicates, 0),
+					'L2'
+				]
+			],
+			[1]
+		);
+		if (fv.facade) {
+			blocks['first-view-facade'] = true;
+			v.fvFacadePages = fixed(fv.facade.pages);
+			v.fvFacadeSavedJ = fixed(fv.facade.savedJ.mean, 2);
+			v.fvFacadeSavedMedianJ = fixed(fv.facade.savedJ.median, 2);
+			v.fvFacadeSavedKb = fixed(fv.facade.savedBytes.mean / 1000);
+			v.fvFacadeShare = fixed(fv.facade.savedShare * 100, 1);
+		}
+		blocks['first-view'] = true;
+		if ([...readings.keys()].some(warmName)) {
+			const warm = latest(readings, 'rapl', 'first-view-warm');
+			const wf = warmFigures(warm, latest(readings, 'rapl', 'first-view'));
+			const share = (z: number) => `${fixed(z * 100, 1)}%`;
+			const warmRows = warm.rows.filter((r) => r.arm === 'warm');
+			const sumOf = (key: string) => warmRows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
+			v.wvPages = fixed(wf.pages);
+			v.wvRounds = fixed(wf.rounds);
+			v.wvNavs = fixed(Number(warm.method['navigations per window']));
+			v.wvDropped = fixed(wf.dropped);
+			v.wvRatioMedian = fixed(wf.ratio.median, 2);
+			v.wvScript = share(wf.taskShare.script);
+			v.wvLayout = share(wf.taskShare.layout);
+			v.wvRecalc = share(wf.taskShare.recalc);
+			v.wvRefetchPages = fixed(wf.refetch.pages);
+			v.wvRefetchShare = fixed(wf.refetch.share * 100);
+			v.wvConditional = fixed(sumOf('warmRevalidated'));
+			v.wvNotModified = fixed(sumOf('warm304'));
+			v.wvJoulesMean = fixed(wf.joules.mean, 2);
+			v.wvVsGuess = fixed(wf.joules.mean / M8_GUESS_J);
+			v.wvM8Guess = fixed(M8_GUESS_J, 1);
+			v.wvM8KwhPerMv = sig(kwhPerMv(M8_GUESS_J));
+			v.wvKwhPerMv = sig(kwhPerMv(wf.joules.mean));
+			warmMeanJ = wf.joules.mean;
+			t['first-view-warm'] = table(
+				['quantity', 'value', 'layer'],
+				[
+					[
+						'metered package J per repeat view, mean over pages',
+						fixed(wf.joules.mean, 2),
+						'L2'
+					],
+					[
+						'metered package J per repeat view, median over pages',
+						fixed(wf.joules.median, 2),
+						'L2'
+					],
+					[
+						'metered package J per cold first view of the same pages, mean',
+						fixed(wf.coldJoules.mean, 2),
+						'L2'
+					],
+					['repeat over cold, mean of the page ratios', fixed(wf.ratio.mean, 2), 'L2'],
+					[
+						'repeat over cold, median of the page ratios',
+						fixed(wf.ratio.median, 2),
+						'L2'
+					],
+					[
+						'share of task time in script, median over pages',
+						share(wf.taskShare.script),
+						'L2'
+					],
+					[
+						'share of task time in layout, median over pages',
+						share(wf.taskShare.layout),
+						'L2'
+					],
+					[
+						'share of task time in style recalculation, median over pages',
+						share(wf.taskShare.recalc),
+						'L2'
+					],
+					[
+						'C10 ceiling, measured repeat view, mean, kWh per million views',
+						v.wvKwhPerMv as string,
+						'L3'
+					],
+					[
+						`M8 closure guess, ${fixed(M8_GUESS_J, 1)} J, kWh per million views`,
+						v.wvM8KwhPerMv as string,
+						'L3'
+					]
+				],
+				[1]
+			);
+			blocks['first-view-warm'] = true;
+		}
+	}
+	// #endregion
+
+	// #region goal and unit
+	{
+		const wholeRepeat = Number(v.revisitWholeMedian.replace(/,/g, ''));
+		const repeatMix = 'repeat views';
+		const coldMix = fvFigures
+			? `cold first views of ${fixed(fvFigures.pages)} landing pages from ${fixed(fvFigures.sites)} sites, not weighted by traffic`
+			: '';
+		const status: Array<[string, string, number, string]> = [
+			[
+				'Attributional, one local view (SWD v4 over the document, plus an origin request)',
+				`${repeatMix}, the median document`,
+				joulesPerView(),
+				'L2'
+			],
+			['Metered desktop, saving of one local view', `${repeatMix}, one desktop`, saved, 'L1'],
+			['Metered phone, saving of one local view', `${repeatMix}, one phone`, phoneSaved, 'L1']
+		];
+		if (fvFigures) {
+			status.push(
+				[
+					'Attributional, one cold first view, median page',
+					coldMix,
+					fvFigures.attributional.median,
+					'L2'
+				],
+				[
+					'Metered desktop package, one cold first view, median page (a cost, not a saving)',
+					coldMix,
+					fvFigures.joules.median,
+					'L2'
+				]
+			);
+			v.unitFvRatio = `${fixed(fvFigures.ratio.ofMeans * 100, 2)}%`;
+			blocks['unit-first-view'] = true;
+		}
+		if (warmMeanJ !== undefined) {
+			status.push(
+				[
+					'Attributional, the median whole repeat view (SWD v4 over every file)',
+					`${repeatMix} of the repeat-navigation sites, all files`,
+					ledgerJoules(wholeRepeat),
+					'L2'
+				],
+				[
+					'Metered desktop package, one repeat view, mean over pages (a cost, not a saving)',
+					`${repeatMix} of the first-view pages`,
+					warmMeanJ,
+					'L2'
+				]
+			);
+		}
+		v.kwhPerMvPerJoule = sig(kwhPerMv(1), 4);
+		t['unit-status'] = table(
+			['figure', 'view mix', 'J per view', 'kWh per million views', 'layer'],
+			status.map(([name, mix, j, layer]) => [name, mix, sig(j), sig(kwhPerMv(j)), layer]),
+			[2, 3]
+		);
+		const avgJ = footprintMwh(1) * 3.6e9;
+		t['footprint-intensity'] = table(
+			['Share of the average view (L3)', 'J per view', 'kWh per million views (L3)'],
+			[...GOAL_SHARES, GOAL_HIGH_SHARE.value].map((s) => [
+				`${fixed(s * 100, 1)}%`,
+				sig(avgJ * s),
+				sig(kwhPerMv(avgJ * s))
+			]),
+			[1, 2]
+		);
+	}
+	// #endregion
+
+	// #region avoidable loops
+	const loopsName = 'avoidable-loops/2026-11-15.json';
+	if (readings.has(loopsName)) {
+		const { all: loops, first, second } = halves(pinned(readings, loopsName).rows);
+		const labels: Record<(typeof LOOP_CLASSES)[number], string> = {
+			'visible-frame-loop': 'a frame loop while visible, 20 or more callbacks a second',
+			'hidden-frame-loop': 'a frame loop while hidden, 1 or more callbacks a second',
+			'hidden-timer-loop': 'a timer of 1 s or more firing every second while hidden',
+			poll: 'three or more requests in the 20 visible seconds',
+			autoplay: 'a video that plays with no input',
+			'css-animation': 'an infinite CSS animation running while visible',
+			any: 'at least one of the six classes above',
+			'hidden-timer-any':
+				'any timer firing every second while hidden, the browser clamp included'
+		};
+		const share = (z: number | null) => (z === null ? 'not measured' : `${fixed(z * 100, 1)}%`);
+		const interval = (f: LoopFigure) =>
+			f.low === null || f.high === null
+				? 'not measured'
+				: `${share(f.low)} to ${share(f.high)}`;
+		const overlap = (a: LoopFigure, b: LoopFigure) =>
+			a.low !== null && a.high !== null && b.low !== null && b.high !== null
+				? a.low <= b.high && b.low <= a.high
+				: false;
+		const apart = LOOP_CLASSES.filter(
+			(cls) => !overlap(first.classes[cls], second.classes[cls])
+		);
+		v.loopPages = fixed(loops.pages);
+		v.loopSites = fixed(loops.sites);
+		v.loopFirstPages = fixed(first.pages);
+		v.loopSecondPages = fixed(second.pages);
+		v.loopOverlap =
+			apart.length === 0
+				? 'The first-half and second-half intervals overlap for every class.'
+				: `The first-half and second-half intervals do not overlap for: ${apart
+						.map((cls) => labels[cls])
+						.join('; ')}.`;
+		t['loop-classes'] = table(
+			[
+				'class',
+				'pages',
+				'share',
+				'95% interval',
+				'second half pages',
+				'second half interval',
+				'sites',
+				'layer'
+			],
+			LOOP_CLASSES.map((cls) => {
+				const f = loops.classes[cls];
+				const s = second.classes[cls];
+				return [
+					labels[cls],
+					`${f.count} of ${f.n}`,
+					share(f.share),
+					interval(f),
+					`${s.count} of ${s.n} (${share(s.share)})`,
+					interval(s),
+					`${f.siteCount} of ${f.siteN}`,
+					'L1 counts, L2 shares'
+				];
+			})
+		);
+		blocks['avoidable-loops'] = true;
+	}
+	// #endregion
+
+	// #region dataset
+	{
+		const data = datasetFigures(pinned(readings, 'dataset-baseline/2026-11-15.json').rows);
+		const changeName = (change: string) => (change === 'change-1' ? 'one row' : '1% of rows');
+		const repay = data.updates.map((u) => {
+			const seed = data.seeds[u.rows];
+			if (!seed) throw new RangeError(`no seed for ${u.rows} rows`);
+			return (seed.v04 - seed.v03) / (u.v03 - u.v04);
+		});
+		const oneRowRepay = repay.filter((_, i) => data.updates[i]?.change === 'change-1');
+		v.datasetRepayLow = fixed(Math.min(...oneRowRepay), 3);
+		v.datasetRepayHigh = fixed(Math.max(...oneRowRepay), 3);
+		v.datasetHold = fixed(DATASET_DEFAULTS.holdDays);
+		v.datasetSurvival = fixed(DATASET_DEFAULTS.survival, 2);
+		t['dataset-arms'] = table(
+			[
+				'rows',
+				'change',
+				'rows changed',
+				'v0.3 list refetch',
+				'v0.3 records with have',
+				'v0.4 patch',
+				'native 200 after the change'
+			],
+			data.updates.map((u) => [
+				fixed(u.rows),
+				changeName(u.change),
+				fixed(u.changedRows),
+				fixed(u.v03),
+				u.v03Records === null ? 'not measured' : fixed(u.v03Records),
+				fixed(u.v04),
+				fixed(u.native)
+			]),
+			[0, 2, 3, 4, 5, 6]
+		);
+		t['dataset-seeds'] = table(
+			[
+				'rows',
+				'v0.3 seed',
+				'native first load',
+				'v0.4 seed',
+				'v0.4 minus v0.3',
+				'v0.4 minus native'
+			],
+			Object.entries(data.seeds).map(([n, s]) => [
+				fixed(Number(n)),
+				fixed(s.v03),
+				fixed(s.native),
+				fixed(s.v04),
+				fixed(s.v04 - s.v03),
+				fixed(s.v04 - s.native)
+			]),
+			[0, 1, 2, 3, 4, 5]
+		);
+		t['dataset-breakeven'] = table(
+			[
+				'rows',
+				'change',
+				'seed extra over v0.3',
+				'bytes saved per update',
+				'updates that repay the seed'
+			],
+			data.updates.map((u, i) => {
+				const seed = data.seeds[u.rows] as { v03: number; v04: number };
+				return [
+					fixed(u.rows),
+					changeName(u.change),
+					fixed(seed.v04 - seed.v03),
+					fixed(u.v03 - u.v04),
+					fixed(repay[i] as number, 3)
+				];
+			}),
+			[0, 2, 3, 4]
+		);
+		const sites = [
+			{
+				name: 'catalogue, changes twice a day',
+				viewsPerDay: 2000,
+				updatesPerDay: 2,
+				devices: 400
+			},
+			{
+				name: 'roster, changes weekly',
+				viewsPerDay: 2000,
+				updatesPerDay: 1 / 7,
+				devices: 400
+			},
+			{ name: 'feed, changes hourly', viewsPerDay: 2000, updatesPerDay: 24, devices: 400 }
+		];
+		const pick = data.updates.find((u) => u.rows === 500 && u.change === 'change-1');
+		const seed = data.seeds[500];
+		if (!pick || !seed) throw new RangeError('no 500-row one-row update to price the sites');
+		t['dataset-sites'] = table(
+			[
+				'site (L3 inputs)',
+				'copies answer views a day',
+				'updates a day',
+				'v0.3 bytes a day',
+				'native bytes a day',
+				'v0.4 bytes a day',
+				'v0.4 J a day, allocation',
+				'seed repaid in one hold'
+			],
+			sites.map((site) => {
+				const figures = siteFigures(site, seed, pick);
+				const repaid = figures.fetches * DATASET_DEFAULTS.holdDays >= figures.breakEven;
+				return [
+					site.name,
+					fixed(figures.served, 2),
+					fixed(site.updatesPerDay, 2),
+					fixed(figures.bytesPerDay.v03),
+					fixed(figures.bytesPerDay.native),
+					fixed(figures.bytesPerDay.v04),
+					sig(figures.joulesPerDay.v04),
+					repaid ? 'yes' : 'no'
+				];
+			}),
+			[1, 2, 3, 4, 5, 6]
+		);
+	}
+	// #endregion
+
+	// #region drupal render
+	if (
+		[...readings.keys()].some((n) => n.startsWith('rapl/') && n.endsWith('-drupal-render.json'))
+	) {
+		const reading = latest(readings, 'rapl', 'drupal-render');
+		const dr = drupalRenderFigures(reading.rows);
+		const urls = ['front', 'node', 'term'];
+		const net = (arm: string, url: string, phase: string) =>
+			dr.arms[`${arm}/${url}/${phase}`]?.net ?? null;
+		const meanOf = (values: Array<{ median: number } | null>) => {
+			const found = values.filter((s): s is { median: number } => s !== null);
+			return found.reduce((s, x) => s + x.median, 0) / found.length;
+		};
+		const uncachedJ = meanOf(urls.map((u) => net('uncached', u, 'steady')));
+		const cachedJ = meanOf(urls.map((u) => net('page-cache', u, 'steady')));
+		const nullJ = dr.arms['null/null/steady']?.gross.median ?? NaN;
+		const nearer =
+			uncachedJ <= 0
+				? 'not comparable (the net figure is not positive)'
+				: Math.abs(Math.log10(uncachedJ / 0.015)) < Math.abs(Math.log10(uncachedJ / 30))
+					? 'nearer the 15 mJ figure'
+					: 'nearer the 30 J figure';
+		v.drupalRounds = fixed(dr.rounds);
+		v.drupalDropped = fixed(dr.dropped);
+		v.drupalIdleW = fixed(dr.idleWatts.median, 2);
+		v.drupalUncachedJ = sig(uncachedJ);
+		v.drupalCachedJ = sig(cachedJ);
+		v.drupalRatio = fixed(uncachedJ / cachedJ, 1);
+		v.drupalNullJ = sig(nullJ);
+		v.drupalVs15mJ = fixed(uncachedJ / 0.015, 1);
+		v.drupalVs30J = fixed(30 / uncachedJ, 0);
+		v.drupalNear = nearer;
+		const rows: string[][] = [];
+		for (const arm of ['uncached', 'render-warm', 'page-cache']) {
+			for (const u of urls) {
+				for (const phase of ['first', 'steady']) {
+					const f = dr.arms[`${arm}/${u}/${phase}`];
+					if (!f) continue;
+					rows.push([
+						arm,
+						u,
+						phase,
+						f.net ? sig(f.net.median) : 'not measured',
+						f.net ? range(f.net) : 'not measured',
+						fixed(f.rounds),
+						'L2'
+					]);
+				}
+			}
+		}
+		t['drupal-render'] = table(
+			[
+				'arm',
+				'URL class',
+				'phase',
+				'J per request, net of null',
+				'range over rounds',
+				'rounds',
+				'layer'
+			],
+			rows,
+			[3, 5]
+		);
+		const cacheRows = Object.entries(dr.arms).map(([key, f]) => {
+			const [arm, u, phase] = key.split('/');
+			const count = (c: Record<string, number>) =>
+				Object.entries(c)
+					.map(([k, n]) => `${k} ${fixed(n)}`)
+					.join(', ') || 'none';
+			return [
+				`${arm} ${u} ${phase}`,
+				count(f.cache.page),
+				count(f.cache.dynamic),
+				count(f.status),
+				'L1'
+			];
+		});
+		t['drupal-render-cache'] = table(
+			[
+				'arm, URL class, phase',
+				'page cache header',
+				'dynamic cache header',
+				'status',
+				'layer'
+			],
+			cacheRows
+		);
+		blocks['drupal-render'] = true;
+	}
+	// #region idle activity tabs
+	if (
+		[...readings.keys()].some(
+			(n) => n.startsWith('rapl/') && n.endsWith('-idle-activity-tabs.json')
+		)
+	) {
+		const reading = latest(readings, 'rapl', 'idle-activity-tabs');
+		const tabs = tabsFigures(reading.rows);
+		const labels: Record<string, string> = {
+			'tabs-1-poll': 'one tab polling once a second (the control)',
+			'tabs-3-poll': 'three tabs, each polling once a second',
+			'tabs-3-leader': 'three tabs, one leader polling and two listening',
+			'tabs-3-quiet': 'three tabs with nothing running',
+			'poll-hidden-long': 'one tab polling once a second, hidden 330 s before the window'
+		};
+		const none = 'not measured';
+		const rows: string[][] = Object.entries(labels).map(([name, label]) => {
+			const a = tabs.arms[name];
+			const hidden = reading.rows
+				.filter((r) => r.arm === name)
+				.map((r) => r.hiddenForS as number);
+			return [
+				label,
+				a ? a.floor : none,
+				a ? fixed(a.joulesPerMinute.median, 1) : none,
+				a ? range(a.joulesPerMinute, (x) => fixed(x, 1)) : none,
+				a ? fixed(a.pingsPerMinute.median) : none,
+				fixed(a?.windows ?? 0),
+				hidden.length > 0
+					? `${fixed(Math.min(...hidden), 1)} to ${fixed(Math.max(...hidden), 1)}`
+					: none
+			];
+		});
+		t['idle-activity-tabs'] = table(
+			[
+				'arm',
+				'netted against',
+				'J per minute (L2, median)',
+				'range over windows (L2)',
+				'origin requests per minute (L2, median)',
+				'windows',
+				'hidden for s at the window (L1, min to max)'
+			],
+			rows,
+			[2, 3, 4, 5]
+		);
+		const pair = (key: 'poll3ToLeader' | 'poll3ToPoll1') =>
+			tabs.ratio[key] === undefined ? none : fixed(tabs.ratio[key] as number, 1);
+		const leaderRows = reading.rows.filter((r) => r.arm === 'tabs-3-leader');
+		const hiddenLong = reading.rows.filter((r) => r.arm === 'poll-hidden-long');
+		v.tabsRounds = fixed(Number(reading.method.rounds));
+		v.tabsWindowS = fixed(Number(reading.method['window s']));
+		v.tabsLongWindowS = fixed(Number(reading.method['long window s']));
+		v.tabsIdleRange = tabs.idleWatts ? range(tabs.idleWatts, (x) => fixed(x, 1)) : none;
+		v.tabsDropped = fixed(tabs.dropped);
+		v.tabsUnmatched = fixed(tabs.unmatched);
+		v.tabsRatioLeader = pair('poll3ToLeader');
+		v.tabsRatioPoll1 = pair('poll3ToPoll1');
+		v.tabsLeaderPolls = leaderRows.length
+			? fixed(median(leaderRows.map((r) => Number(r.leaderPolls ?? 0))))
+			: none;
+		v.tabsLeaderMessages = leaderRows.length
+			? fixed(median(leaderRows.map((r) => Number(r.messages ?? 0))))
+			: none;
+		v.tabsLongPings = tabs.arms['poll-hidden-long']
+			? fixed(tabs.arms['poll-hidden-long'].pingsPerMinute.median, 1)
+			: none;
+		v.tabsHiddenMin = hiddenLong.length
+			? fixed(Math.min(...hiddenLong.map((r) => r.hiddenForS as number)))
+			: none;
+		blocks['idle-activity-tabs'] = true;
+	}
+	// #endregion
+	// #region second time point
+	const second = secondTimePointTable(readings);
+	if (second) {
+		t['second-time-point'] = second;
+		blocks['second-time-point'] = true;
+	}
+	// #endregion
 	void spread;
 	void deviceCpuFigures;
-	return { values: v, tables: t };
+	return { values: v, tables: t, blocks };
+}
+
+// #region second time point
+type SecondPoint = { idle: number | null; figures: Array<[string, number | null]> };
+
+const jAt = (run: RaplRun, arm: string) => run.arms[arm]?.joules.median ?? null;
+
+const mJAt = (run: RaplRun, arm: string) => {
+	const j = jAt(run, arm);
+	return j === null ? null : j * 1000;
+};
+
+const extraAt = (activity: ReturnType<typeof activityFigures>, arm: string) =>
+	activity.arms[arm]?.extraWatts.median ?? null;
+
+const keyValues = (o: Record<string, string | number>) =>
+	Object.entries(o)
+		.map(([k, v]) => `${k} ${v}`)
+		.join(', ');
+
+/** the figures each retaken experiment prints, from the helpers its headline section uses */
+const SECOND_POINTS: Record<RetakenExperiment, (m: Measurement) => SecondPoint> = {
+	views: (m) => {
+		const run = raplRun(m.rows);
+		const { network, spool } = run.arms;
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				[
+					'J saved per view vs optimized HTTP cache',
+					network && spool ? saving(network, spool) : null
+				],
+				['spool view, J per navigation', jAt(run, 'spool')]
+			]
+		};
+	},
+	'sw-request': (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['worker from CacheStorage, mJ per request', mJAt(run, 'sw-cache')],
+				['browser cache, mJ per request', mJAt(run, 'http-cache')]
+			]
+		};
+	},
+	'compute-server': (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['CMS recompute, J per request', jAt(run, 'cms-recompute-200')],
+				['analytics recompute, J per request', jAt(run, 'ana-recompute-200')]
+			]
+		};
+	},
+	'compute-browser': (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['CMS render, recompute, J per navigation', jAt(run, 'cms-recompute')],
+				['CMS render, spool local view, J per navigation', jAt(run, 'cms-spool')]
+			]
+		};
+	},
+	projection: (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['server recompute, J per navigation', jAt(run, 'proj-srv-recompute')],
+				['projection in the worker, J per navigation', jAt(run, 'proj-cli-spool')]
+			]
+		};
+	},
+	'dictionary-load': (m) => {
+		const run = raplRun(m.rows.filter((r) => r.arm !== 'negotiation'));
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['brotli 11 aggregate, mJ per page load', mJAt(run, 'plain')],
+				['dcz with stored dictionary, mJ per page load', mJAt(run, 'dictionary')]
+			]
+		};
+	},
+	'image-decode': (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['`<img>`, original JPEG or PNG, mJ per image', mJAt(run, 'img-original')],
+				['`createImageBitmap`, original, mJ per image', mJAt(run, 'bitmap-original')]
+			]
+		};
+	},
+	'image-encode': (m) => {
+		const run = raplRun(m.rows);
+		return {
+			idle: run.idleWatts.median,
+			figures: [
+				['tinyimg warm, J per conversion', jAt(run, 'warm-native')],
+				['tinyimg cold process, J per conversion', jAt(run, 'cold-native')]
+			]
+		};
+	},
+	'idle-activity': (m) => {
+		const activity = activityFigures(m.rows);
+		return {
+			idle: activity.idleWatts?.median ?? null,
+			figures: [
+				['poll once a second, W above idle', extraAt(activity, 'poll')],
+				['requestAnimationFrame loop, W above idle', extraAt(activity, 'raf')]
+			]
+		};
+	},
+	'idle-activity-hidden': (m) => {
+		const activity = activityFigures(m.rows);
+		return {
+			idle: activity.idleWatts?.median ?? null,
+			figures: [
+				['hidden poll, W above idle', extraAt(activity, 'poll-hidden-plain')],
+				['hidden poll with hook, W above idle', extraAt(activity, 'poll-hidden-hook')]
+			]
+		};
+	}
+};
+
+/** each retaken experiment against its original, or undefined when no retake exists */
+export function secondTimePointTable(readings: Readings): string | undefined {
+	const rows: string[][] = [];
+	const cell = (value: number | null, m: Measurement) =>
+		value === null ? 'not measured' : `${sig(value)} (L1, ${m.date})`;
+	const change = (a: number | null, b: number | null) => {
+		if (a === null || b === null || a === 0) return '';
+		const pct = ((b - a) / Math.abs(a)) * 100;
+		return `${pct > 0 ? '+' : ''}${fixed(pct, 1)}`;
+	};
+	for (const experiment of Object.keys(ORIGINAL_RAPL) as RetakenExperiment[]) {
+		const retake = retakeOf(readings, experiment);
+		if (!retake) continue;
+		const original = pinned(readings, ORIGINAL_RAPL[experiment]);
+		const a = SECOND_POINTS[experiment](original);
+		const b = SECOND_POINTS[experiment](retake);
+		const pairs: Array<[string, number | null, number | null]> = [
+			['idle package W (median)', a.idle, b.idle],
+			...a.figures.map(([label, x], i): [string, number | null, number | null] => [
+				label,
+				x,
+				b.figures[i]?.[1] ?? null
+			])
+		];
+		for (const [label, x, y] of pairs) {
+			rows.push([experiment, label, cell(x, original), cell(y, retake), change(x, y)]);
+		}
+		for (const key of ['machine', 'software'] as const) {
+			if (JSON.stringify(original[key]) === JSON.stringify(retake[key])) continue;
+			rows.push([
+				experiment,
+				key,
+				`${keyValues(original[key])} (${original.date})`,
+				`${keyValues(retake[key])} (${retake.date})`,
+				''
+			]);
+		}
+	}
+	if (rows.length === 0) return undefined;
+	return table(
+		['experiment', 'figure', 'original', 'retake', 'difference % (L2)'],
+		rows,
+		[2, 3, 4]
+	);
+}
+// #endregion
+
+/** the page with each `{{#name}}...{{/name}}` section kept when `blocks[name]` is set, removed otherwise */
+function keepBlocks(template: string, blocks: Record<string, boolean>): string {
+	const block = /\{\{#([a-z-]+)\}\}([\s\S]*?)\{\{\/\1\}\}/;
+	let text = template;
+	for (let m = block.exec(text); m; m = block.exec(text)) {
+		text =
+			text.slice(0, m.index) +
+			(blocks[m[1] as string] ? m[2] : '') +
+			text.slice(m.index + m[0].length);
+	}
+	return text;
 }
 
 /** the page text with every `{{value:name}}` and `{{table:name}}` replaced; an unknown name throws */
 export function render(template: string, figures: Figures): string {
-	return template.replace(
+	return keepBlocks(template, figures.blocks ?? {}).replace(
 		/\{\{(value|table):([A-Za-z0-9-]+)\}\}/g,
 		(_, kind: 'value' | 'table', name: string) => {
 			const found = (kind === 'value' ? figures.values : figures.tables)[name];

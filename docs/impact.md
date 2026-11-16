@@ -20,17 +20,39 @@ On the server, a local view sent nothing in all but one window per runtime, and 
 
 Spool does not claim that the headline is a meter reading, a saving in radio wakes, a capacity saving without evidence that equipment was removed, or a figure for paced or cellular phone use. The full list is under What This Does Not Claim.
 
-### A Worked Example
+## Unit and Scope
 
-Take an institution with 100 million views a year, a scale chosen for the example that names no institution (L3). Spool's tiers name the share of those views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy those local views avoid at each of the three per-view figures.
+The per-view figures on this page are reported in kWh per million views, so they compare at any throughput. A reader multiplies one by their own yearly views in millions. One joule a view is one megajoule per million views, which is 0.2778 kWh per million views (L2). The unit is for research and communication. Nothing in this report sets a target intensity.
 
-| tier           | Z_annual | attributional, 12 J | measured desktop, 0.80 J | measured phone, 0.088 J |
-| -------------- | -------: | ------------------: | -----------------------: | ----------------------: |
-| Meaningful     |      30% |           0.103 MWh |              0.00668 MWh |            0.000731 MWh |
-| Major          |      65% |           0.223 MWh |               0.0145 MWh |             0.00158 MWh |
-| Transformative |      90% |           0.309 MWh |               0.0200 MWh |             0.00219 MWh |
+A CMS website uses little energy next to an institution's whole IT estate, so energy is a research and communication item here and not a business one. The largest part of drupflare's saving is idle and hosting energy per site-year, which is not a per-view quantity. That saving keeps its own units in [Economics](#economics), where the peak-sized hosting counterfactual sits, and in [Capacity](#capacity), where a retired server-year is 3.80 MWh (L2). This page computes no per-view equivalent of it.
 
-The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a view count and a tier share. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with. Multiply a row by your own yearly views over 100 million.
+Every kWh per million views figure assumes a view mix: the share of cold first views against repeat views, the page weight and the device. The table names the mix of each row. The first-view rows are cold views of landing pages from university sites, not weighted by traffic. The repeat rows are repeat views. Where a table needs a cold share it takes one from an L3 input. A fleet-wide kWh per million views is never printed without its mix.
+
+Two kinds of kWh appear. The attributional figure is SWD v4 over wire bytes, an allocation (L2). The metered figure is the package energy of one desktop (L1) or the whole phone. Where both exist they sit side by side and are labelled. The attributional column is the upper reading. Where a metered reading exists, what to build is decided on the metered column.
+
+On the first-view pages the metered figure is 0.91% of the attributional one, the mean of the metered joules over the mean of the attributional joules (L2).
+
+| figure                                                                           | view mix                                                                    | J per view | kWh per million views | layer |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------: | --------------------: | ----- |
+| Attributional, one local view (SWD v4 over the document, plus an origin request) | repeat views, the median document                                           |       12.4 |                  3.43 | L2    |
+| Metered desktop, saving of one local view                                        | repeat views, one desktop                                                   |      0.801 |                 0.223 | L1    |
+| Metered phone, saving of one local view                                          | repeat views, one phone                                                     |     0.0877 |                0.0244 | L1    |
+| Attributional, one cold first view, median page                                  | cold first views of 37 landing pages from 23 sites, not weighted by traffic |      4,960 |                 1,378 | L2    |
+| Metered desktop package, one cold first view, median page (a cost, not a saving) | cold first views of 37 landing pages from 23 sites, not weighted by traffic |       31.3 |                  8.70 | L2    |
+
+The first rows are what one local view saves. A row marked as a cost is the energy a view spends, which is not a saving. The ranges and rounds behind the metered figures are under Measured Readings.
+
+### Energy by Tier
+
+Spool's tiers name the share of views that are local: Meaningful at 30%, Major at 65% and Transformative at 90%. The table gives the energy per million views at each of the three per-view figures, which is the tier's share times the figure.
+
+| tier           | Z_annual | attributional, 12 J, kWh per million views | measured desktop, 0.80 J, kWh per million views | measured phone, 0.088 J, kWh per million views |
+| -------------- | -------: | -----------------------------------------: | ----------------------------------------------: | ---------------------------------------------: |
+| Meaningful     |      30% |                                       1.03 |                                          0.0668 |                                        0.00731 |
+| Major          |      65% |                                       2.23 |                                           0.145 |                                         0.0158 |
+| Transformative |      90% |                                       3.09 |                                           0.200 |                                         0.0219 |
+
+The attributional column is L2 over an L3 radio term. The two measured columns are L2: an L1 per-view figure times a tier share. The view mix is repeat views of the median document.
 
 ## Bandwidth and Request Costs
 
@@ -54,22 +76,22 @@ Egress is priced at the first paid tier of each host. A free allowance is used u
 | Microsoft Azure                    |               17.1 GB |  $1.48 | not read | $1.48 |
 | Google Cloud (Premium Tier)        |              15.9 GiB |  $1.91 | not read | $1.91 |
 
-The dollar figure is small. A million local views save between $0.30 and $2.45 at these list prices. Scaled to the institution above:
+The dollar figure is small. A million local views save between $0.30 and $2.45 at these list prices. At each of the three tiers of local views:
 
-| host                               | Meaningful, 30M local views | Major, 65M local views | Transformative, 90M local views |
-| ---------------------------------- | --------------------------: | ---------------------: | ------------------------------: |
-| Cloudflare Workers (Standard plan) |                $9.00 a year |             $20 a year |                      $27 a year |
-| AWS CloudFront (pay as you go)     |                  $73 a year |            $159 a year |                     $220 a year |
-| Microsoft Azure                    |                  $45 a year |             $96 a year |                     $134 a year |
-| Google Cloud (Premium Tier)        |                  $57 a year |            $124 a year |                     $172 a year |
+| host                               | Meaningful, 300,000 local views per million | Major, 650,000 local views per million | Transformative, 900,000 local views per million |
+| ---------------------------------- | ------------------------------------------: | -------------------------------------: | ----------------------------------------------: |
+| Cloudflare Workers (Standard plan) |                     $0.09 per million views |                $0.20 per million views |                         $0.27 per million views |
+| AWS CloudFront (pay as you go)     |                     $0.73 per million views |                $1.59 per million views |                         $2.20 per million views |
+| Microsoft Azure                    |                     $0.45 per million views |                $0.96 per million views |                         $1.34 per million views |
+| Google Cloud (Premium Tier)        |                     $0.57 per million views |                $1.24 per million views |                         $1.72 per million views |
 
-At the Transformative tier that is $27 to $220 a year across these hosts. The bytes and requests behind it, a month at a time:
+At the Transformative tier that is $0.27 to $2.20 per million views across these hosts. The bytes and requests behind it:
 
-| tier           | local views a year | local views a month, requests no longer sent | bytes no longer moved, GB a month |
-| -------------- | -----------------: | -------------------------------------------: | --------------------------------: |
-| Meaningful     |         30 million |                                  2.5 million |                                43 |
-| Major          |         65 million |                                  5.4 million |                                92 |
-| Transformative |         90 million |                                  7.5 million |                               128 |
+| tier           | local views per million views | requests no longer sent per million views | bytes no longer moved, GB per million views |
+| -------------- | ----------------------------: | ----------------------------------------: | ------------------------------------------: |
+| Meaningful     |                       300,000 |                                   300,000 |                                         5.1 |
+| Major          |                       650,000 |                                   650,000 |                                        11.1 |
+| Transformative |                       900,000 |                                   900,000 |                                        15.3 |
 
 The same rule holds for requests. Cloudflare Workers and CloudFront each include 10 million requests a month, and that allowance is used by all of the site's requests. Past it, each request spool removes saves the request price in the table.
 
@@ -93,17 +115,17 @@ This section prices spool for one institution. It leads with money, then storage
 
 The host meter carries drupflare's hosting saving: the energy the host no longer spends serving the institution's sites. The peak-sized deployment is the headline (L2). The production deployment and a single small VPS sit beside it. Each is priced at the state's average industrial and commercial rates (L0).
 
-| Institution | Sites | Case       | kWh a site | Host-meter MWh a year | Dollars, industrial | Dollars, commercial |
-| ----------- | ----: | ---------- | ---------: | --------------------: | ------------------: | ------------------: |
-| A           |   425 | peak       |      390.0 |                 165.8 |             $13,343 |             $20,636 |
-| A           |   425 | production |      224.2 |                  95.3 |              $7,670 |             $11,863 |
-| A           |   425 | floor      |        9.3 |                   4.0 |                $320 |                $494 |
-| B           |   180 | peak       |      390.0 |                  70.2 |              $4,914 |              $7,701 |
-| B           |   180 | production |      224.2 |                  40.4 |              $2,825 |              $4,427 |
-| B           |   180 | floor      |        9.3 |                   1.7 |                $118 |                $184 |
-| C           |   100 | peak       |      390.0 |                  39.0 |              $6,560 |              $7,843 |
-| C           |   100 | production |      224.2 |                  22.4 |              $3,771 |              $4,509 |
-| C           |   100 | floor      |        9.3 |                   0.9 |                $157 |                $188 |
+| Institution | Sites | Case       | kWh a site | Host-meter MWh a year | Dollars, industrial | Dollars per million views, industrial | Dollars, commercial |
+| ----------- | ----: | ---------- | ---------: | --------------------: | ------------------: | ------------------------------------: | ------------------: |
+| A           |   425 | peak       |      390.0 |                 165.8 |             $13,343 |                                   $32 |             $20,636 |
+| A           |   425 | production |      224.2 |                  95.3 |              $7,670 |                                   $18 |             $11,863 |
+| A           |   425 | floor      |        9.3 |                   4.0 |                $320 |                                 $0.76 |                $494 |
+| B           |   180 | peak       |      390.0 |                  70.2 |              $4,914 |                                  $201 |              $7,701 |
+| B           |   180 | production |      224.2 |                  40.4 |              $2,825 |                                  $116 |              $4,427 |
+| B           |   180 | floor      |        9.3 |                   1.7 |                $118 |                                 $4.82 |                $184 |
+| C           |   100 | peak       |      390.0 |                  39.0 |              $6,560 |                                  $109 |              $7,843 |
+| C           |   100 | production |      224.2 |                  22.4 |              $3,771 |                                   $63 |              $4,509 |
+| C           |   100 | floor      |        9.3 |                   0.9 |                $157 |                                 $2.62 |                $188 |
 
 The electricity prices come from EIA. Only these five states are in the record, and the report throws on any other state.
 
@@ -131,13 +153,13 @@ The trust block counts what the worker's own views record. It counts sampled sha
 
 These figures are research. Energy and carbon do not decide a default or a sales claim, and the energy figures are not a business case.
 
-For Institution A, the attributional saving at the high case is 45.5 MWh a year (L3). It splits across three meter boundaries: visitors' devices take 41.2%, networks 30.4% and data centres 28.4% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
+For Institution A, the attributional saving at the high case is 45.5 MWh a year, or 108 kWh per million views (L3). Every per-million-views column in this section uses the average view of the footprint paragraph below, a mix of cold first views and repeat views. It splits across three meter boundaries: visitors' devices take 41.2%, networks 30.4% and data centres 28.4% (L2, from the SWD v4 intensities). Only the data-centre share sits on a host's meter.
 
-| Institution | Attributional MWh | Devices, MWh | Networks, MWh | Data centres, MWh | Off the meter, MWh |
-| ----------- | ----------------: | -----------: | ------------: | ----------------: | -----------------: |
-| A           |              45.5 |         18.8 |          13.8 |              12.9 |               32.6 |
-| B           |               2.6 |          1.1 |           0.8 |               0.7 |                1.9 |
-| C           |               6.5 |          2.7 |           2.0 |               1.8 |                4.7 |
+| Institution | Attributional MWh | Attributional kWh per million views | Devices, MWh | Networks, MWh | Data centres, MWh | Off the meter, MWh |
+| ----------- | ----------------: | ----------------------------------: | -----------: | ------------: | ----------------: | -----------------: |
+| A           |              45.5 |                                 108 |         18.8 |          13.8 |              12.9 |               32.6 |
+| B           |               2.6 |                                 108 |          1.1 |           0.8 |               0.7 |                1.9 |
+| C           |               6.5 |                                 108 |          2.7 |           2.0 |               1.8 |                4.7 |
 
 Carbon uses each campus's own eGRID2023 subregion (L0). The eGRID rate covers stack emissions at the plant, with no transmission or distribution losses and no upstream emissions. Ember's 2025 national figure of 384 gCO2e/kWh (L0) sits beside it and does not replace it. Ember states no boundary. The carbon covers the whole attributional saving, and a visitor's device draws on its own grid, so read the carbon as a bracket.
 
@@ -159,13 +181,13 @@ Water covers the data-centre share only. Direct water is used on site. Indirect 
 | eGRID2023 ERCT | 736.629 | lb/MWh    |          334.1 | L0 rate, L2 conversion |
 | Ember, US 2025 |     384 | gCO2e/kWh |          384.0 | L0                     |
 
-| Institution | eGRID subregion | tCO2e, eGRID | tCO2e, Ember | Direct water, L | Indirect water, L (drupflare) | Indirect water, L (LBNL) |
-| ----------- | --------------- | -----------: | -----------: | --------------: | ----------------------------: | -----------------------: |
-| A           | AZNM            |         14.6 |         17.5 |           4,841 |                        58,734 |                   58,347 |
-| B           | NWPP            |          0.8 |          1.0 |             281 |                         3,412 |                    3,390 |
-| C           | NEWE            |          1.6 |          2.5 |             692 |                         8,391 |                    8,335 |
+| Institution | eGRID subregion | tCO2e, eGRID | kgCO2e per million views, eGRID | tCO2e, Ember | Direct water, L | Indirect water, L (drupflare) | Indirect water, L per million views (drupflare) | Indirect water, L (LBNL) |
+| ----------- | --------------- | -----------: | ------------------------------: | -----------: | --------------: | ----------------------------: | ----------------------------------------------: | -----------------------: |
+| A           | AZNM            |         14.6 |                            34.7 |         17.5 |           4,841 |                        58,734 |                                             140 |                   58,347 |
+| B           | NWPP            |          0.8 |                            31.2 |          1.0 |             281 |                         3,412 |                                             140 |                    3,390 |
+| C           | NEWE            |          1.6 |                            26.7 |          2.5 |             692 |                         8,391 |                                             140 |                    8,335 |
 
-The goal ladder sets each goal as a share of a page view's own footprint. An average view costs 940 J on the attributional basis (L2). First views carry the central share of 60% (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of 41.5% is a scenario (L3). Each cell gives kWh a year.
+The goal ladder sets each goal as a share of a page view's own footprint. An average view costs 940 J on the attributional basis, which is 261 kWh per million views (L2). First views carry the central share of 60% (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of 41.5% is a scenario (L3). Each cell gives kWh a year.
 
 | Views                      | Footprint, MWh a year |  2.5% |   5.0% |  10.0% |  25.0% | High case, 41.5% |
 | -------------------------- | --------------------: | ----: | -----: | -----: | -----: | ---------------: |
@@ -175,6 +197,16 @@ The goal ladder sets each goal as a share of a page view's own footprint. An ave
 | 120M a year (10M a month)  |                  31.3 |   784 |  1,567 |  3,135 |  7,837 |           13,009 |
 | 420M a year (35M a month)  |                   110 | 2,743 |  5,486 | 10,972 | 27,429 |           45,532 |
 | 1B a year                  |                   261 | 6,531 | 13,061 | 26,123 | 65,307 |          108,410 |
+
+The same shares as an intensity, in kWh per million views. The mix is the average view above, with cold first views at the central share (L3).
+
+| Share of the average view (L3) | J per view | kWh per million views (L3) |
+| ------------------------------ | ---------: | -------------------------: |
+| 2.5%                           |       23.5 |                       6.53 |
+| 5.0%                           |       47.0 |                       13.1 |
+| 10.0%                          |       94.0 |                       26.1 |
+| 25.0%                          |        235 |                       65.3 |
+| 41.5%                          |        390 |                        108 |
 
 Unconfirmed inputs: the Dartmouth footprint is a 2019 preliminary figure, and the record holds no campus electricity price, no energy-only share of a bill, and no lifecycle or marginal grid factor. Ember's boundary is unstated.
 
@@ -244,6 +276,31 @@ Dollars use the rule of Bandwidth and Request Costs: the paid marginal rate at e
 | AWS CloudFront (pay as you go)     | $0.085 per GB |                   $1.29 |                                    $0.58 |                                        $0.77 |                                     $0.97 |
 | Microsoft Azure                    | $0.087 per GB |                   $1.32 |                                    $0.60 |                                        $0.79 |                                     $0.99 |
 | Google Cloud (Premium Tier)        | $0.12 per GiB |                   $1.70 |                                    $0.77 |                                        $1.02 |                                     $1.27 |
+
+### Churn Between Two Readings
+
+The trim rig read the same ten Drupal sites on 2026-10-19 and again on 2026-11-15, 27 days apart, with the same method. Two readings show churn between two deployments at most. They say nothing about a rate: there is one interval and no third reading to show a trend.
+
+An aggregate is a same-origin CSS or JS file under a `files/css/` or `files/js/` folder. Names are compared by path with the query dropped, across every page the rig visited on each date. The first reading kept sizes and transfer bytes only. So for it, the names are the only comparison available. A content hash, and the zstd size of a changed file against the earlier file of its kind, exist only on the second reading. The earlier file was fetched by its path on the second date, so a dictionary figure exists only where that path still answers. Content under an unchanged name cannot be compared at all, since the first reading holds no hash.
+
+The cause of a name change was not read. Drupal's aggregate names depend on the asset library set and on the site's own cache rebuilds; this reading does not separate those.
+
+- 2 of 10 sites kept the same set of aggregate names (L1).
+- The changed names carry a median of 59.5% of a site's aggregate transfer bytes, and a mean of 46.7% (L2).
+- Across the 4 sites with a changed file whose earlier file answered, the zstd 3 dictionary size over the standalone size has a median of 0.06 and a mean of 0.11 (L2). Lower is better. A ratio of 1 means the earlier file saved nothing.
+
+| site               | aggregates on the second reading | changed names | changed names, share of transfer bytes | changed files compared | dictionary over standalone size |
+| ------------------ | -------------------------------: | ------------: | -------------------------------------: | ---------------------: | ------------------------------: |
+| demo.drupflare.com |                                0 |             0 |                                   none |                      0 |                            none |
+| www.asu.edu        |                               21 |             0 |                                   0.0% |                      0 |                            none |
+| www.yale.edu       |                               12 |             0 |                                   0.0% |                      0 |                            none |
+| www.colorado.edu   |                               11 |             5 |                                  60.0% |                      5 |                            0.29 |
+| www.uiowa.edu      |                               26 |             8 |                                  59.5% |                      8 |                            0.03 |
+| www.tufts.edu      |                               12 |            12 |                                 100.0% |                     12 |                            0.09 |
+| www.unl.edu        |                               21 |             5 |                                  24.3% |                      0 |                            none |
+| www.ucdavis.edu    |                                7 |             1 |                                  83.2% |                      1 |                            0.01 |
+| www.rutgers.edu    |                                0 |             0 |                                   none |                      0 |                            none |
+| www.mit.edu        |                                0 |             0 |                                   none |                      0 |                            none |
 
 ## First Payload
 
@@ -370,36 +427,36 @@ A browser that picks the latest earlier file of the same directory saves 2.0% at
 | trim, 10 Drupal sites | Median site | 13.8 KB (9.61 J)     | 114.6 KB (80.0 J)           |
 | trim, 10 Drupal sites | Mean        | 15.2 KB (10.6 J)     | 146.7 KB (102 J)            |
 
-The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. Views are the two scales this page uses: 100 million and 420 million a year. One retired server-year is 3.80 MWh (L2), the unit to compare each cell with.
+The first-view saving applies to a network view of a page the visitor has not seen. The share of views that are such views is the L3 input of the trim section, and the table below runs it at its three values. The table gives each figure as kWh per million views, the unit of Unit and Scope, at the three shares. The mix is the corpus named in each row, with the cold-view share as the L3 input.
 
-| Corpus                | First-view share (L3) | Figure      | Built, 100 million views (MWh) | Ceiling, 100 million views (MWh) | Built, 420 million views (MWh) | Ceiling, 420 million views (MWh) |
-| --------------------- | --------------------- | ----------- | -----------------------------: | -------------------------------: | -----------------------------: | -------------------------------: |
-| image-crawl, 16 sites | Low, 45%              | Median page |                           1.99 |                             1.99 |                           8.36 |                             8.36 |
-| image-crawl, 16 sites | Low, 45%              | Median site |                           4.53 |                             4.53 |                           19.0 |                             19.0 |
-| image-crawl, 16 sites | Low, 45%              | Mean        |                           15.8 |                             15.8 |                           66.4 |                             66.4 |
-| image-crawl, 16 sites | Central, 60%          | Median page |                           2.65 |                             2.65 |                           11.1 |                             11.1 |
-| image-crawl, 16 sites | Central, 60%          | Median site |                           6.03 |                             6.03 |                           25.3 |                             25.3 |
-| image-crawl, 16 sites | Central, 60%          | Mean        |                           21.0 |                             21.0 |                           88.4 |                             88.4 |
-| image-crawl, 16 sites | High, 75%             | Median page |                           3.31 |                             3.31 |                           13.9 |                             13.9 |
-| image-crawl, 16 sites | High, 75%             | Median site |                           7.53 |                             7.53 |                           31.6 |                             31.6 |
-| image-crawl, 16 sites | High, 75%             | Mean        |                           26.3 |                             26.3 |                            110 |                              110 |
-| trim, 10 Drupal sites | Low, 45%              | Median page |                         0.0277 |                             1.10 |                          0.116 |                             4.63 |
-| trim, 10 Drupal sites | Low, 45%              | Median site |                          0.120 |                             1.00 |                          0.506 |                             4.21 |
-| trim, 10 Drupal sites | Low, 45%              | Mean        |                          0.133 |                             1.28 |                          0.558 |                             5.39 |
-| trim, 10 Drupal sites | Central, 60%          | Median page |                         0.0368 |                             1.47 |                          0.155 |                             6.16 |
-| trim, 10 Drupal sites | Central, 60%          | Median site |                          0.160 |                             1.33 |                          0.673 |                             5.60 |
-| trim, 10 Drupal sites | Central, 60%          | Mean        |                          0.177 |                             1.71 |                          0.742 |                             7.17 |
-| trim, 10 Drupal sites | High, 75%             | Median page |                         0.0460 |                             1.83 |                          0.193 |                             7.70 |
-| trim, 10 Drupal sites | High, 75%             | Median site |                          0.200 |                             1.67 |                          0.841 |                             7.00 |
-| trim, 10 Drupal sites | High, 75%             | Mean        |                          0.221 |                             2.14 |                          0.928 |                             8.97 |
+| Corpus                | First-view share (L3) | Figure      | Built, kWh per million views | Ceiling, kWh per million views |
+| --------------------- | --------------------- | ----------- | ---------------------------: | -----------------------------: |
+| image-crawl, 16 sites | Low, 45%              | Median page |                         19.9 |                           19.9 |
+| image-crawl, 16 sites | Low, 45%              | Median site |                         45.3 |                           45.3 |
+| image-crawl, 16 sites | Low, 45%              | Mean        |                          158 |                            158 |
+| image-crawl, 16 sites | Central, 60%          | Median page |                         26.5 |                           26.5 |
+| image-crawl, 16 sites | Central, 60%          | Median site |                         60.3 |                           60.3 |
+| image-crawl, 16 sites | Central, 60%          | Mean        |                          210 |                            210 |
+| image-crawl, 16 sites | High, 75%             | Median page |                         33.1 |                           33.1 |
+| image-crawl, 16 sites | High, 75%             | Median site |                         75.3 |                           75.3 |
+| image-crawl, 16 sites | High, 75%             | Mean        |                          263 |                            263 |
+| trim, 10 Drupal sites | Low, 45%              | Median page |                        0.277 |                           11.0 |
+| trim, 10 Drupal sites | Low, 45%              | Median site |                         1.20 |                           10.0 |
+| trim, 10 Drupal sites | Low, 45%              | Mean        |                         1.33 |                           12.8 |
+| trim, 10 Drupal sites | Central, 60%          | Median page |                        0.368 |                           14.7 |
+| trim, 10 Drupal sites | Central, 60%          | Median site |                         1.60 |                           13.3 |
+| trim, 10 Drupal sites | Central, 60%          | Mean        |                         1.77 |                           17.1 |
+| trim, 10 Drupal sites | High, 75%             | Median page |                        0.460 |                           18.3 |
+| trim, 10 Drupal sites | High, 75%             | Median site |                         2.00 |                           16.7 |
+| trim, 10 Drupal sites | High, 75%             | Mean        |                         2.21 |                           21.4 |
 
 Local views add a second ceiling that does not depend on any lever above: a local view replaces the whole repeat view if every file in it is answered locally. The median whole repeat view is 66.3 KB (46.3 J, L2). An optimized HTTP cache already keeps the static files of a repeat view, so most of that figure is the baseline fix's saving and not spool's. It is the upper bound on what a local repeat view could remove.
 
-| Local share of views | Repeat-view ceiling, 100 million views (MWh) | Repeat-view ceiling, 420 million views (MWh) |
-| -------------------- | -------------------------------------------: | -------------------------------------------: |
-| Meaningful, 30%      |                                        0.386 |                                         1.62 |
-| Major, 65%           |                                        0.837 |                                         3.51 |
-| Transformative, 90%  |                                         1.16 |                                         4.87 |
+| Local share of views | Repeat-view ceiling, kWh per million views |
+| -------------------- | -----------------------------------------: |
+| Meaningful, 30%      |                                       3.86 |
+| Major, 65%           |                                       8.37 |
+| Transformative, 90%  |                                       11.6 |
 
 ### Metered Figures Beside the Ledger
 
@@ -478,7 +535,7 @@ Every number on this page comes from a reading in [`measurements/`](../measureme
 
 Two channels carry the energy numbers. The capacity channel is the ceiling: what an institution reaches when it acts on the numbers and removes servers, at 3.80 MWh per retired server-year. It counts only when equipment is actually removed. The per-view figures in the views channel are floors. They are measured, and the work is to raise them.
 
-Tiers on this page are relative to an institution's own views. The tables use 100 million views a year as a scale, an L3 choice that names no institution.
+Tiers on this page are relative to an institution's own views. The tables give energy per million views, so no table depends on a traffic assumption. Only the Institution blocks use yearly view counts, because those counts are their scenario inputs.
 
 ### Measurement Labels
 
@@ -562,20 +619,20 @@ A default local view replaces one request, the page's document. The model prices
 
 Each finding forced a mechanism in code. Labels give what was read: full text, abstract only, or a web page.
 
-| finding                                                                                                                                                 | source (label)                                    | mechanism                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| A page rendered from cache with no network used 6.8% to 40.5% of the networked load's energy; one analytics request erased the saving on 15 of 25 sites | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
-| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                          | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
-| Safari deletes script-writable storage after 7 days without interaction                                                                                 | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
-| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                            | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
-| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                   | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
-| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
-| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                        | the views reading (L1)                            | beacon queueing in the worker                                                               |
-| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
-| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                    | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
-| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                 | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
-| A server cache already removes recompute, and a projection relocates work                                                                               | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
-| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                           | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
+| finding                                                                                                                                                                                                                   | source (label)                                    | mechanism                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| On 10 of 25 sites a page rendered from cache used 6.8% to 40.5% of the networked load's energy; on the other 15, dynamic script and style requests could not be cached, and the paper names Google Analytics as one cause | Thiagarajan et al., WWW 2012 (full text)          | batched analytics in `src/sw/analytics.ts`; zero requests per view as the target            |
+| 92% of HTML tags were identical across loads 12 hours apart, 75% across a week                                                                                                                                            | Mardani et al., Fawkes, NSDI 2020 (full text)     | dependency-level sync and hard and soft freshness (`src/sw/freshness.ts`)                   |
+| Safari deletes script-writable storage after 7 days without interaction                                                                                                                                                   | WebKit blog 10218 (full text)                     | a re-provision path and `P_warm` reported per engine                                        |
+| Network, data centre and device intensities of 0.059, 0.055 and 0.080 kWh/GB                                                                                                                                              | Sustainable Web Design v4 (web page)              | the attributional headline in `src/report/inputs.ts`                                        |
+| 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                                                                                     | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
+| A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                                                                                  | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
+| Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                                                                                          | the views reading (L1)                            | beacon queueing in the worker                                                               |
+| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                                                                                  | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
+| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                                                                                      | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
+| Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                                                                                   | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
+| A server cache already removes recompute, and a projection relocates work                                                                                                                                                 | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
+| Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                                                                                             | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
 
 ### Baselines
 
@@ -625,6 +682,63 @@ Over cellular, with the Wi-Fi switched off, the idle windows were steadier and b
 | One view every 20 s | Spool local view |    2.88 (1.99 to 6.34) |                9 |      4 |
 
 Back to back, a local view saves 0.101 J over cellular, about what it saves over Wi-Fi. At one view every 20 seconds, each view costs 11 to 18 times its back-to-back cost (most likely the cost of waking the phone from idle for one view; not measured separately), and the network view and the local view cost about the same (0.10 J apart, inside the spread across rounds). A second reading isolates the request. The phone ran the same WebDriver script every 20 s over 6 rounds, once with a `fetch` to a Worker that answers 204 with no body and once without it. Above idle, a call with the request cost 1.38 (1.10 to 2.68) J and a call without it 0.791 (-0.0452 to 2.59) J: the medians are 0.59 J apart and the ranges overlap. No radio wake can be attributed to the request at this resolution, so the headline carries 0 J for it. The earlier scenario value of 5 J per phone view stays out until a reading attributes one.
+
+### First Views
+
+The first-view mechanisms (images, video, scripts and facades) are credited at the attributional rate: the page's wire bytes times SWD v4's 0.194 kWh per GB (L2). The metered figure measures something else. It is the package energy a desktop browser spends on a cold first view of a recorded page, above the idle draw of the same round (L1 windows, L2 per page). This reading covers 37 pages from 23 sites, 249.5 MB on the wire, over 3 rounds of 5 cold navigations per window. 0 windows were dropped for contamination from other containers.
+
+| quantity                                                      |          value | layer |
+| ------------------------------------------------------------- | -------------: | ----- |
+| metered package J per first view, mean over pages             |          42.80 | L2    |
+| metered package J per first view, median over pages           |          31.34 | L2    |
+| attributional J per first view (SWD v4 over wire bytes), mean |       4,709.88 | L2    |
+| attributional J per first view, median                        |       4,960.49 | L2    |
+| metered over attributional, mean of the page ratios           |          1.11% | L2    |
+| metered over attributional, median of the page ratios         |          0.77% | L2    |
+| metered mean over attributional mean                          |          0.91% | L2    |
+| per-site mean ratio, lowest to highest                        | 0.34% to 4.35% | L2    |
+
+On these pages the package spent 1.11% of the attributional figure on average, and the median page spent 0.77%. The site means run from 0.34% to 4.35% over 23 sites. The ratio describes the pages measured here. It is not a correction factor for the allocation.
+
+The class fit regresses each page's metered joules on its image, script and other bytes. It has 37 pages and a residual standard error of 28.30 J (L2). The shares below come from the point fit.
+
+| term                                                   | J per MB | share of metered joules | layer |
+| ------------------------------------------------------ | -------: | ----------------------: | ----- |
+| intercept, J per page                                  |    -0.84 |                   -2.0% | L2    |
+| image bytes                                            |     1.91 |                    6.8% | L2    |
+| script bytes                                           |     7.93 |                   61.9% | L2    |
+| other bytes (document, stylesheet, font, media, other) |     7.56 |                   33.3% | L2    |
+
+The intervals in the next table are 95% bootstrap intervals over pages: 2,000 resamples of the pages with a fixed seed, and the 2.5th and 97.5th percentiles of the coefficients (L2).
+
+| quantity                                        |            all pages | without demo.drupflare.com | layer |
+| ----------------------------------------------- | -------------------: | -------------------------- | ----- |
+| pages                                           |                   37 | 35                         | L2    |
+| median metered J per first view                 |                 31.3 | 31.5                       | L2    |
+| class fit: residual standard error, J           |                28.30 | 29.10                      | L2    |
+| class fit: R squared                            |                0.382 | 0.349                      | L2    |
+| class fit: intercept, J per page                | -0.84 [-14.21, 7.66] | -4.29 [-22.70, 8.40]       | L2    |
+| class fit: image, J per MB                      |   1.91 [-1.07, 6.31] | 2.16 [-0.94, 6.52]         | L2    |
+| class fit: script, J per MB                     |   7.93 [3.70, 11.69] | 8.50 [3.99, 12.88]         | L2    |
+| class fit: other bytes, J per MB                |   7.56 [1.84, 19.90] | 7.85 [1.90, 21.29]         | L2    |
+| bytes only: R squared                           |                0.307 | 0.267                      | L2    |
+| bytes only: correlation of joules with total MB |                 0.55 | 0.52                       | L2    |
+| total MB and requests: total MB, J per MB       |    5.40 [2.37, 9.99] | 5.57 [2.21, 11.49]         | L2    |
+| total MB and requests: requests, J per request  |   0.08 [-0.18, 0.33] | 0.08 [-0.20, 0.35]         | L2    |
+| class fit and requests: requests, J per request |   0.07 [-0.13, 0.34] | 0.06 [-0.18, 0.34]         | L2    |
+| bootstrap resamples that fit, class fit         |                2,000 | 2,000                      | L2    |
+
+The script coefficient is 7.93 J per MB [3.70, 11.69], and the image coefficient is 1.91 J per MB [-1.07, 6.31] (L2). The script and image intervals overlap, so these pages do not establish that a script byte costs more than an image byte. Dividing one point estimate by the other gives a ratio that these intervals do not bound. Bytes alone explain 0.31 of the variance of the joules (R squared, total MB only; L2). The request term is not resolved. In the class fit with requests it is 0.07 J per request [-0.13, 0.34], an interval that includes zero (L2).
+
+More rounds would not narrow these intervals much. Each page's figure is already a median over its rounds, and the intervals measure the spread between pages. Only more pages would narrow them.
+
+demo.drupflare.com runs spool, so it is not a no-spool page. Without its pages, the median is 31.5 J and the script coefficient is 8.50 J per MB [3.99, 12.88] (L2).
+
+The facade arm serves the same pages with each YouTube or Vimeo iframe replaced by a link to the player, on the 6 pages where that rewrite changes the page. A facade saves 5.49 J per first view on average and 0.99 J at the median, so a few pages carry the mean. It saves 43 KB of body bytes on average and 8.2% of the page's metered joules (L1 windows, L2 derived). 6 pages are too few to say how much a facade saves on a page that has an embed.
+
+The desktop idle draw was 18.67 W (median). 34 pages made requests the replay could not answer. The reading keeps them and lists them.
+
+The metered figure covers the desktop package only. It excludes the network, the display and the data centre, so it is not a per-view energy for a visitor's device.
 
 ### Server Runtimes
 
@@ -764,8 +878,8 @@ Published per-request figures for hyperscale serving (0.24 Wh median for a Gemin
 
 The first column is the energy one avoided operation saves on this machine. The second is that energy for a million avoided operations, in kWh, an L2 product.
 
-- If every one of 100 million views a year were an uncached analytics read, the origin term would add up to 0.302 MWh (L3).
-- At a CMS render's cost, 100 million avoided renders save 0.419 kWh.
+- If every view were an uncached analytics read, the origin term would add up to 3.02 kWh per million views (L3).
+- At a CMS render's cost, a million avoided renders save 0.00419 kWh.
 - Model inference is the one class whose per-operation joules are large, and it counts only for model-derived results that repeat for identical authorised inputs. Free-form prompts rarely repeat.
 
 The origin term is measured per workload against the origin's real baseline. It is close to zero where a server cache exists and it is net of device work a projection relocates.
@@ -800,6 +914,56 @@ The Workers free plan carries 3,040,000 views a month at one request per view. A
 | Meaningful     |      30% |             4.25M (from 3.04M) |
 | Major          |      65% |             7.95M (from 3.04M) |
 | Transformative |      90% |            20.97M (from 3.04M) |
+
+### Loops in Real Pages
+
+A hook that stops a page's loop helps only where the page keeps one running. The crawl loaded the home page of 60 public sites and one inner page of each, each in a fresh browser context, and counted each page for 20 seconds in front and 20 seconds behind a second tab. 108 pages loaded (L1). The shares are shares of pages loaded fresh, not of page views, and no traffic weighting applies. Each share has a Wilson 95% interval (L2).
+
+| class                                                                  | pages     | share | 95% interval   | second half pages | second half interval | sites    | layer                |
+| ---------------------------------------------------------------------- | --------- | ----- | -------------- | ----------------- | -------------------- | -------- | -------------------- |
+| a frame loop while visible, 20 or more callbacks a second              | 17 of 108 | 15.7% | 10.1% to 23.8% | 8 of 54 (14.8%)   | 7.7% to 26.6%        | 11 of 60 | L1 counts, L2 shares |
+| a frame loop while hidden, 1 or more callbacks a second                | 0 of 108  | 0.0%  | 0.0% to 3.4%   | 0 of 54 (0.0%)    | 0.0% to 6.6%         | 0 of 60  | L1 counts, L2 shares |
+| a timer of 1 s or more firing every second while hidden                | 11 of 108 | 10.2% | 5.8% to 17.3%  | 8 of 54 (14.8%)   | 7.7% to 26.6%        | 8 of 60  | L1 counts, L2 shares |
+| three or more requests in the 20 visible seconds                       | 21 of 108 | 19.4% | 13.1% to 27.9% | 14 of 54 (25.9%)  | 16.1% to 38.9%       | 15 of 60 | L1 counts, L2 shares |
+| a video that plays with no input                                       | 24 of 108 | 22.2% | 15.4% to 30.9% | 13 of 54 (24.1%)  | 14.6% to 36.9%       | 22 of 60 | L1 counts, L2 shares |
+| an infinite CSS animation running while visible                        | 16 of 108 | 14.8% | 9.3% to 22.7%  | 10 of 54 (18.5%)  | 10.4% to 30.8%       | 12 of 60 | L1 counts, L2 shares |
+| at least one of the six classes above                                  | 56 of 108 | 51.9% | 42.5% to 61.0% | 32 of 54 (59.3%)  | 46.0% to 71.3%       | 39 of 60 | L1 counts, L2 shares |
+| any timer firing every second while hidden, the browser clamp included | 60 of 108 | 55.6% | 46.2% to 64.6% | 33 of 54 (61.1%)  | 47.8% to 73.0%       | 38 of 60 | L1 counts, L2 shares |
+
+The crawl ran on a machine its operator was using. The operator says the early part may have been disturbed and the second half should be clean. The reading records no per-window time or load, so the file cannot locate or measure any disturbance. Every window met the 18-of-20 visibility rule. The all-pages column is the pre-registered figure. The second-half column is a sensitivity check: the first half has 54 loaded pages and the second half has 54. The first-half and second-half intervals overlap for every class. No result was dropped, and the crawl was not rerun.
+
+The thresholds of each class are in the reading's method and were fixed before the crawl. A window counts only when its page was in the state it was recorded in for at least 18 of its 20 seconds. A class that needs a window that failed that test is marked not measured, not false.
+
+Most loaded pages had at least one class in their front window, and the `any` row is that union. No page reached the hidden frame-loop threshold. In some hidden windows the page ran nothing at all, not even a one-second timer, while the same page had activity in front. The crawl cannot yet separate a stopped page from a quiet one, so the hidden rows may read low.
+
+### Second Time Point
+
+Some desktop experiments were run again on paisley-park on a later date. Each retake sits beside its original, with the percent difference of the two medians. The retake is a second time point on the same machine. It does not replicate the result independently. The headline figures elsewhere on this page stay on the original readings, and nothing here is averaged with them.
+
+| experiment      | figure                                         |                                                                                   original |                                                                                                                                                      retake | difference % (L2) |
+| --------------- | ---------------------------------------------- | -----------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------: |
+| views           | idle package W (median)                        |                                                                      18.8 (L1, 2026-10-19) |                                                                                                                                       18.4 (L1, 2026-11-15) |              -1.8 |
+| views           | J saved per view vs optimized HTTP cache       |                                                                     0.801 (L1, 2026-10-19) |                                                                                                                                      0.817 (L1, 2026-11-15) |              +1.9 |
+| views           | spool view, J per navigation                   |                                                                     0.652 (L1, 2026-10-19) |                                                                                                                                      0.678 (L1, 2026-11-15) |              +4.0 |
+| views           | machine                                        | name paisley-park, cpu AMD Ryzen 9 9900X, os Ubuntu 24.04, governor powersave (2026-10-19) | name paisley-park, cpu AMD Ryzen 9 9900X, os Ubuntu 24.04, governor powersave, cpuidle acpi_idle, menu, pstate amd-pstate-epp, EPP performance (2026-11-15) |                   |
+| sw-request      | idle package W (median)                        |                                                                      19.4 (L1, 2026-10-20) |                                                                                                                                       18.6 (L1, 2026-11-15) |              -4.1 |
+| sw-request      | worker from CacheStorage, mJ per request       |                                                                      18.9 (L1, 2026-10-20) |                                                                                                                                       19.3 (L1, 2026-11-15) |              +2.3 |
+| sw-request      | browser cache, mJ per request                  |                                                                      14.0 (L1, 2026-10-20) |                                                                                                                                       14.2 (L1, 2026-11-15) |              +1.9 |
+| compute-server  | idle package W (median)                        |                                                                      19.5 (L1, 2026-10-19) |                                                                                                                                       18.6 (L1, 2026-11-15) |              -4.4 |
+| compute-server  | CMS recompute, J per request                   |                                                                    0.0151 (L1, 2026-10-19) |                                                                                                                                     0.0181 (L1, 2026-11-15) |             +20.1 |
+| compute-server  | analytics recompute, J per request             |                                                                      10.9 (L1, 2026-10-19) |                                                                                                                                       12.4 (L1, 2026-11-15) |             +14.0 |
+| compute-browser | idle package W (median)                        |                                                                      19.3 (L1, 2026-10-19) |                                                                                                                                       18.5 (L1, 2026-11-15) |              -4.1 |
+| compute-browser | CMS render, recompute, J per navigation        |                                                                      1.58 (L1, 2026-10-19) |                                                                                                                                       1.61 (L1, 2026-11-15) |              +1.7 |
+| compute-browser | CMS render, spool local view, J per navigation |                                                                     0.694 (L1, 2026-10-19) |                                                                                                                                      0.691 (L1, 2026-11-15) |              -0.4 |
+| projection      | idle package W (median)                        |                                                                      19.4 (L1, 2026-10-19) |                                                                                                                                       18.6 (L1, 2026-11-15) |              -4.2 |
+| projection      | server recompute, J per navigation             |                                                                      5.09 (L1, 2026-10-19) |                                                                                                                                       5.59 (L1, 2026-11-15) |              +9.8 |
+| projection      | projection in the worker, J per navigation     |                                                                     0.868 (L1, 2026-10-19) |                                                                                                                                      0.884 (L1, 2026-11-15) |              +1.9 |
+| dictionary-load | idle package W (median)                        |                                                                      19.6 (L1, 2026-10-22) |                                                                                                                                       18.6 (L1, 2026-11-15) |              -5.5 |
+| dictionary-load | brotli 11 aggregate, mJ per page load          |                                                                       769 (L1, 2026-10-22) |                                                                                                                                        766 (L1, 2026-11-15) |              -0.5 |
+| dictionary-load | dcz with stored dictionary, mJ per page load   |                                                                       686 (L1, 2026-10-22) |                                                                                                                                        720 (L1, 2026-11-15) |              +4.9 |
+| image-decode    | idle package W (median)                        |                                                                      18.7 (L1, 2026-10-22) |                                                                                                                                       19.0 (L1, 2026-11-15) |              +1.3 |
+| image-decode    | `<img>`, original JPEG or PNG, mJ per image    |                                                                       511 (L1, 2026-10-22) |                                                                                                                                        493 (L1, 2026-11-15) |              -3.6 |
+| image-decode    | `createImageBitmap`, original, mJ per image    |                                                                      58.6 (L1, 2026-10-22) |                                                                                                                                       57.1 (L1, 2026-11-15) |              -2.6 |
 
 ## Per-Site Figures
 
@@ -891,6 +1055,109 @@ The classified origins move little: ad calls total 36,470 B at 5 sites and analy
 
 Bytes are what the browser received. Requests are the ones the browser sent to the network: a repeat view also lists dozens of sub-resources it answered from its own cache, and those are left out. The on-wire table sets a proxy's count of the same navigations beside the browser's.
 
+### Third-Party Cacheability
+
+Each third-party request of the home-page repeat view that reached the network is put in one class by its cache headers (L1, counts from the reading). `immutable` is an `immutable` directive or a `max-age` of a year or more. `long` is a `max-age` from a day to under a year. `short` is a `max-age` under a day, or no freshness with a validator. `uncacheable` is `no-store`, or neither freshness nor a validator. The class is computed from the recorded `cache-control` value and the presence of `etag` and `last-modified`. The reading keeps `expires` as a flag only, so it is not read.
+
+The reading does not record whether a URL carried a version token, so the share of versioned files is unknown and is not estimated. The answerable bytes count every immutable or long response from a host the origin table calls cache-remedy, versioned or not. They are therefore an upper bound on what a worker could answer without an origin visit. Requests the browser cache answered are left out, as in the split above.
+
+Shares are over the 13 of 15 sites whose repeat view had third-party network bytes (L2). The median site's share is immutable 0.0%, long 0.0%, short 7.8% and uncacheable 92.2%.
+
+| site               | third-party B | immutable B |    long B |   short B | uncacheable B | answerable B (upper bound) |
+| ------------------ | ------------: | ----------: | --------: | --------: | ------------: | -------------------------: |
+| demo.drupflare.com |             0 |           0 |         0 |         0 |             0 |                          0 |
+| www.asu.edu        |         9,837 |           0 |         0 |       703 |         9,134 |                          0 |
+| www.yale.edu       |         1,547 |           0 |         0 |       418 |         1,129 |                          0 |
+| www.colorado.edu   |        14,692 |           0 |         0 |     3,557 |        11,135 |                          0 |
+| www.berkeley.edu   |           750 |           0 |         0 |       750 |             0 |                          0 |
+| www.cornell.edu    |     6,748,637 |           0 | 3,415,635 | 3,332,944 |            58 |                          0 |
+| www.uiowa.edu      |        17,650 |           0 |         0 |     1,371 |        16,279 |                          0 |
+| www.tufts.edu      |        78,046 |           0 |         0 |     2,127 |        75,919 |                          0 |
+| www.unl.edu        |       141,701 |           0 |         0 |     1,513 |       140,188 |                          0 |
+| www.georgetown.edu |        10,229 |           0 |         0 |     8,607 |         1,622 |                          0 |
+| www.mass.gov       |         5,328 |           0 |         0 |       209 |         5,119 |                          0 |
+| www.ucdavis.edu    |       110,523 |           0 |     1,846 |     3,619 |       105,058 |                          0 |
+| www.rutgers.edu    |        15,639 |           0 |         0 |     1,516 |        14,123 |                          0 |
+| www.harvard.edu    |         3,856 |           0 |         0 |       229 |         3,627 |                          0 |
+| www.mit.edu        |             0 |           0 |         0 |         0 |             0 |                          0 |
+
+| class                                        | median share of a site | mean share of a site | pooled share of bytes |
+| -------------------------------------------- | ---------------------: | -------------------: | --------------------: |
+| immutable                                    |                   0.0% |                 0.0% |                  0.0% |
+| long                                         |                   0.0% |                 4.0% |                 47.7% |
+| short                                        |                   7.8% |                25.1% |                 46.9% |
+| uncacheable                                  |                  92.2% |                70.9% |                  5.4% |
+| answerable (cache remedy, immutable or long) |                   0.0% |                 0.0% |                  0.0% |
+
+Answerable bytes per site, over every site, have a median of 0 B and a mean of 0 B. That is a median of 0.0% of a site's third-party bytes (L2), and 0.0% pooled. These are a ceiling, not a forecast. A worker answers only what its own store holds, and the reading does not show how often that store would hold these responses.
+
+The origin classes and remedies come from the table in `src/report/thirdparty.ts`. They are not measured here.
+
+| origin class | remedy in the table | bytes over all sites | immutable or long bytes |
+| ------------ | ------------------- | -------------------: | ----------------------: |
+| unknown      | review              |            7,119,616 |               3,417,481 |
+| ads          | network             |               36,470 |                       0 |
+| video        | network             |                2,126 |                       0 |
+| analytics    | defer               |                  110 |                       0 |
+| analytics    | review              |                   73 |                       0 |
+| social       | network             |                   40 |                       0 |
+
+## Dataset Patches
+
+A dataset is a collection the server holds per row, such as a course catalogue or a staff roster. A device keeps the rows, and each update sends only the rows that changed. This section compares that patch with two controls: the held page under v0.3, which refetches the whole artifact on each change, and a plain HTTP resource that a browser cache revalidates with its ETag. The ship gate is v0.3.
+
+The readings come from `measurements/dataset-baseline/2026-11-15.json`: synthetic rows, one machine, one run each. No real site has been measured. Every byte figure below is L1.
+
+### Measured Bytes
+
+Bytes are brotli for the v0.3 and v0.4 bodies. The native column is socket bytes, so it includes the HTTP headers: about 270 bytes on each 200 and 220 on each 304. The v0.3 list refetch is the control the gate uses. The records column is the records shape with `have`, a cheaper v0.3 variant at 50 rows; at 500 and 5,000 rows the server names at most 256 ids, so it still refetches most of the collection.
+
+|  rows | change     | rows changed | v0.3 list refetch | v0.3 records with have | v0.4 patch | native 200 after the change |
+| ----: | ---------- | -----------: | ----------------: | ---------------------: | ---------: | --------------------------: |
+|    50 | one row    |            1 |             2,236 |                    372 |        227 |                       2,379 |
+|    50 | 1% of rows |            2 |             2,249 |                    437 |        291 |                       2,392 |
+|   500 | one row    |            1 |            19,981 |                 11,366 |        228 |                      20,239 |
+|   500 | 1% of rows |            5 |            19,970 |                 11,400 |        423 |                      20,232 |
+| 5,000 | one row    |            1 |           191,744 |                201,636 |        232 |                     193,240 |
+| 5,000 | 1% of rows |           50 |           191,719 |                203,442 |      2,305 |                     193,186 |
+
+The first load costs more under v0.4 than under v0.3 at 50 and 500 rows, and less than native at 50 rows. The v0.4 seed is the sum of the dataset's pages, so the rig counts every page of the 5,000-row seed.
+
+|  rows | v0.3 seed | native first load | v0.4 seed | v0.4 minus v0.3 | v0.4 minus native |
+| ----: | --------: | ----------------: | --------: | --------------: | ----------------: |
+|    50 |     2,224 |             2,364 |     2,313 |              89 |               -51 |
+|   500 |    19,965 |            20,230 |    20,832 |             867 |               602 |
+| 5,000 |   193,107 |           193,226 |   206,988 |          13,881 |            13,762 |
+
+### Break-Even
+
+A seed is repaid when the bytes an update saves exceed the seed's extra bytes. At one changed row the seed is repaid after 0.044 to 0.072 updates per device, across the three sizes. The number is per device over one hold, and a device needs at least that many updates within it to repay the seed.
+
+|  rows | change     | seed extra over v0.3 | bytes saved per update | updates that repay the seed |
+| ----: | ---------- | -------------------: | ---------------------: | --------------------------: |
+|    50 | one row    |                   89 |                  2,009 |                       0.044 |
+|    50 | 1% of rows |                   89 |                  1,958 |                       0.045 |
+|   500 | one row    |                  867 |                 19,753 |                       0.044 |
+|   500 | 1% of rows |                  867 |                 19,547 |                       0.044 |
+| 5,000 | one row    |               13,881 |                191,512 |                       0.072 |
+| 5,000 | 1% of rows |               13,881 |                189,414 |                       0.073 |
+
+### What a Site Pays
+
+A device holds one copy for 7 days (L3), then refetches the seed. A held copy answers the device's views, scaled by a return survival of 0.50 (L3). A patch or refetch is fetched at most once per answered view. The table prices one update that changes one row in a 500-row collection (L1 bytes), for three illustrative sites. The views are 2,000 a day across 400 devices, and each row carries the site's own update rate (L3). The joules use the allocation constant, 0.194 kWh/GB (L2). They are not a meter reading.
+
+| site (L3 inputs)               | copies answer views a day | updates a day | v0.3 bytes a day | native bytes a day | v0.4 bytes a day | v0.4 J a day, allocation | seed repaid in one hold |
+| ------------------------------ | ------------------------: | ------------: | ---------------: | -----------------: | ---------------: | -----------------------: | ----------------------- |
+| catalogue, changes twice a day |                      2.50 |          2.00 |           42,814 |             28,110 |            3,432 |                     2.40 | yes                     |
+| roster, changes weekly         |                      2.50 |          0.14 |            5,707 |              3,330 |            3,009 |                     2.10 | yes                     |
+| feed, changes hourly           |                      2.50 |         24.00 |           52,805 |             50,594 |            3,546 |                     2.48 | yes                     |
+
+The v0.4 patch sends fewer bytes than the v0.3 refetch in every row. The native column depends on how often the resource changes between views: a weekly roster sends almost only 304s, so the seed is the larger part of v0.4's cost there.
+
+### Admission and the Model
+
+The server's admission rule, `datasetBenefit` in `src/protocol/provision.ts`, counts views per copy from the prior: reuse times survival times future views. The site table counts views from traffic. The two agree on the arithmetic and differ on where the views come from. The server measures gzip for its seed size, and this reading uses brotli, so the decision inputs are not the reading's exact bytes. This section does not claim that the rule and the table reach the same decision at any site.
+
 ## Channels
 
 Spool reports four channels side by side and never adds them. Metered figures are energy a meter read. Attributional figures spread a published intensity over bytes. Capacity counts nodes an institution stopped running. Avoided demand lists what stayed off the origin and the network, in its own units: bytes, requests and CPU time. A request removed at the device and so at the origin is one avoided transaction, counted once. A sum would mix a measurement with an allocation and count one removed request in more than one place, so the report type has no total and a test checks that.
@@ -942,7 +1209,7 @@ A node that stays in service can still draw less. Removing a request from a spar
 
 Across the sweep a steady stream below 200 requests per second fits 0.21 W plus 50.6 mJ per request (R2 0.971), while a bursty stream fits -0.01 W plus 14.9 mJ per request (R2 0.987), which is the closed-loop work cost. A generator that only fires its timer costs 13.8 mJ per tick at 50 per second, so an isolated request carries about one wake. That brackets the saving of one sparse isolated request at 29 to 56 mJ against 15.1 mJ of work. Batched arrivals save the work and nothing more, and above about 500 requests per second the marginal cost falls below the work cost.
 
-The effect is bounded by the node's whole above-idle energy. At three origin requests per network view it comes to 0.0046 MWh a year per 100 million views (L2 over an L3 request count). It is the retained-node part of this channel. A node is either retired, and counted once at its full retired energy, or retained, and counted once here, never both. The scheduler batches beacons and syncs for this reason as well as for the radio.
+The effect is bounded by the node's whole above-idle energy. At three origin requests per network view it comes to 0.046 kWh per million views (L2 over an L3 request count). It is the retained-node part of this channel. A node is either retired, and counted once at its full retired energy, or retained, and counted once here, never both. The scheduler batches beacons and syncs for this reason as well as for the radio.
 
 ### Embodied Energy
 

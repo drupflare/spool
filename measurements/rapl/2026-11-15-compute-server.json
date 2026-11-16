@@ -1,0 +1,1367 @@
+{
+	"schema": 1,
+	"rig": "rapl",
+	"date": "2026-11-15",
+	"layer": "L1",
+	"instrument": "RAPL package-0 energy counter (intel-rapl sysfs, read-only bind into the container)",
+	"exclusions": ["windows where other containers used more than 100 ms of CPU per second"],
+	"question": "package joules per server request: recompute against an in-process cache, for a CMS render and an analytics page",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X",
+		"os": "Ubuntu 24.04",
+		"governor": "powersave",
+		"cpuidle": "acpi_idle, menu",
+		"pstate": "amd-pstate-epp, EPP performance"
+	},
+	"software": {
+		"origin": "Node http server and a keep-alive Node client in one container",
+		"container": "container mcr.microsoft.com/playwright:v1.62.1-noble, --cpus 8 --memory 6g, Node 24.18.1, node:sqlite 3.53.1"
+	},
+	"method": {
+		"arms": [
+			"null",
+			"cms-recompute-200",
+			"cms-recompute-304",
+			"cms-cache-200",
+			"cms-cache-304",
+			"ana-recompute-200",
+			"ana-recompute-304",
+			"ana-cache-200",
+			"ana-cache-304"
+		],
+		"operations per window": {
+			"null": 400000,
+			"cms-recompute-200": 20000,
+			"cms-recompute-304": 20000,
+			"cms-cache-200": 400000,
+			"cms-cache-304": 400000,
+			"ana-recompute-200": 30,
+			"ana-recompute-304": 30,
+			"ana-cache-200": 400000,
+			"ana-cache-304": 400000
+		},
+		"rounds": 8,
+		"idle window s": 30,
+		"concurrency": 1,
+		"arm order": "rotated per round",
+		"emulated rtt ms": 0,
+		"data": "synthetic: enroll.sqlite (60 departments, 24 terms, 6,000 courses, 60,000 sections, 120,000 students, 1.8M enrollments, seeded) and cms.sqlite (5,000 nodes)",
+		"cms render": "12 queries, a string template and gzip over the mirror HTML (about 27 KB)",
+		"analytics page": "4 department queries and a university-wide scan of the last 3 terms (about 393 ms of CPU)"
+	},
+	"rows": [
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 0,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6268.989248,
+			"pkgJ": 343.576821,
+			"load0": 0.08,
+			"load1": 0.23,
+			"serverCpuMs": 2895.637,
+			"clientCpuMs": 5073.625,
+			"otherCpuMs": 46.956
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 0,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11707.818689,
+			"pkgJ": 588.879214,
+			"load0": 0.23,
+			"load1": 0.35,
+			"serverCpuMs": 10479.225,
+			"clientCpuMs": 2675.296,
+			"otherCpuMs": 118.317
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 0,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9402.312741,
+			"pkgJ": 471.890284,
+			"load0": 0.56,
+			"load1": 0.59,
+			"serverCpuMs": 10144.077,
+			"clientCpuMs": 400.327,
+			"otherCpuMs": 120.563
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 0,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51140.788594,
+			"pkgJ": 2448.351701,
+			"load0": 0.63,
+			"load1": 1.03,
+			"serverCpuMs": 4070.135,
+			"clientCpuMs": 48799.518,
+			"otherCpuMs": 592.709
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 0,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6721.307069,
+			"pkgJ": 359.62163,
+			"load0": 1.03,
+			"load1": 0.95,
+			"serverCpuMs": 3061.629,
+			"clientCpuMs": 5122.169,
+			"otherCpuMs": 124.382
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 0,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13124.018827,
+			"pkgJ": 618.333517,
+			"load0": 0.95,
+			"load1": 0.96,
+			"serverCpuMs": 13115.782,
+			"clientCpuMs": 9.918,
+			"otherCpuMs": 203.571
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 0,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13131.068403,
+			"pkgJ": 615.097265,
+			"load0": 0.97,
+			"load1": 0.97,
+			"serverCpuMs": 13135.716,
+			"clientCpuMs": 7.463,
+			"otherCpuMs": 137.132
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 0,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22776.323031,
+			"pkgJ": 1123.572633,
+			"load0": 0.98,
+			"load1": 0.98,
+			"serverCpuMs": 3793.221,
+			"clientCpuMs": 20723.268,
+			"otherCpuMs": 292.506
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 0,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6712.192029,
+			"pkgJ": 352.730859,
+			"load0": 0.9,
+			"load1": 0.99,
+			"serverCpuMs": 3059.875,
+			"clientCpuMs": 5109.36,
+			"otherCpuMs": 71.185
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 0,
+			"n": 0,
+			"elapsedMs": 30004.499397,
+			"pkgJ": 550.854081,
+			"load0": 0.99,
+			"load1": 0.6,
+			"otherCpuMs": 444.313
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 1,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9353.890776,
+			"pkgJ": 470.411784,
+			"load0": 0.55,
+			"load1": 0.62,
+			"serverCpuMs": 10214.055,
+			"clientCpuMs": 488.485,
+			"otherCpuMs": 126.708
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 1,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51525.238666,
+			"pkgJ": 2453.202525,
+			"load0": 0.62,
+			"load1": 0.89,
+			"serverCpuMs": 4260.709,
+			"clientCpuMs": 49132.932,
+			"otherCpuMs": 561.762
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 1,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6800.420157,
+			"pkgJ": 360.425621,
+			"load0": 0.82,
+			"load1": 0.91,
+			"serverCpuMs": 3107.765,
+			"clientCpuMs": 5211.443,
+			"otherCpuMs": 123.381
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 1,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13103.636454,
+			"pkgJ": 611.501687,
+			"load0": 0.92,
+			"load1": 0.94,
+			"serverCpuMs": 13106.134,
+			"clientCpuMs": 11.019,
+			"otherCpuMs": 127.867
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 1,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13105.632501,
+			"pkgJ": 615.106801,
+			"load0": 0.94,
+			"load1": 0.88,
+			"serverCpuMs": 13111.042,
+			"clientCpuMs": 7.145,
+			"otherCpuMs": 210.651
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 1,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22934.215961,
+			"pkgJ": 1134.29925,
+			"load0": 0.88,
+			"load1": 1.07,
+			"serverCpuMs": 3733.07,
+			"clientCpuMs": 20936.674,
+			"otherCpuMs": 289.111
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 1,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6728.019984,
+			"pkgJ": 356.037083,
+			"load0": 1.07,
+			"load1": 1.13,
+			"serverCpuMs": 3045.3,
+			"clientCpuMs": 5136.843,
+			"otherCpuMs": 82.409
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 1,
+			"n": 0,
+			"elapsedMs": 30008.537345,
+			"pkgJ": 556.61715,
+			"load0": 1.13,
+			"load1": 0.69,
+			"otherCpuMs": 439.123
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 1,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6246.76404,
+			"pkgJ": 331.055969,
+			"load0": 0.69,
+			"load1": 0.81,
+			"serverCpuMs": 2822.749,
+			"clientCpuMs": 4858.359,
+			"otherCpuMs": 65.363
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 1,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11476.562767,
+			"pkgJ": 569.932395,
+			"load0": 0.81,
+			"load1": 0.84,
+			"serverCpuMs": 10090.295,
+			"clientCpuMs": 2608.97,
+			"otherCpuMs": 152.698
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 2,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6656.050947,
+			"pkgJ": 350.352136,
+			"load0": 0.84,
+			"load1": 0.87,
+			"serverCpuMs": 3022.795,
+			"clientCpuMs": 5085.822,
+			"otherCpuMs": 58.975
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 2,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13143.220551,
+			"pkgJ": 618.472213,
+			"load0": 0.88,
+			"load1": 0.9,
+			"serverCpuMs": 13144.019,
+			"clientCpuMs": 11.532,
+			"otherCpuMs": 210.248
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 2,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13099.773892,
+			"pkgJ": 613.628651,
+			"load0": 0.91,
+			"load1": 0.93,
+			"serverCpuMs": 13101.643,
+			"clientCpuMs": 7.563,
+			"otherCpuMs": 165.251
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 2,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22676.215317,
+			"pkgJ": 1118.953883,
+			"load0": 0.93,
+			"load1": 0.88,
+			"serverCpuMs": 3622.764,
+			"clientCpuMs": 20745.451,
+			"otherCpuMs": 291.25
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 2,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6723.233251,
+			"pkgJ": 352.926847,
+			"load0": 0.88,
+			"load1": 0.97,
+			"serverCpuMs": 3078.002,
+			"clientCpuMs": 5153.844,
+			"otherCpuMs": 60.29
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 2,
+			"n": 0,
+			"elapsedMs": 30007.931685,
+			"pkgJ": 559.623815,
+			"load0": 0.97,
+			"load1": 0.59,
+			"otherCpuMs": 438.055
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 2,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6305.085725,
+			"pkgJ": 334.47901,
+			"load0": 0.59,
+			"load1": 0.73,
+			"serverCpuMs": 2840.437,
+			"clientCpuMs": 4914.248,
+			"otherCpuMs": 103.176
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 2,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11439.114339,
+			"pkgJ": 569.167953,
+			"load0": 0.73,
+			"load1": 0.77,
+			"serverCpuMs": 10045.962,
+			"clientCpuMs": 2577.401,
+			"otherCpuMs": 147.476
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 2,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9243.920152,
+			"pkgJ": 460.495259,
+			"load0": 0.77,
+			"load1": 0.8,
+			"serverCpuMs": 9964.822,
+			"clientCpuMs": 349.722,
+			"otherCpuMs": 105.947
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 2,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51079.313008,
+			"pkgJ": 2460.337944,
+			"load0": 0.82,
+			"load1": 0.92,
+			"serverCpuMs": 3915.087,
+			"clientCpuMs": 48887.02,
+			"otherCpuMs": 606.144
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 3,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13148.394558,
+			"pkgJ": 618.413286,
+			"load0": 0.85,
+			"load1": 0.87,
+			"serverCpuMs": 13151.964,
+			"clientCpuMs": 7.859,
+			"otherCpuMs": 202.517
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 3,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22663.862813,
+			"pkgJ": 1118.54831,
+			"load0": 0.8,
+			"load1": 0.86,
+			"serverCpuMs": 3661.963,
+			"clientCpuMs": 20719.552,
+			"otherCpuMs": 286.525
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 3,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6728.089135,
+			"pkgJ": 355.40319,
+			"load0": 0.79,
+			"load1": 0.81,
+			"serverCpuMs": 3041.035,
+			"clientCpuMs": 5132.419,
+			"otherCpuMs": 78.246
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 3,
+			"n": 0,
+			"elapsedMs": 30003.46226,
+			"pkgJ": 560.688243,
+			"load0": 0.81,
+			"load1": 0.55,
+			"otherCpuMs": 447.117
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 3,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6295.463276,
+			"pkgJ": 331.787102,
+			"load0": 0.5,
+			"load1": 0.46,
+			"serverCpuMs": 2832.122,
+			"clientCpuMs": 4887.223,
+			"otherCpuMs": 62.662
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 3,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11632.214786,
+			"pkgJ": 581.961924,
+			"load0": 0.46,
+			"load1": 0.54,
+			"serverCpuMs": 10143.512,
+			"clientCpuMs": 2664.515,
+			"otherCpuMs": 174.032
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 3,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9282.335558,
+			"pkgJ": 462.143688,
+			"load0": 0.5,
+			"load1": 0.58,
+			"serverCpuMs": 10027.502,
+			"clientCpuMs": 340.035,
+			"otherCpuMs": 153.167
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 3,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51508.117982,
+			"pkgJ": 2479.712308,
+			"load0": 0.58,
+			"load1": 0.8,
+			"serverCpuMs": 4022.63,
+			"clientCpuMs": 49251.233,
+			"otherCpuMs": 536.034
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 3,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6728.356124,
+			"pkgJ": 356.428405,
+			"load0": 0.73,
+			"load1": 0.83,
+			"serverCpuMs": 3053.923,
+			"clientCpuMs": 5119.132,
+			"otherCpuMs": 52.349
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 3,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13150.246404,
+			"pkgJ": 617.810229,
+			"load0": 0.85,
+			"load1": 0.88,
+			"serverCpuMs": 13148.685,
+			"clientCpuMs": 11.418,
+			"otherCpuMs": 203.714
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 4,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6762.628632,
+			"pkgJ": 353.482315,
+			"load0": 0.88,
+			"load1": 0.89,
+			"serverCpuMs": 3074.163,
+			"clientCpuMs": 5159.333,
+			"otherCpuMs": 66.48
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 4,
+			"n": 0,
+			"elapsedMs": 30001.885815,
+			"pkgJ": 560.689785,
+			"load0": 0.82,
+			"load1": 0.56,
+			"otherCpuMs": 477.694
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 4,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6295.844784,
+			"pkgJ": 334.653836,
+			"load0": 0.56,
+			"load1": 0.68,
+			"serverCpuMs": 2826.92,
+			"clientCpuMs": 4885.175,
+			"otherCpuMs": 70.241
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 4,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11488.009115,
+			"pkgJ": 574.192352,
+			"load0": 0.68,
+			"load1": 0.75,
+			"serverCpuMs": 10053.813,
+			"clientCpuMs": 2601.456,
+			"otherCpuMs": 183.633
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 4,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9515.664498,
+			"pkgJ": 469.277169,
+			"load0": 0.75,
+			"load1": 0.79,
+			"serverCpuMs": 10175.997,
+			"clientCpuMs": 445.846,
+			"otherCpuMs": 115.687
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 4,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51531.64591,
+			"pkgJ": 2478.597406,
+			"load0": 0.79,
+			"load1": 0.88,
+			"serverCpuMs": 4073.446,
+			"clientCpuMs": 49286.445,
+			"otherCpuMs": 606.257
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 4,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6868.07391,
+			"pkgJ": 364.309636,
+			"load0": 0.88,
+			"load1": 0.97,
+			"serverCpuMs": 3149.071,
+			"clientCpuMs": 5223.654,
+			"otherCpuMs": 66.825
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 4,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13168.822257,
+			"pkgJ": 617.793246,
+			"load0": 0.97,
+			"load1": 0.98,
+			"serverCpuMs": 13168.174,
+			"clientCpuMs": 11.08,
+			"otherCpuMs": 195.821
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 4,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13122.709386,
+			"pkgJ": 613.039128,
+			"load0": 0.98,
+			"load1": 0.99,
+			"serverCpuMs": 13125.844,
+			"clientCpuMs": 7.799,
+			"otherCpuMs": 149.113
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 4,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 23223.913235,
+			"pkgJ": 1158.747983,
+			"load0": 0.91,
+			"load1": 0.85,
+			"serverCpuMs": 3635.239,
+			"clientCpuMs": 21358.497,
+			"otherCpuMs": 265.455
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 5,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6374.967662,
+			"pkgJ": 336.969009,
+			"load0": 0.79,
+			"load1": 0.8,
+			"serverCpuMs": 2860.313,
+			"clientCpuMs": 4952.215,
+			"otherCpuMs": 79.397
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 5,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11612.005836,
+			"pkgJ": 581.842133,
+			"load0": 0.8,
+			"load1": 0.85,
+			"serverCpuMs": 10188.563,
+			"clientCpuMs": 2650.098,
+			"otherCpuMs": 173.739
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 5,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9546.692599,
+			"pkgJ": 473.795505,
+			"load0": 0.85,
+			"load1": 0.87,
+			"serverCpuMs": 10218.28,
+			"clientCpuMs": 451.097,
+			"otherCpuMs": 107.128
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 5,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51521.963517,
+			"pkgJ": 2484.665131,
+			"load0": 0.87,
+			"load1": 0.8,
+			"serverCpuMs": 3972.388,
+			"clientCpuMs": 49288.796,
+			"otherCpuMs": 596.118
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 5,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6884.16825,
+			"pkgJ": 362.36305,
+			"load0": 0.73,
+			"load1": 0.83,
+			"serverCpuMs": 3154.376,
+			"clientCpuMs": 5245.31,
+			"otherCpuMs": 70.126
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 5,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13187.780904,
+			"pkgJ": 618.10039,
+			"load0": 0.85,
+			"load1": 0.88,
+			"serverCpuMs": 13177.218,
+			"clientCpuMs": 11.254,
+			"otherCpuMs": 180.274
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 5,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13157.80959,
+			"pkgJ": 619.63507,
+			"load0": 0.81,
+			"load1": 1,
+			"serverCpuMs": 13151.004,
+			"clientCpuMs": 7.978,
+			"otherCpuMs": 164.171
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 5,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 23097.097634,
+			"pkgJ": 1143.064666,
+			"load0": 0.92,
+			"load1": 0.94,
+			"serverCpuMs": 3747.223,
+			"clientCpuMs": 21274.547,
+			"otherCpuMs": 286.375
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 5,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6814.561602,
+			"pkgJ": 360.66752,
+			"load0": 0.87,
+			"load1": 0.88,
+			"serverCpuMs": 3115.021,
+			"clientCpuMs": 5223.313,
+			"otherCpuMs": 128.732
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 5,
+			"n": 0,
+			"elapsedMs": 30002.197672,
+			"pkgJ": 560.912338,
+			"load0": 0.88,
+			"load1": 0.53,
+			"otherCpuMs": 438.046
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 6,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9259.558735,
+			"pkgJ": 459.142821,
+			"load0": 0.49,
+			"load1": 0.53,
+			"serverCpuMs": 10013.839,
+			"clientCpuMs": 361.023,
+			"otherCpuMs": 143.016
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 6,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51664.395826,
+			"pkgJ": 2481.943013,
+			"load0": 0.49,
+			"load1": 0.73,
+			"serverCpuMs": 4066.527,
+			"clientCpuMs": 49411.741,
+			"otherCpuMs": 575.704
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 6,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6842.615065,
+			"pkgJ": 357.985439,
+			"load0": 0.73,
+			"load1": 0.78,
+			"serverCpuMs": 3108.466,
+			"clientCpuMs": 5226.129,
+			"otherCpuMs": 64.602
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 6,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13197.547276,
+			"pkgJ": 618.469557,
+			"load0": 0.79,
+			"load1": 0.83,
+			"serverCpuMs": 13197.774,
+			"clientCpuMs": 12.48,
+			"otherCpuMs": 191.723
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 6,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13097.527914,
+			"pkgJ": 610.206252,
+			"load0": 0.84,
+			"load1": 0.88,
+			"serverCpuMs": 13100.828,
+			"clientCpuMs": 7.769,
+			"otherCpuMs": 145.13
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 6,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22936.791239,
+			"pkgJ": 1133.322356,
+			"load0": 0.88,
+			"load1": 0.92,
+			"serverCpuMs": 3659.573,
+			"clientCpuMs": 20942.484,
+			"otherCpuMs": 290.947
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 6,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6753.235354,
+			"pkgJ": 355.767734,
+			"load0": 0.92,
+			"load1": 0.93,
+			"serverCpuMs": 3077.228,
+			"clientCpuMs": 5158.186,
+			"otherCpuMs": 62.421
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 6,
+			"n": 0,
+			"elapsedMs": 30003.539648,
+			"pkgJ": 550.29544,
+			"load0": 0.93,
+			"load1": 0.56,
+			"otherCpuMs": 435.605
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 6,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6322.891759,
+			"pkgJ": 338.838419,
+			"load0": 0.56,
+			"load1": 0.79,
+			"serverCpuMs": 2817.362,
+			"clientCpuMs": 4976.222,
+			"otherCpuMs": 106.732
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 6,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11769.117833,
+			"pkgJ": 582.894386,
+			"load0": 0.79,
+			"load1": 0.82,
+			"serverCpuMs": 10285.65,
+			"clientCpuMs": 2725.308,
+			"otherCpuMs": 132.788
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-304",
+			"round": 7,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6783.629911,
+			"pkgJ": 354.269124,
+			"load0": 0.75,
+			"load1": 0.77,
+			"serverCpuMs": 3109.188,
+			"clientCpuMs": 5214.736,
+			"otherCpuMs": 56.187
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-200",
+			"round": 7,
+			"n": 30,
+			"status": {
+				"200": 30
+			},
+			"bytesPerOp": 5469.566666666667,
+			"elapsedMs": 13189.233544,
+			"pkgJ": 617.257721,
+			"load0": 0.79,
+			"load1": 0.84,
+			"serverCpuMs": 13188.592,
+			"clientCpuMs": 11.733,
+			"otherCpuMs": 163.095
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-recompute-304",
+			"round": 7,
+			"n": 30,
+			"status": {
+				"304": 30
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 13129.571529,
+			"pkgJ": 614.608703,
+			"load0": 0.77,
+			"load1": 0.81,
+			"serverCpuMs": 13131.507,
+			"clientCpuMs": 7.584,
+			"otherCpuMs": 188.933
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-200",
+			"round": 7,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 5454,
+			"elapsedMs": 22912.513495,
+			"pkgJ": 1126.956689,
+			"load0": 0.81,
+			"load1": 0.87,
+			"serverCpuMs": 3660.368,
+			"clientCpuMs": 20926.78,
+			"otherCpuMs": 250.721
+		},
+		{
+			"set": "sweep",
+			"arm": "ana-cache-304",
+			"round": 7,
+			"n": 400000,
+			"status": {
+				"304": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6775.327741,
+			"pkgJ": 357.951078,
+			"load0": 0.87,
+			"load1": 0.89,
+			"serverCpuMs": 3095.349,
+			"clientCpuMs": 5181.083,
+			"otherCpuMs": 127.21
+		},
+		{
+			"set": "sweep",
+			"arm": "idle",
+			"round": 7,
+			"n": 0,
+			"elapsedMs": 30005.975577,
+			"pkgJ": 558.128988,
+			"load0": 0.89,
+			"load1": 0.54,
+			"otherCpuMs": 441.577
+		},
+		{
+			"set": "sweep",
+			"arm": "null",
+			"round": 7,
+			"n": 400000,
+			"status": {
+				"204": 400000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 6380.824041,
+			"pkgJ": 339.177467,
+			"load0": 0.54,
+			"load1": 0.6,
+			"serverCpuMs": 2866.203,
+			"clientCpuMs": 5016.629,
+			"otherCpuMs": 95.668
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-200",
+			"round": 7,
+			"n": 20000,
+			"status": {
+				"200": 20000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 11384.408456,
+			"pkgJ": 565.48098,
+			"load0": 0.6,
+			"load1": 0.75,
+			"serverCpuMs": 9989.962,
+			"clientCpuMs": 2551.532,
+			"otherCpuMs": 121.842
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-recompute-304",
+			"round": 7,
+			"n": 20000,
+			"status": {
+				"304": 20000
+			},
+			"bytesPerOp": 0,
+			"elapsedMs": 9222.239679,
+			"pkgJ": 458.914973,
+			"load0": 0.69,
+			"load1": 0.71,
+			"serverCpuMs": 10001.108,
+			"clientCpuMs": 334.428,
+			"otherCpuMs": 130.708
+		},
+		{
+			"set": "sweep",
+			"arm": "cms-cache-200",
+			"round": 7,
+			"n": 400000,
+			"status": {
+				"200": 400000
+			},
+			"bytesPerOp": 12455,
+			"elapsedMs": 51305.154285,
+			"pkgJ": 2451.020249,
+			"load0": 0.65,
+			"load1": 1,
+			"serverCpuMs": 4117.836,
+			"clientCpuMs": 48897.113,
+			"otherCpuMs": 624.432
+		}
+	]
+}
