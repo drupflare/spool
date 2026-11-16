@@ -30,15 +30,15 @@ Every kWh per million views figure assumes a view mix: the share of cold first v
 
 Two kinds of kWh appear. The attributional figure is SWD v4 over wire bytes, an allocation (L2). The metered figure is the package energy of one desktop (L1) or the whole phone. Where both exist they sit side by side and are labelled. The attributional column is the upper reading. Where a metered reading exists, what to build is decided on the metered column.
 
-On the first-view pages the metered figure is 0.91% of the attributional one, the mean of the metered joules over the mean of the attributional joules (L2).
+On the first-view pages the metered figure is 1.66% of the attributional one, the mean of the metered joules over the mean of the attributional joules (L2).
 
 | figure                                                                           | view mix                                                                    | J per view | kWh per million views | layer |
 | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------: | --------------------: | ----- |
 | Attributional, one local view (SWD v4 over the document, plus an origin request) | repeat views, the median document                                           |       12.4 |                  3.43 | L2    |
 | Metered desktop, saving of one local view                                        | repeat views, one desktop                                                   |      0.801 |                 0.223 | L1    |
 | Metered phone, saving of one local view                                          | repeat views, one phone                                                     |     0.0877 |                0.0244 | L1    |
-| Attributional, one cold first view, median page                                  | cold first views of 37 landing pages from 23 sites, not weighted by traffic |      4,960 |                 1,378 | L2    |
-| Metered desktop package, one cold first view, median page (a cost, not a saving) | cold first views of 37 landing pages from 23 sites, not weighted by traffic |       31.3 |                  8.70 | L2    |
+| Attributional, one cold first view, median page                                  | cold first views of 52 landing pages from 26 sites, not weighted by traffic |      2,845 |                   790 | L2    |
+| Metered desktop package, one cold first view, median page (a cost, not a saving) | cold first views of 52 landing pages from 26 sites, not weighted by traffic |       47.5 |                  13.2 | L2    |
 
 The first rows are what one local view saves. A row marked as a cost is the energy a view spends, which is not a saving. The ranges and rounds behind the metered figures are under Measured Readings.
 
@@ -56,7 +56,7 @@ The attributional column is L2 over an L3 radio term. The two measured columns a
 
 ## Bandwidth and Request Costs
 
-A local view moves no document, so a host that bills traffic bills less. The bytes saved per local view are the document's median size, 17,054 B or 17.1 KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to 17.1 GB and one million requests.
+A local view removes the demand a view would place on the host, so a host that bills traffic or requests bills less. Energy is one objective among these, and an administrator decides how much weight it gets. The bytes saved per local view are the document's median size, 17,054 B or 17.1 KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to 17.1 GB and one million requests.
 
 Prices are each vendor's published list prices, read from the vendor's own page on 2026-10-19. Every input is L0 unless the table says L2, and every input's source is in `src/report/inputs.ts`. A price that could not be read from the vendor's page is left out.
 
@@ -512,6 +512,26 @@ The hidden pair ran in headed Chromium under a virtual display, with a second ta
 
 Chromium 151.0.7922.34 negotiates compression dictionary transport on the box: the page's request for the target carried Available-Dictionary, its Accept-Encoding listed dcb and dcz, and the origin answered dcz. The pair is two JavaScript aggregates of one Drupal site, a dictionary of 1,131,781 B and a target of 1,719,688 B. The target is 432,066 B on the wire as brotli 11 and 105,331 B as dcz, 76% fewer. A page load that fetched the target cost 769.4 mJ above idle as brotli and 686.1 mJ as dcz, 11% lower over 6 rounds of 60 loads (the dcz arm's range sits below the brotli arm's). The figure counts the browser's decode and the loopback transfer. It leaves out the network, and the server's encode, which this origin did once at start-up. The pair comes from the churned JavaScript aggregates, where the delta is large, so its byte saving sits above the 29.9% that the dictionary-size reading gives at the median site for a base the visitor already holds. One pair in one browser shows that dcz decode costs no more than brotli decode here. It says nothing about how many visitors hold a dictionary.
 
+### Tabs and Hidden Polls
+
+A page that polls costs more when the browser holds more tabs, and a poll in a tab hidden for a long time may cost a different amount again. This reading ran in one headed Chromium on one desktop, under a virtual display. Each row is one window of 60 seconds, and the long hidden window is 120 seconds, over 6 rounds. The idle draw ran at 18.6 (18.4 to 18.9) W. 0 windows were dropped for contamination from other containers, and 0 three-tab windows had no quiet window in their round to net against.
+
+| arm                                                           | netted against | J per minute (L2, median) | range over windows (L2) | origin requests per minute (L2, median) | windows | hidden for s at the window (L1, min to max) |
+| ------------------------------------------------------------- | -------------- | ------------------------: | ----------------------: | --------------------------------------: | ------: | ------------------------------------------- |
+| one tab polling once a second (the control)                   | idle           |                      49.0 |    49.0 (22.1 to 133.8) |                                      60 |       6 | 8.0 to 8.0                                  |
+| three tabs, each polling once a second                        | tabs-3-quiet   |                      27.7 | 27.7 (-1,059.4 to 37.5) |                                     171 |       6 | 8.0 to 8.0                                  |
+| three tabs, one leader polling and two listening              | tabs-3-quiet   |                      13.8 | 13.8 (-1,095.6 to 36.1) |                                      60 |       6 | 8.0 to 8.0                                  |
+| three tabs with nothing running                               | idle           |                      37.5 |  37.5 (16.7 to 1,145.3) |                                       0 |       6 | 8.0 to 8.0                                  |
+| one tab polling once a second, hidden 330 s before the window | idle           |                     -10.8 |  -10.8 (-25.9 to 877.0) |                                       1 |       6 | 330.0 to 330.1                              |
+
+The two three-tab polling arms are netted against the three-tab quiet arm of their round. The one-tab and hidden arms net against the idle draw alone, because the rig has no quiet arm of their own. The ratio to one tab therefore compares a netted figure with one that still carries one open tab. The three-tab poll costs 2.0 times the leader arm and 0.6 times the one-tab control.
+
+The leader is written into the rig's page. spool ships no leader election. The tab that holds the Web Lock polls and posts each result on a BroadcastChannel, and the two other tabs only listen. The window counts the polls each tab sent and the messages each received. The lock holder sent a median of 60 polls a window, and the tabs together received a median of 120 messages. A poll from a tab without the lock stops the run.
+
+The hidden tab waited 330 seconds after it was hidden before its window opened, which is past the five minutes at which Chromium starts intensive throttling. In that window it sent 1.0 origin requests a minute.
+
+The reading covers one browser on one machine. Its rows hold raw quantities, and the per-minute figures and ratios are derived from them (L2). It changes no input in `src/report/inputs.ts`. The retake rule in `scripts/impact.ts` (`ORIGINAL_RAPL`) does not list this experiment, because it has no earlier reading.
+
 ### Lazy Loading Before the First Scroll
 
 Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The crawl loaded pages twice, once as the origin sent them and once with `loading="lazy"` added by the proxy's rewrite. Both loads went through the same Playwright route, so neither had a browser cache. The columns are image bytes requested before the first scroll. This is not part of the tables above, which count bytes any visitor receives. The first rows are the first crawl, with the first rule and `skip` 2. The other rows are three later crawls of up to five pages per site, one per `skip`, with the rule that also leaves an image with `fetchpriority`, one that a preload link names and one inside a `<header>`.
@@ -685,58 +705,58 @@ Back to back, a local view saves 0.101 J over cellular, about what it saves over
 
 ### First Views
 
-The first-view mechanisms (images, video, scripts and facades) are credited at the attributional rate: the page's wire bytes times SWD v4's 0.194 kWh per GB (L2). The metered figure measures something else. It is the package energy a desktop browser spends on a cold first view of a recorded page, above the idle draw of the same round (L1 windows, L2 per page). This reading covers 37 pages from 23 sites, 249.5 MB on the wire, over 3 rounds of 5 cold navigations per window. 0 windows were dropped for contamination from other containers.
+The first-view mechanisms (images, video, scripts and facades) are credited at the attributional rate: the page's wire bytes times SWD v4's 0.194 kWh per GB (L2). The metered figure measures something else. It is the package energy a desktop browser spends on a cold first view of a recorded page, above the idle draw of the same round (L1 windows, L2 per page). This reading covers 52 pages from 26 sites, 242.3 MB on the wire, over 2 rounds of 5 cold navigations per window. 0 windows were dropped for contamination from other containers.
 
-| quantity                                                      |          value | layer |
-| ------------------------------------------------------------- | -------------: | ----- |
-| metered package J per first view, mean over pages             |          42.80 | L2    |
-| metered package J per first view, median over pages           |          31.34 | L2    |
-| attributional J per first view (SWD v4 over wire bytes), mean |       4,709.88 | L2    |
-| attributional J per first view, median                        |       4,960.49 | L2    |
-| metered over attributional, mean of the page ratios           |          1.11% | L2    |
-| metered over attributional, median of the page ratios         |          0.77% | L2    |
-| metered mean over attributional mean                          |          0.91% | L2    |
-| per-site mean ratio, lowest to highest                        | 0.34% to 4.35% | L2    |
+| quantity                                                      |           value | layer |
+| ------------------------------------------------------------- | --------------: | ----- |
+| metered package J per first view, mean over pages             |           54.04 | L2    |
+| metered package J per first view, median over pages           |           47.49 | L2    |
+| attributional J per first view (SWD v4 over wire bytes), mean |        3,254.75 | L2    |
+| attributional J per first view, median                        |        2,844.80 | L2    |
+| metered over attributional, mean of the page ratios           |           2.31% | L2    |
+| metered over attributional, median of the page ratios         |           1.97% | L2    |
+| metered mean over attributional mean                          |           1.66% | L2    |
+| per-site mean ratio, lowest to highest                        | 0.62% to 10.14% | L2    |
 
-On these pages the package spent 1.11% of the attributional figure on average, and the median page spent 0.77%. The site means run from 0.34% to 4.35% over 23 sites. The ratio describes the pages measured here. It is not a correction factor for the allocation.
+On these pages the package spent 2.31% of the attributional figure on average, and the median page spent 1.97%. The site means run from 0.62% to 10.14% over 26 sites. The ratio describes the pages measured here. It is not a correction factor for the allocation.
 
-The class fit regresses each page's metered joules on its image, script and other bytes. It has 37 pages and a residual standard error of 28.30 J (L2). The shares below come from the point fit.
+The class fit regresses each page's metered joules on its image, script and other bytes. It has 52 pages and a residual standard error of 27.39 J (L2). The shares below come from the point fit.
 
 | term                                                   | J per MB | share of metered joules | layer |
 | ------------------------------------------------------ | -------: | ----------------------: | ----- |
-| intercept, J per page                                  |    -0.84 |                   -2.0% | L2    |
-| image bytes                                            |     1.91 |                    6.8% | L2    |
-| script bytes                                           |     7.93 |                   61.9% | L2    |
-| other bytes (document, stylesheet, font, media, other) |     7.56 |                   33.3% | L2    |
+| intercept, J per page                                  |    24.10 |                   44.6% | L2    |
+| image bytes                                            |     1.56 |                    4.7% | L2    |
+| script bytes                                           |     10.4 |                   34.9% | L2    |
+| other bytes (document, stylesheet, font, media, other) |     6.97 |                   15.8% | L2    |
 
 The intervals in the next table are 95% bootstrap intervals over pages: 2,000 resamples of the pages with a fixed seed, and the 2.5th and 97.5th percentiles of the coefficients (L2).
 
 | quantity                                        |            all pages | without demo.drupflare.com | layer |
 | ----------------------------------------------- | -------------------: | -------------------------- | ----- |
-| pages                                           |                   37 | 35                         | L2    |
-| median metered J per first view                 |                 31.3 | 31.5                       | L2    |
-| class fit: residual standard error, J           |                28.30 | 29.10                      | L2    |
-| class fit: R squared                            |                0.382 | 0.349                      | L2    |
-| class fit: intercept, J per page                | -0.84 [-14.21, 7.66] | -4.29 [-22.70, 8.40]       | L2    |
-| class fit: image, J per MB                      |   1.91 [-1.07, 6.31] | 2.16 [-0.94, 6.52]         | L2    |
-| class fit: script, J per MB                     |   7.93 [3.70, 11.69] | 8.50 [3.99, 12.88]         | L2    |
-| class fit: other bytes, J per MB                |   7.56 [1.84, 19.90] | 7.85 [1.90, 21.29]         | L2    |
-| bytes only: R squared                           |                0.307 | 0.267                      | L2    |
-| bytes only: correlation of joules with total MB |                 0.55 | 0.52                       | L2    |
-| total MB and requests: total MB, J per MB       |    5.40 [2.37, 9.99] | 5.57 [2.21, 11.49]         | L2    |
-| total MB and requests: requests, J per request  |   0.08 [-0.18, 0.33] | 0.08 [-0.20, 0.35]         | L2    |
-| class fit and requests: requests, J per request |   0.07 [-0.13, 0.34] | 0.06 [-0.18, 0.34]         | L2    |
+| pages                                           |                   52 | 50                         | L2    |
+| median metered J per first view                 |                 47.5 | 49.4                       | L2    |
+| class fit: residual standard error, J           |                27.39 | 27.80                      | L2    |
+| class fit: R squared                            |                0.301 | 0.256                      | L2    |
+| class fit: intercept, J per page                | 24.10 [15.63, 32.55] | 26.83 [16.87, 36.34]       | L2    |
+| class fit: image, J per MB                      |   1.56 [-0.98, 4.47] | 1.37 [-0.80, 4.25]         | L2    |
+| class fit: script, J per MB                     |  10.43 [6.39, 15.67] | 9.65 [5.74, 15.18]         | L2    |
+| class fit: other bytes, J per MB                |   6.97 [1.24, 20.37] | 6.68 [0.86, 20.29]         | L2    |
+| bytes only: R squared                           |                0.227 | 0.184                      | L2    |
+| bytes only: correlation of joules with total MB |                 0.48 | 0.43                       | L2    |
+| total MB and requests: total MB, J per MB       |    4.08 [1.64, 8.08] | 3.76 [1.32, 8.07]          | L2    |
+| total MB and requests: requests, J per request  |   0.17 [-0.05, 0.36] | 0.16 [-0.05, 0.35]         | L2    |
+| class fit and requests: requests, J per request |    0.20 [0.03, 0.44] | 0.21 [0.02, 0.43]          | L2    |
 | bootstrap resamples that fit, class fit         |                2,000 | 2,000                      | L2    |
 
-The script coefficient is 7.93 J per MB [3.70, 11.69], and the image coefficient is 1.91 J per MB [-1.07, 6.31] (L2). The script and image intervals overlap, so these pages do not establish that a script byte costs more than an image byte. Dividing one point estimate by the other gives a ratio that these intervals do not bound. Bytes alone explain 0.31 of the variance of the joules (R squared, total MB only; L2). The request term is not resolved. In the class fit with requests it is 0.07 J per request [-0.13, 0.34], an interval that includes zero (L2).
+The script coefficient is 10.43 J per MB [6.39, 15.67], and the image coefficient is 1.56 J per MB [-0.98, 4.47] (L2). The script and image intervals do not overlap. That is a 95% comparison on one bootstrap, not a formal test, and it does not replace more pages. Dividing one point estimate by the other gives a ratio that these intervals do not bound. Bytes alone explain 0.23 of the variance of the joules (R squared, total MB only; L2). The request term is not resolved. In the class fit with requests it is 0.20 J per request [0.03, 0.44], an interval that excludes zero (L2).
 
 More rounds would not narrow these intervals much. Each page's figure is already a median over its rounds, and the intervals measure the spread between pages. Only more pages would narrow them.
 
-demo.drupflare.com runs spool, so it is not a no-spool page. Without its pages, the median is 31.5 J and the script coefficient is 8.50 J per MB [3.99, 12.88] (L2).
+demo.drupflare.com runs spool, so it is not a no-spool page. Without its pages, the median is 49.4 J and the script coefficient is 9.65 J per MB [5.74, 15.18] (L2).
 
-The facade arm serves the same pages with each YouTube or Vimeo iframe replaced by a link to the player, on the 6 pages where that rewrite changes the page. A facade saves 5.49 J per first view on average and 0.99 J at the median, so a few pages carry the mean. It saves 43 KB of body bytes on average and 8.2% of the page's metered joules (L1 windows, L2 derived). 6 pages are too few to say how much a facade saves on a page that has an embed.
+The facade arm serves the same pages with each YouTube or Vimeo iframe replaced by a link to the player, on the 8 pages where that rewrite changes the page. A facade saves 15.82 J per first view on average and 12.24 J at the median, so a few pages carry the mean. It saves 1,111 KB of body bytes on average and 25.1% of the page's metered joules (L1 windows, L2 derived). 8 pages are too few to say how much a facade saves on a page that has an embed.
 
-The desktop idle draw was 18.67 W (median). 34 pages made requests the replay could not answer. The reading keeps them and lists them.
+The desktop idle draw was 18.37 W (median). 49 pages made requests the replay could not answer. The reading keeps them and lists them.
 
 The metered figure covers the desktop package only. It excludes the network, the display and the data centre, so it is not a per-view energy for a visitor's device.
 
@@ -907,7 +927,7 @@ Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and
 
 ### Free-Tier Ceiling
 
-The Workers free plan carries 3,040,000 views a month at one request per view. A local view makes no request, and the protocol syncs when it has something to learn. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.
+The Workers free plan carries 3,040,000 views a month at one request per view. A local view removes that request from the platform, and the protocol syncs when it has something to learn. The ceiling is a request count, so it moves with the share of views that stay local and with how often spool syncs. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.
 
 | tier           | Z_annual | views a month on the free plan |
 | -------------- | -------: | -----------------------------: |

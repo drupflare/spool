@@ -48,7 +48,7 @@ The attributional column is L2 over an L3 radio term. The two measured columns a
 
 ## Bandwidth and Request Costs
 
-A local view moves no document, so a host that bills traffic bills less. The bytes saved per local view are the document's median size, {{value:revisitBytesInput}} B or {{value:documentKb}} KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to {{value:gbPerMillion}} GB and one million requests.
+A local view removes the demand a view would place on the host, so a host that bills traffic or requests bills less. Energy is one objective among these, and an administrator decides how much weight it gets. The bytes saved per local view are the document's median size, {{value:revisitBytesInput}} B or {{value:documentKb}} KB (L1, the same median the headline uses). The requests saved are one per local view. Per million local views that comes to {{value:gbPerMillion}} GB and one million requests.
 
 Prices are each vendor's published list prices, read from the vendor's own page on {{value:pricesRead}}. Every input is L0 unless the table says L2, and every input's source is in `src/report/inputs.ts`. A price that could not be read from the vendor's page is left out.
 
@@ -568,7 +568,7 @@ Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and
 
 ### Free-Tier Ceiling
 
-The Workers free plan carries {{value:freeTierViews}} views a month at one request per view. A local view makes no request, and the protocol syncs when it has something to learn. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.
+The Workers free plan carries {{value:freeTierViews}} views a month at one request per view. A local view removes that request from the platform, and the protocol syncs when it has something to learn. The ceiling is a request count, so it moves with the share of views that stay local and with how often spool syncs. The table assumes one sync for every 20 local views, an L3 ratio used for illustration only. The scheduler has no fixed interval.
 
 {{table:free-tier}}
 
