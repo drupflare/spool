@@ -16,7 +16,7 @@ This page describes what the server half and the worker send each other: paths, 
 
 ## Paths
 
-`PATHS` (`src/protocol/config.ts`) names the five paths a server half owns.
+`PATHS` (`src/protocol/config.ts`) names the six paths a server half owns.
 
 | `PATHS` key | Path               | Methods   | Answered by                                         |
 | ----------- | ------------------ | --------- | --------------------------------------------------- |
@@ -24,6 +24,7 @@ This page describes what the server half and the worker send each other: paths, 
 | `artifact`  | `/.spool/artifact` | GET, HEAD | `respondArtifact`, `src/server/spool.ts`            |
 | `dataset`   | `/.spool/dataset`  | GET, HEAD | `respondDataset`, `src/server/dataset.ts`           |
 | `beacon`    | `/.spool/beacon`   | POST      | `respondBeacon`, `src/server/beacon.ts`             |
+| `write`     | `/.spool/write`    | PUT       | `createWriteServer`, `src/server/write.ts`          |
 | `worker`    | `/spool-sw.js`     | GET       | `spool.stub()`; `handle` routes it, an adapter does |
 
 Two more paths are not in `PATHS`.
@@ -53,16 +54,17 @@ Two more paths are not in `PATHS`.
 
 `HEADERS` is in `src/protocol/envelope.ts`. `encodeEnvelope`, `writeEnvelope` and `decodeEnvelope` are its codec.
 
-| `HEADERS` key | Header              | Sent by                                        | Value                                                  |
-| ------------- | ------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| `protocol`    | `spool-protocol`    | server, on every spool response                | integer, `1`                                           |
-| `artifact`    | `spool-artifact`    | server, on a response the worker may keep      | `id=<id>; scope=<scope>; deps=<tag>,<tag>; v=<cursor>` |
-| `invalidate`  | `spool-invalidate`  | server                                         | `<tag>=<version>, <tag>=<version>`                     |
-| `clear`       | `spool-clear`       | server                                         | `*`, or partition ids separated by commas              |
-| `vector`      | `spool-vector`      | server                                         | integer cursor                                         |
-| `partition`   | `spool-partition`   | server, and on `/.spool/sync` with an identity | token matching `^[A-Za-z0-9_-]{1,128}$`                |
-| `vectorSeen`  | `spool-vector-seen` | worker on requests, server on responses        | integer cursor                                         |
-| `provision`   | `spool-provision`   | server, on a `204` from `/.spool/artifact`     | `declined`                                             |
+| `HEADERS` key     | Header                   | Sent by                                                                      | Value                                                                      |
+| ----------------- | ------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `protocol`        | `spool-protocol`         | server, on every spool response                                              | integer, `1`                                                               |
+| `artifact`        | `spool-artifact`         | server, on a response the worker may keep                                    | `id=<id>; scope=<scope>; deps=<tag>,<tag>; v=<cursor>`                     |
+| `invalidate`      | `spool-invalidate`       | server                                                                       | `<tag>=<version>, <tag>=<version>`                                         |
+| `clear`           | `spool-clear`            | server                                                                       | `*`, or partition ids separated by commas                                  |
+| `vector`          | `spool-vector`           | server                                                                       | integer cursor                                                             |
+| `partition`       | `spool-partition`        | server, and on `/.spool/sync` with an identity                               | token matching `^[A-Za-z0-9_-]{1,128}$`                                    |
+| `vectorSeen`      | `spool-vector-seen`      | worker on requests, server on responses                                      | integer cursor                                                             |
+| `provision`       | `spool-provision`        | server, on a `204` from `/.spool/artifact` or a `409` from `/.spool/dataset` | `declined`                                                                 |
+| `provisionReason` | `spool-provision-reason` | server, beside `provision`                                                   | `benefit`, `budget`, `v0.3` or `native` (the control that bound a dataset) |
 
 `Spool-Vector-Seen` is the one spool header a request carries. On a request it is the cursor the worker holds. On a response it echoes that value, which says the `Spool-Invalidate` beside it is the complete diff since that cursor. The worker sends it on a same-origin `GET` that is not a navigation, when it holds a cursor and has no manifest (`passthrough`, `src/sw/runtime.ts`). The proxy deletes every `spool-` request header before it forwards a request.
 
@@ -443,7 +445,7 @@ A view carries the route pattern and never the path, so a pattern such as `/node
 A route with `scope: 'principal'` is stored per partition. The server tells the worker which partition a response belongs to with `Spool-Partition`, and the worker keeps each partition in its own store.
 
 - `Spool-Partition` is an opaque token matching `^[A-Za-z0-9_-]{1,128}$`. `partitionId` (`src/server/identity.ts`) is the reference derivation: HMAC-SHA-256 under the server secret over `spool-partition:1`, a NUL byte and the principal, base64url without padding, which is 43 characters. The worker never recomputes it and compares tokens for equality.
-- A response whose `Spool-Partition` differs from the one the worker holds replaces the store. The old partition is destroyed first.
+- A response whose `Spool-Partition` differs from the one the worker holds replaces the store. The old partition is destroyed first, and the held same-origin requests are dropped before the swap, counted under `same-origin`.
 - A navigation whose response carries spool headers and no `Spool-Partition` ends the session when the worker holds a principal partition: it wipes the principal store (`session-ended`). A response with no spool headers at all changes nothing.
 - `Spool-Clear: *` wipes the principal store and the public replica. `Spool-Clear: <partition id>` wipes that partition when it is the one held, and leaves the public replica alone.
 - `SwConfig.logout` lists patterns (the [route pattern language](#route-patterns)). A same-origin request whose path matches one, with any method, wipes the principal store when it reaches the worker, before the request is sent and after the worker has sent the held same-origin beacons or dropped them. The answer to that request cannot bring a partition back, even though it still names one.
@@ -577,7 +579,7 @@ An artifact is keyed by path alone, so the worker answers a navigation or a `dat
 
 ### Query Routes
 
-A public `template`, `projection` or `data` route may declare `query` (`QuerySchema`, `src/protocol/query.ts`). `defineRoute` throws `ProtocolError` with code `bad-route` for a `principal` route, any other strategy, an option other than these four, or a value outside the rules.
+A `template`, `projection` or `data` route may declare `query` (`QuerySchema`, `src/protocol/query.ts`). `defineRoute` throws `ProtocolError` with code `bad-route` for any other strategy, for a `principal` route unless it names a principal dataset in `query.dataset` and declares no `plan` ([Principal Datasets](#principal-datasets)), for an option other than these four, or for a value outside the rules.
 
 | Option     | Rule                                                                                                                                        |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -612,7 +614,7 @@ A dataset is a public collection of thousands of rows that a device seeds once a
 
 | Field                 | Rule                                                                                                                                                                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scope`               | `public`. `principal` throws `bad-dataset`, because principal datasets wait for their own flag                                                                                                                                                                      |
+| `scope`               | `public`. `principal` throws `bad-dataset` unless the flag is on; see [Principal Datasets](#principal-datasets)                                                                                                                                                     |
 | `key(row)`            | a non-empty string, unique among the rows                                                                                                                                                                                                                           |
 | `seed(ctx)`           | every row in strictly ascending key order, as an array or as pages of rows. `ctx.after` lets a backend skip rows at or before a key. It runs once to admit a seed and once per page                                                                                 |
 | `read(ids, ctx)`      | a keyed read of those rows. A row it omits is sent as a delete. The route's `load` never runs                                                                                                                                                                       |
@@ -649,9 +651,91 @@ The worker holds a dataset in IndexedDB: one record per row by `[name, key]` wit
 
 A sync asks `?name&since&schema`. A reset, another schema or a failed proof clears that dataset and seeds it again, once; a second failed proof leaves it not held. A seed whose rows moved between pages is repaired by one patch from the first page's cursor before any reseed. A wipe of the replica clears the datasets, and a vector reset keeps them. An apply that began before a wipe is dropped.
 
-Outcomes are `seeded`, `reseeded`, `patched`, `current`, `offline` and `refused` with a reason: `budget`, `proof`, `unavailable`, `bad-response`, `epoch` or `storage`. The `spool:datasets` message returns what is held, the counts by outcome, the refused datasets and the persistence answer. A seed is refused when its rows would use more than `datasetShare` (default 1) of the headroom `navigator.storage.estimate()` reports. After the first dataset is held the worker sends `spool:persist`, and `register` asks `navigator.storage.persist()` once and sends the answer back.
+Outcomes are `seeded`, `reseeded`, `patched`, `current`, `offline` and `refused` with a reason: `budget`, `proof`, `unavailable`, `bad-response`, `epoch` or `storage`, and `revoked` for a `403` on a principal dataset. The `spool:datasets` message returns what is held, the counts by outcome, the refused and declined datasets, the evictions and the persistence answer. A seed is refused when its rows would use more than `datasetShare` (default 1) of the headroom `navigator.storage.estimate()` reports. After the first dataset is held the worker sends `spool:persist`, and `register` asks `navigator.storage.persist()` once and answers with `spool:persisted`.
 
 A route reaches rows in two ways. `query.dataset` names a dataset: the route's data carries no list, and the worker uses the held rows in ascending key order, applies the filter, sort and page of `query`, and goes to the network when the dataset is not held. `ctx.row(dataset, key)` puts `{ "$row": "dataset/key" }` in the data; the row resolves when the page renders, so a put needs no new artifact, and a delete drops only the pages and projections that referenced the row. A list that carries a set proof in its data names the field that holds each key with `query.key`, which is exclusive with `query.dataset`. A route's freshness bounds the age of every dataset it reads.
+
+### Query Plans
+
+A route with `query.dataset` may declare `query.plan`: a read-only plan written as JSON, with joins, conditions, groups and aggregates. `list` still names the key the result goes under, and `filter`, `sort` and `pageSize` move into the plan, so they cannot appear beside it. The plan has these parts:
+
+- `from`: the base fields the plan may read. Each output row carries exactly these fields.
+- `join`: equi-joins from the base row, each `{ dataset, on, type, as, fields }`. `on` is `[base field, right field]`, or `[base field, null]` to match the right row's key. `type` is `inner` or `left`. The joined row appears under `as`. Joins go one level deep, from the base row only. A joined dataset that is not held or not current makes the answer not local.
+- `where`: conditions that are all ANDed, each `{ field, op, param, type, fold? }`. `op` is `eq`, `in` (a repeated parameter), `gte`, `lte` or `prefix`. A parameter the URL omits skips its condition. `prefix` may take `fold: "ascii"`, which folds ASCII letters only, as SQLite's `lower()` does.
+- `group`: `{ by, aggregates }`. `by` names base fields. An aggregate is `"count"`, `{ count }`, `{ sum }`, `{ min }`, `{ max }` or `{ avg }`, each over one field. Sums and averages accept integers within the safe range only.
+- `sort`: the field and aggregate names the `sort` parameter may name. A leading minus sorts descending.
+- `pageSize` and `limit`: the page size, and the most result rows the plan answers locally.
+
+Values compare the way SQLite compares a column with no declared type. NULL sorts first, then numbers, then text in code point order. A number never matches text. Ties break on the base key, then on each joined key; a group is ordered by its group values. Parameters are read as numbers only when they are finite numbers.
+
+The worker answers a query from held rows only when the plan gives the same result as SQLite would. It sends everything else to the network: an unknown or repeated parameter, a boolean, object or lone surrogate in a declared field, a float in a sum or average, a result over `limit`, or a page past the last. The template gets the page's rows under `query.list`, and `query` holds `total`, `page` and `pages`.
+
+The server does not evaluate plans. A row's authenticity comes from the dataset's set proof. A plan's correctness comes from its test against `node:sqlite` and from the route's `load`. A table keeps one index per field it reads once it holds at least 200 rows. The index is built on first use, is not stored, and is dropped on every commit.
+
+### Admission
+
+A dataset declared with `provision: 'auto'` reaches a device only while it beats two controls: the held page under v0.3, which refetches the whole artifact on each change, and native HTTP, one plain resource with an `ETag` that a browser cache revalidates. The default, `provision: 'always'`, answers every seed as before.
+
+For an `auto` dataset, a seed request runs `datasetBenefit` (`src/protocol/provision.ts`). When the dataset does not beat both controls, the server answers `409` with `{ "error": "declined", "controls": "v0.3" }` or `"native"`, naming the control that bound, and sets `Spool-Provision: declined`. The worker records the refusal as `declined`, holds nothing, and does not ask again in that session. Its next page view costs what a v0.3 route costs. Patches and later pages of a seed are not refused.
+
+The server keeps its inputs in memory. Until it has measured a size, the input takes a stand-in: the seed is the dataset's declared `maxBytes`, and the patch is the seed's size. The seed is measured by walking every page once, and the patch by building the patch for the latest change once. The update rate is the cursor's advance per day, and the prior's `changesPerDay` applies until two answers are apart in time. The native body is the seed's size with probability `1 - exp(-rate)`, the chance a device's look sees a change in one day, and otherwise the 304 of 220 bytes measured in `measurements/dataset-baseline/2026-11-15.json`. Survival and the hold period stay at their defaults (0.5 and 7 days), which the worker does not measure.
+
+### Principal Datasets
+
+Principal datasets are off by default and unreviewed: no external review of this feature has happened. A principal dataset holds rows that differ per signed-in principal. Two switches turn it on, and both are needed: `defineDataset(name, declaration, { principalDatasets: true })` accepts `scope: 'principal'`, and `createSpool({ principalDatasets: true, identity })` serves it. Without the first, `defineDataset` throws `bad-dataset` naming the option. Without the second, `createSpool` throws `bad-dataset`, `/.spool/dataset` answers `404` for the name, `SwConfig.principalDatasets` is absent, and the worker opens no dataset database for a partition.
+
+A principal dataset declares `maxStaleMs`, a required positive integer with no default, and keeps `schema`, `maxRows` and `maxBytes`. `provision: 'auto'` is refused, because the server's admission statistics are shared across principals. `ctx.principal` (`{ principal, roles? }`) is set for a principal dataset and absent for a public one, whose functions never see an identity.
+
+**Wire.** The server resolves the identity from the request and never from the URL. With none, the answer is `401` `{ "error": "sign in" }`. The 200 answer carries `Spool-Partition: <partition>`, `Spool-Protocol: 1` and `Cache-Control: private, no-store`, the same cache header a principal artifact has, and no `Vary`. A dataset function that throws `ProtocolError('dataset-forbidden')` makes the answer `403` `{ "error": "forbidden" }`. `head`, `horizon`, `changes`, `read` and `seed` all run with `ctx.principal`, so cursors, horizons and set proofs belong to one `(dataset, principal)`. A `since`, `after` or `principal` parameter naming another principal's feed reaches only the caller's own feed, since the dataset function sees nothing but `ctx.principal`. That scoping is the dataset author's code; spool passes the identity and does not check what the functions return.
+
+**Routes.** A principal route may declare `query` only with `query.dataset`, with no `plan`. A route and its dataset must have the same scope: a public route naming a principal dataset, or the reverse, throws `bad-route` in `createSpool`. Row references (`ctx.row`) follow the same rule.
+
+**Device store.** Rows live in `spool-principal-datasets` (version 1), apart from `spool-datasets` and the shared `spool` database, which stay as they were so older workers keep opening them. Every record starts with the partition in its key. The key of a row is the SHA-256 of a per-dataset random salt, the dataset name and the row key, so no key, field name or value sits in the clear. The row record, the meta with its digest, and the salt are AES-GCM ciphertext under the partition's key, bound to the partition, dataset and slot as additional data. A record copied into another partition or slot does not open. The key's retention is the one records and projections use. A commit is one `durability: 'strict'` transaction. A meta that no longer opens, for example after a lost session key, clears its dataset, which then reseeds.
+
+**Accepting an answer.** A response is applied only when its `Spool-Partition` equals the partition the worker holds. One with none, or another one, is refused (`partition`) and applies nothing. A `401` ends the session and wipes the partition (`session-ended`). A `403` refuses with `revoked` and drops that dataset's rows for the partition. A late answer for a partition the worker has since left is discarded without a write: the side is marked dead, the sync's epoch no longer matches, and the sealed store is shut. A response that names a different partition than the one held swaps the store as a navigation does. A replayed patch with a lower cursor changes nothing and does not move the confirmation time. A patch whose proof fails is dropped, and the next sync reseeds once.
+
+**Freshness and revocation.** Held rows answer a query locally while `now - appliedAt < maxStaleMs`, where `appliedAt` is the last sync or patch that returned and verified, including a "no change" answer. A clock set back counts as stale. Past the bound the view goes to the network, and the next network moment syncs the dataset. A row that leaves a principal's scope arrives as a delete. A principal removed on the server is reached only by the device's next sync, so rows can be served for up to `maxStaleMs` after removal; that window is the bound, and a short `maxStaleMs` shortens it.
+
+**Wipes.** The logout pattern, `Spool-Clear`, a change of partition and `session-ended` delete the partition's dataset rows with the rest of the partition, and shred its key. Without the flag, nothing is created, and a wipe only checks whether the database exists.
+
+## Declared Writes
+
+Declared writes are off by default and unreviewed. `createSpool({ writes: { enabled: true, classes } })` turns them on, and only then does `SwConfig.writes` list the classes. With the flag off the worker queues nothing and opens no `spool-writes` database, the page API answers `writes-off`, and `PUT /.spool/write` answers `403` with the same code.
+
+A class comes from `defineWrite` (`src/protocol/write.ts`) and means one thing: the last value for a key wins. `scope` must be `principal`, and `path` must be a declared principal route; a public write throws `bad-write`. `kind` accepts only `last-value`. A comment, a cart, a payment, a counter, an inventory change and an audit record are never queued, because no kind exists for them and a declaration cannot name one.
+
+| Field        | Rule                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------- |
+| `key`        | the key this principal may write for the request; any other key is refused with `forbidden`                   |
+| `read`       | the key's version now; used when a flush that already applied is repeated                                     |
+| `apply`      | writes only when the key is at `expectedVersion`, as one atomic step; returns `{ version }` or `{ conflict }` |
+| `maxBytes`   | most bytes of one body, at most `MAX_WRITE_BYTES`                                                             |
+| `maxPending` | most queued keys of the class per partition on a device, at most `MAX_WRITE_PENDING`                          |
+
+**The request.** `PUT /.spool/write?name=<name>&key=<key>` with `If-Match: "<version>"`, a `Spool-Write-Id` of 16 to 64 characters from `A-Za-z0-9_-`, and a JSON body `{ "value": ... }`. A version is 1 to 128 characters from `A-Za-z0-9._:~-`. The answers:
+
+| Status | Code                                           | When                                                                         |
+| ------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| `200`  |                                                | applied, or a repeat of the last applied id and body; `{ "version": "<v>" }` |
+| `412`  | `conflict`                                     | the key moved; `{ "code": "conflict", "conflict": { "version", "value"? } }` |
+| `401`  | `sign-in`                                      | no principal                                                                 |
+| `403`  | `forbidden`                                    | the key is not the one `key()` derives for this principal                    |
+| `404`  | `unknown-write`                                | no class of that name                                                        |
+| `405`  | `bad-method`                                   | not `PUT`                                                                    |
+| `413`  | `too-large`                                    | the body is over `maxBytes`                                                  |
+| `422`  | `id-reused`                                    | the last applied id arrived with another body                                |
+| `428`  | `missing-version`                              | no `If-Match`                                                                |
+| `400`  | `bad-key`, `bad-version`, `bad-id`, `bad-body` | a malformed part                                                             |
+
+The server keeps the last applied write id and a hash of its body per class, principal and key, in memory, up to `remember` slots (10,000 by default), oldest forgotten first. Requests for one slot run one at a time. A repeat of the remembered id answers `200` with the current `read` version and calls `apply` zero times. The memory belongs to one server instance, so a deployment with several instances needs `apply` to store `ctx.writeId` with the value; otherwise a retry that lands on another instance reads as a conflict. `ctx.writeId` is passed to every site function for that purpose.
+
+**The device queue.** One record per partition, class and key sits in its own IndexedDB database, `spool-writes` version 1. The shared `spool` database stays at version 2. The partition, class and key are readable as keys; the value, versions, write id and conflict are AES-GCM ciphertext under the partition's persistent key. The queue is deleted with the partition: a logout, a `Spool-Clear` or a switch of account removes it, and a value not yet flushed is lost. The page calls `spool.flush()` before a logout navigation.
+
+A new edit of a key replaces the value and keeps the version the first edit started from, so N edits cost one request and one origin write. An edit made while a request is in flight, or after a flush that failed with an unknown outcome, waits in `next`, so a retry sends the same id and body. A record leaves the queue after a `200`. A network failure, a `5xx` and a store failure leave it queued, and the retry sends the same id. A `401`, a `429` and `writes-off` leave it queued and stop the pass. A `412` or another `4xx` sets the record to `conflicted`: the local value stays, the server's version and value are stored, and nothing retries it. `resolve(name, key, 'local')` re-bases onto the server version, takes a new id and flushes that key. `resolve(name, key, 'server')` drops the local value and returns the server's.
+
+A flush happens when the page is hidden after it queued something, at a navigation, and when `spool.flush()` is called. A worker in global shadow mode queues nothing. A worker whose config has no `writes` neither sends nor drops the rows an earlier worker queued: the rows stay sealed, and a logout, a `Spool-Clear` or a switch of account still deletes them. A later worker with `writes` sends them with their original id and version, and `If-Match` decides whether each applies.
+
+**The page API.** `spool.write(name, key, value, version)`, `spool.flush()`, `spool.writes()` and `spool.resolve(name, key, use)` answer `{ ok: true, ... }` or `{ ok: false, code, message }` and never throw. `version` is the version the page edited from. The refusal codes are `writes-off`, `unknown-write`, `bad-key`, `missing-version`, `bad-version`, `bad-body`, `too-large`, `too-many`, `no-partition`, `no-record`, `not-conflicted` and `unavailable`.
 
 ## Freshness
 
@@ -693,19 +777,23 @@ A digest version is checked against the bytes fetched, and a mismatch keeps noth
 
 The page runtime and the worker talk over `postMessage` with a `MessageChannel` for replies (`createRuntime`, `src/sw/runtime.ts`; `register`, `src/client/register.ts`).
 
-| Message           | Fields                      | Reply                                                                                                                                        |
-| ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spool:hello`     | `protocol`                  | `{ type, protocol, version, compatible }`                                                                                                    |
-| `spool:status`    |                             | `{ type, cursor, syncedAt, artifacts, beacons }`                                                                                             |
-| `spool:view`      | `path`                      | `{ type, id }`: the id of the latest view of that path, or `null`                                                                            |
-| `spool:loads`     | `view`, `count`, `origins?` | none; the worker queues a `/.spool/loads` event                                                                                              |
-| `spool:graph`     |                             | `{ type, records, projections }`: ids held                                                                                                   |
-| `spool:ledger`    |                             | `{ type, entries, totals }`: bytes and requests spent provisioning, against views served, with the catalogue's bytes and views counted apart |
-| `spool:partition` |                             | `{ type, partition, artifacts, records, projections }`: ids held for the current partition                                                   |
-| `spool:assets`    |                             | `{ type, mode, routed }`                                                                                                                     |
-| `spool:held`      |                             | `{ type, dropped, third }`: drops by vendor, and third-party URLs held                                                                       |
+| Message           | Fields                            | Reply                                                                                                                                        |
+| ----------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spool:hello`     | `protocol`                        | `{ type, protocol, version, compatible }`                                                                                                    |
+| `spool:status`    |                                   | `{ type, cursor, syncedAt, artifacts, beacons }`                                                                                             |
+| `spool:view`      | `path`                            | `{ type, id }`: the id of the latest view of that path, or `null`                                                                            |
+| `spool:loads`     | `view`, `count`, `origins?`       | none; the worker queues a `/.spool/loads` event                                                                                              |
+| `spool:graph`     |                                   | `{ type, records, projections }`: ids held                                                                                                   |
+| `spool:ledger`    |                                   | `{ type, entries, totals }`: bytes and requests spent provisioning, against views served, with the catalogue's bytes and views counted apart |
+| `spool:partition` |                                   | `{ type, partition, artifacts, records, projections, datasets }`: ids held for the current partition, and its principal dataset metas        |
+| `spool:assets`    |                                   | `{ type, mode, routed }`                                                                                                                     |
+| `spool:held`      |                                   | `{ type, dropped, third }`: drops by vendor, and third-party URLs held                                                                       |
+| `spool:write`     | `name`, `key`, `value`, `version` | `{ type, result }`: `{ ok: true, state, edits }` or a refusal; see [Declared Writes](#declared-writes)                                       |
+| `spool:flush`     |                                   | `{ type, result }`: `{ ok: true, queued, flushed, conflicted }` or a refusal                                                                 |
+| `spool:writes`    |                                   | `{ type, result }`: `{ ok: true, writes }`, the state of each queued key without its value, or a refusal                                     |
+| `spool:resolve`   | `name`, `key`, `use`              | `{ type, result }`: `{ ok: true, flush?, server? }` or a refusal                                                                             |
 
-The worker also posts `spool:cleared` to every page, as above. The replies list ids and counts, never stored content.
+The worker also posts `spool:cleared` to every page, as above, `spool:written` with `queued`, `flushed` and `conflicted` after each flush that tried a record, and `spool:persist` to a page once a dataset is held. A page answers `spool:persist` with `spool:persisted` (`granted`, no reply). `spool:datasets` takes no fields and replies `{ type, datasets, outcomes, refused, declined, evicted, persisted }`. The replies list ids and counts, never stored content.
 
 ## Proxy Additions
 
@@ -760,21 +848,63 @@ With `images.hints` not false, an HTML response gains `Accept-CH: Sec-CH-DPR, Se
 
 **Video tags.** With `video: <options>` (`src/media/video.ts`) the proxy rewrites the `<video>` start tags of every HTML response to a `GET` that is not `204`, `205` or `304`, after the trim guard. A tag inside an HTML comment, `<audio>`, `<source>` and `<iframe>` are not touched, and nothing outside an edited start tag changes. `preload` is set to `none` (or `metadata`), keeping the quote style of an existing attribute. `autoplay: 'defer'` replaces the `autoplay` attribute with `data-spool-autoplay`, adds `controls` when absent and sets `preload` to `none` unless the option is `metadata`. A rewritten page's `ETag` becomes weak, and `proxy.video` counts `pages` and `rewritten` tags. With `when: 'always'` the rewrite is also applied to the artifact shell the proxy builds, so a held copy carries it. With `when: 'save-data'` (needs `Save-Data: on`) or `'slow'` (needs an `ECT` of `slow-2g`, `2g` or `3g`, or `Save-Data: on`) a rewritten response also gets `private` in `Cache-Control` (`public` is replaced, a header with none gets `private, max-age=0`) and `Save-Data, ECT` in `Vary`. `decline` then refuses the page through its `private` verdict, so it is never a replica or a shared cache entry, and the artifact shell is built from the origin's tags. A page that triggered no rewrite keeps its headers, apart from the `Accept-CH` above.
 
+## Stability
+
+This section says what `Spool-Protocol: 1` freezes and what may change without a new number. `tests/node/protocol-freeze.spec.ts` pins the frozen surface as literal values. A change to a pinned item fails that file until the same diff changes the pinned value.
+
+### What Is Frozen
+
+- `PROTOCOL_VERSION`, the `Spool-Protocol` value, every name in `HEADERS` and `WRITE_HEADERS`, and every path in `PATHS`.
+- The envelope encoding: the fields and their order in `Spool-Artifact`, the grammar of `Spool-Invalidate` and `Spool-Clear`, and how the fixed header strings in the test decode. An unknown field or header is ignored. A malformed value throws `bad-header`.
+- The key set and the JSON type of each field in the success bodies of `/.spool/sync` (with `from` and with `need`), `/.spool/artifact` (with and without `have`), `/.spool/beacon` (with `want`, with `catalogue`, and with both), `/.spool/dataset` (a seed page, a page with `next`, a page with `after` and its proof, a patch, a reset, a `409` decline, and a refused backend proof) and `/.spool/write` (`200` and `412`). Each `/.spool/write` refusal is pinned by its status and its `code` and `error` keys.
+- The constants in the limits tables on this page, with their values and the file that exports each one.
+- The static manifest, `spool.json`: `MANIFEST_SCHEMA`, the keys of the manifest and of each route, and the required route fields `pattern`, `strategy` and `version`. `parseManifest` refuses a wrong `schema`, an over-long `version` and a duplicate pattern with `bad-manifest`, and ignores an unknown field on the manifest or a route.
+- The public export names of each entry point in `package.json`.
+
+### What May Change Without a New Number
+
+- New optional fields in a response. A reader ignores a field it does not know. `tests/unit/envelope.spec.ts` checks that unknown fields are ignored and parses the `h` field the way a v0.2 worker reads `Spool-Artifact`.
+- New optional request parameters.
+- New paths under `/.spool/`. A path that no row of the path table claims answers `404`.
+- New refusal codes on `/.spool/dataset` or `/.spool/write`, if the status is one an older reader already treats as a failure it does not act on. No test pins this yet; see below.
+- A new limit, provided it refuses no request the current code accepts. This is the reading the freeze uses for "tightening"; a limit that changes what a current sender may send needs a new number.
+
+### What Needs Spool-Protocol 2
+
+- Renaming or removing any pinned item.
+- Changing the type or the meaning of a field.
+- Changing the meaning of an existing limit.
+
+### Compatibility Evidence
+
+- `tests/browser/upgrade.pw.ts` runs a v0.2 and a v0.3 worker against a v0.4 server, and a v0.4 worker against a site that still serves v0.2 or v0.3, in Chromium, Firefox and WebKit.
+- The shared `spool` IndexedDB database stays at version 2 (`factory.open(name, 2)` in `src/sw/idb.ts`). New stores live in their own databases: `spool-datasets` (version 1), `spool-writes` (version 1) and `spool-principal-datasets` (version 1). Raising the shared database above version 2 fails the v0.2 and v0.3 upgrade cases with a `VersionError`, because those workers open it at version 2.
+- The v0.2.0 and v0.3.0 source never requests `/.spool/dataset` or `/.spool/write`. That is why an old worker does not meet the two v0.4 paths. No test sends either path to an old worker, so the behaviour of an old worker against them is not pinned.
+
+### What This Section Does Not Claim
+
+- No external review of principal datasets or declared writes. Both are off by default.
+- No multi-day device trace.
+- No measurement on a real site.
+
 ## Limits
 
 Every constant exported from `src/protocol/index.ts` whose name begins `MAX_` is in the first table. `tests/node/docs.spec.ts` compares the value column with the source.
 
-| Constant             | Value  | Defined in                 | What it bounds                                     |
-| -------------------- | ------ | -------------------------- | -------------------------------------------------- |
-| `MAX_NEED`           | 64     | `src/protocol/sync.ts`     | ids in one `need` request                          |
-| `MAX_HAVE`           | 256    | `src/protocol/sync.ts`     | ids in one `have` list                             |
-| `MAX_BEACON_BYTES`   | 65,536 | `src/protocol/beacon.ts`   | UTF-8 bytes in one held event body                 |
-| `MAX_BEACON_EVENTS`  | 500    | `src/protocol/beacon.ts`   | events in one batch                                |
-| `MAX_WANT`           | 8      | `src/protocol/beacon.ts`   | artifact paths one flush may ask for               |
-| `MAX_CATALOGUE_PATH` | 2048   | `src/protocol/beacon.ts`   | characters in the page path of a catalogue request |
-| `MAX_VERSION_CHARS`  | 256    | `src/protocol/manifest.ts` | characters in a manifest route's `version`         |
-| `MAX_ROUTE_CHARS`    | 256    | `src/protocol/view.ts`     | characters in the route pattern of a view          |
-| `MAX_LOAD_ORIGINS`   | 32     | `src/protocol/view.ts`     | origins one loads report names                     |
+| Constant             | Value     | Defined in                 | What it bounds                                     |
+| -------------------- | --------- | -------------------------- | -------------------------------------------------- |
+| `MAX_NEED`           | 64        | `src/protocol/sync.ts`     | ids in one `need` request                          |
+| `MAX_HAVE`           | 256       | `src/protocol/sync.ts`     | ids in one `have` list                             |
+| `MAX_BEACON_BYTES`   | 65,536    | `src/protocol/beacon.ts`   | UTF-8 bytes in one held event body                 |
+| `MAX_BEACON_EVENTS`  | 500       | `src/protocol/beacon.ts`   | events in one batch                                |
+| `MAX_WANT`           | 8         | `src/protocol/beacon.ts`   | artifact paths one flush may ask for               |
+| `MAX_CATALOGUE_PATH` | 2048      | `src/protocol/beacon.ts`   | characters in the page path of a catalogue request |
+| `MAX_VERSION_CHARS`  | 256       | `src/protocol/manifest.ts` | characters in a manifest route's `version`         |
+| `MAX_ROUTE_CHARS`    | 256       | `src/protocol/view.ts`     | characters in the route pattern of a view          |
+| `MAX_LOAD_ORIGINS`   | 32        | `src/protocol/view.ts`     | origins one loads report names                     |
+| `MAX_WRITE_KEY`      | 256       | `src/protocol/write.ts`    | characters in a write key                          |
+| `MAX_WRITE_BYTES`    | 1,048,576 | `src/protocol/write.ts`    | the most a class may declare for `maxBytes`        |
+| `MAX_WRITE_PENDING`  | 1000      | `src/protocol/write.ts`    | the most a class may declare for `maxPending`      |
 
 The other protocol constants:
 

@@ -28,7 +28,9 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Static Sites](#-static-sites)
 - [Strategies](#-strategies)
 - [Freshness Contracts](#-freshness-contracts)
+- [Datasets](#-datasets)
 - [Authenticated Data](#-authenticated-data)
+- [Declared Writes](#-declared-writes)
 - [Catalogue](#-catalogue)
 - [Analytics Batching](#-analytics-batching)
 - [Third-Party Files](#-third-party-files)
@@ -38,10 +40,13 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Trimmed Stylesheets](#-trimmed-stylesheets)
 - [Images and Video](#-images-and-video)
 - [Capacity Reports](#-capacity-reports)
+- [Security](#-security)
+- [Energy Reporting](#-energy-reporting)
 - [Out of Scope](#-out-of-scope)
 - [Browser Support](#-browser-support)
 - [Subpath Exports](#-subpath-exports)
 - [Testing](#-testing)
+- [Documentation](#-documentation)
 - [Related Repositories](#-related-repositories)
 - [License](#-license)
 
@@ -54,11 +59,16 @@ server half names those dependencies and sends the snapshot the visitor may hold
 a graph of records, projections and responses, with their versions, and syncs only what the next
 page needs.
 
-Your application keeps every write, every access decision and every page it cannot reproduce
-safely on the device. A route the worker cannot answer goes to the network, so adopting spool
-changes no page that was not declared.
+Your application keeps every access decision and every page it cannot reproduce safely on the
+device. It keeps every write too, except the last-value writes you declare, which ship off. A route
+the worker cannot answer goes to the network, so adopting spool changes no page that was not
+declared.
 
-[docs/impact.md](docs/impact.md) holds the energy model and the measurements behind it.
+A collection of thousands of rows, such as a directory or a course catalogue, can be held as a
+[dataset](#-datasets). The device seeds it once and then receives only the rows that changed.
+
+[docs/impact.md](docs/impact.md) holds the energy model and the measurements behind it. See
+[Energy Reporting](#-energy-reporting).
 
 ---
 
@@ -193,8 +203,9 @@ it against the hash, so a changed file never runs. Release files are never overw
 script fails to load, the page works as it did before.
 
 The script registers `/spool-sw.js` and exposes `window.spool.ready`, which resolves to the client
-handle or to `null` where service workers do not exist. To bundle the runtime yourself, import
-`register` from `@drupflare/spool/client`.
+handle or to `null` where service workers do not exist. It also exposes `window.spool.activity`,
+described below, and the write calls of [Declared Writes](#-declared-writes). To bundle the runtime
+yourself, import `register` from `@drupflare/spool/client`.
 
 ### Activity Hooks
 
@@ -744,7 +755,7 @@ from one directory:
 - `client.js`, the page script, from the same place.
 - `spool.json`, the list of files the worker may keep.
 
-Each page loads the script with the tag from [CDN Script](#-install), or from the site's own copy.
+Each page loads the script with the tag from [CDN Script](#cdn-script), or from the site's own copy.
 The worker has no server to talk to, so it reads `spool.json` from the directory its own script
 sits in.
 
@@ -1016,8 +1027,9 @@ sorts descending. Ties keep the stored order. Strings compare by UTF-16 code uni
 and no case folding, so the application's own sort has to agree. A database that compares bytes,
 such as SQLite by default, agrees except for characters above U+FFFF, and a case-insensitive or
 locale collation does not. `pageSize` sets the items per page and `page` counts from 1; without it
-the route is one page of everything. A route with `principal` scope, or any
-other strategy, cannot declare `query`.
+the route is one page of everything. A route with `static` or `assembly` strategy cannot declare
+`query`. A route with `principal` scope can declare it only with `query.dataset`, which
+[Datasets](#-datasets) describes.
 
 `load` returns the array at `list` and a `proof` made by `datasetProof`. The server refuses to
 build the artifact when the proof is missing or does not match the array. The worker computes the
@@ -1087,6 +1099,72 @@ export const notice = defineRoute('/notices/:id', {
 The worker syncs the smallest set of changed dependencies the next page needs. One worker
 leads the sync for every tab of an origin. A response to a request that happens anyway can carry
 invalidations, so a sync does not always need a request of its own.
+
+---
+
+## 💾 Datasets
+
+A route that lists thousands of rows, such as a staff directory, makes a device fetch the whole
+collection again after each change. A dataset lets the device hold the rows and receive only the
+rows that changed. The device seeds a dataset once, then asks for a patch from the cursor it holds.
+A patch carries the rows to put, the keys to delete and a proof the device checks before it stores
+anything.
+
+`defineDataset(name, declaration)` from `@drupflare/spool/server` declares a dataset, and
+`createSpool({ datasets })` serves it at `GET /.spool/dataset`. The declaration gives the
+functions `key`, `seed`, `read`, `changes`, `horizon` and `head`, a `schema` string, and the
+`maxRows` and `maxBytes` of a seed. A dataset has its own integer cursor, which your backend holds.
+It does not use the site's version vector. `changes(since)` returns the net change after a cursor
+and decides which rows are in scope. `read(ids)` is a keyed read that never runs a route's `load`.
+A device whose cursor is below `horizon`, or whose `schema` differs, seeds again.
+
+The proof is the number of rows and the sum of every row's hash. A sum does not depend on order, so
+a patch moves it by the rows it touches. The device applies a seed or a patch to a staging copy,
+compares the result with the proof, and writes the rows and their metadata in one transaction. A
+failed proof clears that dataset and seeds it once more. The proof catches corruption and a
+half-applied patch. It does not defend against a server that sends rows and a digest that agree.
+
+A route reads a dataset in two ways. `query.dataset` names it in place of `list`: the worker takes
+the held rows in key order and applies the route's filter, sort and page, and goes to the network
+while the dataset is not held. `ctx.row(dataset, key)` puts a reference to one row in the route's
+data. The reference resolves when the page renders, so a changed row needs no new artifact.
+
+A route with `query.dataset` may also declare `query.plan`, a read-only plan written as JSON with
+joins, conditions, groups and aggregates over held datasets. It replaces `filter`, `sort` and
+`pageSize`. The worker compares values the way SQLite compares a column with no declared type, and
+sends the query to the network when a plan could give another answer than SQLite would. The server
+never evaluates a plan.
+
+A dataset declared with `provision: 'auto'` reaches a device only while it beats two controls: the
+held page under v0.3, and one plain resource that a browser cache revalidates with an `ETag`.
+Otherwise the seed request gets `409` with `Spool-Provision: declined`, and the worker holds
+nothing and does not ask again in that session. The default, `'always'`, answers every seed. The worker also
+refuses a seed whose rows would not fit the headroom that `navigator.storage.estimate()` reports,
+and the page runtime asks the browser for persistent storage once the first dataset is held.
+
+On synthetic rows (L1, no real site measured), one changed row of 500 costs 228 bytes as a patch and
+19,981 bytes as a v0.3 list refetch, and the first load costs 867 bytes more than under v0.3
+([docs/impact.md](docs/impact.md#dataset-patches)). [docs/protocol.md](docs/protocol.md#datasets)
+has the declaration rules, the wire format, query plans and the device store.
+
+### Principal Datasets
+
+Principal datasets are off by default and unreviewed: no external review of this feature has
+happened. They hold rows that differ for each signed-in principal. Two switches turn them on, and
+both are needed. `defineDataset(name, declaration, { principalDatasets: true })` accepts
+`scope: 'principal'`, and `createSpool({ principalDatasets: true, identity })` serves the dataset.
+A principal dataset declares `maxStaleMs`, which has no default, and cannot use
+`provision: 'auto'`.
+
+The server takes the identity from the request and passes it to every dataset function as
+`ctx.principal`. Which rows a principal may see is your code, and spool does not check what the
+functions return. The device keeps the rows sealed in the principal's partition, as
+[Authenticated Data](#-authenticated-data) describes, and wipes them with it. Held rows answer a
+query for `maxStaleMs` after the last verified sync, so a principal removed on the server can read
+held rows for up to that long. A principal route can declare `query` only with `query.dataset` and
+no plan, and a route and its dataset need the same scope.
+[docs/security.md](docs/security.md#principal-datasets) lists the threat modes and the test that
+holds each one.
 
 ---
 
@@ -1167,6 +1245,38 @@ that page reads.
 
 ---
 
+## 📝 Declared Writes
+
+Declared writes are off by default and unreviewed: no external review of this feature has
+happened. A declared write queues one kind of edit on the device and sends it at a network moment.
+The last value for a key wins. `createSpool({ identity, writes: { enabled: true, classes } })`
+turns them on. With the flag off the worker queues nothing, the page calls answer `writes-off`, and
+`PUT /.spool/write` answers `403`.
+
+`defineWrite` from `@drupflare/spool/server` declares a class. Its `scope` has to be `principal`,
+and its `path` a declared principal route. `key` says which key this principal may write, and
+`read` gives that key's current version. `apply` writes the value only when the key is still at the
+version the device edited from, in one atomic step, and returns the new version or the conflict.
+`maxBytes` and `maxPending` bound one value and the queue. The only `kind` is `last-value`, so a
+declaration cannot queue a comment, a cart, a payment, a counter, an inventory change or an audit
+record.
+
+The page calls `window.spool.write(name, key, value, version)`, `window.spool.flush()`,
+`window.spool.writes()` and `window.spool.resolve(name, key, 'local' | 'server')`. Each answers
+`{ ok: true }` with its result or `{ ok: false, code, message }`, and none throws. Edits of one key
+replace each other, so several edits cost one request. A flush sends `PUT /.spool/write` with the
+version in `If-Match` and a `Spool-Write-Id` that stays the same across retries. The page runtime
+flushes when the page is hidden. A stale version gets `412`, and the record waits as `conflicted`
+until `resolve` settles it.
+
+The queue is sealed in the principal's partition and deleted with it. A value that no flush has
+sent is lost at logout, so call `window.spool.flush()` before the logout navigation. The server
+remembers recent write ids in memory, 10,000 by default, so a site with several instances stores
+`ctx.writeId` with the value in `apply`. [docs/protocol.md](docs/protocol.md#declared-writes) has
+the request and its answers, and [docs/security.md](docs/security.md#declared-writes) the limits.
+
+---
+
 ## 📚 Catalogue
 
 A catalogue sends the data of pages a visitor may open next, so that opening one makes no
@@ -1185,7 +1295,7 @@ The site supplies the candidates. A route's `catalogue` returns the pages a visi
 next, each with the share expected to. Take the share from your own `nextShare` over the sink
 (each `spool.view` names the route the visitor came from), from link position, or from a fixed
 prior. Pass `{ first: true }` to `nextShare` to count only first views, which is what an entry
-saves: the share over all views ran 1.5 to 7 times high in the bins that decide an entry in a replay
+saves: the share over all views ran 1.5 to 6.6 times high in the bins that decide an entry in a replay
 of public visitors ([docs/impact.md](docs/impact.md#next-page-prediction)). `documentBytes` on the entry's route says what a hit saves, and the provisioning prior is
 used when it is absent.
 
@@ -1383,13 +1493,10 @@ that. `passthrough` leaves assets to the browser's cache and never touches them.
 asks the browser through `InstallEvent.addRoutes` to send only navigations, beacons and routed
 paths to the worker and the rest of the origin to the network, and acts as `passthrough` where the
 API does not exist: Chromium has it, Playwright's WebKit has it on macOS and not on Linux, and
-Firefox does not. Both options cut the service worker's fetch events (Static Routing took them from
-32 to 3 per view on a desktop Chromium rig); neither changes server-side Worker invocations.
-Neither is measured to save energy. In the same run, new-tab views drew 2.78 J,
-2.83 J and 2.84 J of RAPL package energy above idle with CacheStorage, navigation-only handling
-and Static Routing (8 rounds each), and the ranges overlap. Under Static Routing a same-origin write no
-longer reaches the worker, so it is not a network moment and its response cannot carry
-invalidations; navigations still are.
+Firefox does not. Static Routing keeps the requests it does not route out of the worker's fetch
+handler, and neither option changes server-side Worker invocations. Neither is measured to save
+energy, and [docs/impact.md](docs/impact.md) holds no reading for them. Under Static Routing a same-origin write no longer reaches the worker,
+so it is not a network moment and its response cannot carry invalidations; navigations still are.
 
 ```ts
 import { createSpool } from '@drupflare/spool/server';
@@ -1447,7 +1554,8 @@ artifact. `routes` lists overrides, such as a shorter freshness bound for one pa
 match first and take the same fields as `defineRoute`, without `load`.
 
 On Node the handler goes through `toNodeListener`. `origin` is the address of the real server
-and has no path.
+and has no path. `fetch` replaces the global `fetch` the proxy calls the origin with, such as a
+Workers service binding.
 
 ```ts
 import { createServer } from 'node:http';
@@ -1823,8 +1931,10 @@ export const proxy = spoolProxy({
 });
 ```
 
-On the 10 Drupal sites of the reading, a base chosen this way and already held by the browser saves
-30% of the stylesheet and script bytes at the median site (L1, [docs/impact.md](docs/impact.md#savings-today-and-at-maximum)).
+On the 10 Drupal sites of the reading, a base chosen this way and held from an earlier visit saves
+29.9% of the brotli 11 bytes of new stylesheets and scripts at the median site with `dcz`, and a
+visit that has to fetch the base first saves 3.9%
+(L1, [docs/impact.md](docs/impact.md#savings-today-and-at-maximum)).
 `scripts/measure/dictionary-size.ts` records the same choice for a site's crawl.
 
 ### Defaults
@@ -1867,7 +1977,12 @@ work series records.
 production telemetry, an invoice total before and after, and a ledger of retired equipment. The
 plan says what could change, `observed` what changed, the invoices what was paid, and the ledger
 what was removed. The physical result reads only the ledger, and an entry needs the evidence for
-its removal. With no ledger the statement reads `No physical capacity saving demonstrated.`
+its removal. With no ledger the statement reads `No physical capacity saving demonstrated.` The
+report also returns `economics`, `storage`, `trust` and `research` blocks. Each is null without its
+input: an `institution` profile for `economics` and `research`, `storage` for the held bytes, and
+`views` for `trust`.
+[docs/impact.md](docs/impact.md#an-institutions-figures) prints them for three example
+institutions.
 
 ```ts
 import { capacityPlan, institutionReport } from '@drupflare/spool/report';
@@ -1900,12 +2015,45 @@ says what each one counts.
 
 ---
 
+## 🔒 Security
+
+Authorisation stays on the server. The device holds only what the server already sent that
+principal, and the worker has no access rule. Principal data sits in a per-partition IndexedDB
+database sealed with AES-GCM, and deleting the key at logout is crypto-shredding of data at rest.
+That does not protect against script running on your origin. A revoked permission can still show
+for up to a route's `maxStale`, because nothing pushes a revocation to a device. Tag names are
+readable through `/.spool/sync`, so use opaque ids for anything sensitive. Principal datasets and
+declared writes ship off and have had no external review.
+
+[docs/security.md](docs/security.md) is the threat model. It names the file and the test behind
+each claim and lists the open limitations in one table. Report a vulnerability as
+[SECURITY.md](https://github.com/drupflare/spool/blob/master/SECURITY.md) describes.
+
+---
+
+## 🔋 Energy Reporting
+
+[docs/impact.md](docs/impact.md) is generated from the readings in `measurements/` by
+`bun run impact`, and `bun run impact:check` fails when the page differs from them. Energy is
+reported in kWh per million views, and nothing sets a target intensity. Every figure carries a
+layer: L0 published, L1 measured here, L2 derived, L3 scenario. A per-view figure that spreads a
+published intensity over bytes is an allocation of that figure, and the page prints the metered
+reading beside it. The savings from trimming, images and dictionaries apply to network views and
+never add to the local-view figure.
+
+[An Institution's Figures](docs/impact.md#an-institutions-figures) leads with economics, storage
+and trust and treats energy as a research figure. [What This Does Not
+Claim](docs/impact.md#what-this-does-not-claim) lists what the page leaves unsaid.
+
+---
+
 ## 🚫 Out of Scope
 
 - spool never authorises on the client. The device holds only what the server already sent that
   principal.
 - It never shows a hard route past its bound without validating it first.
-- It never writes. Your application owns every write, and `invalidate` only announces one.
+- It never writes on its own. Your application owns every write, and `invalidate` only announces
+  one. The one exception is a declared write class, which is off until you enable it.
 - It never infers dependencies from opaque HTML. A route names its tags, or the records it
   reads, and in proxy mode the origin names them in its cache tag headers.
 - It never replaces a published release file on the CDN.
@@ -1932,20 +2080,20 @@ loads per view and reports the view as such.
 
 ## 🧭 Subpath Exports
 
-| Import                                   | What is in it                                                                 |
-| ---------------------------------------- | ----------------------------------------------------------------------------- |
-| `@drupflare/spool`                       | the protocol and report modules                                               |
-| `@drupflare/spool/protocol`              | envelopes, artifacts, patterns, templates, the manifest, view events          |
-| `@drupflare/spool/server`                | `createSpool`, `defineRoute`, `datasetProof`, sinks, identity and work series |
-| `@drupflare/spool/node`                  | `toNodeListener`, `toRequest`, `writeResponse`                                |
-| `@drupflare/spool/proxy`                 | `spoolProxy`, `chooseBases`, the tag readers and the eligibility verdict      |
-| `@drupflare/spool/stores`                | `memoryStore` and the `VersionStore` type                                     |
-| `@drupflare/spool/stores/durable-object` | `durableObjectStore` and the `SpoolVersions` class                            |
-| `@drupflare/spool/sw`                    | `serve`, for a site that bundles its own worker                               |
-| `@drupflare/spool/client`                | `register` and the page handle                                                |
-| `@drupflare/spool/report`                | the energy model, capacity plans and institution reports                      |
-| `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                                |
-| `@drupflare/spool/media`                 | `tinyimgEncoder`, `imageVariant` and `rewriteVideo`                           |
+| Import                                   | What is in it                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `@drupflare/spool`                       | the protocol and report modules                                                                               |
+| `@drupflare/spool/protocol`              | envelopes, artifacts, patterns, templates, the manifest, view events                                          |
+| `@drupflare/spool/server`                | `createSpool`, `defineRoute`, `defineDataset`, `defineWrite`, `datasetProof`, sinks, identity and work series |
+| `@drupflare/spool/node`                  | `toNodeListener`, `toRequest`, `writeResponse`                                                                |
+| `@drupflare/spool/proxy`                 | `spoolProxy`, `chooseBases`, the tag readers and the eligibility verdict                                      |
+| `@drupflare/spool/stores`                | `memoryStore` and the `VersionStore` type                                                                     |
+| `@drupflare/spool/stores/durable-object` | `durableObjectStore` and the `SpoolVersions` class                                                            |
+| `@drupflare/spool/sw`                    | `serve`, for a site that bundles its own worker                                                               |
+| `@drupflare/spool/client`                | `register`, the page handle and `createActivity`                                                              |
+| `@drupflare/spool/report`                | the energy model, capacity plans and institution reports                                                      |
+| `@drupflare/spool/trim`                  | `buildTrimManifest`, `trimCss` and `guardPage`                                                                |
+| `@drupflare/spool/media`                 | `tinyimgEncoder`, `imageVariant`, `rewriteVideo` and `rewriteEmbeds`                                          |
 
 ---
 
@@ -1957,14 +2105,27 @@ bun run test
 bun run test:coverage
 bun run test:browser
 bun run prettier:check
+bun run impact:check
 bun run docs:build
 bun run build
 ```
 
-`test` runs the unit project in workerd and the node project, which includes a test that packs the
+`impact:check` fails when `docs/impact.md` differs from the readings in `measurements/`. A node
+test fails when `src/server/embedded.ts` differs from the source under `src/protocol`, `src/sw`
+and `src/client`, and `bun run build:sw` regenerates it. `test` runs the unit project in workerd and the node project, which includes a test that packs the
 package and imports every subpath in plain Node. `test:browser` runs Chromium, Firefox and WebKit
 against real servers and counts the requests that reach them. `bunx playwright install chromium
 firefox webkit` fetches the browsers.
+
+---
+
+## 📖 Documentation
+
+- [docs/protocol.md](docs/protocol.md) holds the paths, headers, JSON bodies and limits for anyone
+  who writes an adapter or a second server. A test pins what `Spool-Protocol: 1` freezes, and the
+  page lists what may change without a new number.
+- [docs/security.md](docs/security.md) holds the threat model and the open limitations.
+- [docs/impact.md](docs/impact.md) holds the energy model, the readings and what they leave unsaid.
 
 ---
 
