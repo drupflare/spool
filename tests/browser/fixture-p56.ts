@@ -26,7 +26,7 @@ function cookieUser(request: Request): string | null {
 }
 
 /** principal routes behind a cookie login, with logout and a hard-reset page */
-export async function startAuth(): Promise<AuthFixture> {
+export async function startAuth(extra: Partial<SpoolOptions> = {}): Promise<AuthFixture> {
 	const hits: Fixture['hits'] = [];
 	const marks: Record<string, number> = { A: 91, B: 47 };
 	const logins: string[] = [];
@@ -66,7 +66,8 @@ export async function startAuth(): Promise<AuthFixture> {
 				const user = cookieUser(request);
 				return user ? { principal: user } : null;
 			}
-		}
+		},
+		...extra
 	});
 
 	const html = (text: string, headers: Record<string, string> = {}, status = 200) =>

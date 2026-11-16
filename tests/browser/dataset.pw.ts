@@ -104,6 +104,24 @@ test.beforeAll(async () => {
 				query: SCHEMA,
 				freshness: { maxStale: 2, mode: 'soft' },
 				load: () => ({})
+			}),
+			defineRoute('/plan', {
+				strategy: 'template',
+				template: {
+					source: '<main><ul>{{#each rows}}<li>{{dept}} {{n}}</li>{{/each}}</ul></main>'
+				},
+				query: {
+					list: 'rows',
+					dataset: NAME,
+					plan: {
+						from: ['id', 'dept'],
+						where: [{ field: 'dept', op: 'eq', param: 'dept', type: 'string' }],
+						group: { by: ['dept'], aggregates: { n: 'count' } },
+						pageSize: 5,
+						limit: 100
+					}
+				},
+				load: () => ({})
 			})
 		],
 		store: memoryStore(),
@@ -111,6 +129,17 @@ test.beforeAll(async () => {
 	});
 	const app = (request: Request) => {
 		const url = new URL(request.url);
+		if (url.pathname === '/plan') {
+			const dept = url.searchParams.get('dept');
+			const groups = [...DEPTS]
+				.sort()
+				.filter((d) => dept === null || d === dept)
+				.map((d) => `<li>${d} ${sorted().filter((r) => r.dept === d).length}</li>`)
+				.join('');
+			return new Response(`<main><ul>${groups}</ul></main>`, {
+				headers: { 'content-type': 'text/html; charset=utf-8' }
+			});
+		}
 		if (url.pathname !== '/browse') return new Response('not found', { status: 404 });
 		const dept = url.searchParams.get('dept');
 		const n = Number(url.searchParams.get('page') ?? '1');
@@ -208,12 +237,26 @@ test('holds a dataset, answers queries from it offline, applies a patch, and rec
 	expect((await datasets(tab)).datasets[0]?.digest).toBe(digest);
 
 	await clearSiteData(tab);
-	await tab.goto(`${origin}/browse`);
-	await seed(tab);
+	const fresh = await context.newPage();
+	await tab.close();
+	await seed(fresh);
 	await new Promise((r) => setTimeout(r, 600));
 	log.length = 0;
-	await tab.goto(`${origin}/browse?dept=art&page=1`);
-	await expect(tab.locator('li')).toHaveText(expected('art', 1));
+	await fresh.goto(`${origin}/browse?dept=art&page=1`);
+	await expect(fresh.locator('li')).toHaveText(expected('art', 1));
 	expect(own()).toEqual([]);
-	expect((await datasets(tab)).datasets[0]?.digest).toBe(digest);
+	expect((await datasets(fresh)).datasets[0]?.digest).toBe(digest);
+});
+
+test('answers a plan route from the held rows with no server request', async ({ page: tab }) => {
+	await seed(tab);
+	await new Promise((r) => setTimeout(r, 600));
+	await tab.goto(`${origin}/plan`);
+	await expect.poll(() => artifacts(tab)).toContain('/plan');
+	await tab.goto(`${origin}/plan`);
+	await new Promise((r) => setTimeout(r, 600));
+	log.length = 0;
+	await tab.goto(`${origin}/plan?dept=cs`);
+	await expect(tab.locator('li')).toHaveText(['cs 34']);
+	expect(own()).toEqual([]);
 });
