@@ -6,7 +6,10 @@ Spool is before 1.0. Security fixes go into the latest minor release only.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.1.x   | yes       |
+| 0.4.x   | yes       |
+| 0.3.x   | no        |
+| 0.2.x   | no        |
+| 0.1.x   | no        |
 
 A fix ships as a new patch version on npm and on `cdn.drupflare.com`. Release files on the CDN are
 immutable, so a site that pins a version and its SRI hash keeps the old file until it moves to the
@@ -56,10 +59,11 @@ The full threat model, with the code path and test behind each claim, is
 - **Logout wipes before the request leaves**, offline too, for every tab of the origin.
 - **Revocation is bounded by freshness.** A principal route is hard-bounded at five minutes by
   default, and the first required sync after a permission change drops the page.
-- **The page runtime loads with SRI** from the CDN, or from the site's own origin for strict
-  content security policies. If it fails to load, the page works as it did without spool.
-- **Analytics are deferred, never fabricated.** Held events go to their original endpoint later,
-  and events past their age cap are dropped and counted.
+- **The page runtime loads from the site's own origin by default.** With `cdn` set, it loads from
+  the CDN with an SRI hash. If it fails to load, the page works as it did without spool.
+- **Analytics are deferred.** Held events go to their original endpoint later, and events past
+  their age cap are dropped and counted. Spool sends no vendor event of its own. The worker's
+  immediate reply to a held request is synthetic.
 
 ## Known Limitations
 
@@ -69,9 +73,11 @@ signed-in data behind spool.
 
 ## Maintenance
 
-Gregory Mitchell maintains spool. Dependencies are kept current through Renovate, and every change
-runs the full gate in CI: typecheck, the unit and node suites, the browser lane in Chromium,
-Firefox and WebKit, and the check that the published impact page matches its readings.
+Gregory Mitchell maintains spool. Dependencies are kept current through Renovate. Pushes and pull
+requests to `master`, `ver/*`, `feat/*` and `renovate/*` run the gate in CI. `build.yml` runs the
+typecheck, the unit and node suites, the check that the published impact page matches its readings,
+and the build. `browser.yml` runs the browser lane in Chromium, Firefox and WebKit. Prettier and
+coverage run in their own workflows.
 
 Security-relevant contributions are welcome through pull requests. A fix for a reported issue
 lands with a regression test that fails without it. Keep exploit details out of public pull
