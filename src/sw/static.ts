@@ -122,16 +122,20 @@ export function splitBody(body: ReadableStream<Uint8Array>): {
 }
 
 /**
- * The response a visitor gets and the copy the runtime keeps from one network answer. A 200 body is
- * split (see {@link splitBody}); any other body is cloned, so a status the runtime never keeps keeps
- * the tee the capture path cancels. A redirect and a body-less answer are cloned too.
+ * The response a visitor gets and the copy the runtime keeps from one network answer. Every body is
+ * split (see {@link splitBody}), whatever its status. A redirect and a body-less answer are cloned,
+ * because a split response would lose the redirect's url and a body-less one has no stream.
  */
 export function branch(response: Response): { visitor: Response; copy: Response } {
-	if (response.status !== 200 || response.redirected || !response.body) {
+	if (response.redirected || !response.body) {
 		return { visitor: response, copy: response.clone() };
 	}
 	const { visitor, capture } = splitBody(response.body);
-	const init = { status: 200, statusText: response.statusText, headers: response.headers };
+	const init = {
+		status: response.status,
+		statusText: response.statusText,
+		headers: response.headers
+	};
 	return { visitor: new Response(visitor, init), copy: new Response(capture, init) };
 }
 

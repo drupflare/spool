@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { splitBody } from '../../src/sw/static';
+import { branch, splitBody } from '../../src/sw/static';
 
 // A service worker answers a navigation with a body that errors after `failAfter` chunks.
 // `bare` returns the body; `tee` also reads a clone eagerly, as the runtime did; `tee-gap` does
@@ -32,10 +32,22 @@ function drain(stream) {
 	})();
 }
 ${splitBody.toString()}
+${branch.toString()}
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (event) => {
 	const url = new URL(event.request.url);
+	if (url.pathname.startsWith('/status/')) {
+		const [mode, code] = url.pathname.split('/').slice(2);
+		const origin = new Response('<html><body><i>c0</i><i>c1</i></body></html>', {
+			status: Number(code),
+			headers: { 'content-type': 'text/html; charset=utf-8' }
+		});
+		if (mode === 'bare') return event.respondWith(origin);
+		const { visitor, copy } = branch(origin);
+		void drain(copy.body);
+		return event.respondWith(visitor);
+	}
 	if (!url.pathname.startsWith('/probe/')) return;
 	const [mode, failAfter, end] = url.pathname.split('/').slice(2);
 	const body = source(Number(failAfter), mode === 'tee-gap', end !== 'close');
@@ -109,4 +121,30 @@ test('the split visitor shows what the bare body shows, in every engine', async 
 	await visit('split', 'error');
 	await visit('tee', 'error');
 	await visit('tee-gap', 'error');
+});
+
+test('a split non-200 body shows what the bare body shows, in every engine', async ({ page }) => {
+	await page.goto(`${origin}/`);
+	await page.evaluate(async () => {
+		await navigator.serviceWorker.register('/sw.js');
+		await navigator.serviceWorker.ready;
+	});
+
+	for (const code of [404, 500, 206]) {
+		const shown: Record<string, unknown> = {};
+		for (const mode of ['bare', 'branch']) {
+			const response = await page
+				.goto(`${origin}/status/${mode}/${code}`, { waitUntil: 'load', timeout: 5000 })
+				.catch((error: Error) => error.message.split('\n')[0]);
+			const html = await page
+				.content()
+				.catch((error: Error) => `content failed: ${error.message}`);
+			shown[mode] = {
+				status: typeof response === 'string' ? response : response?.status(),
+				got: [...html.matchAll(/<i>(c\d+)<\/i>/g)].map((m) => m[1])
+			};
+		}
+		console.log('PROBE', JSON.stringify({ engine: test.info().project.name, code, shown }));
+		expect(shown['branch']).toEqual(shown['bare']);
+	}
 });

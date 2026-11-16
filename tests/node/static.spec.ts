@@ -11,7 +11,13 @@ import {
 import { classify } from '../../src/sw/router';
 import { createRuntime } from '../../src/sw/runtime';
 import { manifestConfig } from '../../src/sw/serve';
-import { matchesVersion, MAX_STATIC_BYTES, readCapped, replayHeaders } from '../../src/sw/static';
+import {
+	branch,
+	matchesVersion,
+	MAX_STATIC_BYTES,
+	readCapped,
+	replayHeaders
+} from '../../src/sw/static';
 import { memoryStorage } from '../../src/sw/storage';
 import { fakeCaches, nav, ORIGIN, sub } from './helpers';
 import { HTML, rig } from './rig';
@@ -567,6 +573,68 @@ describe('the worker static helpers', () => {
 		expect(await readCapped(new Response(null), 3)).toEqual(new Uint8Array());
 		const announced = new Response(body, { headers: { 'content-length': '999' } });
 		expect(await readCapped(announced, 10)).toBeNull();
+	});
+
+	const failing = (chunks: string[]) => {
+		let next = 0;
+		return new ReadableStream<Uint8Array>(
+			{
+				pull(controller) {
+					if (next === chunks.length) controller.error(new Error('connection reset'));
+					else controller.enqueue(new TextEncoder().encode(chunks[next++]));
+				}
+			},
+			{ highWaterMark: 0 }
+		);
+	};
+	const read = async (stream: ReadableStream<Uint8Array>) => {
+		const reader = stream.getReader();
+		let got = '';
+		for (;;) {
+			try {
+				const step = await reader.read();
+				if (step.done) return { got, failed: false };
+				got += new TextDecoder().decode(step.value, { stream: true });
+			} catch {
+				return { got, failed: true };
+			}
+		}
+	};
+
+	it.each([200, 404, 206, 500])(
+		'gives the visitor a %s body every chunk the network sent when it then fails and the copy is read',
+		async (status) => {
+			const { visitor, copy } = branch(
+				new Response(failing(['one', 'two', 'three']), { status })
+			);
+			const copied = read(copy.body as ReadableStream<Uint8Array>);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(visitor.status).toBe(status);
+			expect(await read(visitor.body as ReadableStream<Uint8Array>)).toEqual({
+				got: 'onetwothree',
+				failed: true
+			});
+			expect((await copied).failed).toBe(true);
+		}
+	);
+
+	it('lets the visitor finish a body whose copy was cancelled', async () => {
+		const { visitor, copy } = branch(new Response(failing(['one', 'two']), { status: 404 }));
+		await copy.body?.cancel();
+		expect(await read(visitor.body as ReadableStream<Uint8Array>)).toEqual({
+			got: 'onetwo',
+			failed: true
+		});
+	});
+
+	it('hands a redirect and a body-less answer back as they came, with a clone', async () => {
+		const redirect = new Response('moved', { status: 200 });
+		Object.defineProperty(redirect, 'redirected', { value: true });
+		for (const response of [redirect, new Response(null, { status: 304 })]) {
+			const { visitor, copy } = branch(response);
+			expect(visitor).toBe(response);
+			expect(copy).not.toBe(response);
+		}
 	});
 
 	it('checks a hash, a tag and a label', async () => {
