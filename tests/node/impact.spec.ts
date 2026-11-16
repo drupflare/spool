@@ -665,7 +665,11 @@ describe('the idle-activity-tabs section', () => {
 	};
 
 	it('is absent from the page without a tabs reading', () => {
-		const text = render(template(), buildFigures(loadReadings()));
+		const readings = loadReadings();
+		for (const key of [...readings.keys()]) {
+			if (key.endsWith('-idle-activity-tabs.json')) readings.delete(key);
+		}
+		const text = render(template(), buildFigures(readings));
 		expect(text).not.toContain(HEADING);
 		expect(text).not.toContain('{{');
 	});
