@@ -1,6 +1,6 @@
 # 🧵 spool
 
-> An incremental application replica for the browser
+> A browser replica that removes repeated demand from your server
 
 [![Build](https://github.com/drupflare/spool/actions/workflows/build.yml/badge.svg)](https://github.com/drupflare/spool/actions/workflows/build.yml)
 [![Browser](https://github.com/drupflare/spool/actions/workflows/browser.yml/badge.svg)](https://github.com/drupflare/spool/actions/workflows/browser.yml)
@@ -8,9 +8,16 @@
 [![codecov](https://codecov.io/gh/drupflare/spool/branch/master/graph/badge.svg)](https://codecov.io/gh/drupflare/spool)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-spool keeps a replica of what a page needs on the visitor's device. The server sends templates
-and authorised, versioned data. A service worker stores them and computes eligible pages on the
-device, so a repeat view makes no request and costs the server no work.
+spool removes repeated execution demand from your server. It keeps a replica of what a page needs
+on the visitor's device. The server sends templates and authorised, versioned data, and a service
+worker computes eligible pages from them. A page answered there is a request that never reaches
+your Worker or origin, and server work that never runs. The contract is a count: a test asserts
+the server hits of a local view, and in Chromium and Firefox the count is zero.
+
+spool has three uses. In a drupflare deployment it takes eligible public views off the Worker.
+For a team on a free or constrained plan it lowers the requests the plan has to carry, by an
+amount that depends on the site's traffic ([Request Arithmetic](#request-arithmetic)). It is also
+a research system: every figure it reports carries a layer and a method.
 
 It runs on any runtime that speaks `Request` and `Response`, bridges `node:http` for the rest, and
 has no runtime dependencies. A site with no server code can load it from two files and a manifest.
@@ -42,6 +49,7 @@ has no runtime dependencies. A site with no server code can load it from two fil
 - [Capacity Reports](#-capacity-reports)
 - [Security](#-security)
 - [Energy Reporting](#-energy-reporting)
+- [Prior Art](#-prior-art)
 - [Out of Scope](#-out-of-scope)
 - [Browser Support](#-browser-support)
 - [Subpath Exports](#-subpath-exports)
@@ -53,6 +61,10 @@ has no runtime dependencies. A site with no server code can load it from two fil
 ---
 
 ## 🎯 Why Spool
+
+A local view removes, in order, a request that would have reached the Worker, the server work
+behind it (rendering, queries, Durable Object and database reads), and the bytes of a document the
+device already holds. Energy follows from those and is one objective an administrator may weigh.
 
 A response is a deterministic transformation of a set of authorised, versioned dependencies. The
 server half names those dependencies and sends the snapshot the visitor may hold. The worker keeps
@@ -67,8 +79,8 @@ declared.
 A collection of thousands of rows, such as a directory or a course catalogue, can be held as a
 [dataset](#-datasets). The device seeds it once and then receives only the rows that changed.
 
-[docs/impact.md](docs/impact.md) holds the energy model and the measurements behind it. See
-[Energy Reporting](#-energy-reporting).
+[docs/impact.md](docs/impact.md) holds the request, cost and energy figures and the measurements
+behind them. See [Energy Reporting](#-energy-reporting).
 
 ---
 
@@ -2013,6 +2025,32 @@ numbers are made up. `channelRows` lists the metered, attributional, capacity an
 channels as separate rows, and nothing in the module sums them. [docs/impact.md](docs/impact.md#channels)
 says what each one counts.
 
+### Request Arithmetic
+
+On a plan that limits requests, the question is how many views the plan carries. Name three
+inputs, each a scenario (L3) until a site's traffic supplies it:
+
+- `h`, the share of views answered on the device
+- `r`, the requests a network view makes to the platform, and `rho`, the part of them a local view
+  removes (one for the document when the page's API calls still leave)
+- `s`, the requests spool sends itself per local view: syncs, beacon flushes, catalogue asks and
+  worker script checks
+
+The platform sees `r - h * rho + h * s` requests per view, so a limit `L` carries
+`L / (r - h * rho + h * s)` views. With `r = rho = 1` this is `freeTierCeiling` in
+`@drupflare/spool/report`. Three things bound `h` below 1:
+
+- A device's first view of a site, a view after the browser evicted the replica, and a view past a
+  freshness bound all reach the network. A device that makes `v` views in a freshness window
+  answers at most `v - 1` of them locally, so `h <= 1 - 1/v` for that device.
+- A client that does not register the worker, such as a crawler, answers none.
+- A request outside every route family always leaves.
+
+A limit on CPU per request, such as the 10 ms of the Workers Free plan, does not change with `h`.
+The docs' free-tier table uses one sync per 20 local views as an illustration. No multiplier
+follows from the formula until a site's `v`, its share of clients that cannot answer locally and
+`s` are measured.
+
 ---
 
 ## 🔒 Security
@@ -2033,6 +2071,10 @@ each claim and lists the open limitations in one table. Report a vulnerability a
 
 ## 🔋 Energy Reporting
 
+Energy is one objective among those spool reports, and the administrator decides how much weight
+it gets. The energy of one deployment is small against an institution's total, and small against
+the idle and hosting energy drupflare removes per site. The figures below are research figures.
+
 [docs/impact.md](docs/impact.md) is generated from the readings in `measurements/` by
 `bun run impact`, and `bun run impact:check` fails when the page differs from them. Energy is
 reported in kWh per million views, and nothing sets a target intensity. Every figure carries a
@@ -2044,6 +2086,25 @@ never add to the local-view figure.
 [An Institution's Figures](docs/impact.md#an-institutions-figures) leads with economics, storage
 and trust and treats energy as a research figure. [What This Does Not
 Claim](docs/impact.md#what-this-does-not-claim) lists what the page leaves unsaid.
+
+---
+
+## 🧬 Prior Art
+
+spool is a server-authoritative replica whose freshness policy lets a provisioned view render with
+no per-view validation request, with shadow mode and a fall back to the server for anything it
+cannot answer. HTTP caching, service-worker precaching and earlier replication systems cover parts
+of it. What is shared and what differs:
+
+| System             | What it does                                                  | Shared with spool                               | Difference                                                                                |
+| ------------------ | ------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| HTTP caching       | reuses a response within `max-age` with no validation         | a repeat view with no request                   | one response at a time; no per-dependency invalidation and no held collections            |
+| Workbox precaching | answers a precached navigation from the cache with no request | a worker answering a navigation with no request | the list and its revisions are fixed at build time and refresh when a new worker installs |
+| Fawkes (NSDI 2020) | caches static page templates and sends a patch of DOM updates | a cached template, the server authoritative     | the patch is requested on every load, so a cached template never answers a view alone     |
+| Speculation Rules  | prefetches or prerenders pages the visitor may open next      | acting on a predicted next view                 | the origin answers every speculated request, used or not                                  |
+
+Sync Kit (WWW 2010) also keeps templates and data in the browser to reduce server load. The
+[technical report](TECHNICAL_REPORT.md#executive-summary) states the narrow claim.
 
 ---
 
