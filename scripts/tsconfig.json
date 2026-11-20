@@ -2,7 +2,21 @@
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
-		"types": ["bun"]
+		"types": ["bun"],
+		"paths": {
+			"@drupflare/spool/angular": ["../src/angular/index.ts"],
+			"@drupflare/spool/express": ["../src/express/index.ts"],
+			"@drupflare/spool/hono": ["../src/hono/index.ts"],
+			"@drupflare/spool/next": ["../src/next/index.ts"],
+			"@drupflare/spool/node": ["../src/node/listener.ts"],
+			"@drupflare/spool/protocol": ["../src/protocol/index.ts"],
+			"@drupflare/spool/proxy": ["../src/proxy/index.ts"],
+			"@drupflare/spool/react-router": ["../src/react-router/index.ts"],
+			"@drupflare/spool/server": ["../src/server/index.ts"],
+			"@drupflare/spool/stores": ["../src/stores/index.ts"],
+			"@drupflare/spool/vite": ["../src/vite/index.ts"],
+			"@drupflare/spool/vue": ["../src/vue/index.ts"]
+		}
 	},
 	"include": ["./**/*.ts", "../tests/node/elysia.spec.ts", "../tests/node/readme/elysia.ts"],
 	"exclude": []
