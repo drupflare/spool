@@ -147,7 +147,7 @@ export async function startProxy(kind: Kind): Promise<ProxyFixture> {
 	const originHits: string[] = [];
 	const proxy = spoolProxy({
 		origin: origin.url,
-		spool: { store: memoryStore() },
+		spool: { store: memoryStore(), bootstrap: 'first-view' },
 		routes: [{ pattern: `${prefix}/:id`, freshness: { maxStale: BOUND, mode: 'hard' } }],
 		purgeSecret: SECRET,
 		fetch: (request) => {

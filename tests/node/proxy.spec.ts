@@ -6,6 +6,7 @@ import { decodeEnvelope, parseArtifact, ProtocolError, shellHash } from '../../s
 import {
 	cookieNames,
 	decline,
+	DECLINE_PATH,
 	equalSecrets,
 	htmlCharset,
 	isUtf8,
@@ -109,6 +110,22 @@ describe('forwarding', () => {
 		expect((await s.call('/spool-sw.js')).headers.get('content-type')).toContain('javascript');
 		expect((await s.call('/.spool/sync?from=0')).status).toBe(200);
 		expect((await s.call('/.spool/nothing')).status).toBe(404);
+		expect(s.hits).toHaveLength(0);
+	});
+
+	it('answers a matching If-None-Match on the worker script with 304, never asking the origin', async () => {
+		const s = setup();
+		const full = await s.call('/spool-sw.js');
+		const etag = full.headers.get('etag');
+		expect(etag).toBe(`"${await shellHash(await full.text())}"`);
+		const same = await s.call('/spool-sw.js', { headers: { 'if-none-match': etag! } });
+		expect(same.status).toBe(304);
+		expect(await same.text()).toBe('');
+		expect(same.headers.get('etag')).toBe(etag);
+		expect(same.headers.get('cache-control')).toBe(full.headers.get('cache-control'));
+		expect((await s.call('/spool-sw.js', { headers: { 'if-none-match': '"x"' } })).status).toBe(
+			200
+		);
 		expect(s.hits).toHaveLength(0);
 	});
 
@@ -240,7 +257,7 @@ describe('eligibility', () => {
 			const drop = response.headers.get('spool-invalidate');
 			if (page) expect(drop).toContain(encodeURIComponent('spool:artifact:/p'));
 			else expect(drop).toBeNull();
-			expect(await response.text()).not.toContain('data-spool-client');
+			expect(await response.text()).not.toMatch(/data-spool-(client|gate)/);
 		}
 	);
 
@@ -296,7 +313,7 @@ describe('eligibility', () => {
 		const s = setup();
 		const get = await s.call('/page');
 		expect(envelopeOf(get).artifact).toMatchObject({ id: '/page', scope: 'public' });
-		expect(await get.text()).toContain('data-spool-client');
+		expect(await get.text()).toContain('data-spool-gate');
 		const head = await s.call('/page', { method: 'HEAD' });
 		expect(envelopeOf(head).artifact?.id).toBe('/page');
 	});
@@ -608,7 +625,7 @@ describe('the artifact', () => {
 	it('is the origin page as the shell, loaded once more with the visitor cookies and nothing else', async () => {
 		const s = setup({ publicCookies: ['ok'] });
 		const first = await s.call('/page');
-		expect(await first.text()).toContain('data-spool-client');
+		expect(await first.text()).toContain('data-spool-gate');
 		expect(s.hits).toHaveLength(1);
 		const response = await s.call('/.spool/artifact?path=/page&have=', {
 			headers: { cookie: 'ok=1', accept: '*/*' }
@@ -1004,8 +1021,8 @@ describe('over a real origin', () => {
 		expect(page.headers.has('content-encoding')).toBe(false);
 		const html = await page.text();
 		expect(html).toContain('<p>body</p>');
-		expect(html).toContain('data-spool-client');
-		expect(html.match(/data-spool-client/g)).toHaveLength(1);
+		expect(html).toContain('data-spool-gate');
+		expect(html.match(/data-spool-gate/g)).toHaveLength(1);
 
 		const moved = await fetch(`${front}/moved`, { redirect: 'manual' });
 		expect(moved.status).toBe(302);
@@ -1261,19 +1278,21 @@ describe('the first payload', () => {
 	});
 
 	it('leaves a route in shadow mode to the beacon, as without the hash', async () => {
-		const shadow = payload({ spool: { store: memoryStore(), mode: 'shadow' } });
+		const shadow = payload({ spool: { store: memoryStore(), mode: 'shadow', views: true } });
 		await shadow.drive(nav('/page'));
 		expect(shadow.artifactRequests).toEqual([]);
 		const withHash = shadow.hits.length;
 		expect(withHash).toBe(2);
 		expect((await shadow.runtime.replica.get('/page'))?.artifact.id).toBe('/page');
-		const bare = payload({ spool: { store: memoryStore(), mode: 'shadow' } }, (r) =>
-			rebody(r, r.body as ReadableStream, {
-				'spool-artifact': (r.headers.get('spool-artifact') as string).replace(
-					/; h=[\w-]+/,
-					''
-				)
-			})
+		const bare = payload(
+			{ spool: { store: memoryStore(), mode: 'shadow', views: true } },
+			(r) =>
+				rebody(r, r.body as ReadableStream, {
+					'spool-artifact': (r.headers.get('spool-artifact') as string).replace(
+						/; h=[\w-]+/,
+						''
+					)
+				})
 		);
 		await bare.drive(nav('/page'));
 		expect(bare.hits).toHaveLength(withHash);
@@ -1296,7 +1315,10 @@ describe('the first payload', () => {
 			},
 			async (r) => {
 				const text = await r.text();
-				const shell = text.replace(/<script[^>]*data-spool-client[^>]*><\/script>/, '');
+				const shell = text.replace(
+					/<script[^>]*data-spool-(?:client|gate)[^>]*>(?:.*?<\/script>)?/s,
+					''
+				);
 				const header = r.headers.get('spool-artifact') as string;
 				return rebody(r, text, {
 					'spool-artifact': `${header}; h=${await shellHash(shell)}`
@@ -1307,5 +1329,91 @@ describe('the first payload', () => {
 		await s.drive(nav('/me', { headers: { cookie: 'SESS=1' } }));
 		expect(s.artifactRequests).toEqual([]);
 		expect(await s.runtime.replica.get('/me')).toBeUndefined();
+	});
+});
+
+describe('the decline record', () => {
+	function recorded(over: Partial<ProxyOptions> = {}) {
+		const sink = memorySink();
+		const s = setup({ spool: { store: memoryStore(), sink }, ...over });
+		const events = () => sink.events.map((event) => [event.path, JSON.parse(event.body)]);
+		return { ...s, events };
+	}
+	const declined = (reason: string, route: string, source: string) => [
+		DECLINE_PATH,
+		{ kind: 'decline', reason, route, source }
+	];
+
+	it('writes one navigation event for a page it declines, under the catch-all route', async () => {
+		const s = recorded();
+		await s.call('/page', { headers: { cookie: 'SESS=1' } });
+		expect(s.events()).toEqual([declined('cookie', '/**', 'navigation')]);
+	});
+
+	it('writes one artifact event when the artifact build declines', async () => {
+		const s = recorded();
+		await s.call('/.spool/artifact?path=/page', { headers: { cookie: 'SESS=1' } });
+		expect(s.events()).toEqual([declined('cookie', '/**', 'artifact')]);
+	});
+
+	it('writes two events with different sources for a page declined at both', async () => {
+		const s = recorded();
+		const cookie = { headers: { cookie: 'SESS=1' } };
+		await s.call('/page', cookie);
+		await s.call('/.spool/artifact?path=/page', cookie);
+		expect(s.events()).toEqual([
+			declined('cookie', '/**', 'navigation'),
+			declined('cookie', '/**', 'artifact')
+		]);
+	});
+
+	it('names the declared route and never the request path', async () => {
+		const s = recorded({ routes: [{ pattern: '/docs/:id' }] });
+		s.replies.set('/docs/7', {
+			body: PAGE,
+			headers: { 'content-type': HTML, 'cache-control': 'private' }
+		});
+		await s.call('/docs/7');
+		expect(s.events()).toEqual([declined('private', '/docs/:id', 'navigation')]);
+		expect(JSON.stringify(s.events())).not.toContain('/docs/7');
+	});
+
+	it('records a page declined for its size, at the navigation and at the artifact', async () => {
+		const s = recorded({ maxBytes: 10 });
+		s.replies.set('/lie', {
+			body: 'x'.repeat(50),
+			headers: { 'content-type': HTML }
+		});
+		await s.call('/lie');
+		await s.call('/.spool/artifact?path=/lie');
+		expect(s.events()).toEqual([
+			declined('size', '/**', 'navigation'),
+			declined('size', '/**', 'artifact')
+		]);
+	});
+
+	it('writes none for a page it keeps, or for a response that is not a page', async () => {
+		const s = recorded();
+		s.replies.set('/site.css', { body: 'p{}', headers: { 'content-type': 'text/css' } });
+		await s.call('/page');
+		await s.call('/.spool/artifact?path=/page');
+		await s.call('/site.css', { headers: { cookie: 'SESS=1' } });
+		expect(s.events()).toEqual([]);
+	});
+
+	it('serves the page as before when the sink throws', async () => {
+		const s = setup({
+			spool: {
+				store: memoryStore(),
+				sink: {
+					write: () => {
+						throw new Error('sink down');
+					}
+				}
+			}
+		});
+		const response = await s.call('/page', { headers: { cookie: 'SESS=1' } });
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe(PAGE);
 	});
 });

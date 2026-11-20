@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { normalise } from '../../src/protocol/index';
+import { controlled } from './fixture';
 import { BOUND, startProxy, type Kind, type ProxyFixture } from './fixture-proxy';
 
 /**
@@ -49,7 +50,7 @@ for (const kind of ['node', 'php'] as Kind[]) {
 		/** registers the worker through the page runtime, then visits every page so each is provisioned */
 		async function warm(page: Page): Promise<void> {
 			await page.goto(`${fx.front}${paths()[0]}`);
-			await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+			await controlled(page);
 			await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 			for (const path of paths()) {
 				await page.goto(`${fx.front}${path}`);
@@ -165,7 +166,7 @@ for (const kind of ['node', 'php'] as Kind[]) {
 		}) => {
 			const [p1, p2] = paths() as [string, string];
 			await page.goto(`${fx.front}${p1}`);
-			await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+			await controlled(page);
 			await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 			for (const path of [p1, p2]) {
 				await page.goto(`${fx.front}${path}`);

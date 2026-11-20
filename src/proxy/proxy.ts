@@ -44,6 +44,7 @@ import {
 	decline,
 	htmlCharset,
 	isUtf8,
+	recordDecline,
 	setsPrivateCookie,
 	type Decline,
 	type Gate
@@ -395,7 +396,18 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		}
 	}
 
-	async function fetchPage(ctx: RouteContext, data: boolean, principal: boolean): Promise<Page> {
+	/** records the decline for the route pattern, then fails the artifact build with the reason */
+	async function refuse(route: string, why: Decline, path: string): Promise<never> {
+		await recordDecline(options.spool.sink, why, route, 'artifact');
+		throw new ProtocolError('bad-artifact', `${path} is not kept (${why})`);
+	}
+
+	async function fetchPage(
+		ctx: RouteContext,
+		data: boolean,
+		principal: boolean,
+		route: string
+	): Promise<Page> {
 		const path = ctx.url.pathname;
 		const headers = originHeaders(ctx.request.headers, new URL(ctx.request.url));
 		for (const name of [
@@ -427,10 +439,10 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			},
 			gate
 		);
-		if (why) throw new ProtocolError('bad-artifact', `${path} is not kept (${why})`);
+		if (why) return refuse(route, why, path);
 		const bytes = new Uint8Array(await response.arrayBuffer());
 		if (!data && !isUtf8(htmlCharset(response.headers, bytes))) {
-			throw new ProtocolError('bad-artifact', `${path} is not kept (charset)`);
+			return refuse(route, 'charset', path);
 		}
 		let text = guarded(new TextDecoder().decode(bytes), ctx.url.href);
 		// a signal-triggered rewrite is never part of a held copy
@@ -438,18 +450,21 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			text = rewriteVideo(text, video, { saveData: false, slow: false }).html;
 		}
 		if (!data) text = rewriteMarkup(text, response.headers, ctx.url.href, false);
-		if (text.length > gate.maxBytes) {
-			throw new ProtocolError('bad-artifact', `${path} is not kept (size)`);
-		}
+		if (text.length > gate.maxBytes) return refuse(route, 'size', path);
 		const effective = tags.length > 0 ? tags : [pathTag(path)];
 		if (!principal) await settle(path, text, effective);
 		return { text, tags: effective };
 	}
 
-	function pageFor(ctx: RouteContext, data: boolean, principal: boolean): Promise<Page> {
+	function pageFor(
+		ctx: RouteContext,
+		data: boolean,
+		principal: boolean,
+		route: string
+	): Promise<Page> {
 		const known = pages.get(ctx.request);
 		if (known && known.path === ctx.url.pathname) return known.page;
-		const page = fetchPage(ctx, data, principal);
+		const page = fetchPage(ctx, data, principal, route);
 		pages.set(ctx.request, { path: ctx.url.pathname, page });
 		return page;
 	}
@@ -465,7 +480,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		}
 		const extra = declaration?.depends;
 		const depends = async (ctx: RouteContext) => [
-			...(await pageFor(ctx, data, principal)).tags,
+			...(await pageFor(ctx, data, principal, pattern)).tags,
 			...(extra ? await extra(ctx) : [])
 		];
 		if (declaration?.strategy === 'data') {
@@ -474,7 +489,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 				strategy: 'data',
 				depends,
 				load: async (ctx) => {
-					const { text } = await pageFor(ctx, true, principal);
+					const { text } = await pageFor(ctx, true, principal, pattern);
 					try {
 						return JSON.parse(text);
 					} catch {
@@ -490,7 +505,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			...declaration,
 			strategy: 'assembly',
 			depends,
-			load: async (ctx) => ({ shell: (await pageFor(ctx, false, principal)).text })
+			load: async (ctx) => ({ shell: (await pageFor(ctx, false, principal, pattern)).text })
 		} as AssemblyRoute);
 	}
 
@@ -501,7 +516,14 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 	const spool = createSpool({ ...options.spool, routes });
 
 	/** a page the proxy declines tells the worker to drop its copy of that path, in the same response */
-	async function unfit(response: Response, path: string, why: Decline, page: boolean) {
+	async function unfit(
+		response: Response,
+		path: string,
+		why: Decline,
+		page: boolean,
+		route: string
+	) {
+		if (page) await recordDecline(options.spool.sink, why, route, 'navigation');
 		if (!page || why === 'query') return response;
 		const headers = new Headers(response.headers);
 		writeEnvelope(headers, { invalidate: { [artifactTag(path)]: (await store.cursor()) + 1 } });
@@ -525,7 +547,7 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		if (url.pathname === PURGE_PATH) return respondPurge(request, options.purgeSecret, purge);
 		const answered = await spool.respond(request);
 		if (answered) return answered;
-		if (url.pathname === PATHS.worker && request.method === 'GET') return spool.stub();
+		if (url.pathname === PATHS.worker && request.method === 'GET') return spool.stub(request);
 
 		const converting = images !== undefined && imageRequest(images, request);
 		let visitorRewrite = false;
@@ -631,16 +653,17 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 			},
 			gate
 		);
-		if (why) return unfit(new Response(upstream.body, init), url.pathname, why, page);
+		const route = hit.route.pattern;
+		if (why) return unfit(new Response(upstream.body, init), url.pathname, why, page, route);
 
 		const bytes = new Uint8Array(await upstream.arrayBuffer());
 		if (!data && !isUtf8(htmlCharset(upstream.headers, bytes))) {
-			return unfit(new Response(bytes, init), url.pathname, 'charset', page);
+			return unfit(new Response(bytes, init), url.pathname, 'charset', page, route);
 		}
 		const text = new TextDecoder().decode(bytes);
 		headers.delete('content-length');
 		if (text.length > gate.maxBytes) {
-			return unfit(new Response(text, init), url.pathname, 'size', page);
+			return unfit(new Response(text, init), url.pathname, 'size', page, route);
 		}
 		const effective = tags.length > 0 ? tags : [pathTag(url.pathname)];
 		if (request.method === 'GET' && !principal) await settle(url.pathname, text, effective);
@@ -650,7 +673,10 @@ export function spoolProxy(options: ProxyOptions): SpoolProxy {
 		});
 		// a visitor-signal rewrite is not in the copy /.spool/artifact builds, so the worker asks for it
 		const same = !visitorRewrite && !data && !principal;
-		return spool.decorate(request, new Response(text, init), same ? { assembled: text } : {});
+		return spool.decorate(request, new Response(text, init), {
+			judged: true,
+			...(same ? { assembled: text } : {})
+		});
 	}
 
 	return Object.assign(handle, {
