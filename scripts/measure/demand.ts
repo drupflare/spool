@@ -84,6 +84,8 @@ export type Driver = {
 	controlled(): Promise<boolean>;
 	/** the page's `Date.now()`, which the multi-day arms compare with the faked clock */
 	now?(): Promise<number>;
+	/** waits until the worker controls the page, once the page has the client or a registration; the milliseconds waited, or null when it has neither */
+	engage?(timeoutMs: number): Promise<number | null>;
 	/** what the page holds before a view starts; used by the trace only */
 	state?(): Promise<PageState>;
 	/** the records in the sealed key store, `spool-keys`; null when it cannot be read; used by the trace only */
@@ -132,6 +134,8 @@ export type Options = {
 	dwellMs: number;
 	settleMs: number;
 	tailMs: number;
+	/** how long a multi-day spool view waits for the worker to take control of the page before the next view starts; 0 does not wait */
+	engageMs: number;
 	bootstrap: 'first-view' | 'second-view';
 	/** the pause before each in-page click, so a reader stays inside the history write budget */
 	clickGapMs: number;
@@ -885,6 +889,8 @@ export type DayRow = {
 	clock: Array<{ day: number; offsetH: number; nodeMs: number; pageMs: number | null }>;
 	/** the first heading each view showed, which is what the visitor read; null when the page had none */
 	shown?: Array<{ day: number; step: number; text: string | null }>;
+	/** how long each spool view waited for the worker to take control; null where the page had no client yet or the wait was off */
+	engaged?: Array<{ day: number; step: number; waitedMs: number | null }>;
 	/** the `spool.view` events the server received, in order; a view flushes with a later request, so the last views of a run are absent. Spool arms only */
 	workerViews?: ViewRow[];
 	fatal?: string;
@@ -913,7 +919,8 @@ export async function runDayArm(
 		paths: {},
 		days: [],
 		clock: [],
-		shown: []
+		shown: [],
+		engaged: []
 	};
 	const sink = arm === 'spool' ? memorySink() : undefined;
 	const site: Partial<LiveSite> & { handler: Handler } =
@@ -994,6 +1001,11 @@ export async function runDayArm(
 			const ok = await driver!.visit(step.path, title, 'open');
 			if (!ok) row.wrong++;
 			await driver!.wait(options.settleMs);
+			const waited =
+				arm === 'spool' && options.engageMs > 0
+					? ((await driver!.engage?.(options.engageMs).catch(() => null)) ?? null)
+					: null;
+			row.engaged!.push({ day: step.day, step: step.view, waitedMs: waited });
 			row.shown!.push({
 				day: step.day,
 				step: step.view,
@@ -1011,6 +1023,7 @@ export async function runDayArm(
 				day: step.day,
 				step: step.view,
 				ok,
+				waited,
 				after,
 				keys,
 				requests: lineOf(before)
@@ -1096,6 +1109,7 @@ export function daysDraftOf(
 			dwellMs: options.dwellMs,
 			settleMs: options.settleMs,
 			tailMs: options.tailMs,
+			engageMs: options.engageMs,
 			clockWaitMs: options.clockWaitMs,
 			bootstrap: options.bootstrap,
 			swap: options.swap,
@@ -1120,7 +1134,7 @@ export function daysDraftOf(
 
 const USAGE = `usage: bun scripts/measure/demand.ts [--dry-run] [--engines chromium,firefox,webkit]
   [--scenario <index>[,<index>]] [--out <dir>] [--work <dir>] [--force]
-  [--courses <n>] [--dwell-ms <n>] [--settle-ms <n>] [--tail-ms <n>]
+  [--courses <n>] [--dwell-ms <n>] [--settle-ms <n>] [--tail-ms <n>] [--engage-ms <n>]
   [--bootstrap first-view|second-view] [--no-swap] [--click-gap-ms <n>] [--trace <file>]
   [--machine <name>] [--days] [--clock-wait-ms <n>]
 scenarios: ${SCENARIOS.map((s, i) => `${i} ${s.name}`).join('; ')}
@@ -1139,6 +1153,7 @@ export function parseArgs(argv: string[]): Options {
 		dwellMs: 1500,
 		settleMs: 1500,
 		tailMs: 1500,
+		engageMs: 15000,
 		bootstrap: 'second-view',
 		swap: true,
 		clickGapMs: 150,
@@ -1209,6 +1224,10 @@ export function parseArgs(argv: string[]): Options {
 				break;
 			case '--tail-ms':
 				options.tailMs = int(flag, i);
+				i++;
+				break;
+			case '--engage-ms':
+				options.engageMs = int(flag, i);
 				i++;
 				break;
 			case '--bootstrap': {
@@ -1290,6 +1309,7 @@ export function dryRunPlan(options: Options, date: string) {
 		dwellMs: options.dwellMs,
 		settleMs: options.settleMs,
 		tailMs: options.tailMs,
+		engageMs: options.engageMs,
 		bootstrap: options.bootstrap,
 		swap: options.swap,
 		clickGapMs: options.clickGapMs,
@@ -1325,6 +1345,16 @@ async function playwrightLaunch({
 		},
 		wait: (ms) => page.waitForTimeout(ms),
 		controlled: () => page.evaluate(() => navigator.serviceWorker.controller !== null),
+		engage: (limit) =>
+			page.evaluate(async (ms) => {
+				const registered = (await navigator.serviceWorker.getRegistration()) !== undefined;
+				if (!registered && !('spool' in window)) return null;
+				const start = performance.now();
+				while (!navigator.serviceWorker.controller && performance.now() - start < ms) {
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
+				return Math.round(performance.now() - start);
+			}, limit),
 		now: () => page.evaluate(() => Date.now()),
 		async login(as) {
 			await context.request.post(`${origin}/login?as=${encodeURIComponent(as)}`);

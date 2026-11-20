@@ -535,6 +535,38 @@ describe('the multi-day scenarios', () => {
 		expect(session.slice(6)).toEqual(Array(6).fill(''));
 	});
 
+	it('waits for the worker to control the page after each spool view, and for no other arm', async () => {
+		const run = async (engageMs: number) => {
+			const asked: number[] = [];
+			const rows = await runDays(daysOptions({ work, scenarios: [1], engageMs }), {
+				...clocked(join(work, 'offset')),
+				launch: async (input) => {
+					const driver = await clocked(join(work, 'offset')).launch!(input);
+					return {
+						...driver,
+						engage: async (limit) => {
+							asked.push(limit);
+							return 7;
+						}
+					};
+				}
+			});
+			return { asked, rows };
+		};
+		const waiting = await run(4000);
+		expect(waiting.asked).toEqual(Array(9).fill(4000));
+		const [baseline, spool] = waiting.rows;
+		expect(baseline!.engaged!.map((e) => e.waitedMs)).toEqual(Array(9).fill(null));
+		expect(spool!.engaged!.map((e) => e.waitedMs)).toEqual(Array(9).fill(7));
+		expect(spool!.engaged!.map((e) => [e.day, e.step])).toEqual(
+			DAY_SCENARIOS[1]!.views.flatMap((count, day) =>
+				Array.from({ length: count }, (_, step) => [day, step])
+			)
+		);
+		const off = await run(0);
+		expect(off.asked).toEqual([]);
+	});
+
 	it('declares session retention on the principal page of scenarios 3 to 5 and persistent on 7 and 8', async () => {
 		const meRetention = async (index: number) =>
 			(
