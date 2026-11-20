@@ -1,0 +1,145 @@
+{
+	"groups": [
+		{
+			"title": "Start",
+			"pages": [
+				{
+					"title": "Overview",
+					"path": "README.md",
+					"description": "What spool does, the quick start and how the pieces fit."
+				},
+				{
+					"title": "Getting Started",
+					"path": "docs/getting-started.md",
+					"description": "Install, declare one route, run it and check the setup."
+				},
+				{
+					"title": "Examples",
+					"url": "https://github.com/drupflare/spool/tree/master/examples",
+					"description": "Runnable sites for each runtime, on GitHub."
+				}
+			]
+		},
+		{
+			"title": "Integrate",
+			"pages": [
+				{
+					"title": "All Adapters",
+					"path": "docs/adapters/README.md",
+					"description": "The runtime index: import path and example for each adapter."
+				}
+			],
+			"sections": [
+				{
+					"title": "Servers and Runtimes",
+					"pages": [
+						{ "title": "Node", "path": "docs/adapters/node.md" },
+						{ "title": "Express", "path": "docs/adapters/express.md" },
+						{ "title": "Fastify", "path": "docs/adapters/fastify.md" },
+						{ "title": "Koa", "path": "docs/adapters/koa.md" },
+						{ "title": "hapi", "path": "docs/adapters/hapi.md" },
+						{ "title": "NestJS", "path": "docs/adapters/nestjs.md" },
+						{ "title": "Hono", "path": "docs/adapters/hono.md" },
+						{ "title": "Elysia", "path": "docs/adapters/elysia.md" },
+						{ "title": "itty-router", "path": "docs/adapters/itty-router.md" },
+						{ "title": "Bun", "path": "docs/adapters/bun.md" },
+						{ "title": "Deno", "path": "docs/adapters/deno.md" }
+					]
+				},
+				{
+					"title": "Frameworks",
+					"pages": [
+						{ "title": "Nuxt Module", "path": "docs/adapters/nuxt-module.md" },
+						{ "title": "Nuxt and Nitro", "path": "docs/adapters/nuxt-and-nitro.md" },
+						{ "title": "Next.js", "path": "docs/adapters/nextjs.md" },
+						{ "title": "Next Adapter", "path": "docs/adapters/next-adapter.md" },
+						{ "title": "React Router", "path": "docs/adapters/react-router.md" },
+						{ "title": "Vite", "path": "docs/adapters/vite.md" },
+						{ "title": "Vue", "path": "docs/adapters/vue.md" },
+						{ "title": "Angular", "path": "docs/adapters/angular.md" }
+					]
+				},
+				{
+					"title": "Platforms",
+					"pages": [
+						{
+							"title": "Cloudflare Workers",
+							"path": "docs/adapters/cloudflare-workers.md"
+						},
+						{
+							"title": "Cloudflare Pages Functions",
+							"path": "docs/adapters/cloudflare-pages-functions.md"
+						},
+						{
+							"title": "Netlify Functions",
+							"path": "docs/adapters/netlify-functions.md"
+						},
+						{
+							"title": "Netlify Edge Functions",
+							"path": "docs/adapters/netlify-edge-functions.md"
+						},
+						{
+							"title": "Vercel Functions",
+							"path": "docs/adapters/vercel-functions.md"
+						},
+						{ "title": "AWS Lambda", "path": "docs/adapters/aws-lambda.md" },
+						{ "title": "Azure Functions", "path": "docs/adapters/azure-functions.md" },
+						{
+							"title": "Google Cloud Functions",
+							"path": "docs/adapters/google-cloud-functions.md"
+						}
+					]
+				}
+			]
+		},
+		{
+			"title": "Configure",
+			"pages": [
+				{
+					"title": "Configuration",
+					"path": "docs/configuration.md",
+					"description": "The settings most sites decide first, with defaults and recommended values."
+				},
+				{
+					"title": "Advanced Usage",
+					"path": "ADVANCED_USAGE.md",
+					"description": "Routes, freshness, datasets, authenticated data, writes, proxy mode and reports."
+				}
+			]
+		},
+		{
+			"title": "Reference",
+			"pages": [
+				{
+					"title": "Wire Protocol",
+					"path": "docs/protocol.md",
+					"description": "Paths, headers and JSON bodies, for anyone who writes an adapter."
+				},
+				{
+					"title": "API Reference",
+					"path": "api",
+					"description": "Every exported class, function, interface and type."
+				},
+				{
+					"title": "Subpath Exports",
+					"path": "README.md#subpath-exports",
+					"description": "The import path for each part of the package."
+				}
+			]
+		},
+		{
+			"title": "Trust",
+			"pages": [
+				{
+					"title": "Security",
+					"path": "docs/security.md",
+					"description": "The threat model, the controls and the limits of local answers."
+				},
+				{ "title": "Security Policy", "path": "SECURITY.md" },
+				{ "title": "Economics", "path": "docs/economics.md" },
+				{ "title": "Impact", "path": "docs/impact.md" },
+				{ "title": "Technical Report", "path": "TECHNICAL_REPORT.md" }
+			]
+		}
+	]
+}
