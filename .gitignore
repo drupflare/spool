@@ -4,6 +4,11 @@ package-lock.json
 
 # build output
 dist/
+!tests/node/readme/**/dist/
+.angular
+.nuxt
+.output
+.next
 
 # wrangler local state; `wrangler.jsonc` here is the vitest harness, not a deployable
 .wrangler
@@ -17,6 +22,7 @@ coverage/
 playwright-report/
 playwright-results/
 test-results/
+tests/node/.fences/
 
 # logs and scratch
 *.log
@@ -29,4 +35,7 @@ test-results/
 
 # typedoc output
 typedoc/
+
+# static tier written by the static examples' publish step
+examples/static/*/public/
 .claude
