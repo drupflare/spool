@@ -20,7 +20,7 @@ it. <code>proof</code> is the set proof of the whole collection at <code>cursor<
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">DatasetChanges</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#cursor">cursor</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#deletes">deletes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.DatasetDelete.html" class="tsd-signature-type tsd-kind-type-alias">DatasetDelete</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#proof">proof</a><span class="tsd-signature-symbol">?:</span> <a href="index.SetProof.html" class="tsd-signature-type tsd-kind-type-alias">SetProof</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#puts">puts</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/protocol/dataset.ts#L43">src/protocol/dataset.ts:43</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/dataset.ts#L43">src/protocol/dataset.ts:43</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -42,28 +42,28 @@ it. <code>proof</code> is the set proof of the whole collection at <code>cursor<
 <div class="tsd-comment tsd-typography"><p>the cursor these changes bring a device to</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/protocol/dataset.ts#L45">src/protocol/dataset.ts:45</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/dataset.ts#L45">src/protocol/dataset.ts:45</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="deletes"><span>deletes</span><a href="#deletes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">deletes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.DatasetDelete.html" class="tsd-signature-type tsd-kind-type-alias">DatasetDelete</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>keys of the rows to remove</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/protocol/dataset.ts#L49">src/protocol/dataset.ts:49</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/dataset.ts#L49">src/protocol/dataset.ts:49</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="proof"><code class="tsd-tag">Optional</code><span>proof</span><a href="#proof" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">proof</span><span class="tsd-signature-symbol">?:</span> <a href="index.SetProof.html" class="tsd-signature-type tsd-kind-type-alias">SetProof</a></div>
 <div class="tsd-comment tsd-typography"><p>the collection's proof at <code>cursor</code>; without it spool reads the whole collection to make one</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/protocol/dataset.ts#L51">src/protocol/dataset.ts:51</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/dataset.ts#L51">src/protocol/dataset.ts:51</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="puts"><span>puts</span><a href="#puts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">puts</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>keys of the rows to send whole; spool reads them with <code>read</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/protocol/dataset.ts#L47">src/protocol/dataset.ts:47</a></li></ul></aside></section></section></details></main>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/dataset.ts#L47">src/protocol/dataset.ts:47</a></li></ul></aside></section></section></details></main>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

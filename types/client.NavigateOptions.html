@@ -17,7 +17,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">NavigateOptions</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#clienttag">clientTag</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#renderers">renderers</a><span class="tsd-signature-symbol">?:</span> <a href="sw.Renderers.html" class="tsd-signature-type tsd-kind-type-alias">Renderers</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#store">store</a><span class="tsd-signature-symbol">:</span> <a href="sw.PackStore.html" class="tsd-signature-type tsd-kind-type-alias">PackStore</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#templates">templates</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/client/navigate.ts#L13">src/client/navigate.ts:13</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/client/navigate.ts#L13">src/client/navigate.ts:13</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -39,28 +39,28 @@
 <div class="tsd-comment tsd-typography"><p>the page runtime's script tag, so a local page carries the tag the server injects</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/client/navigate.ts#L17">src/client/navigate.ts:17</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/client/navigate.ts#L17">src/client/navigate.ts:17</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="renderers"><code class="tsd-tag">Optional</code><span>renderers</span><a href="#renderers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">renderers</span><span class="tsd-signature-symbol">?:</span> <a href="sw.Renderers.html" class="tsd-signature-type tsd-kind-type-alias">Renderers</a></div>
 <div class="tsd-comment tsd-typography"><p>custom renderers keyed by route pattern, as the worker's <code>serve</code> takes them</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/client/navigate.ts#L19">src/client/navigate.ts:19</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/client/navigate.ts#L19">src/client/navigate.ts:19</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="store"><span>store</span><a href="#store" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">store</span><span class="tsd-signature-symbol">:</span> <a href="sw.PackStore.html" class="tsd-signature-type tsd-kind-type-alias">PackStore</a></div>
 <div class="tsd-comment tsd-typography"><p>the pack store the page reads, the <code>spool-bundle</code> database the entry opens</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/client/navigate.ts#L21">src/client/navigate.ts:21</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/client/navigate.ts#L21">src/client/navigate.ts:21</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="templates"><code class="tsd-tag">Optional</code><span>templates</span><a href="#templates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">templates</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>the compiled templates the page renders with, keyed by route pattern</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/client/navigate.ts#L15">src/client/navigate.ts:15</a></li></ul></aside></section></section></details></main>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/client/navigate.ts#L15">src/client/navigate.ts:15</a></li></ul></aside></section></section></details></main>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
