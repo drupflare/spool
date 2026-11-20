@@ -82,6 +82,8 @@ export type CatalogueGuess = {
 export type RouteCommon = {
 	/** public or principal; public when absent */
 	scope?: Scope;
+	/** `principal` is the same as `scope: 'principal'`; a conflicting scope is refused */
+	auth?: 'principal';
 	/** overrides the scope's default maxStale and mode */
 	freshness?: Partial<Freshness>;
 	/** keep the artifact across worker restarts; default true */
@@ -94,7 +96,7 @@ export type RouteCommon = {
 	sync?: SyncRule;
 	/** tags the artifact is built from; records and projections the load registers are added */
 	depends?(ctx: RouteContext): readonly string[] | Promise<readonly string[]>;
-	/** a principal route's at-rest key; default `session` */
+	/** a principal route's at-rest key; default `persistent`, `session` for a shared device */
 	retention?: Retention;
 	/** overrides the provisioning priors for this route when the server decides whether to ship it */
 	provision?: {
@@ -133,15 +135,43 @@ export type QueryRoute = {
 	query?: QuerySchema;
 };
 
+/**
+ * The held dataset row a template, projection or data route renders. The row is the one whose key
+ * is the value of the route param `key`. A template or renderer receives `{ params, row }`; a data
+ * route answers with the row's JSON.
+ */
+export type Family = {
+	/** the dataset the row is read from; it must be held on the device */
+	dataset: string;
+	/** the route param whose value is the row's key, such as `id` for `/courses/:id` */
+	key: string;
+};
+
+/** the fields a template or projection route takes; a family route needs no `load` */
+export type FamilyRoute =
+	| {
+			/** binds the route to one held row; `load` is then optional */
+			family: Family;
+			/** `document` leaves this family's links and forms to the browser; absent, the page renders them */
+			navigation?: 'document';
+			/** returns the row the key names, which the server builds its own artifact from */
+			load?(ctx: RouteContext): unknown;
+	  }
+	| {
+			/** absent, so `load` returns the JSON the route renders */
+			family?: undefined;
+			/** returns the JSON the template or renderer receives */
+			load(ctx: RouteContext): unknown;
+	  };
+
 /** a route answered by rendering stored JSON through a compiled template */
 export type TemplateRoute = RouteCommon &
-	QueryRoute & {
+	QueryRoute &
+	FamilyRoute & {
 		/** renders stored JSON through the template */
 		strategy: 'template';
 		/** the template source, compiled once when the route is defined */
 		template: TemplateSource;
-		/** returns the JSON the template renders */
-		load(ctx: RouteContext): unknown;
 	};
 
 /**
@@ -169,23 +199,30 @@ export type StaticRoute = Omit<RouteCommon, 'scope' | 'persist' | 'mode' | 'rete
  * local view and the network answers.
  */
 export type ProjectionRoute = RouteCommon &
-	QueryRoute & {
+	QueryRoute &
+	FamilyRoute & {
 		/** renders stored JSON with the renderer the bundled worker holds */
 		strategy: 'projection';
-		/** returns the JSON the renderer receives */
-		load(ctx: RouteContext): unknown;
 	};
 
 /**
  * A route for a JSON read. The worker answers a GET (not a navigation) from the stored value with
- * `JSON.stringify`, so the application's own handler has to return the same JSON `load` does.
+ * `JSON.stringify`, so the application's own handler has to return the same JSON `load` does. With
+ * `family` the answer is the held row; with `origin` the GET may come from that other origin, and
+ * `query.dataset` without a `family` makes the collection of the dataset.
  */
 export type DataRoute = RouteCommon &
-	QueryRoute & {
+	QueryRoute &
+	FamilyRoute & {
 		/** answers a GET with the stored JSON */
 		strategy: 'data';
-		/** returns the JSON the local answer serializes */
-		load(ctx: RouteContext): unknown;
+		/**
+		 * the API origin a cross-origin family answers for; absent for the page's own origin. A public
+		 * route answers from the public replica. A principal route (`scope` or `auth`) answers only a
+		 * GET with an `Authorization` header, only from the signed-in partition, and stops when the
+		 * partition is wiped; every other request goes to the API.
+		 */
+		origin?: string;
 		/** the content type of the local answer; default `application/json` */
 		contentType?: string;
 	};
@@ -233,6 +270,14 @@ export type Route = {
 	documentBytes?: number;
 	/** query strings the worker answers from the stored collection */
 	query?: QuerySchema;
+	/** the held dataset row the route renders, when it declares a family */
+	family?: Family;
+	/** `document` when the page leaves this family's links and forms to the browser */
+	navigation?: 'document';
+	/** the API origin a cross-origin data family answers for */
+	origin?: string;
+	/** `false` for a family route with no load, which has no artifact to provision */
+	provisionable?: false;
 	/** tags the artifact is built from; a change to one invalidates it */
 	depends(ctx: RouteContext): readonly string[] | Promise<readonly string[]>;
 	/** returns the data the artifact is built from */
@@ -267,6 +312,14 @@ export type SerializedRoute = {
 	catalogue?: true;
 	/** the query strings the worker answers from the stored collection of a public route */
 	query?: QuerySchema;
+	/** the held dataset row the page renders; the worker answers from it with no request */
+	family?: Family;
+	/** `document` when the page leaves this family's links and forms to the browser */
+	navigation?: 'document';
+	/** the API origin a cross-origin data family answers for */
+	origin?: string;
+	/** `false` for a family route with no load, which has no artifact to provision */
+	provisionable?: false;
 };
 
 function bad(pattern: string, message: string): never {
@@ -346,6 +399,53 @@ function checkQuery(pattern: string, value: unknown): QuerySchema {
 	return out;
 }
 
+/** the validated copy of a route's `family`; throws `bad-route` for a binding the worker could not apply */
+function checkFamily(
+	pattern: string,
+	strategy: string,
+	value: unknown,
+	query: QuerySchema | undefined,
+	scope: Scope
+): Family {
+	if (strategy !== 'template' && strategy !== 'projection' && strategy !== 'data') {
+		return bad(pattern, `a ${strategy} route cannot declare family`);
+	}
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return bad(pattern, 'family must be an object');
+	}
+	const { dataset, key } = value as Record<string, unknown>;
+	if (typeof dataset !== 'string' || !DATASET_NAME.test(dataset)) {
+		return bad(pattern, 'family.dataset must be a dataset name');
+	}
+	if (typeof key !== 'string' || key === '')
+		return bad(pattern, 'family.key must be a param name');
+	if (key === 'viewer.id' && scope !== 'principal') {
+		return bad(pattern, 'family.key "viewer.id" needs auth: \'principal\'');
+	}
+	if (key !== 'viewer.id' && !pattern.split('/').includes(`:${key}`)) {
+		return bad(pattern, `family.key "${key}" is not a param of the pattern`);
+	}
+	if (query !== undefined && query.dataset !== dataset) {
+		return bad(pattern, 'a family and a query must name the same dataset');
+	}
+	return { dataset, key };
+}
+
+/** the validated copy of a data route's `origin`; an absolute http or https origin with no path */
+function checkOrigin(pattern: string, value: unknown): string {
+	if (typeof value !== 'string') return bad(pattern, 'origin must be a string');
+	let url: URL;
+	try {
+		url = new URL(value);
+	} catch {
+		return bad(pattern, `origin "${value}" is not a URL`);
+	}
+	if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.origin !== value) {
+		return bad(pattern, `origin "${value}" must be an http or https origin with no path`);
+	}
+	return value;
+}
+
 /**
  * Declares a route. Validates the pattern and the freshness contract, compiles a template, and
  * fills the defaults: freshness by scope, and `offline` as `serve` for public, `refuse` for
@@ -363,7 +463,18 @@ export function defineRoute(pattern: string, declaration: RouteDeclaration): Rou
 		if (declaration.mode !== undefined) return bad(pattern, 'a static route has no mode');
 		if (declaration.load !== undefined) return bad(pattern, 'a static route has no load');
 	}
-	const scope = declaration.scope ?? 'public';
+	const auth = (declaration as { auth?: unknown }).auth;
+	if (auth !== undefined && auth !== 'principal') {
+		return bad(pattern, `unknown auth "${String(auth)}"`);
+	}
+	if (
+		auth !== undefined &&
+		declaration.scope !== undefined &&
+		declaration.scope !== 'principal'
+	) {
+		return bad(pattern, 'auth principal needs a principal scope');
+	}
+	const scope: Scope = auth === 'principal' ? 'principal' : (declaration.scope ?? 'public');
 	if (scope !== 'public' && scope !== 'principal')
 		return bad(pattern, `unknown scope "${scope}"`);
 	const freshness = { ...DEFAULT_FRESHNESS[scope], ...declaration.freshness };
@@ -388,11 +499,18 @@ export function defineRoute(pattern: string, declaration: RouteDeclaration): Rou
 	) {
 		return bad(pattern, `unknown mode "${String(declaration.mode)}"`);
 	}
-	if (declaration.strategy !== 'static' && typeof declaration.load !== 'function') {
+	const family = (declaration as { family?: unknown }).family;
+	const origin = (declaration as { origin?: unknown }).origin;
+	if (
+		declaration.strategy !== 'static' &&
+		family === undefined &&
+		origin === undefined &&
+		typeof declaration.load !== 'function'
+	) {
 		return bad(pattern, 'load is required');
 	}
 	const declared = declaration.strategy === 'static' ? undefined : declaration.retention;
-	const retention = declared ?? 'session';
+	const retention = declared ?? 'persistent';
 	if (retention !== 'persistent' && retention !== 'session') {
 		return bad(pattern, `unknown retention "${String(retention)}"`);
 	}
@@ -442,6 +560,36 @@ export function defineRoute(pattern: string, declaration: RouteDeclaration): Rou
 			);
 		}
 	}
+	if (family !== undefined) {
+		route.family = checkFamily(pattern, declaration.strategy, family, route.query, scope);
+	}
+	const navigation = (declaration as { navigation?: unknown }).navigation;
+	if (navigation !== undefined) {
+		if (family === undefined) return bad(pattern, 'navigation applies to a family route');
+		if (navigation !== 'document') {
+			return bad(pattern, `unknown navigation "${String(navigation)}"`);
+		}
+		route.navigation = 'document';
+	}
+	if (origin !== undefined) {
+		if (declaration.strategy !== 'data')
+			return bad(pattern, 'only a data route declares origin');
+		if (family === undefined && route.query?.dataset === undefined) {
+			return bad(pattern, 'origin needs a family or a query over a dataset');
+		}
+		if (route.family?.key === 'viewer.id') {
+			return bad(pattern, 'family.key "viewer.id" is not available on a cross-origin route');
+		}
+		route.origin = checkOrigin(pattern, origin);
+	}
+	// viewer.id reads its row from the dataset, so only the other keys need a load
+	if (
+		route.family &&
+		route.family.key !== 'viewer.id' &&
+		typeof declaration.load !== 'function'
+	) {
+		route.provisionable = false;
+	}
 	if (declaration.strategy === 'template') {
 		if (!declaration.template) return bad(pattern, 'a template route needs a template');
 		route.template = compileTemplate(declaration.template);
@@ -488,5 +636,9 @@ export function serializeRoute(route: Route): SerializedRoute {
 	if (route.contentType) out.type = route.contentType;
 	if (route.catalogue) out.catalogue = true;
 	if (route.query) out.query = structuredClone(route.query);
+	if (route.family) out.family = { ...route.family };
+	if (route.navigation) out.navigation = route.navigation;
+	if (route.origin) out.origin = route.origin;
+	if (route.provisionable === false) out.provisionable = false;
 	return out;
 }

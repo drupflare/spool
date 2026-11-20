@@ -99,6 +99,12 @@ export type DatasetDeclaration<Row extends DatasetRow = DatasetRow> = {
 	/** most bytes of row JSON a seed may hold */
 	maxBytes: number;
 	/**
+	 * Principal datasets only: the field names of `row` that `viewer` may hold, from `null` for an
+	 * anonymous request. The server sends each viewer only those fields, so the device never holds
+	 * the others. Absent, every field goes to every viewer.
+	 */
+	fields?(viewer: Identity | null, row: Row): readonly string[];
+	/**
 	 * `always` (the default) answers every seed. `auto` answers a seed only while `datasetBenefit`
 	 * says the dataset beats both v0.3 and native HTTP; otherwise the seed is refused with `409`.
 	 */
@@ -144,6 +150,10 @@ export function defineDataset<Row extends DatasetRow = DatasetRow>(
 		);
 	}
 	if (scope !== 'public' && scope !== 'principal') return bad(name, `unknown scope "${scope}"`);
+	if (declaration.fields !== undefined) {
+		if (scope !== 'principal') return bad(name, 'fields applies to a principal dataset');
+		if (typeof declaration.fields !== 'function') return bad(name, 'fields must be a function');
+	}
 	if (scope === 'principal') {
 		const stale = declaration.maxStaleMs;
 		if (typeof stale !== 'number' || !Number.isSafeInteger(stale) || stale < 1) {

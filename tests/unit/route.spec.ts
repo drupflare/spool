@@ -58,10 +58,17 @@ describe('defineRoute defaults', () => {
 		expect(serializeRoute(projection).type).toBeUndefined();
 	});
 
-	it('defaults a principal route to session retention and leaves a public one without', () => {
+	it('defaults a principal route to persistent retention, keeps a declared session, and leaves a public one without', () => {
 		const mine = defineRoute('/a', { strategy: 'data', scope: 'principal', load: () => ({}) });
-		expect(serializeRoute(mine).retention).toBe('session');
-		const kept = defineRoute('/b', {
+		expect(serializeRoute(mine).retention).toBe('persistent');
+		const shared = defineRoute('/b', {
+			strategy: 'data',
+			scope: 'principal',
+			retention: 'session',
+			load: () => ({})
+		});
+		expect(serializeRoute(shared).retention).toBe('session');
+		const kept = defineRoute('/d', {
 			strategy: 'data',
 			scope: 'principal',
 			retention: 'persistent',
@@ -200,6 +207,93 @@ describe('defineRoute query', () => {
 	});
 });
 
+describe('defineRoute family', () => {
+	const family = { dataset: 'courses', key: 'id' };
+	const page = (extra: Record<string, unknown> = {}) =>
+		({
+			strategy: 'template',
+			template: { source: '<h1>{{row.title}}</h1>' },
+			family,
+			...extra
+		}) as RouteDeclaration;
+
+	it('takes a template route with no load and keeps the binding on the route and its serialized form', () => {
+		const route = defineRoute('/courses/:id', page());
+		expect(route.family).toEqual(family);
+		expect(serializeRoute(route).family).toEqual(family);
+		expect(serializeRoute(route)).not.toHaveProperty('load');
+	});
+
+	it('takes a projection route with a family and a query on the same dataset', () => {
+		const route = defineRoute(
+			'/courses/:id',
+			page({
+				strategy: 'projection',
+				template: undefined,
+				query: { list: 'items', dataset: 'courses' }
+			})
+		);
+		expect(route.family).toEqual(family);
+		expect(route.query).toEqual({ list: 'items', dataset: 'courses' });
+	});
+
+	it('leaves the family out of a route that has none', () => {
+		expect(serializeRoute(defineRoute('/a', template())).family).toBeUndefined();
+	});
+
+	it.each([
+		[
+			'a static route',
+			{ strategy: 'static', template: undefined },
+			/a static route cannot declare family/
+		],
+		[
+			'a non-string dataset',
+			{ family: { dataset: 3, key: 'id' } },
+			/family.dataset must be a dataset name/
+		],
+		[
+			'a dataset with a space',
+			{ family: { dataset: 'two words', key: 'id' } },
+			/family.dataset/
+		],
+		[
+			'an empty key',
+			{ family: { dataset: 'courses', key: '' } },
+			/family.key must be a param name/
+		],
+		[
+			'a key that is not a param',
+			{ family: { dataset: 'courses', key: 'slug' } },
+			/"slug" is not a param/
+		],
+		[
+			'the viewer key',
+			{ pattern: '/account', family: { dataset: 'courses', key: 'viewer.id' } },
+			/viewer.id/
+		],
+		[
+			'a query on another dataset',
+			{ query: { list: 'items', dataset: 'people' } },
+			/must name the same dataset/
+		],
+		[
+			'a query over the route itself',
+			{ query: { list: 'items' } },
+			/must name the same dataset/
+		]
+	])('refuses %s', (_name, override, message) => {
+		const pattern = (override as { pattern?: string }).pattern ?? '/courses/:id';
+		const declaration = page(override as Record<string, unknown>);
+		expect(() => defineRoute(pattern, declaration)).toThrow(message);
+		expect(() => defineRoute(pattern, declaration)).toThrow(ProtocolError);
+	});
+
+	it('still requires a load on a template route with no family', () => {
+		expect(() => defineRoute('/a', page({ family: undefined }))).toThrow(/load is required/);
+	});
+});
+
 describe('serializeRoute', () => {
 	it('keeps the data a service worker needs and drops functions and the template', () => {
 		const route = defineRoute('/a/:id', template({ freshness: { maxStale: 5, mode: 'hard' } }));
@@ -216,5 +310,170 @@ describe('serializeRoute', () => {
 		expect(JSON.parse(JSON.stringify(serial))).toEqual(serial);
 		serial.freshness.maxStale = 99;
 		expect(route.freshness.maxStale).toBe(5);
+	});
+});
+
+describe('defineRoute origin', () => {
+	const family = { dataset: 'courses', key: 'id' };
+	const data = (extra: Record<string, unknown> = {}) =>
+		({ strategy: 'data', origin: 'https://api.example', family, ...extra }) as RouteDeclaration;
+
+	it('takes a cross-origin item family with no load and keeps the origin on the serialized form', () => {
+		const route = defineRoute('/v2/courses/:id', data());
+		expect(route.origin).toBe('https://api.example');
+		expect(serializeRoute(route).origin).toBe('https://api.example');
+	});
+
+	it('takes a cross-origin collection over a dataset with no load', () => {
+		const route = defineRoute('/v2/courses', {
+			strategy: 'data',
+			origin: 'https://api.example',
+			query: { list: 'courses', dataset: 'courses' }
+		} as RouteDeclaration);
+		expect(route.origin).toBe('https://api.example');
+		expect(route.family).toBeUndefined();
+	});
+
+	it('leaves origin out of a route that has none', () => {
+		const route = defineRoute('/v2/courses/:id', data({ origin: undefined }));
+		expect(route.origin).toBeUndefined();
+		expect(serializeRoute(route)).not.toHaveProperty('origin');
+	});
+
+	it('refuses an origin that is not an http or https origin with no path', () => {
+		const origins = [
+			'api.example',
+			'ftp://api.example',
+			'https://api.example/v2',
+			'https://a.b/'
+		];
+		for (const origin of origins) {
+			expect(() => defineRoute('/v2/courses/:id', data({ origin }))).toThrow(/origin/);
+		}
+	});
+
+	it('refuses an origin on a route that is not a data route', () => {
+		expect(() =>
+			defineRoute('/courses/:id', {
+				...data(),
+				strategy: 'template',
+				template: { source: 'x' }
+			} as RouteDeclaration)
+		).toThrow(/only a data route/);
+	});
+
+	it('refuses an origin with neither a family nor a query over a dataset', () => {
+		expect(() =>
+			defineRoute('/v2/courses', {
+				strategy: 'data',
+				origin: 'https://api.example',
+				load: () => ({})
+			})
+		).toThrow(/needs a family or a query/);
+	});
+
+	it('takes a principal cross-origin family, by scope or by auth, and serializes both fields', () => {
+		for (const declared of [{ scope: 'principal' }, { auth: 'principal' }]) {
+			const route = defineRoute('/v2/courses/:id', data(declared));
+			expect(route.scope).toBe('principal');
+			expect(route.origin).toBe('https://api.example');
+			expect(route.retention).toBe('persistent');
+			expect(serializeRoute(route)).toMatchObject({
+				scope: 'principal',
+				origin: 'https://api.example',
+				family
+			});
+		}
+	});
+
+	it('takes a principal cross-origin collection over a dataset with no load', () => {
+		const route = defineRoute('/v2/courses', {
+			strategy: 'data',
+			scope: 'principal',
+			origin: 'https://api.example',
+			query: { list: 'courses', dataset: 'courses' }
+		} as RouteDeclaration);
+		expect(serializeRoute(route)).toMatchObject({
+			scope: 'principal',
+			origin: 'https://api.example'
+		});
+		expect(route.family).toBeUndefined();
+	});
+
+	it('still refuses a principal origin on a route that is not a data route or has no family or query', () => {
+		expect(() =>
+			defineRoute('/courses/:id', {
+				...data({ scope: 'principal' }),
+				strategy: 'template',
+				template: { source: 'x' }
+			} as RouteDeclaration)
+		).toThrow(/only a data route/);
+		expect(() =>
+			defineRoute('/v2/courses', {
+				strategy: 'data',
+				scope: 'principal',
+				origin: 'https://api.example',
+				load: () => ({})
+			} as RouteDeclaration)
+		).toThrow(/needs a family or a query/);
+		expect(() =>
+			defineRoute('/v2/courses/:id', data({ scope: 'principal', origin: 'api.example' }))
+		).toThrow(/origin/);
+	});
+
+	it('refuses a viewer-keyed family on a cross-origin route, since the worker holds no artifact for it', () => {
+		const viewer = { dataset: 'courses', key: 'viewer.id' };
+		expect(() => defineRoute('/v2/me', data({ scope: 'principal', family: viewer }))).toThrow(
+			/viewer\.id/
+		);
+	});
+
+	it('takes a same-origin data family with no load, and still requires a load for a plain collection', () => {
+		expect(() => defineRoute('/api/courses/:id', { strategy: 'data', family })).not.toThrow();
+		expect(() =>
+			defineRoute('/api/courses', {
+				strategy: 'data',
+				query: { list: 'a', dataset: 'courses' }
+			} as RouteDeclaration)
+		).toThrow(/load is required/);
+	});
+});
+
+describe('defineRoute auth', () => {
+	it('takes auth principal as the principal scope', () => {
+		const route = defineRoute('/people/:id', { ...template(), auth: 'principal' } as never);
+		expect(route.scope).toBe('principal');
+		expect(route.retention).toBe('persistent');
+	});
+
+	it('takes a principal family on the viewer key, and serializes it with its scope', () => {
+		const route = defineRoute('/account', {
+			...template(),
+			auth: 'principal',
+			family: { dataset: 'people', key: 'viewer.id' }
+		} as never);
+		expect(route.family).toEqual({ dataset: 'people', key: 'viewer.id' });
+		expect(serializeRoute(route)).toMatchObject({
+			scope: 'principal',
+			family: { dataset: 'people', key: 'viewer.id' }
+		});
+	});
+
+	it.each([
+		['an auth other than principal', { auth: 'session' }, /unknown auth "session"/],
+		[
+			'auth principal beside scope public',
+			{ auth: 'principal', scope: 'public' },
+			/needs a principal scope/
+		],
+		[
+			'the viewer key without auth principal',
+			{ family: { dataset: 'people', key: 'viewer.id' } },
+			/needs auth: 'principal'/
+		]
+	])('refuses %s', (_name, override, message) => {
+		expect(() => defineRoute('/account', { ...template(), ...override } as never)).toThrow(
+			message
+		);
 	});
 });

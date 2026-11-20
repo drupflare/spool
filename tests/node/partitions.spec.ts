@@ -20,10 +20,10 @@ function world() {
 	const marks: Record<string, number> = { A: 91, B: 47 };
 	const mine = (ctx: { identity: { principal: string } | null }) =>
 		(ctx.identity as { principal: string }).principal;
-	const principal = (retention: 'persistent' | 'session') => ({
+	const principal = (retention?: 'persistent' | 'session') => ({
 		strategy: 'template' as const,
 		scope: 'principal' as const,
-		retention,
+		...(retention ? { retention } : {}),
 		template: { source },
 		depends: (ctx: Parameters<typeof mine>[0]) => [`perm:${mine(ctx)}`, `grades:${mine(ctx)}`],
 		load: (
@@ -36,6 +36,7 @@ function world() {
 	const routes = [
 		defineRoute('/grades', principal('persistent')),
 		defineRoute('/inbox', principal('session')),
+		defineRoute('/profile', principal()),
 		defineRoute('/about', {
 			strategy: 'template',
 			template: { source: '<html><head></head><body>about</body></html>' },
@@ -90,7 +91,7 @@ function world() {
 			user.current = null;
 			return html('expired', { headers: { 'spool-clear': '*' } });
 		}
-		if (pathname === '/grades' || pathname === '/inbox') {
+		if (pathname === '/grades' || pathname === '/inbox' || pathname === '/profile') {
 			if (!as || revoked.has(as)) return html('no', { status: as ? 403 : 401 });
 			return html(`grades of ${as} ${marks[as]}`);
 		}
@@ -126,7 +127,9 @@ function world() {
 			origin: ORIGIN,
 			now: () => t,
 			partitions,
-			broadcast: (message) => void cleared.push(message)
+			broadcast: (message) => {
+				if ((message as { type?: string }).type === 'spool:cleared') cleared.push(message);
+			}
 		});
 	const runtime = boot();
 
@@ -336,6 +339,24 @@ describe('principal routes from a sealed per-partition store', () => {
 		expect((await w.visit('/inbox', restarted)).length).toBeGreaterThan(0);
 		expect(w.log[0]).toBe('GET /inbox');
 		expect((await w.partition(restarted)).artifacts).toContain('/grades');
+	});
+
+	it('reads a route that declares no retention after a restart, keeps it out of the public replica, and deletes its key and store at logout', async () => {
+		const w = world();
+		await signIn(w, 'A', '/profile');
+		const id = await partitionId('s', 'A');
+		expect(await w.runtime.replica.ids()).toEqual([]);
+		expect(await rows(w.factory, 'spool-keys', 'keys')).toHaveLength(1);
+
+		const restarted = w.boot();
+		w.log.length = 0;
+		expect(await w.visit('/profile', restarted)).toContain('grades of A 91');
+		expect(w.log).toEqual([]);
+
+		await w.visit('/logout', restarted);
+		expect(await rows(w.factory, 'spool-keys', 'keys')).toEqual([]);
+		expect(await w.names()).not.toContain(`spool-p-${id}`);
+		expect((await w.partition(restarted)).partition).toBeNull();
 	});
 });
 
