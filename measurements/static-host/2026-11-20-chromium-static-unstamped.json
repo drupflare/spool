@@ -1,0 +1,428 @@
+{
+	"schema": 1,
+	"rig": "static-host",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "Worker invocations, asset requests and bytes per client for a visitor on a Worker with an assets folder, with the stub, runtime and packs served by the Worker, by files without a stamp, by files with a stamp, and with no spool.",
+	"instrument": "wrangler dev --local (workerd) running a counting Worker over an assets folder; a counting proxy in front that logs each response and which side answered; the Worker's own invocation counter read at phase boundaries; Playwright persistent contexts",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic",
+		"container": "spool-v1-browser:1",
+		"load_average_at_start": "0.03 0.22 0.44"
+	},
+	"software": {
+		"node": "v26.3.0",
+		"bun": "1.4.5",
+		"spool": "1.0.0",
+		"playwright": "1.64.1",
+		"wrangler": "4.151.1",
+		"workerd": "1.20261012.1",
+		"chromium": "156.0.8078.80"
+	},
+	"method": {
+		"arms": [
+			{
+				"name": "static-unstamped",
+				"spool": true,
+				"publish": "once"
+			}
+		],
+		"engines": ["chromium"],
+		"lease_seconds": 90,
+		"lease_periods": 5,
+		"phases": [
+			{
+				"id": "first-view",
+				"kind": "views",
+				"wait_seconds": 0,
+				"views": 1
+			},
+			{
+				"id": "view-2",
+				"kind": "views",
+				"wait_seconds": 0,
+				"views": 1
+			},
+			{
+				"id": "view-3",
+				"kind": "views",
+				"wait_seconds": 0,
+				"views": 1
+			},
+			{
+				"id": "read-121",
+				"kind": "views",
+				"wait_seconds": 0,
+				"views": 121
+			},
+			{
+				"id": "lease-1",
+				"kind": "lease",
+				"wait_seconds": 91,
+				"views": 1
+			},
+			{
+				"id": "lease-2",
+				"kind": "lease",
+				"wait_seconds": 91,
+				"views": 1
+			},
+			{
+				"id": "lease-3",
+				"kind": "lease",
+				"wait_seconds": 91,
+				"views": 1
+			},
+			{
+				"id": "lease-4",
+				"kind": "lease",
+				"wait_seconds": 91,
+				"views": 1
+			},
+			{
+				"id": "lease-5",
+				"kind": "lease",
+				"wait_seconds": 91,
+				"views": 1
+			},
+			{
+				"id": "publish",
+				"kind": "publish",
+				"wait_seconds": 91,
+				"views": 1
+			}
+		],
+		"reader": "Codex's mix: 1 + 100 in-page + 20 warm documents replayed by the demand rig's plan over the changelog's 40 entries, after views 1 to 3",
+		"dwell_ms": 1500,
+		"settle_ms": 1500,
+		"click_gap_ms": 150,
+		"host": "examples/static/cloudflare-worker/count.ts under wrangler dev --local",
+		"proxy_port": 6580,
+		"bytes": "response body bytes before compression; the proxy removes accept-encoding",
+		"counter": "the Worker counts each invocation except /__count and /__add; the rig reads it at phase boundaries; a change to the assets folder reloads the Worker and resets it, so the rig adds the last read before each republish",
+		"stamp": "static-unstamped publishes with the stamp fixed at 0 (staticSite always passes a stamp); static-stamped advances it before each lease period and for the publish phase"
+	},
+	"exclusions": [
+		"local workerd is not the production meter: it shows which side answered a request, not what a deployed Worker or Cloudflare bills",
+		"the lease is a scenario parameter chosen so the reading can cross lease periods without a faked clock; the library default is 86,400 s",
+		"one machine and one run per engine and arm; no spread is reported",
+		"the stamp republish cadence is the operator choice the static-stamped arm models; the library does not enforce it",
+		"a row with fatal set did not finish its arm; its phases hold the counts of the phases that ran",
+		"a phase row with counter_agrees false has a counter difference that differs from the marked responses in the log, usually a request that crossed a phase boundary; the counter is the figure of record",
+		"an arm row with counter_sequence_ok false has a marked sequence that is not 1 to N in some Worker epoch; its counts are not usable",
+		"a row with wrong above 0 has a view whose page did not reach its path or title",
+		"WebKit is not run: it registers no worker by default"
+	],
+	"rows": [
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "first-view",
+			"requests": 1,
+			"worker_invocations": 1,
+			"worker_responses": 1,
+			"asset_requests": 0,
+			"asset_200": 0,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 1,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 3376,
+			"asset_bytes": 0,
+			"by_kind": {
+				"document": {
+					"worker": 1,
+					"assets": 0
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152514668,
+			"ended_at": 1795152516716,
+			"stub_requests_at": []
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "view-2",
+			"requests": 1,
+			"worker_invocations": 1,
+			"worker_responses": 1,
+			"asset_requests": 0,
+			"asset_200": 0,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 1,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 3382,
+			"asset_bytes": 0,
+			"by_kind": {
+				"document": {
+					"worker": 1,
+					"assets": 0
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152516716,
+			"ended_at": 1795152518733,
+			"stub_requests_at": []
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "view-3",
+			"requests": 3,
+			"worker_invocations": 1,
+			"worker_responses": 1,
+			"asset_requests": 2,
+			"asset_200": 2,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 1,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 3384,
+			"asset_bytes": 204275,
+			"by_kind": {
+				"document": {
+					"worker": 1,
+					"assets": 0
+				},
+				"boot": {
+					"worker": 0,
+					"assets": 1
+				},
+				"stub": {
+					"worker": 0,
+					"assets": 1
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152518733,
+			"ended_at": 1795152521521,
+			"stub_requests_at": [1795152519534]
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "read-121",
+			"requests": 0,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 0,
+			"asset_200": 0,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {},
+			"counter_agrees": true,
+			"views": 121,
+			"started_at": 1795152521521,
+			"ended_at": 1795152570050,
+			"stub_requests_at": []
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "lease-1",
+			"requests": 1,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 1,
+			"asset_200": 0,
+			"asset_304": 1,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {
+				"stub": {
+					"worker": 0,
+					"assets": 1
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152570050,
+			"ended_at": 1795152663062,
+			"stub_requests_at": [1795152663062]
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "lease-2",
+			"requests": 1,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 1,
+			"asset_200": 0,
+			"asset_304": 1,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {
+				"stub": {
+					"worker": 0,
+					"assets": 1
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152663062,
+			"ended_at": 1795152756077,
+			"stub_requests_at": [1795152756077]
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "lease-3",
+			"requests": 1,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 1,
+			"asset_200": 0,
+			"asset_304": 1,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {
+				"stub": {
+					"worker": 0,
+					"assets": 1
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152756077,
+			"ended_at": 1795152849096,
+			"stub_requests_at": [1795152849089]
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "lease-4",
+			"requests": 0,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 0,
+			"asset_200": 0,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152849096,
+			"ended_at": 1795152942114,
+			"stub_requests_at": []
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "lease-5",
+			"requests": 2,
+			"worker_invocations": 0,
+			"worker_responses": 0,
+			"asset_requests": 2,
+			"asset_200": 0,
+			"asset_304": 2,
+			"asset_other": 0,
+			"worker_200": 0,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 0,
+			"asset_bytes": 0,
+			"by_kind": {
+				"stub": {
+					"worker": 0,
+					"assets": 2
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795152942114,
+			"ended_at": 1795153035125,
+			"stub_requests_at": [1795152942120, 1795153035124]
+		},
+		{
+			"kind": "phase",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"phase": "publish",
+			"requests": 3,
+			"worker_invocations": 2,
+			"worker_responses": 2,
+			"asset_requests": 1,
+			"asset_200": 1,
+			"asset_304": 0,
+			"asset_other": 0,
+			"worker_200": 2,
+			"worker_304": 0,
+			"worker_other": 0,
+			"worker_bytes": 5281,
+			"asset_bytes": 141138,
+			"by_kind": {
+				"document": {
+					"worker": 1,
+					"assets": 0
+				},
+				"spool": {
+					"worker": 1,
+					"assets": 0
+				},
+				"stub": {
+					"worker": 0,
+					"assets": 1
+				}
+			},
+			"counter_agrees": true,
+			"views": 1,
+			"started_at": 1795153035125,
+			"ended_at": 1795153128681,
+			"shows_new_entry": true,
+			"stub_requests_at": [1795153128680]
+		},
+		{
+			"kind": "arm",
+			"engine": "chromium",
+			"arm": "static-unstamped",
+			"controlled": true,
+			"wrong": 0,
+			"lease_period_worker_invocations": [0, 0, 0, 0, 0],
+			"counter_total": 5,
+			"worker_responses_total": 5,
+			"counter_sequence_ok": true
+		}
+	]
+}
