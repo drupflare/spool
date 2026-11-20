@@ -23,6 +23,22 @@ describe('normalise', () => {
 		expect(equivalent(inlined, '<html><body><p>y</p></body></html>').equal).toBe(false);
 	});
 
+	it('treats the ring element as absent, so a family page matches its local render', () => {
+		const plain = '<html><head></head><body><p>x</p></body></html>';
+		const ringed = `<html><head><script type="application/json" id="spool-ring">{"a":"\\u003c/p>"}</script></head><body><p>x</p></body></html>`;
+		expect(equivalent(ringed, plain).equal).toBe(true);
+		expect(normalise(ringed)).not.toContain('spool-ring');
+	});
+
+	it('treats the writes and inline delta elements as absent as well', () => {
+		const plain = '<html><head></head><body><p>x</p></body></html>';
+		for (const id of ['spool-writes', 'spool-delta']) {
+			const tagged = `<html><head><script type="application/json" id="${id}">{"a":1}</script></head><body><p>x</p></body></html>`;
+			expect(equivalent(tagged, plain).equal).toBe(true);
+			expect(normalise(tagged)).not.toContain(id);
+		}
+	});
+
 	it('keeps text that differs', () => {
 		expect(normalise('<p>a</p>')).not.toBe(normalise('<p>b</p>'));
 	});

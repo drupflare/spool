@@ -1,9 +1,10 @@
+import type { DatasetRow } from './dataset.js';
 import { ProtocolError } from './errors.js';
-import { checkPattern } from './pattern.js';
-import type { Identity } from './route.js';
+import { checkPattern, matchPattern } from './pattern.js';
+import { defineRoute, type Identity, type Route } from './route.js';
 
 /** the header that names one flush of one key; a retry of the same flush sends the same id */
-export const WRITE_HEADERS = { id: 'spool-write-id' } as const;
+export const WRITE_HEADERS = { id: 'spool-write-id', digest: 'spool-write-digest' } as const;
 
 /** a write class name is 1 to 64 of letters, digits, `_` and `-` */
 export const WRITE_NAME = /^[A-Za-z0-9_-]{1,64}$/;
@@ -148,24 +149,46 @@ export type WriteDeclaration = {
 	maxBytes: number;
 	/** the most queued keys of this class one partition holds on a device */
 	maxPending: number;
+	/**
+	 * The longest a queued write of this class may wait before the worker flushes it. Unset keeps the
+	 * flush at the next network moment, an explicit flush or a page hide. Set, the first queued write
+	 * starts a deadline, and the flush at it sends every queued record: one request per key.
+	 */
+	maxDelayMs?: number;
 };
 
 /** a validated write class */
 export type Write = Readonly<WriteDeclaration & { kind: 'last-value' }>;
 
 /** what the worker needs of a class: the limits it enforces before anything is queued */
-export type WriteConfig = { name: string; maxBytes: number; maxPending: number };
+export type WriteConfig = {
+	name: string;
+	maxBytes: number;
+	maxPending: number;
+	maxDelayMs?: number;
+};
 
 function bad(name: string, message: string): never {
 	throw new ProtocolError('bad-write', `${name}: ${message}`);
 }
 
 /**
- * Declares a write class. Throws `bad-write` for a public scope, a kind other than `last-value`, a
- * name or pattern that does not parse, a missing function or a limit that is not a positive
- * integer within its cap.
+ * Declares a write class, or with a route pattern a resource write: the request reaches the server
+ * once and the device applies the rows the server reports. A class throws `bad-write` for a public
+ * scope, a kind other than `last-value`, a name or pattern that does not parse, a missing function or
+ * a limit that is not a positive integer within its cap.
  */
-export function defineWrite(declaration: WriteDeclaration): Write {
+export function defineWrite(pattern: string, declaration: ResourceWriteDeclaration): ResourceWrite;
+export function defineWrite(declaration: WriteDeclaration): Write;
+export function defineWrite(
+	first: WriteDeclaration | string,
+	second?: ResourceWriteDeclaration
+): Write | ResourceWrite {
+	if (typeof first === 'string') return defineResourceWrite(first, second);
+	return defineQueuedWrite(first);
+}
+
+function defineQueuedWrite(declaration: WriteDeclaration): Write {
 	const name = String(declaration?.name);
 	if (typeof declaration?.name !== 'string' || !WRITE_NAME.test(declaration.name)) {
 		return bad(name, 'a write name is 1 to 64 of letters, digits, _ and -');
@@ -190,12 +213,17 @@ export function defineWrite(declaration: WriteDeclaration): Write {
 			return bad(name, `${limit} must be an integer from 1 to ${caps[limit]}`);
 		}
 	}
+	const delay = declaration.maxDelayMs;
+	if (delay !== undefined && (!Number.isSafeInteger(delay) || delay < 0)) {
+		return bad(name, 'maxDelayMs must be a non-negative integer');
+	}
 	return Object.freeze({ ...declaration, kind: 'last-value' as const });
 }
 
 /** the config entry the worker gets for a class */
 export function serializeWrite(write: Write): WriteConfig {
-	return { name: write.name, maxBytes: write.maxBytes, maxPending: write.maxPending };
+	const config = { name: write.name, maxBytes: write.maxBytes, maxPending: write.maxPending };
+	return write.maxDelayMs === undefined ? config : { ...config, maxDelayMs: write.maxDelayMs };
 }
 
 /** whether `key` is a key the wire carries: a non-empty string of at most {@link MAX_WRITE_KEY} characters without NUL */
@@ -230,4 +258,304 @@ export function newWriteId(): string {
 	let binary = '';
 	for (const byte of bytes) binary += String.fromCharCode(byte);
 	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** the methods a resource write may declare */
+export const RESOURCE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'] as const;
+
+/** how a declared write changes the held rows; `invalidate` marks the touched rows stale */
+export const RESOURCE_APPLY = ['response', 'merge', 'delete', 'invalidate'] as const;
+
+export type ResourceMethod = (typeof RESOURCE_METHODS)[number];
+
+export type ResourceApplyMode = (typeof RESOURCE_APPLY)[number];
+
+/**
+ * The change a declared write makes to a row when it is not one of the modes. `set` writes a JSON
+ * constant, or the value at a dotted path of the request body when it is `{ body: '<path>' }`. `inc`
+ * adds a number to a numeric field, a missing field counting as 0. `unset` removes fields.
+ */
+export type ResourcePatch = {
+	set?: Readonly<Record<string, unknown>>;
+	inc?: Readonly<Record<string, number>>;
+	unset?: readonly string[];
+};
+
+export type ResourceApply = ResourceApplyMode | ResourcePatch;
+
+/** what `defineWrite(pattern, ...)` takes */
+export type ResourceWriteDeclaration = {
+	method: ResourceMethod;
+	/** the dataset the write changes; the server reports the changed rows of each public dataset */
+	dataset: string;
+	/** the route param whose value is the row's key */
+	key: string;
+	apply: ResourceApply;
+	/** the GET families the write changes, as route patterns */
+	updates: readonly string[];
+	/** the origin the write goes to when it is not the page's own; absent means same-origin only */
+	origin?: string;
+};
+
+/** a validated resource write; the worker gets these in its config */
+export type ResourceWrite = Readonly<ResourceWriteDeclaration & { pattern: string }>;
+
+/** what `defineResource` returns: the item family and the writes that change it */
+export type Resource = {
+	pattern: string;
+	dataset: string;
+	key: string;
+	routes: Route[];
+	writes: ResourceWrite[];
+};
+
+function defineResourceWrite(
+	pattern: string,
+	declaration: ResourceWriteDeclaration | undefined
+): ResourceWrite {
+	checkPattern(pattern);
+	if (!declaration) return bad(pattern, 'a resource write needs a declaration');
+	if (!(RESOURCE_METHODS as readonly string[]).includes(declaration.method)) {
+		return bad(pattern, `method must be one of ${RESOURCE_METHODS.join(', ')}`);
+	}
+	if (typeof declaration.dataset !== 'string' || declaration.dataset === '') {
+		return bad(pattern, 'dataset must be a dataset name');
+	}
+	if (typeof declaration.key !== 'string' || declaration.key === '') {
+		return bad(pattern, 'key must be a param name');
+	}
+	const apply: unknown = declaration.apply;
+	if (isObject(apply)) checkPatch(pattern, apply);
+	else if (typeof apply !== 'string' || !(RESOURCE_APPLY as readonly string[]).includes(apply)) {
+		return bad(pattern, `apply must be one of ${RESOURCE_APPLY.join(', ')}, or a patch`);
+	}
+	if (!Array.isArray(declaration.updates)) {
+		return bad(pattern, 'updates must be a list of route patterns');
+	}
+	for (const update of declaration.updates) checkPattern(update);
+	if (declaration.origin !== undefined) checkOrigin(pattern, declaration.origin);
+	return Object.freeze({ ...declaration, updates: [...declaration.updates], pattern });
+}
+
+const PATCH_KEYS: readonly string[] = ['set', 'inc', 'unset'];
+const UNSAFE_FIELDS: readonly string[] = ['__proto__'];
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isBodyRef = (value: unknown): value is { body: string } =>
+	isObject(value) && Object.keys(value).length === 1 && typeof value.body === 'string';
+
+function isJson(value: unknown): boolean {
+	if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+	if (typeof value === 'number') return Number.isFinite(value);
+	if (Array.isArray(value)) return value.every(isJson);
+	return isObject(value) && Object.values(value).every(isJson);
+}
+
+function checkField(pattern: string, field: unknown): void {
+	if (
+		typeof field !== 'string' ||
+		field === '' ||
+		field.includes('.') ||
+		UNSAFE_FIELDS.includes(field)
+	) {
+		bad(pattern, `patch field "${String(field)}" must be a field name with no dot`);
+	}
+}
+
+function checkPatch(pattern: string, patch: Record<string, unknown>): void {
+	const keys = Object.keys(patch);
+	if (keys.length === 0) bad(pattern, 'a patch needs set, inc or unset');
+	for (const key of keys) {
+		if (!PATCH_KEYS.includes(key)) bad(pattern, `patch key "${key}" is not set, inc or unset`);
+	}
+	if (patch.set !== undefined) {
+		if (!isObject(patch.set)) bad(pattern, 'set must be an object');
+		for (const [field, value] of Object.entries(patch.set)) {
+			checkField(pattern, field);
+			if (isBodyRef(value)) {
+				for (const segment of value.body.split('.')) checkField(pattern, segment);
+			} else if (!isJson(value)) {
+				bad(pattern, `set "${field}" must be a JSON value or { body: "<path>" }`);
+			}
+		}
+	}
+	if (patch.inc !== undefined) {
+		if (!isObject(patch.inc)) bad(pattern, 'inc must be an object');
+		for (const [field, amount] of Object.entries(patch.inc)) {
+			checkField(pattern, field);
+			if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+				bad(pattern, `inc "${field}" must be a finite number`);
+			}
+		}
+	}
+	if (patch.unset !== undefined) {
+		if (!Array.isArray(patch.unset)) bad(pattern, 'unset must be a list of field names');
+		for (const field of patch.unset) checkField(pattern, field);
+	}
+}
+
+/** the JSON value at a dotted path of the body, or undefined when a segment is missing or not an object */
+function readBodyPath(body: unknown, path: string): unknown {
+	let at = body;
+	for (const segment of path.split('.')) {
+		if (!isObject(at) || !Object.prototype.hasOwnProperty.call(at, segment)) return undefined;
+		at = at[segment];
+	}
+	return at;
+}
+
+/**
+ * The row a declared patch makes of `row` for a request `body`. It is pure, so the worker and any caller
+ * get the same row. Returns undefined when a body path names no value or an `inc` field is not a number.
+ */
+export function applyPatch(
+	row: DatasetRow,
+	body: unknown,
+	patch: ResourcePatch
+): DatasetRow | undefined {
+	const next: Record<string, unknown> = { ...row };
+	for (const [field, value] of Object.entries(patch.set ?? {})) {
+		if (!isBodyRef(value)) {
+			next[field] = structuredClone(value);
+			continue;
+		}
+		const found = readBodyPath(body, value.body);
+		if (found === undefined) return undefined;
+		next[field] = found;
+	}
+	for (const [field, amount] of Object.entries(patch.inc ?? {})) {
+		const held = next[field] === undefined ? 0 : next[field];
+		if (typeof held !== 'number') return undefined;
+		next[field] = held + amount;
+	}
+	for (const field of patch.unset ?? []) delete next[field];
+	return next as DatasetRow;
+}
+
+function checkOrigin(pattern: string, origin: unknown): void {
+	if (typeof origin !== 'string') return bad(pattern, 'origin must be a string');
+	let parsed: URL;
+	try {
+		parsed = new URL(origin);
+	} catch {
+		return bad(pattern, `origin "${origin}" is not a URL`);
+	}
+	if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {
+		return bad(pattern, `origin "${origin}" must be an http or https origin with no path`);
+	}
+}
+
+/**
+ * Declares a resource. `GET <pattern>` is the collection of the dataset, with no query string; a query
+ * string is not answered locally. `GET <pattern>/:key` is a data family of the dataset; `POST <pattern>`
+ * inserts; `PUT` and `PATCH <pattern>/:key` replace and update; `DELETE <pattern>/:key` removes. Any
+ * `POST`, `PUT`, `PATCH` or `DELETE` of `<pattern>/:key/:action` is a write on that item. Every write
+ * updates the collection and the item.
+ */
+export function defineResource(
+	pattern: string,
+	declaration: { dataset: string; key: string; origin?: string }
+): Resource {
+	checkPattern(pattern);
+	const { dataset, key, origin } = declaration;
+	const item = `${pattern}/:${key}`;
+	const action = `${item}/:action`;
+	const families = [pattern, item];
+	const extra = origin === undefined ? {} : { origin };
+	const routes = [
+		defineRoute(pattern, {
+			strategy: 'data',
+			load: () => ({}),
+			query: { list: dataset, dataset },
+			...(origin === undefined ? {} : { origin })
+		}),
+		defineRoute(item, {
+			strategy: 'data',
+			family: { dataset, key },
+			...(origin === undefined ? {} : { origin })
+		})
+	];
+	const writes = [
+		defineResourceWrite(pattern, {
+			method: 'POST',
+			dataset,
+			key,
+			apply: 'response',
+			updates: families,
+			...extra
+		}),
+		defineResourceWrite(item, {
+			method: 'PUT',
+			dataset,
+			key,
+			apply: 'response',
+			updates: families,
+			...extra
+		}),
+		defineResourceWrite(item, {
+			method: 'PATCH',
+			dataset,
+			key,
+			apply: 'response',
+			updates: families,
+			...extra
+		}),
+		defineResourceWrite(item, {
+			method: 'DELETE',
+			dataset,
+			key,
+			apply: 'delete',
+			updates: families,
+			...extra
+		}),
+		...RESOURCE_METHODS.map((method) =>
+			defineResourceWrite(action, {
+				method,
+				dataset,
+				key,
+				apply: 'invalidate',
+				updates: families,
+				...extra
+			})
+		)
+	];
+	return Object.freeze({ pattern, dataset, key, routes, writes });
+}
+
+/**
+ * The resource write a request matches: its method, a pattern that matches its path, and its origin.
+ * A write with no origin matches only the page's own origin; one with an origin matches that origin.
+ */
+export function writeFor(
+	writes: readonly ResourceWrite[],
+	method: string,
+	url: URL,
+	pageOrigin: string
+): ResourceWrite | undefined {
+	return writes.find(
+		(write) =>
+			write.method === method &&
+			matchPattern(write.pattern, url.pathname) !== null &&
+			url.origin === (write.origin ?? pageOrigin)
+	);
+}
+
+/**
+ * For each write a page made, the resource it couples to and the GET families it updates. A write that
+ * couples to no resource reports `resource: null` and no families; that is the uncovered case.
+ */
+export function couplingReport(
+	writes: readonly { method: string; url: string }[],
+	resources: readonly Resource[],
+	pageOrigin: string
+): Array<{ method: string; url: string; resource: string | null; families: string[] }> {
+	return writes.map(({ method, url }) => {
+		for (const resource of resources) {
+			const hit = writeFor(resource.writes, method, new URL(url), pageOrigin);
+			if (hit) return { method, url, resource: resource.pattern, families: [...hit.updates] };
+		}
+		return { method, url, resource: null, families: [] };
+	});
 }

@@ -1,6 +1,7 @@
 export * from './artifact.js';
 export * from './assembly.js';
 export * from './beacon.js';
+export * from './bundle.js';
 export * from './collector.js';
 export * from './config.js';
 export * from './dataset.js';
@@ -16,6 +17,7 @@ export * from './pattern.js';
 export * from './plan.js';
 export * from './provision.js';
 export * from './query.js';
+export * from './ring.js';
 export * from './route.js';
 export * from './sync.js';
 export * from './tag.js';

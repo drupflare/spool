@@ -1,12 +1,19 @@
 import type { PROTOCOL_VERSION } from './artifact.js';
+import type { BundleDelta } from './bundle.js';
 import type { CollectorConfig } from './collector.js';
 import type { SerializedRoute } from './route.js';
 import type { CompiledTemplate } from './template/compile.js';
 import type { Mode } from './view.js';
-import type { WriteConfig } from './write.js';
+import type { ResourceWrite, WriteConfig } from './write.js';
 
 /** every path under this prefix belongs to spool */
 export const SPOOL_PREFIX = '/.spool/';
+
+/** the prefix of the site packs, one path per version: `/.spool/bundle/<version>` */
+export const BUNDLE_PREFIX = '/.spool/bundle/';
+
+/** the prefix of the deltas between two packs: `/.spool/bundle/delta/<from>/<to>` */
+export const BUNDLE_DELTA_PREFIX = '/.spool/bundle/delta/';
 
 /** where the server answers sync, artifact, dataset and beacon requests, and where the worker script lives */
 export const PATHS = {
@@ -18,9 +25,38 @@ export const PATHS = {
 	worker: '/spool-sw.js'
 } as const;
 
+/**
+ * where a visible page holds one server-sent event stream open: the principal lease, a `revoked`
+ * event, and public tag changes where the site opts in. The request takes `partition` (the principal
+ * partition the page holds) and `have` (the cursor the page holds); the worker never handles it.
+ */
+export const LIVE_PATH = '/.spool/live';
+
+/**
+ * the text a page sends over a live socket to renew its lease. The server answers it with a `lease`
+ * event, which a hibernating Durable Object can do without waking.
+ */
+export const LIVE_PING = 'ping';
+
+/** the cookie a no-worker page writes with the version it holds; the server reads it, nothing else does */
+export const COOKIES = { held: 'spool-held' } as const;
+
 /** the same-origin path of the page runtime script for a given version */
 export function clientPath(version: string): string {
 	return `${SPOOL_PREFIX}${encodeURIComponent(version)}/client.js`;
+}
+
+/** the same-origin path of the in-page navigation script, loaded once the page holds a head */
+export function navigatePath(version: string): string {
+	return `${SPOOL_PREFIX}${encodeURIComponent(version)}/navigate.js`;
+}
+
+/**
+ * the same-origin path of the boot script for a runtime version and a pack version: the page
+ * runtime, the navigation script and that pack in one file
+ */
+export function bootPath(version: string, pack: number): string {
+	return `${SPOOL_PREFIX}${encodeURIComponent(version)}/boot/${pack}.js`;
 }
 
 /**
@@ -66,10 +102,22 @@ export type ThirdPartyConfig = {
 	allowOpaque?: boolean;
 };
 
+/**
+ * The pack a worker script carries: the current version and set digest, and the deltas from the
+ * versions just before it, each straight to the current one.
+ */
+export type StubPack = { version: number; digest: string; deltas: BundleDelta[] };
+
 /** what the server compiles into the worker script: routes, templates and the tag to inject */
 export type SwConfig = {
 	protocol: typeof PROTOCOL_VERSION;
 	version: string;
+	/** the hash of the worker's own code; a different one empties the replica, a content version does not */
+	runtime?: string;
+	/** the pack the script carries, when the server holds one for its current version */
+	pack?: StubPack;
+	/** the site's security headers, as name and value pairs, for a worker that holds no site policy yet */
+	policy?: Array<[string, string]>;
 	routes: SerializedRoute[];
 	/** compiled templates keyed by route pattern */
 	templates: Record<string, CompiledTemplate>;
@@ -83,6 +131,13 @@ export type SwConfig = {
 	shadowSample?: number;
 	/** whether the worker queues a `spool.view` per page view; true when absent */
 	views?: boolean;
+	/** seconds the browser may hold the worker script: the lease after which the page checks it again */
+	lease?: number;
+	/**
+	 * The operator's counter for the stub. Its bytes change when the stamp does, so a static host that
+	 * republishes each lease period makes a forced check install a new script, and the install is a contact.
+	 */
+	stamp?: number;
 	/** what the worker assumes before telemetry says otherwise, and which pages to warm */
 	provision?: ProvisionConfig;
 	/**
@@ -105,6 +160,17 @@ export type SwConfig = {
 	datasetShare?: number;
 	/** the declared write classes; absent while declared writes are off, which is the default */
 	writes?: WriteConfig[];
+	/** the resource writes a request is sent to the server for, each applied from its `Spool-Delta` */
+	resourceWrites?: readonly ResourceWrite[];
 	/** the principal datasets and how long each may answer after its last confirmed sync; absent while the flag is off */
 	principalDatasets?: Array<{ name: string; maxStaleMs: number }>;
+	/**
+	 * Present while the server answers `/.spool/live`. `public` is true when the stream also carries
+	 * public freshness, so the worker treats its public replica as current while a lease is open.
+	 * `mode` is `always` when the page opens the stream whenever it is visible, and `adaptive` when the
+	 * worker asks for it at the second lease renewal of a page's visible session. `socket` is true
+	 * when the hub also accepts a WebSocket upgrade at the same path; a page then opens a socket
+	 * and falls back to server-sent events if the upgrade fails.
+	 */
+	live?: { public: boolean; mode: 'adaptive' | 'always'; socket?: true };
 };

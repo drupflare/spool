@@ -1,17 +1,36 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import * as angularModule from '../../src/angular/index';
 import * as clientModule from '../../src/client/index';
 import * as indexModule from '../../src/index';
 import * as mediaModule from '../../src/media/index';
+import type { BuildContext } from '../../src/next/index';
+import * as nextModule from '../../src/next/index';
 import * as nodeModule from '../../src/node/listener';
+import * as nuxtModule from '../../src/nuxt/index';
 import * as protocol from '../../src/protocol/index';
-import { defineDataset, defineWrite, ifMatch, type SetProof } from '../../src/protocol/index';
+import {
+	defineDataset,
+	defineWrite,
+	ifMatch,
+	type FamilyRoute,
+	type SetProof
+} from '../../src/protocol/index';
 import * as proxyModule from '../../src/proxy/index';
+import type { PrerenderPaths } from '../../src/react-router/index';
+import * as reactRouterModule from '../../src/react-router/index';
 import * as reportModule from '../../src/report/index';
 import { MAX_BEACON_BODY } from '../../src/server/beacon';
 import * as serverModule from '../../src/server/index';
-import { createSpool, defineRoute, type Spool } from '../../src/server/index';
+import {
+	createSpool,
+	defineRoute,
+	type BuildBundleOptions,
+	type BuiltBundle,
+	type Registration,
+	type Spool
+} from '../../src/server/index';
 import { MAX_CATALOGUE_BUILD, MAX_PIGGYBACK } from '../../src/server/spool';
 import * as storesModule from '../../src/stores/index';
 import { memoryStore } from '../../src/stores/index';
@@ -26,6 +45,8 @@ import {
 import * as swModule from '../../src/sw/index';
 import { MAX_STATIC_BYTES } from '../../src/sw/static';
 import * as trimModule from '../../src/trim/index';
+import * as viteModule from '../../src/vite/index';
+import * as vueModule from '../../src/vue/index';
 
 // #region helpers: a fixture site and the shape of each body
 
@@ -173,14 +194,14 @@ function makeSpool(over: { writes?: boolean } = {}) {
 		routes: [
 			defineRoute('/n/:id', {
 				strategy: 'template',
-				template: { source: '<html><head></head><body>node</body></html>' },
+				template: { source: '<html><head></head><body>node {{id}}</body></html>' },
 				depends: (ctx) => [`node:${ctx.params['id']}`],
 				load: (ctx) => ({ id: ctx.params['id'] }),
 				catalogue: () => [{ path: '/n/2', p: 1 }]
 			}),
 			defineRoute('/t/:id', {
 				strategy: 'template',
-				template: { source: '<html><head></head><body>course</body></html>' },
+				template: { source: '<html><head></head><body>course {{title}}</body></html>' },
 				depends: (ctx) => [`page:${ctx.params['id']}`],
 				load: (ctx) => ({
 					title: ctx.record(`course:${ctx.params['id']}`, { title: 'Intro' })
@@ -235,9 +256,14 @@ describe('the wire names and the version', () => {
 			partition: 'spool-partition',
 			vectorSeen: 'spool-vector-seen',
 			provision: 'spool-provision',
-			provisionReason: 'spool-provision-reason'
+			provisionReason: 'spool-provision-reason',
+			delta: 'spool-delta',
+			have: 'spool-have'
 		});
-		expect(protocol.WRITE_HEADERS).toEqual({ id: 'spool-write-id' });
+		expect(protocol.WRITE_HEADERS).toEqual({
+			id: 'spool-write-id',
+			digest: 'spool-write-digest'
+		});
 	});
 
 	it('pins every path', () => {
@@ -249,6 +275,45 @@ describe('the wire names and the version', () => {
 			write: '/.spool/write',
 			worker: '/spool-sw.js'
 		});
+	});
+
+	it('pins the live path beside PATHS and the names of its events', () => {
+		expect(protocol.LIVE_PATH).toBe('/.spool/live');
+		expect(protocol.LIVE_EVENTS).toEqual(['hello', 'lease', 'delta', 'revoked']);
+		expect(Object.keys(protocol.PATHS)).toEqual([
+			'sync',
+			'artifact',
+			'dataset',
+			'beacon',
+			'write',
+			'worker'
+		]);
+	});
+
+	it('pins the bundle prefix', () => {
+		expect(protocol.BUNDLE_PREFIX).toBe('/.spool/bundle/');
+		expect(protocol.BUNDLE_DELTA_PREFIX).toBe('/.spool/bundle/delta/');
+	});
+
+	it('pins the navigation script path under the version prefix', () => {
+		expect(protocol.navigatePath('1.2.3')).toBe('/.spool/1.2.3/navigate.js');
+	});
+
+	it('pins the boot script path under the version prefix, by pack version', () => {
+		expect(protocol.bootPath('1.2.3', 42)).toBe('/.spool/1.2.3/boot/42.js');
+	});
+
+	it('pins the ring element id', () => {
+		expect(protocol.RING_ELEMENT_ID).toBe('spool-ring');
+	});
+
+	it('pins the delta element id and the held-version cookie name', () => {
+		expect(protocol.DELTA_ELEMENT_ID).toBe('spool-delta');
+		expect(protocol.COOKIES).toEqual({ held: 'spool-held' });
+	});
+
+	it('pins the writes element id', () => {
+		expect(protocol.WRITES_ELEMENT_ID).toBe('spool-writes');
 	});
 });
 
@@ -968,16 +1033,22 @@ describe('the limits, by name, value and file', () => {
 		['MAX_WRITE_KEY', 256, 'src/protocol/write.ts'],
 		['MAX_WRITE_BYTES', 1_048_576, 'src/protocol/write.ts'],
 		['MAX_WRITE_PENDING', 1000, 'src/protocol/write.ts'],
+		['MAX_BUNDLE_FRAME_BYTES', 8_388_608, 'src/protocol/bundle.ts'],
 		['PROTOCOL_VERSION', 1, 'src/protocol/artifact.ts'],
 		['MANIFEST_SCHEMA', 1, 'src/protocol/manifest.ts'],
 		['SPOOL_PREFIX', '/.spool/', 'src/protocol/config.ts'],
+		['BUNDLE_PREFIX', '/.spool/bundle/', 'src/protocol/config.ts'],
+		['BUNDLE_DELTA_PREFIX', '/.spool/bundle/delta/', 'src/protocol/config.ts'],
 		['OWN_PREFIX', '/.spool/', 'src/protocol/beacon.ts'],
 		['VIEW_PATH', '/.spool/view', 'src/protocol/view.ts'],
 		['LOADS_PATH', '/.spool/loads', 'src/protocol/view.ts'],
+		['LIVE_PATH', '/.spool/live', 'src/protocol/config.ts'],
+		['LIVE_PING', 'ping', 'src/protocol/config.ts'],
 		['DROPPED_PATH', '/.spool/dropped', 'src/protocol/beacon.ts'],
 		['ARTIFACT_TAG_PREFIX', 'spool:artifact:', 'src/protocol/sync.ts'],
 		['CLEAR_ALL', '*', 'src/protocol/envelope.ts'],
 		['CLIENT_TAG_ATTR', 'data-spool-client', 'src/protocol/tag.ts'],
+		['GATE_ATTR', 'data-spool-gate', 'src/protocol/tag.ts'],
 		['GA4_RECOMMENDED_MS', 172_800_000, 'src/protocol/collector.ts'],
 		['GA4_HARD_MS', 259_200_000, 'src/protocol/collector.ts'],
 		['JOULES_PER_BYTE', 0.0006984, 'src/protocol/provision.ts'],
@@ -1010,24 +1081,46 @@ describe('the public export names of each entry point', () => {
 			[
 				'ACTIVITY_PAIRS',
 				'ARTIFACT_TAG_PREFIX',
+				'AZURE_EGRESS',
+				'BLOCK_ROWS',
+				'BOOTSTRAP_EXTRA_NO_WORKER',
+				'BOOTSTRAP_EXTRA_WORKER',
+				'BUNDLE_DELTA_PREFIX',
+				'BUNDLE_PREFIX',
+				'CF_FREE_REQUESTS_PER_DAY',
+				'CF_PAID_INCLUDED',
+				'CF_PAID_PER_MILLION',
+				'CLASS_OF_ENGINE_DEFAULT',
 				'CLEAR_ALL',
 				'CLIENT_TAG_ATTR',
+				'COMPACT_OVERLAY_BYTES',
+				'COMPACT_OVERLAY_ROWS',
 				'CONTAMINATION_MS_PER_S',
+				'COOKIES',
+				'CRAWL',
 				'DATASET_DEFAULTS',
 				'DATASET_NAME',
 				'DATASET_PAGE_CAP',
 				'DATASET_PAGE_ROWS',
+				'DAYS_PER_MONTH',
 				'DEFAULT_CATALOGUE_BYTES',
 				'DEFAULT_FRESHNESS',
 				'DEFAULT_PRIOR',
+				'DELTA_ELEMENT_ID',
+				'DEMAND',
+				'DEMAND_LAYERS',
+				'DEMAND_PATHS',
 				'DICTIONARY_ARMS',
 				'DOCUMENT_BYTES',
 				'DROPPED_PATH',
 				'DRUPAL_NULL_KEY',
+				'ECON_PRICES_READ',
 				'EGRID_LB_PER_MWH',
 				'ELECTRICITY_PRICE',
 				'EMBER_US_G_PER_KWH',
 				'EMPTY_DIGEST',
+				'ENGINE_CLASSES',
+				'ENGINE_CLASS_LABELS',
 				'FIRST_VIEW_BYTES',
 				'FIRST_VIEW_SHARE',
 				'FREE_TIER_VIEWS',
@@ -1035,10 +1128,13 @@ describe('the public export names of each entry point', () => {
 				'GA4_COLLECTOR',
 				'GA4_HARD_MS',
 				'GA4_RECOMMENDED_MS',
+				'GATE_ATTR',
+				'GCP_EGRESS',
 				'GOAL_HIGH_SHARE',
 				'GOAL_SHARES',
 				'G_PER_LB',
 				'HEADERS',
+				'HISTORY',
 				'HOSTING_KWH_PER_SITE',
 				'HOSTS',
 				'IDLE_AGREEMENT',
@@ -1046,12 +1142,16 @@ describe('the public export names of each entry point', () => {
 				'INLINE_OPEN',
 				'JOULES_PER_BYTE',
 				'KNOWN_ORIGINS',
+				'LIVE_EVENTS',
+				'LIVE_PATH',
+				'LIVE_PING',
 				'LOADS_PATH',
 				'LOOP_CLASSES',
 				'LOOP_WINDOW_S',
 				'MANIFEST_SCHEMA',
 				'MAX_BEACON_BYTES',
 				'MAX_BEACON_EVENTS',
+				'MAX_BUNDLE_FRAME_BYTES',
 				'MAX_CATALOGUE_PATH',
 				'MAX_HAVE',
 				'MAX_LOAD_ORIGINS',
@@ -1083,10 +1183,22 @@ describe('the public export names of each entry point', () => {
 				'READ_SHARE',
 				'REASON_TIER',
 				'REPEAT_VIEW_BYTES',
+				'RESOURCE_APPLY',
+				'RESOURCE_METHODS',
+				'RETROFIT_DOCUMENTS',
+				'RETROFIT_IN_PAGE',
+				'RETROFIT_ORIGIN',
+				'RETROFIT_VIEWS',
+				'RETROFIT_WORKER',
 				'RIGS',
+				'RING_ELEMENT_ID',
 				'SERVER_FLOOR',
 				'SERVER_WATTS',
+				'SESSION',
 				'SPOOL_PREFIX',
+				'STORAGE',
+				'STUB_304_BYTES',
+				'STUB_FULL_ST_BYTES',
 				'SWD_V4',
 				'TIERS',
 				'TableIndex',
@@ -1095,6 +1207,9 @@ describe('the public export names of each entry point', () => {
 				'WATER_DIRECT',
 				'WATER_INDIRECT',
 				'WATER_INDIRECT_LBNL',
+				'WEBKIT_STUB_RATE',
+				'WORKLOADS',
+				'WRITES_ELEMENT_ID',
 				'WRITE_HEADERS',
 				'WRITE_NAME',
 				'WRITE_STATUS',
@@ -1103,12 +1218,20 @@ describe('the public export names of each entry point', () => {
 				'addLevers',
 				'aggregatesOf',
 				'applyChanges',
+				'applyDelta',
+				'applyPatch',
 				'applyStamp',
 				'artifactTag',
 				'assemble',
 				'attributionalJoules',
+				'avoidedShare',
 				'bandwidthUsd',
+				'baselinePerReadView',
 				'benefit',
+				'bestAndWorst',
+				'bootPath',
+				'buildPack',
+				'bundleDigest',
 				'cacheability',
 				'cacheabilityFigures',
 				'canonicalJson',
@@ -1126,8 +1249,11 @@ describe('the public export names of each entry point', () => {
 				'clientPath',
 				'clientTag',
 				'collectRefs',
+				'compactBundle',
+				'compactionDue',
 				'compareText',
 				'compileTemplate',
+				'couplingReport',
 				'coverageFigures',
 				'crawlLevers',
 				'createCollector',
@@ -1138,12 +1264,19 @@ describe('the public export names of each entry point', () => {
 				'decodeEnvelope',
 				'decodeEnvelopeOrClear',
 				'defineDataset',
+				'defineResource',
 				'defineRoute',
 				'defineWrite',
+				'demandBytes',
+				'demandCounts',
+				'demandDocumentCounts',
+				'demandSavings',
+				'demandWorkerCounts',
 				'deviceCpuFigures',
 				'dictionaryArms',
 				'digestAdd',
 				'digestSub',
+				'documentRequests',
 				'drupalRenderFigures',
 				'egressUsd',
 				'egridGPerKwh',
@@ -1164,14 +1297,19 @@ describe('the public export names of each entry point', () => {
 				'fillPattern',
 				'fillSlots',
 				'findLeaks',
+				'firstViewDocumentMedian',
 				'firstViewFigures',
 				'firstViewFit',
 				'fleetFor',
 				'footprintMwh',
+				'freeReadViewsPerDay',
 				'freeTierCeiling',
+				'freeViewsPair',
 				'funnelOf',
 				'gPerKwhFromLbPerMwh',
+				'gateTag',
 				'halves',
+				'heldShare',
 				'ifMatch',
 				'imageSavings',
 				'inferenceFigures',
@@ -1196,6 +1334,8 @@ describe('the public export names of each entry point', () => {
 				'ledgerJoules',
 				'ledgerMWh',
 				'leverStats',
+				'libraryBytes',
+				'libraryStages',
 				'linearFit',
 				'loaded',
 				'loadsFromBeacon',
@@ -1203,6 +1343,7 @@ describe('the public export names of each entry point', () => {
 				'loopClasses',
 				'loopFigures',
 				'lowerBound',
+				'makeDelta',
 				'manifestRoutes',
 				'matchCollector',
 				'matchPattern',
@@ -1210,18 +1351,27 @@ describe('the public export names of each entry point', () => {
 				'measurementPath',
 				'measurementProblems',
 				'median',
+				'mergeDeltas',
 				'mismatchesByRoute',
 				'monthlyGb',
+				'multiplierOf',
+				'navigatePath',
+				'netBytesShare',
 				'newWriteId',
 				'nextShare',
+				'noWorkerRequestsPerReadView',
 				'nodesNeeded',
 				'normalise',
 				'onWireFigures',
+				'overIncluded',
+				'paidMonth',
+				'paidRequestsUsd',
 				'parseArtifact',
 				'parseBeaconBatch',
 				'parseDatasetRequest',
 				'parseDatasetResponse',
 				'parseHeld',
+				'parseLiveDelta',
 				'parseManifest',
 				'parseMeasurement',
 				'parseMeasurementText',
@@ -1243,15 +1393,23 @@ describe('the public export names of each entry point', () => {
 				'quantile',
 				'quartiles',
 				'raplRun',
+				'readBlock',
+				'readBundle',
+				'readFrames',
 				'readIfMatch',
 				'readInline',
 				'recordRef',
 				'renderAssembly',
+				'repaidAfter',
 				'repeatBytesBySite',
 				'repeatNavFigures',
 				'repeatSplitBySite',
 				'requestUsd',
+				'requestsByClass',
+				'requestsPerReadView',
+				'requireLayers',
 				'resolveRefs',
+				'retrofitRatio',
 				'rollUpInstitutions',
 				'rowHash',
 				'rowRef',
@@ -1274,7 +1432,9 @@ describe('the public export names of each entry point', () => {
 				'smoothReuse',
 				'splitRequestBytes',
 				'splitRowId',
+				'spoolBytes',
 				'spread',
+				'stageMultiplier',
 				'stripInline',
 				'swdTotal',
 				'tabsFigures',
@@ -1293,10 +1453,13 @@ describe('the public export names of each entry point', () => {
 				'viewsChannelMWh',
 				'viewsWithLoads',
 				'warmFigures',
+				'webkitStubPerReadView',
 				'weigh',
 				'wilson',
 				'windowCounts',
+				'workerRequests',
 				'writeEnvelope',
+				'writeFor',
 				'zAnnual',
 				'zDaily',
 				'zPeakWork',
@@ -1308,8 +1471,14 @@ describe('the public export names of each entry point', () => {
 			protocol,
 			[
 				'ARTIFACT_TAG_PREFIX',
+				'BLOCK_ROWS',
+				'BUNDLE_DELTA_PREFIX',
+				'BUNDLE_PREFIX',
 				'CLEAR_ALL',
 				'CLIENT_TAG_ATTR',
+				'COMPACT_OVERLAY_BYTES',
+				'COMPACT_OVERLAY_ROWS',
+				'COOKIES',
 				'DATASET_DEFAULTS',
 				'DATASET_NAME',
 				'DATASET_PAGE_CAP',
@@ -1317,20 +1486,26 @@ describe('the public export names of each entry point', () => {
 				'DEFAULT_CATALOGUE_BYTES',
 				'DEFAULT_FRESHNESS',
 				'DEFAULT_PRIOR',
+				'DELTA_ELEMENT_ID',
 				'DROPPED_PATH',
 				'EMPTY_DIGEST',
 				'FROM_EXTERNAL',
 				'GA4_COLLECTOR',
 				'GA4_HARD_MS',
 				'GA4_RECOMMENDED_MS',
+				'GATE_ATTR',
 				'HEADERS',
 				'INDEX_MIN_ROWS',
 				'INLINE_OPEN',
 				'JOULES_PER_BYTE',
+				'LIVE_EVENTS',
+				'LIVE_PATH',
+				'LIVE_PING',
 				'LOADS_PATH',
 				'MANIFEST_SCHEMA',
 				'MAX_BEACON_BYTES',
 				'MAX_BEACON_EVENTS',
+				'MAX_BUNDLE_FRAME_BYTES',
 				'MAX_CATALOGUE_PATH',
 				'MAX_HAVE',
 				'MAX_LOAD_ORIGINS',
@@ -1349,18 +1524,27 @@ describe('the public export names of each entry point', () => {
 				'PROTOCOL_VERSION',
 				'ProtocolError',
 				'REASON_TIER',
+				'RESOURCE_APPLY',
+				'RESOURCE_METHODS',
+				'RING_ELEMENT_ID',
 				'SPOOL_PREFIX',
 				'TableIndex',
 				'VIEW_PATH',
 				'VersionVector',
+				'WRITES_ELEMENT_ID',
 				'WRITE_HEADERS',
 				'WRITE_NAME',
 				'WRITE_STATUS',
 				'applyChanges',
+				'applyDelta',
+				'applyPatch',
 				'applyStamp',
 				'artifactTag',
 				'assemble',
 				'benefit',
+				'bootPath',
+				'buildPack',
+				'bundleDigest',
 				'canonicalJson',
 				'checkCollectors',
 				'checkPattern',
@@ -1369,14 +1553,18 @@ describe('the public export names of each entry point', () => {
 				'clientPath',
 				'clientTag',
 				'collectRefs',
+				'compactBundle',
+				'compactionDue',
 				'compareText',
 				'compileTemplate',
+				'couplingReport',
 				'createCollector',
 				'datasetBenefit',
 				'datasetProof',
 				'decodeEnvelope',
 				'decodeEnvelopeOrClear',
 				'defineDataset',
+				'defineResource',
 				'defineRoute',
 				'defineWrite',
 				'digestAdd',
@@ -1395,6 +1583,7 @@ describe('the public export names of each entry point', () => {
 				'fillPattern',
 				'fillSlots',
 				'funnelOf',
+				'gateTag',
 				'ifMatch',
 				'injectClientTag',
 				'inlineElement',
@@ -1408,10 +1597,13 @@ describe('the public export names of each entry point', () => {
 				'loadsFromBeacon',
 				'loadsToBeacon',
 				'lowerBound',
+				'makeDelta',
 				'manifestRoutes',
 				'matchCollector',
 				'matchPattern',
 				'matchRoute',
+				'mergeDeltas',
+				'navigatePath',
 				'newWriteId',
 				'normalise',
 				'parseArtifact',
@@ -1419,6 +1611,7 @@ describe('the public export names of each entry point', () => {
 				'parseDatasetRequest',
 				'parseDatasetResponse',
 				'parseHeld',
+				'parseLiveDelta',
 				'parseManifest',
 				'parseProjectionEntry',
 				'parseRecordEntry',
@@ -1430,6 +1623,9 @@ describe('the public export names of each entry point', () => {
 				'plan',
 				'priorFrom',
 				'projectionRef',
+				'readBlock',
+				'readBundle',
+				'readFrames',
 				'readIfMatch',
 				'readInline',
 				'recordRef',
@@ -1456,7 +1652,8 @@ describe('the public export names of each entry point', () => {
 				'viewToBeacon',
 				'viewsWithLoads',
 				'weigh',
-				'writeEnvelope'
+				'writeEnvelope',
+				'writeFor'
 			]
 		],
 		[
@@ -1468,30 +1665,38 @@ describe('the public export names of each entry point', () => {
 				'MAX_PIGGYBACK',
 				'MP_MAX_EVENTS',
 				'analyticsEngineSink',
+				'buildBundle',
 				'combineSinks',
 				'compressedSize',
 				'createSpool',
 				'datasetProof',
 				'defineDataset',
+				'defineResource',
 				'defineRoute',
 				'defineWrite',
 				'eventsOf',
 				'ga4Requests',
 				'ga4Sink',
 				'jsonLinesSink',
+				'memoryBundleStore',
+				'memoryHub',
 				'memorySink',
+				'memoryStaticSink',
 				'mpViolations',
 				'partitionId',
+				'routesFromPages',
 				'splitBytes',
+				'staticHeaders',
 				'viewsOf',
 				'workSeries'
 			]
 		],
-		['./node', nodeModule, ['toNodeListener', 'toRequest', 'writeResponse']],
+		['./node', nodeModule, ['fileStaticSink', 'toNodeListener', 'toRequest', 'writeResponse']],
 		[
 			'./proxy',
 			proxyModule,
 			[
+				'DECLINE_PATH',
 				'PURGE_PATH',
 				'TAG_HEADERS',
 				'TRIM_PATH',
@@ -1507,37 +1712,80 @@ describe('the public export names of each entry point', () => {
 				'isUtf8',
 				'pathTag',
 				'readTags',
+				'recordDecline',
 				'respondPurge',
+				'responseDecline',
 				'setsPrivateCookie',
 				'spoolProxy',
 				'stripTags'
 			]
 		],
 		['./stores', storesModule, ['memoryStore']],
-		['./sw', swModule, ['MANIFEST_FILE', 'manifestConfig', 'serve']],
+		['./nuxt', nuxtModule, ['default']],
+		[
+			'./next',
+			nextModule,
+			['SPOOL_PAGES_FILE', 'default', 'nextPages', 'spoolRouteHandler', 'spoolTag']
+		],
+		[
+			'./react-router',
+			reactRouterModule,
+			['flattenRoutes', 'reactRouterPages', 'spoolReactRouter']
+		],
+		['./vite', viteModule, ['spoolVite']],
+		['./vue', vueModule, ['spoolVue', 'vuePages']],
+		['./angular', angularModule, ['spoolAngular']],
+		[
+			'./sw',
+			swModule,
+			['MANIFEST_FILE', 'QUOTA_MARGIN_BYTES', 'createPackStore', 'manifestConfig', 'serve']
+		],
 		[
 			'./client',
 			clientModule,
-			['browserActivityHost', 'closeOnPageHide', 'createActivity', 'register']
+			[
+				'browserActivityHost',
+				'closeOnPageHide',
+				'createActivity',
+				'enableNavigation',
+				'register'
+			]
 		],
 		[
 			'./report',
 			reportModule,
 			[
 				'ACTIVITY_PAIRS',
+				'AZURE_EGRESS',
+				'BOOTSTRAP_EXTRA_NO_WORKER',
+				'BOOTSTRAP_EXTRA_WORKER',
+				'CF_FREE_REQUESTS_PER_DAY',
+				'CF_PAID_INCLUDED',
+				'CF_PAID_PER_MILLION',
+				'CLASS_OF_ENGINE_DEFAULT',
 				'CONTAMINATION_MS_PER_S',
+				'CRAWL',
+				'DAYS_PER_MONTH',
+				'DEMAND',
+				'DEMAND_LAYERS',
+				'DEMAND_PATHS',
 				'DICTIONARY_ARMS',
 				'DOCUMENT_BYTES',
 				'DRUPAL_NULL_KEY',
+				'ECON_PRICES_READ',
 				'EGRID_LB_PER_MWH',
 				'ELECTRICITY_PRICE',
 				'EMBER_US_G_PER_KWH',
+				'ENGINE_CLASSES',
+				'ENGINE_CLASS_LABELS',
 				'FIRST_VIEW_BYTES',
 				'FIRST_VIEW_SHARE',
 				'FREE_TIER_VIEWS',
+				'GCP_EGRESS',
 				'GOAL_HIGH_SHARE',
 				'GOAL_SHARES',
 				'G_PER_LB',
+				'HISTORY',
 				'HOSTING_KWH_PER_SITE',
 				'HOSTS',
 				'IDLE_AGREEMENT',
@@ -1557,20 +1805,34 @@ describe('the public export names of each entry point', () => {
 				'RADIO_J',
 				'READ_SHARE',
 				'REPEAT_VIEW_BYTES',
+				'RETROFIT_DOCUMENTS',
+				'RETROFIT_IN_PAGE',
+				'RETROFIT_ORIGIN',
+				'RETROFIT_VIEWS',
+				'RETROFIT_WORKER',
 				'RIGS',
 				'SERVER_FLOOR',
 				'SERVER_WATTS',
+				'SESSION',
+				'STORAGE',
+				'STUB_304_BYTES',
+				'STUB_FULL_ST_BYTES',
 				'SWD_V4',
 				'TIERS',
 				'WATER_DIRECT',
 				'WATER_INDIRECT',
 				'WATER_INDIRECT_LBNL',
+				'WEBKIT_STUB_RATE',
+				'WORKLOADS',
 				'activityFigures',
 				'activityGains',
 				'addLevers',
 				'aggregatesOf',
 				'attributionalJoules',
+				'avoidedShare',
 				'bandwidthUsd',
+				'baselinePerReadView',
+				'bestAndWorst',
 				'cacheability',
 				'cacheabilityFigures',
 				'capacityMWh',
@@ -1584,8 +1846,14 @@ describe('the public export names of each entry point', () => {
 				'crawlLevers',
 				'dataCentreJoules',
 				'datasetFigures',
+				'demandBytes',
+				'demandCounts',
+				'demandDocumentCounts',
+				'demandSavings',
+				'demandWorkerCounts',
 				'deviceCpuFigures',
 				'dictionaryArms',
+				'documentRequests',
 				'drupalRenderFigures',
 				'egressUsd',
 				'egridGPerKwh',
@@ -1593,13 +1861,17 @@ describe('the public export names of each entry point', () => {
 				'factors',
 				'factorsByEngine',
 				'findLeaks',
+				'firstViewDocumentMedian',
 				'firstViewFigures',
 				'firstViewFit',
 				'fleetFor',
 				'footprintMwh',
+				'freeReadViewsPerDay',
 				'freeTierCeiling',
+				'freeViewsPair',
 				'gPerKwhFromLbPerMwh',
 				'halves',
+				'heldShare',
 				'imageSavings',
 				'inferenceFigures',
 				'institutionReport',
@@ -1614,6 +1886,8 @@ describe('the public export names of each entry point', () => {
 				'ledgerJoules',
 				'ledgerMWh',
 				'leverStats',
+				'libraryBytes',
+				'libraryStages',
 				'linearFit',
 				'loaded',
 				'loopClasses',
@@ -1623,9 +1897,15 @@ describe('the public export names of each entry point', () => {
 				'median',
 				'mismatchesByRoute',
 				'monthlyGb',
+				'multiplierOf',
+				'netBytesShare',
 				'nextShare',
+				'noWorkerRequestsPerReadView',
 				'nodesNeeded',
 				'onWireFigures',
+				'overIncluded',
+				'paidMonth',
+				'paidRequestsUsd',
 				'parseMeasurement',
 				'parseMeasurementText',
 				'pathMatches',
@@ -1636,10 +1916,15 @@ describe('the public export names of each entry point', () => {
 				'quantile',
 				'quartiles',
 				'raplRun',
+				'repaidAfter',
 				'repeatBytesBySite',
 				'repeatNavFigures',
 				'repeatSplitBySite',
 				'requestUsd',
+				'requestsByClass',
+				'requestsPerReadView',
+				'requireLayers',
+				'retrofitRatio',
 				'rollUpInstitutions',
 				'runtimeRun',
 				'saving',
@@ -1648,7 +1933,9 @@ describe('the public export names of each entry point', () => {
 				'serversAfter',
 				'siteFigures',
 				'splitRequestBytes',
+				'spoolBytes',
 				'spread',
+				'stageMultiplier',
 				'swdTotal',
 				'tabsFigures',
 				'thirdPartyCacheBySite',
@@ -1661,8 +1948,10 @@ describe('the public export names of each entry point', () => {
 				'usdForMwh',
 				'viewsChannelMWh',
 				'warmFigures',
+				'webkitStubPerReadView',
 				'wilson',
 				'windowCounts',
+				'workerRequests',
 				'zAnnual',
 				'zDaily',
 				'zPeakWork',
@@ -1722,5 +2011,19 @@ describe('the public export names of each entry point', () => {
 
 	it.each(EXPORTS)('%s exports exactly these names', (_subpath, module, names) => {
 		expect(Object.keys(module).sort()).toEqual(names);
+	});
+});
+
+describe('the type names each entry point exports', () => {
+	// types have no runtime value; the typecheck of this file is the pin
+	it('pins the named types the entry points export', () => {
+		expectTypeOf<BuildBundleOptions>().toHaveProperty('store');
+		expectTypeOf<BuiltBundle>().toHaveProperty('bytes');
+		expectTypeOf<FamilyRoute>().toBeObject();
+		expectTypeOf<PrerenderPaths>().toEqualTypeOf<
+			boolean | readonly string[] | ((args: never) => unknown)
+		>();
+		expectTypeOf<BuildContext>().toHaveProperty('distDir');
+		expectTypeOf<Registration>().toHaveProperty('register');
 	});
 });

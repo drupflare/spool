@@ -1,5 +1,6 @@
 import { PROTOCOL_VERSION, type Scope } from './artifact.js';
 import { ProtocolError } from './errors.js';
+import { parseSyncResponse, type SyncResponse } from './sync.js';
 
 /** the header names, lowercase as `Headers` reports them */
 export const HEADERS = {
@@ -11,7 +12,9 @@ export const HEADERS = {
 	partition: 'spool-partition',
 	vectorSeen: 'spool-vector-seen',
 	provision: 'spool-provision',
-	provisionReason: 'spool-provision-reason'
+	provisionReason: 'spool-provision-reason',
+	delta: 'spool-delta',
+	have: 'spool-have'
 } as const;
 
 /** `Spool-Clear` token that wipes everything the worker holds */
@@ -194,4 +197,38 @@ export function decodeEnvelope(headers: Headers): Envelope {
 		out.partition = partition;
 	}
 	return out;
+}
+
+/** the names of the events `/.spool/live` sends, each as the SSE `event` field with one JSON `data` line */
+export const LIVE_EVENTS = ['hello', 'lease', 'delta', 'revoked'] as const;
+
+/** the name of a live event */
+export type LiveEventName = (typeof LIVE_EVENTS)[number];
+
+/** what each live event carries */
+export type LiveEvents = {
+	/** first on every stream: the protocol and the cursor the stream's own deltas follow */
+	hello: { protocol: typeof PROTOCOL_VERSION; cursor: number };
+	/**
+	 * The session is good for `leaseMs` from the moment the page reads the event, and again after the
+	 * next one. It is a duration so a device clock that is wrong does not change it.
+	 */
+	lease: { leaseMs: number };
+	/** the tags changed after `from` up to `cursor`, as a `/.spool/sync` answer; public information only */
+	delta: LiveDelta;
+	/** the session behind the stream ended; the stream closes after this event */
+	revoked: Record<string, never>;
+};
+
+/** a `/.spool/sync` answer for the tags changed after `from`, pushed */
+export type LiveDelta = SyncResponse & { from: number };
+
+/** reads the `data` of a `delta` event; throws `ProtocolError` on a malformed one */
+export function parseLiveDelta(value: unknown): LiveDelta {
+	const sync = parseSyncResponse(value);
+	const from = (value as { from?: unknown }).from;
+	if (typeof from !== 'number' || !Number.isSafeInteger(from) || from < 0) {
+		return bad('from must be a non-negative integer');
+	}
+	return { ...sync, from };
 }

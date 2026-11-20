@@ -5,6 +5,7 @@ export type ProtocolErrorCode =
 	| 'bad-header'
 	| 'bad-artifact'
 	| 'bad-sync'
+	| 'bad-bundle'
 	| 'bad-beacon'
 	| 'bad-template'
 	| 'bad-manifest'
