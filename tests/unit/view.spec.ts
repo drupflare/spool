@@ -43,6 +43,17 @@ describe('view events as beacons', () => {
 		expect(viewFromBeacon(viewToBeacon(catalogue, 9))).toEqual({ ...catalogue, at: 9 });
 	});
 
+	it('round-trips lifetimes from zero up, and reads a view without one as absent', () => {
+		for (const lifetimes of [0, 3]) {
+			expect(viewFromBeacon(viewToBeacon({ ...VIEW, lifetimes }, 7))).toEqual({
+				...VIEW,
+				lifetimes,
+				at: 7
+			});
+		}
+		expect(viewFromBeacon(viewToBeacon(VIEW, 7))).not.toHaveProperty('lifetimes');
+	});
+
 	it('keeps null for what was not measured', () => {
 		const back = viewFromBeacon(
 			viewToBeacon({ ...VIEW, staleSec: null, gapMs: 5, mismatch: true }, 1)
@@ -82,7 +93,10 @@ describe('view events as beacons', () => {
 		],
 		['a string mismatch', { ...viewToBeacon({ ...VIEW, mismatch: 'no' as never }, 1) }],
 		['a string staleSec', { ...viewToBeacon({ ...VIEW, staleSec: '1' as never }, 1) }],
-		['a missing swAgeMs', { ...viewToBeacon({ ...VIEW, swAgeMs: undefined as never }, 1) }]
+		['a missing swAgeMs', { ...viewToBeacon({ ...VIEW, swAgeMs: undefined as never }, 1) }],
+		['a negative lifetimes', { ...viewToBeacon({ ...VIEW, lifetimes: -1 }, 1) }],
+		['a fractional lifetimes', { ...viewToBeacon({ ...VIEW, lifetimes: 1.5 }, 1) }],
+		['a string lifetimes', { ...viewToBeacon({ ...VIEW, lifetimes: '1' as never }, 1) }]
 	])('reads %s as no view', (_name, beacon) => {
 		expect(viewFromBeacon(beacon)).toBeNull();
 	});
@@ -151,6 +165,10 @@ describe('engineOf', () => {
 		[
 			'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/128.0 Mobile/15E148 Safari/605.1.15',
 			'webkit'
+		],
+		[
+			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36',
+			'chromium'
 		],
 		['Node.js/24', 'other'],
 		['', 'other']

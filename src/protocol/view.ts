@@ -82,6 +82,8 @@ export type ViewEvent = {
 	 * bound on cross-origin network requests. Null until the page reports, and when it never does.
 	 */
 	crossOriginLoads: number | null;
+	/** packs this client installed, as the page last reported; absent until the page reports */
+	lifetimes?: number;
 };
 
 /** a view with the device time it was recorded at, epoch milliseconds */
@@ -230,12 +232,19 @@ export function viewFromBeacon(event: BeaconEvent): TimedView | null {
 		swAgeMs,
 		gapMs,
 		from,
-		crossOriginLoads
+		crossOriginLoads,
+		lifetimes
 	} = value;
 	if (typeof id !== 'string' || id === '' || id.length > 64) return null;
 	if (
 		crossOriginLoads !== null &&
 		(!Number.isSafeInteger(crossOriginLoads) || (crossOriginLoads as number) < 0)
+	) {
+		return null;
+	}
+	if (
+		lifetimes !== undefined &&
+		(!Number.isSafeInteger(lifetimes) || (lifetimes as number) < 0)
 	) {
 		return null;
 	}
@@ -264,6 +273,7 @@ export function viewFromBeacon(event: BeaconEvent): TimedView | null {
 		...(typeof from === 'string' && from !== '' && from.length <= MAX_ROUTE_CHARS
 			? { from }
 			: {}),
+		...(lifetimes === undefined ? {} : { lifetimes: lifetimes as number }),
 		at: event.at
 	};
 }
@@ -275,7 +285,8 @@ export function viewFromBeacon(event: BeaconEvent): TimedView | null {
 export function engineOf(userAgent: string): Engine {
 	if (/\b(?:CriOS|FxiOS|EdgiOS|OPiOS)\//.test(userAgent)) return 'webkit';
 	if (/\bFirefox\//.test(userAgent)) return 'firefox';
-	if (/\b(?:Chrome|Chromium)\//.test(userAgent)) return 'chromium';
+	// no leading boundary: headless Chromium names itself HeadlessChrome
+	if (/(?:Chrome|Chromium)\//.test(userAgent)) return 'chromium';
 	if (/\bSafari\//.test(userAgent)) return 'webkit';
 	return 'other';
 }
