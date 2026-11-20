@@ -30,7 +30,7 @@ import {
 } from '../../src/server/index';
 import { packReader } from '../../src/server/stub';
 import { memoryStore } from '../../src/stores/index';
-import { createPackStore } from '../../src/sw/index';
+import { createPackStore, type PackStore } from '../../src/sw/index';
 import { idbPartitions, idbVault } from '../../src/sw/partition';
 import { allowedPolicy } from '../../src/sw/policy';
 import { renderLocal } from '../../src/sw/render';
@@ -38,7 +38,7 @@ import { classify } from '../../src/sw/router';
 import { createRuntime } from '../../src/sw/runtime';
 import { MAX_STATIC_BYTES, readCapped } from '../../src/sw/static';
 import { memoryStorage, type ReplicaStorage } from '../../src/sw/storage';
-import { artifact, fakeCaches, freshIndexedDB, nav, ORIGIN, sub } from './helpers';
+import { artifact, fakeCaches, freshIndexedDB, nav, ORIGIN, sub, tapped } from './helpers';
 import { rig as familyRig } from './rig';
 
 const HTML = { 'content-type': 'text/html; charset=utf-8' };
@@ -107,6 +107,7 @@ function rig(
 		/** the worker's config where it differs from the server's, such as a worker with no lease */
 		config?: Partial<Record<keyof SwConfig, unknown>>;
 		broadcast?: (message: unknown) => void;
+		pack?: PackStore;
 	} = {}
 ) {
 	const store = memoryStore();
@@ -198,7 +199,8 @@ function rig(
 			origin: ORIGIN,
 			now: () => t,
 			renderers,
-			...(options.broadcast ? { broadcast: options.broadcast } : {})
+			...(options.broadcast ? { broadcast: options.broadcast } : {}),
+			...(options.pack ? { pack: options.pack } : {})
 		});
 	const runtime = make();
 
@@ -1776,6 +1778,24 @@ describe('a family route answers from the row the device holds', () => {
 		return { pack, r, reader: packReader(bundles) };
 	}
 
+	it('leaves a held pack alone when the stub carries an older one', async () => {
+		const { pack, r, reader } = await twoVersions();
+		const newer = r.make({
+			config: { ...r.spool.config, pack: (await reader.stub(2))! },
+			pack
+		});
+		await newer.install({} as never);
+		expect((await pack.head())?.version).toBe(2);
+		r.log.splice(0);
+		const older = r.make({
+			config: { ...r.spool.config, pack: (await reader.stub(1))! },
+			pack
+		});
+		await older.install({} as never);
+		expect((await pack.head())?.version).toBe(2);
+		expect(r.log).toEqual([]);
+	});
+
 	it('installs nothing when the stub names the version the device holds', async () => {
 		const { pack, r, reader } = await twoVersions();
 		const runtime = r.make({
@@ -2727,6 +2747,73 @@ describe('renderLocal', () => {
 			});
 		});
 	});
+});
+
+describe('a bearer request to a public data route', () => {
+	const api = defineRoute('/api/status', {
+		strategy: 'data',
+		load: () => ({ ok: true }),
+		provision: { reuse: 1, futureViews: 50 }
+	});
+	/** a runtime whose public replica and pack log every call made to them */
+	function tappedRig() {
+		const calls: string[] = [];
+		const r = rig({
+			storage: tapped(memoryStorage(), calls),
+			pack: tapped(createPackStore(freshIndexedDB()), calls),
+			routes: [...routes, api],
+			app: (request) =>
+				new URL(request.url).pathname === '/api/status'
+					? Response.json({ ok: true })
+					: undefined
+		});
+		return { r, calls };
+	}
+	const warm = async (r: ReturnType<typeof rig>) => {
+		for (let i = 0; i < 3; i++) await r.drive(sub('/api/status'));
+		r.log.splice(0);
+	};
+	const forms: Array<[string, () => Request]> = [
+		['an init object', () => sub('/api/status', { headers: { Authorization: 'Bearer t' } })],
+		[
+			'a lower-case init object',
+			() => sub('/api/status', { headers: { authorization: 'Bearer t' } })
+		],
+		[
+			'a Headers init',
+			() => sub('/api/status', { headers: new Headers({ AUTHORIZATION: 'Bearer t' }) })
+		],
+		[
+			'a header set after construction',
+			() => {
+				const request = sub('/api/status');
+				request.headers.set('Authorization', 'Bearer t');
+				return request;
+			}
+		]
+	];
+
+	it('answers the same read with no header from the store', async () => {
+		const { r, calls } = tappedRig();
+		await warm(r);
+		calls.splice(0);
+		await r.drive(sub('/api/status'));
+		expect(r.log).toEqual([]);
+		expect(calls).toContain('getArtifact');
+	});
+
+	it.each(forms)(
+		'sends a read with %s to the network and touches neither store',
+		async (_form, make) => {
+			const { r, calls } = tappedRig();
+			await warm(r);
+			calls.splice(0);
+			const answer = await r.drive(make());
+			expect(answer.status).toBe(200);
+			expect(r.log).toEqual(['GET /api/status']);
+			expect(calls).toEqual([]);
+		}
+	);
 });
 
 describe('a signed-in page held a day', () => {

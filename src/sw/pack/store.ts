@@ -525,7 +525,11 @@ export function createPackStore(
 	}
 
 	/** writes a pack's blocks under a new generation; the head does not point at them yet */
-	async function stage(source: AsyncIterable<Bytes>, generation: number) {
+	async function stage(
+		source: AsyncIterable<Bytes>,
+		generation: number,
+		held: PackHead | undefined
+	) {
 		let index: BundleIndex | undefined;
 		const records: PackIndex[] = [];
 		let table = 0;
@@ -539,6 +543,9 @@ export function createPackStore(
 			if (!index) {
 				if (frame.table !== INDEX_FRAME) refuse('the pack does not start with its index');
 				index = parseIndex(frame.payload);
+				if (held && index.version < held.version) {
+					refuse(`the pack is version ${index.version}, the head holds ${held.version}`);
+				}
 				for (const entry of index.tables) {
 					records.push({ rows: entry.rows, first: [], last: [], hashes: [] });
 				}
@@ -610,7 +617,7 @@ export function createPackStore(
 		const generation = (head?.generation ?? 0) + 1;
 		await dropStaged(generation);
 		try {
-			const { index, rows, blocks } = await stage(source, generation);
+			const { index, rows, blocks } = await stage(source, generation, head);
 			await swap(head, {
 				version: index.version,
 				digest: index.digest,
@@ -717,6 +724,8 @@ export function createPackStore(
 		if (head.version !== delta.from) {
 			refuse(`the delta starts at ${delta.from}, the store holds ${head.version}`);
 		}
+		if (delta.to < delta.from)
+			refuse(`the delta ends at ${delta.to}, before it starts at ${delta.from}`);
 		// the set digest moves by the rows that leave and the rows that arrive
 		const without = async (digest: string, table: string, key: string) => {
 			const old = await lookup(table, key, false);

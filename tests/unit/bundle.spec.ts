@@ -9,9 +9,12 @@ import {
 	compactionDue,
 	EMPTY_DIGEST,
 	makeDelta,
+	MAX_BUNDLE_BLOCK_BYTES,
 	mergeDeltas,
+	readBlock,
 	readBundle,
 	readFrames,
+	type BundleIndex,
 	type BundleRows,
 	type BundleState
 } from '../../src/protocol/index';
@@ -315,6 +318,75 @@ async function withDigest(bytes: Uint8Array<ArrayBuffer>, digest: string) {
 	}
 	return new Uint8Array(await new Blob(parts).arrayBuffer());
 }
+
+describe('the block cap', () => {
+	const cap = MAX_BUNDLE_BLOCK_BYTES;
+	const urlHash = async (bytes: Uint8Array<ArrayBuffer>) => {
+		const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+		return btoa(String.fromCharCode(...digest))
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=+$/, '');
+	};
+	const gzipOf = async (text: string): Promise<Uint8Array<ArrayBuffer>> =>
+		new Uint8Array(
+			await new Response(
+				new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))
+			).arrayBuffer()
+		);
+	/** a row list whose JSON text is exactly `bytes` long */
+	const rowListOf = (bytes: number) => {
+		const empty = JSON.stringify([['k', { b: '' }]]).length;
+		return JSON.stringify([['k', { b: 'x'.repeat(bytes - empty) }]]);
+	};
+	/** one block whose index hash matches its payload, so only the block's own checks can refuse it */
+	async function oneBlock(payload: Uint8Array<ArrayBuffer>) {
+		const index: BundleIndex = {
+			version: 1,
+			codec: 'gzip',
+			blockRows: 128,
+			digest: '0'.repeat(64),
+			tables: [{ name: 'items', rows: 1, first: 'k', blocks: [await urlHash(payload)] }]
+		};
+		return { index, block: { table: 0, ordinal: 0, payload } };
+	}
+	/** the gzip bytes with the trailer's size field set to `size` */
+	function withDeclaredSize(gz: Uint8Array<ArrayBuffer>, size: number) {
+		const out = gz.slice();
+		new DataView(out.buffer).setUint32(out.length - 4, size, true);
+		return out;
+	}
+
+	it('reads a block that inflates to exactly the cap', async () => {
+		const { index, block } = await oneBlock(await gzipOf(rowListOf(cap)));
+		expect(await readBlock(index, block)).toHaveLength(1);
+	});
+
+	it('refuses a block that inflates one byte past the cap', async () => {
+		const { index, block } = await oneBlock(await gzipOf(rowListOf(cap + 1)));
+		await expect(readBlock(index, block)).rejects.toThrow('over the block cap');
+	});
+
+	it('refuses a block whose trailer declares more than the cap before it inflates', async () => {
+		const { index, block } = await oneBlock(await gzipOf(rowListOf(2 * cap)));
+		await expect(readBlock(index, block)).rejects.toThrow('declares');
+	});
+
+	it('refuses a block whose trailer declares less than it inflates to', async () => {
+		const gz = withDeclaredSize(await gzipOf(rowListOf(2 * cap)), 16);
+		const { index, block } = await oneBlock(gz);
+		// workerd reports the trailer before the overflow chunk arrives; node streams the count (node.spec)
+		await expect(readBlock(index, block)).rejects.toThrow(/does not decode|over the block cap/);
+	});
+
+	it('refuses to build a block over the cap, since readers would refuse it', async () => {
+		const state: BundleState = {
+			version: 1,
+			tables: { items: [['k', { b: 'x'.repeat(cap) }]] }
+		};
+		await expect(buildPack(state)).rejects.toThrow('block cap');
+	});
+});
 
 describe('the frame cap and index corruption', () => {
 	it('refuses a header that claims 4 GiB before it reads the payload', async () => {

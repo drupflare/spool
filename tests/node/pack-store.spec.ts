@@ -6,6 +6,7 @@ import {
 	COMPACT_OVERLAY_ROWS,
 	defineRoute,
 	makeDelta,
+	MAX_BUNDLE_BLOCK_BYTES,
 	mergeDeltas,
 	type Ring,
 	serializeRoute
@@ -51,6 +52,48 @@ async function install(store: PackStore, state: BundleState) {
 	return store.installPack(chunked(bytes));
 }
 
+const urlHash = async (bytes: Bytes) =>
+	Buffer.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))).toString('base64url');
+
+/** a frame as the pack reader takes it: a 4-byte header length, the JSON header, then the payload */
+function frame(table: number, ordinal: number, payload: Bytes): Bytes {
+	const header = new TextEncoder().encode(
+		JSON.stringify({ table, ordinal, bytes: payload.length })
+	);
+	const out = new Uint8Array(4 + header.length + payload.length);
+	new DataView(out.buffer).setUint32(0, header.length);
+	out.set(header, 4);
+	out.set(payload, 4 + header.length);
+	return out;
+}
+
+const gzipOf = async (text: string): Promise<Bytes> =>
+	new Uint8Array(
+		await new Response(
+			new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))
+		).arrayBuffer()
+	);
+
+/** a pack of one table of one block, so the block's own checks are what can refuse it */
+async function onePackOf(version: number, payload: Bytes): Promise<Bytes> {
+	const index = JSON.stringify({
+		version,
+		codec: 'gzip',
+		blockRows: 128,
+		digest: '0'.repeat(64),
+		tables: [{ name: 'items', rows: 1, first: keyOf(0), blocks: [await urlHash(payload)] }]
+	});
+	const parts = [frame(-1, 0, new TextEncoder().encode(index)), frame(0, 0, payload)];
+	return new Uint8Array(await new Blob(parts).arrayBuffer());
+}
+
+/** the same gzip bytes with the trailer's size field set to `size` */
+function withDeclaredSize(gz: Bytes, size: number): Bytes {
+	const out = gz.slice();
+	new DataView(out.buffer).setUint32(out.length - 4, size, true);
+	return out;
+}
+
 /** the counter values now, minus the values before `before` */
 function since(store: PackStore, before: PackStore['counters']) {
 	return {
@@ -88,6 +131,53 @@ describe('pack store install', () => {
 		expect((await store.head())?.version).toBe(1);
 		expect((await store.getRow('items', keyOf(5)))?.title).toBe('Title 5');
 		expect(await store.recordCounts()).toEqual({ blocks: 3, index: 1, overlay: 0, head: 1 });
+	});
+
+	it('refuses a pack older than the head and keeps the head answering', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(300, 2));
+		const { bytes } = await buildPack(stateOf(300, 1, { 5: 'older' }));
+		await expect(store.installPack(chunked(bytes))).rejects.toThrow('the head holds 2');
+		expect((await store.head())?.version).toBe(2);
+		expect((await store.getRow('items', keyOf(5)))?.title).toBe('Title 5');
+		expect(await store.recordCounts()).toEqual({ blocks: 3, index: 1, overlay: 0, head: 1 });
+	});
+
+	it('installs a pack of the held version and a newer one', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(300, 2));
+		expect(await install(store, stateOf(300, 2, { 5: 'same' }))).toMatchObject({
+			installed: true,
+			version: 2
+		});
+		expect(await install(store, stateOf(300, 3))).toMatchObject({
+			installed: true,
+			version: 3
+		});
+	});
+
+	it('refuses a block whose trailer declares more than the block cap, and keeps the head', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(10));
+		const rows = [[keyOf(0), { id: 'x', body: 'x'.repeat(MAX_BUNDLE_BLOCK_BYTES) }]];
+		const bytes = await onePackOf(2, await gzipOf(JSON.stringify(rows)));
+		await expect(store.installPack(chunked(bytes))).rejects.toThrow('declares');
+		expect((await store.head())?.version).toBe(1);
+		expect((await store.getRow('items', keyOf(0)))?.title).toBe('Title 0');
+		expect(await store.recordCounts()).toEqual({ blocks: 1, index: 1, overlay: 0, head: 1 });
+	});
+
+	it('refuses a block that inflates past the block cap when its trailer declares less', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(10));
+		const rows = [[keyOf(0), { id: 'x', body: 'x'.repeat(2 * MAX_BUNDLE_BLOCK_BYTES) }]];
+		const block = withDeclaredSize(await gzipOf(JSON.stringify(rows)), 16);
+		await expect(store.installPack(chunked(await onePackOf(2, block)))).rejects.toThrow(
+			'over the block cap'
+		);
+		expect((await store.head())?.version).toBe(1);
+		expect((await store.getRow('items', keyOf(0)))?.title).toBe('Title 0');
+		expect(await store.recordCounts()).toEqual({ blocks: 1, index: 1, overlay: 0, head: 1 });
 	});
 
 	it('keeps the previous version readable when an install is cut short', async () => {
@@ -207,6 +297,25 @@ describe('pack store deltas', () => {
 		await expect(store.applyDelta({ ...delta, from: 3 })).rejects.toThrow(
 			'the delta starts at 3'
 		);
+	});
+
+	it('refuses a delta that ends before it starts, and keeps the head and its rows', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(300, 2));
+		const back = await makeDelta(stateOf(300, 2), stateOf(300, 1, { 7: 'older' }));
+		await expect(store.applyDelta(back)).rejects.toThrow('before it starts at 2');
+		expect((await store.head())?.version).toBe(2);
+		expect((await store.getRow('items', keyOf(7)))?.title).toBe('Title 7');
+		expect(await store.recordCounts()).toEqual({ blocks: 3, index: 1, overlay: 0, head: 1 });
+	});
+
+	it('applies a delta to the same version, as declared-write settling does', async () => {
+		const store = createPackStore(freshIndexedDB());
+		await install(store, stateOf(300));
+		const same = await makeDelta(stateOf(300), stateOf(300, 1, { 7: 'settled' }));
+		await store.applyDelta(same);
+		expect((await store.head())?.version).toBe(1);
+		expect((await store.getRow('items', keyOf(7)))?.title).toBe('settled');
 	});
 
 	it('a merged delta equals the same deltas applied in order', async () => {

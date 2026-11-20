@@ -37,6 +37,20 @@ export function sub(url: string, init: RequestInit = {}): Request {
 	return request;
 }
 
+/** the object with every method call logged by name, so a test sees each read and write it makes */
+export function tapped<T extends object>(target: T, calls: string[]): T {
+	return new Proxy(target, {
+		get(obj, key) {
+			const value: unknown = Reflect.get(obj, key);
+			if (typeof value !== 'function') return value;
+			return (...args: unknown[]) => {
+				calls.push(String(key));
+				return Reflect.apply(value, obj, args);
+			};
+		}
+	});
+}
+
 /** CacheStorage in a Map, keyed by URL */
 export function fakeCaches(): CachesLike & { names(): string[] } {
 	const stores = new Map<string, Map<string, Response>>();

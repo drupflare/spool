@@ -14,6 +14,9 @@ export const COMPACT_OVERLAY_BYTES = 65_536;
 /** the largest payload a frame may declare; a reader refuses a larger header before the payload */
 export const MAX_BUNDLE_FRAME_BYTES = 8_388_608;
 
+/** the most one block may inflate to; a reader refuses a larger block before it holds the bytes */
+export const MAX_BUNDLE_BLOCK_BYTES = 1_048_576;
+
 type Bytes = Uint8Array<ArrayBuffer>;
 
 /** rows of one table, sorted by key in code unit order */
@@ -98,7 +101,38 @@ async function transform(
 }
 
 const gzip = (bytes: Bytes) => transform(bytes, new CompressionStream('gzip'));
-const gunzip = (bytes: Bytes) => transform(bytes, new DecompressionStream('gzip'));
+/**
+ * Inflates a gzip block. The trailer's size is checked before any output, and the output is counted
+ * as it streams, because a trailer can lie. A block over `MAX_BUNDLE_BLOCK_BYTES` is cancelled there.
+ */
+async function gunzipCapped(payload: Bytes, name: string): Promise<Bytes> {
+	const trailer = payload.length - 4;
+	if (trailer >= 0) {
+		const declared = new DataView(payload.buffer, payload.byteOffset + trailer, 4).getUint32(
+			0,
+			true
+		);
+		if (declared > MAX_BUNDLE_BLOCK_BYTES) {
+			refuse(`${name} declares ${declared} bytes, over the block cap`);
+		}
+	}
+	const piped = new Response(payload).body?.pipeThrough(new DecompressionStream('gzip'));
+	if (!piped) refuse('no body to transform');
+	const reader = piped.getReader();
+	const parts: Bytes[] = [];
+	let size = 0;
+	for (;;) {
+		const next = await reader.read().catch(() => refuse(`${name} does not decode`));
+		if (next.done) break;
+		size += next.value.byteLength;
+		if (size > MAX_BUNDLE_BLOCK_BYTES) {
+			await reader.cancel().catch(() => undefined);
+			refuse(`${name} is over the block cap`);
+		}
+		parts.push(new Uint8Array(next.value));
+	}
+	return new Uint8Array(await new Blob(parts).arrayBuffer());
+}
 
 function compareKeys(a: string, b: string): number {
 	return a < b ? -1 : a > b ? 1 : 0;
@@ -137,7 +171,7 @@ export async function bundleDigest(tables: Record<string, BundleRows>): Promise<
 /**
  * Encodes a state as a pack: an index frame, then one frame per block in table order. Empty tables
  * are left out. Throws `bad-bundle` for a repeated key, a block size under one, or a block over
- * `maxFrameBytes`, which a reader would refuse.
+ * `maxFrameBytes` or `MAX_BUNDLE_BLOCK_BYTES`, which a reader would refuse.
  */
 export async function buildPack(
 	state: BundleState,
@@ -155,7 +189,11 @@ export async function buildPack(
 		const blocks: string[] = [];
 		for (let ordinal = 0; ordinal * blockRows < rows.length; ordinal++) {
 			const chunk = rows.slice(ordinal * blockRows, (ordinal + 1) * blockRows);
-			const payload = await gzip(encode(canonicalJson(chunk)));
+			const raw = encode(canonicalJson(chunk));
+			if (raw.length > MAX_BUNDLE_BLOCK_BYTES) {
+				refuse(`block ${name}/${ordinal} is over the block cap`);
+			}
+			const payload = await gzip(raw);
 			if (payload.length > maxFrameBytes) {
 				refuse(`block ${name}/${ordinal} is over the frame cap`);
 			}
@@ -277,9 +315,10 @@ export async function readBlock(index: BundleIndex, block: BundleFrame): Promise
 	if ((await sha256Url(block.payload)) !== expected) {
 		refuse(`block ${block.table}/${block.ordinal} does not match its hash`);
 	}
+	const raw = await gunzipCapped(block.payload, `block ${block.table}/${block.ordinal}`);
 	let rows: unknown;
 	try {
-		rows = JSON.parse(decoder.decode(await gunzip(block.payload)));
+		rows = JSON.parse(decoder.decode(raw));
 	} catch {
 		refuse(`block ${block.table}/${block.ordinal} does not decode`);
 	}

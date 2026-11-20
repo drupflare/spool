@@ -20,7 +20,7 @@ import { idbPrincipalDatasets, sealedDatasets } from '../../src/sw/principal-dat
 import { Replica } from '../../src/sw/replica';
 import type { PartitionStatus } from '../../src/sw/runtime';
 import { memoryVault } from '../../src/sw/seal';
-import { freshIndexedDB, nav, ORIGIN, sub } from './helpers';
+import { freshIndexedDB, nav, ORIGIN, sub, tapped } from './helpers';
 import { HTML, rig } from './rig';
 
 // #region the site: a principal dataset of orders, one feed per principal
@@ -1397,7 +1397,8 @@ describe('authenticated families', () => {
 			version: 1,
 			tables: { courses: COURSES.map((row): [string, typeof row] => [row.id, row]) }
 		});
-		const pack = createPackStore(freshIndexedDB());
+		const packCalls: string[] = [];
+		const pack = tapped(createPackStore(freshIndexedDB()), packCalls);
 		await pack.installPack(
 			(async function* () {
 				yield bytes;
@@ -1412,7 +1413,9 @@ describe('authenticated families', () => {
 			const local = await d.r.drive(sub(url), w.runtime);
 			expect(await local.json()).toEqual(COURSES[0]);
 			expect(d.r.log).toEqual([]);
+			packCalls.splice(0);
 			await d.r.drive(sub(url, bearer), w.runtime);
+			expect(packCalls).toEqual([]);
 			expect(d.r.log).toEqual([`GET ${path}`]);
 		}
 	});

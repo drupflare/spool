@@ -1730,6 +1730,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	 * principal route answers from the signed-in partition, and a cross-origin one only a request
 	 * with an `Authorization` header. A public route never answers one. A cross-origin miss goes
 	 * out untouched: a spool header on it would force a CORS preflight.
+	 * A bearer read of a public route goes out the same way, so the public store never sees it.
 	 */
 	async function dataFile(
 		request: Request,
@@ -1757,7 +1758,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 			return new Response(decision.html, { headers });
 		}
-		if (remote) return deps.fetch(request);
+		if (remote || bearer) return deps.fetch(request);
 		const response = await passthrough(request, false, {
 			provision: true,
 			route,
