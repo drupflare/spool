@@ -121,7 +121,6 @@ test.describe('nuxt', () => {
 	}) => {
 		const seen: string[] = [];
 		page.on('request', (request) => seen.push(new URL(request.url()).pathname));
-		await takeHits(origin, true);
 		await page.goto(`${origin}/about`);
 		await page.click('a[href="/articles/1"]');
 		await page.waitForURL(`${origin}/articles/1`);
@@ -135,11 +134,11 @@ test.describe('nuxt', () => {
 		);
 		expect(requests).toHaveLength(1);
 		expect(requests[0]).toMatch(/^\/\.spool\/[^/]+\/boot\/\d+\.js$/);
-		// the page never sees the worker script request, the server does
-		const served = (await takeHits(origin, false)).filter(
-			(path) => !path.startsWith('/_nuxt/')
+		// the worker script is a public file, so the server hit log never sees it
+		const script = await page.evaluate(
+			async () => (await navigator.serviceWorker.getRegistration())?.active?.scriptURL
 		);
-		expect(served.filter((path) => path === '/spool-sw.js')).toHaveLength(1);
+		expect(script).toBe(`${origin}/spool-sw.js`);
 		const heads = () =>
 			page.evaluate(
 				() =>
