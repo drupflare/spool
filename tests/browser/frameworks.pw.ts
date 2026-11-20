@@ -121,9 +121,8 @@ test.describe('nuxt', () => {
 	}) => {
 		const seen: string[] = [];
 		page.on('request', (request) => seen.push(new URL(request.url()).pathname));
-		await page.goto(`${origin}/about`);
-		seen.length = 0;
 		await takeHits(origin, true);
+		await page.goto(`${origin}/about`);
 		await page.click('a[href="/articles/1"]');
 		await page.waitForURL(`${origin}/articles/1`);
 		await page.waitForFunction(() => 'spool' in window, undefined, { timeout: 15_000 });
@@ -132,7 +131,7 @@ test.describe('nuxt', () => {
 		});
 		// the boot script, and the worker script it registers on the view a router click never makes
 		const requests = seen.filter(
-			(path) => !path.startsWith('/_nuxt/') && path !== '/spool-sw.js'
+			(path) => !path.startsWith('/_nuxt/') && path !== '/spool-sw.js' && path !== '/about'
 		);
 		expect(requests).toHaveLength(1);
 		expect(requests[0]).toMatch(/^\/\.spool\/[^/]+\/boot\/\d+\.js$/);
