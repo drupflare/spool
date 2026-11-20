@@ -29,6 +29,7 @@ Public is the default.</p>
 <p>Use a public route for content that every visitor sees. Use a principal route only where the page
 depends on who asks. A principal route is kept sealed in that person's partition on the device, and
 it carries a stricter default contract (below), so it costs more to serve.</p>
+<p>For a public collection that editors change, declare a <code>family</code> route. In the four-day public edit reading, the stored-page route (a <code>template</code> with <code>depends</code>) made 17 requests over nine views, against 10 requests for the family route over the same views (L1, <code>measurements/demand/2026-11-20-days-ship-a.json</code>). The family route is the one to declare for an editable public collection.</p>
 <h3 id="freshness" class="tsd-anchor-link">Freshness<a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p><code>freshness</code> takes <code>maxStale</code>, in seconds, and a <code>mode</code>. The defaults are in <code>DEFAULT_FRESHNESS</code>
 (<code>src/protocol/route.ts</code>):</p>

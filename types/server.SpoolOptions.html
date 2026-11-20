@@ -17,7 +17,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">SpoolOptions</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#assets">assets</a><span class="tsd-signature-symbol">?:</span> <a href="index.AssetMode.html" class="tsd-signature-type tsd-kind-type-alias">AssetMode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#beacons">beacons</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bootstrap">bootstrap</a><span class="tsd-signature-symbol">?:</span> <a href="index.BootstrapGate.html" class="tsd-signature-type tsd-kind-type-alias">BootstrapGate</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bundle">bundle</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">blockRows</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">maxBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">ringBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bundles">bundles</a><span class="tsd-signature-symbol">?:</span> <a href="../interfaces/server.BundleStore.html" class="tsd-signature-type tsd-kind-interface">BundleStore</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cataloguebytes">catalogueBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#catalogueconfidence">catalogueConfidence</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cataloguesize">catalogueSize</a><span class="tsd-signature-symbol">?:</span> <a href="server.Sizer.html" class="tsd-signature-type tsd-kind-type-alias">Sizer</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cdn">cdn</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">integrity</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">worker</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#clienttag">clientTag</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;inline&quot;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;script&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#collectors">collectors</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.CollectorConfig.html" class="tsd-signature-type tsd-kind-type-alias">CollectorConfig</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#datasets">datasets</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Dataset.html" class="tsd-signature-type tsd-kind-type-alias">Dataset</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#freshness">freshness</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">maxAge</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#identity">identity</a><span class="tsd-signature-symbol">?:</span> <a href="server.IdentityOptions.html" class="tsd-signature-type tsd-kind-type-alias">IdentityOptions</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#inlinemaxbytes">inlineMaxBytes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#live">live</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;always&quot;</span> <span class="tsd-signature-symbol">|</span> <a href="server.LiveOptions.html" class="tsd-signature-type tsd-kind-type-alias">LiveOptions</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#logout">logout</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#meter">meter</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#mode">mode</a><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#policy">policy</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#principaldatasets">principalDatasets</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#provision">provision</a><span class="tsd-signature-symbol">?:</span> <a href="index.ProvisionConfig.html" class="tsd-signature-type tsd-kind-type-alias">ProvisionConfig</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#resources">resources</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Resource.html" class="tsd-signature-type tsd-kind-type-alias">Resource</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#routes">routes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Route.html" class="tsd-signature-type tsd-kind-type-alias">Route</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#shadowsample">shadowSample</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sink">sink</a><span class="tsd-signature-symbol">?:</span> <a href="../interfaces/server.Sink.html" class="tsd-signature-type tsd-kind-interface">Sink</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#stamp">stamp</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">|</span> (<span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">number</span>)<span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#store">store</a><span class="tsd-signature-symbol">:</span> <a href="../interfaces/stores.VersionStore.html" class="tsd-signature-type tsd-kind-interface">VersionStore</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#thirdparty">thirdParty</a><span class="tsd-signature-symbol">?:</span> <a href="index.ThirdPartyConfig.html" class="tsd-signature-type tsd-kind-type-alias">ThirdPartyConfig</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#views">views</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#work">work</a><span class="tsd-signature-symbol">?:</span> <a href="server.WorkSeries.html" class="tsd-signature-type tsd-kind-type-alias">WorkSeries</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#worker">worker</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#workermode">workerMode</a><span class="tsd-signature-symbol">?:</span> <a href="index.WorkerMode.html" class="tsd-signature-type tsd-kind-type-alias">WorkerMode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#writes">writes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">classes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Write.html" class="tsd-signature-type tsd-kind-type-alias">Write</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">enabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">remember</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L120">src/server/spool.ts:120</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L120">src/server/spool.ts:120</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -69,14 +69,14 @@
 <div class="tsd-comment tsd-typography"><p>how the worker treats same-origin subresources; default <code>cache</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L197">src/server/spool.ts:197</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L197">src/server/spool.ts:197</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="beacons"><code class="tsd-tag">Optional</code><span>beacons</span><a href="#beacons" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">beacons</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>same-origin POST paths the worker queues and flushes in one request</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L160">src/server/spool.ts:160</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L160">src/server/spool.ts:160</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="bootstrap"><code class="tsd-tag">Optional</code><span>bootstrap</span><a href="#bootstrap" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">bootstrap</span><span class="tsd-signature-symbol">?:</span> <a href="index.BootstrapGate.html" class="tsd-signature-type tsd-kind-type-alias">BootstrapGate</a></div>
@@ -84,7 +84,7 @@
 The ring in the first document is the same either way.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L242">src/server/spool.ts:242</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L242">src/server/spool.ts:242</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="bundle"><code class="tsd-tag">Optional</code><span>bundle</span><a href="#bundle" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">bundle</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">blockRows</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">maxBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">ringBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
@@ -93,21 +93,21 @@ family page, default 24,576 and not measured. <code>blockRows</code> is rows per
 <code>maxBytes</code> is the most compressed bytes of one block, at most the reader's frame cap.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L231">src/server/spool.ts:231</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L231">src/server/spool.ts:231</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="bundles"><code class="tsd-tag">Optional</code><span>bundles</span><a href="#bundles" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">bundles</span><span class="tsd-signature-symbol">?:</span> <a href="../interfaces/server.BundleStore.html" class="tsd-signature-type tsd-kind-interface">BundleStore</a></div>
 <div class="tsd-comment tsd-typography"><p>where <code>buildBundle</code> keeps packs; <code>GET /.spool/bundle/&lt;version&gt;</code> answers 404 without it</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L210">src/server/spool.ts:210</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L210">src/server/spool.ts:210</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cataloguebytes"><code class="tsd-tag">Optional</code><span>catalogue<wbr/>Bytes</span><a href="#cataloguebytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">catalogueBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the most compressed bytes of entries one catalogue bundle may carry; default 32 KiB</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L180">src/server/spool.ts:180</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L180">src/server/spool.ts:180</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="catalogueconfidence"><code class="tsd-tag">Optional</code><span>catalogue<wbr/>Confidence</span><a href="#catalogueconfidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">catalogueConfidence</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
@@ -116,14 +116,14 @@ judged on the lower confidence bound of its <code>p</code> at this many standard
 one-sided 90%). A guess with no <code>n</code> keeps its <code>p</code>. Default 0, which judges every guess on <code>p</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L186">src/server/spool.ts:186</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L186">src/server/spool.ts:186</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cataloguesize"><code class="tsd-tag">Optional</code><span>catalogue<wbr/>Size</span><a href="#cataloguesize" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">catalogueSize</span><span class="tsd-signature-symbol">?:</span> <a href="server.Sizer.html" class="tsd-signature-type tsd-kind-type-alias">Sizer</a></div>
 <div class="tsd-comment tsd-typography"><p>measures an entry's compressed bytes for the catalogue; default Brotli, gzip where the runtime has no Brotli stream</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L188">src/server/spool.ts:188</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L188">src/server/spool.ts:188</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cdn"><code class="tsd-tag">Optional</code><span>cdn</span><a href="#cdn" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">cdn</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">integrity</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">worker</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span> <span class="tsd-signature-symbol">}</span></div>
@@ -139,7 +139,7 @@ script that can answer every request of the origin. Off by default. A site with 
 <code>verifyCore</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L158">src/server/spool.ts:158</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L158">src/server/spool.ts:158</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="clienttag"><code class="tsd-tag">Optional</code><span>client<wbr/>Tag</span><a href="#clienttag" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">clientTag</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;inline&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;script&quot;</span></div>
@@ -152,21 +152,21 @@ runtime from the second view. <code>script</code> keeps the tag, for a page whos
 scripts. A first-view site always uses the tag.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L252">src/server/spool.ts:252</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L252">src/server/spool.ts:252</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="collectors"><code class="tsd-tag">Optional</code><span>collectors</span><a href="#collectors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">collectors</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.CollectorConfig.html" class="tsd-signature-type tsd-kind-type-alias">CollectorConfig</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>cross-origin analytics collectors the worker holds and delivers later</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L201">src/server/spool.ts:201</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L201">src/server/spool.ts:201</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="datasets"><code class="tsd-tag">Optional</code><span>datasets</span><a href="#datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">datasets</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Dataset.html" class="tsd-signature-type tsd-kind-type-alias">Dataset</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>public datasets <code>/.spool/dataset</code> answers, each by its own name</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L130">src/server/spool.ts:130</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L130">src/server/spool.ts:130</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="freshness"><code class="tsd-tag">Optional</code><span>freshness</span><a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">freshness</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">maxAge</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
@@ -178,12 +178,12 @@ so a lease longer than a day does not cut the checks. A stub that changed at tha
 which is the contact.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L219">src/server/spool.ts:219</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L219">src/server/spool.ts:219</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="identity"><code class="tsd-tag">Optional</code><span>identity</span><a href="#identity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">identity</span><span class="tsd-signature-symbol">?:</span> <a href="server.IdentityOptions.html" class="tsd-signature-type tsd-kind-type-alias">IdentityOptions</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L143">src/server/spool.ts:143</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L143">src/server/spool.ts:143</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="inlinemaxbytes"><code class="tsd-tag">Optional</code><span>inline<wbr/>Max<wbr/>Bytes</span><a href="#inlinemaxbytes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">inlineMaxBytes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
@@ -193,7 +193,7 @@ of such a page pays for the bytes and one more <code>load</code>, whether or not
 worker; a larger artifact is left out. Default 0, which is off; 2048 is the limit measured.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L195">src/server/spool.ts:195</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L195">src/server/spool.ts:195</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="live"><code class="tsd-tag">Optional</code><span>live</span><a href="#live" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">live</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;always&quot;</span> <span class="tsd-signature-symbol">|</span> <a href="server.LiveOptions.html" class="tsd-signature-type tsd-kind-type-alias">LiveOptions</a></div>
@@ -210,28 +210,28 @@ request and the second becomes the stream, so a visitor who loads documents neve
 app that stays open.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L273">src/server/spool.ts:273</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L273">src/server/spool.ts:273</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="logout"><code class="tsd-tag">Optional</code><span>logout</span><a href="#logout" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">logout</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>same-origin paths whose request ends the session; the worker wipes the principal store first</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L199">src/server/spool.ts:199</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L199">src/server/spool.ts:199</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="meter"><code class="tsd-tag">Optional</code><span>meter</span><a href="#meter" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">meter</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>reads a millisecond clock for <code>work</code>; default <code>performance.now</code>, which is elapsed time and not CPU</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L173">src/server/spool.ts:173</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L173">src/server/spool.ts:173</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="mode"><code class="tsd-tag">Optional</code><span>mode</span><a href="#mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">mode</span><span class="tsd-signature-symbol">?:</span> <a href="index.Mode.html" class="tsd-signature-type tsd-kind-type-alias">Mode</a></div>
 <div class="tsd-comment tsd-typography"><p>the mode for routes that do not name one; default <code>serve</code>. <code>shadow</code> never serves locally</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L162">src/server/spool.ts:162</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L162">src/server/spool.ts:162</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="policy"><code class="tsd-tag">Optional</code><span>policy</span><a href="#policy" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">policy</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -240,7 +240,7 @@ are limited to the policy list. Default: the headers of the last HTML page this 
 <code>{}</code> names no headers. With neither, <code>publishStatic</code> writes a stub with no policy field.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L237">src/server/spool.ts:237</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L237">src/server/spool.ts:237</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="principaldatasets"><code class="tsd-tag">Optional</code><span>principal<wbr/>Datasets</span><a href="#principaldatasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">principalDatasets</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -249,7 +249,7 @@ device keeps sealed in that principal's partition. Off by default: a principal d
 throws <code>bad-dataset</code>. Needs <code>identity</code>. Unreviewed.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L136">src/server/spool.ts:136</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L136">src/server/spool.ts:136</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="provision"><code class="tsd-tag">Optional</code><span>provision</span><a href="#provision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">provision</span><span class="tsd-signature-symbol">?:</span> <a href="index.ProvisionConfig.html" class="tsd-signature-type tsd-kind-type-alias">ProvisionConfig</a></div>
@@ -257,7 +257,7 @@ throws <code>bad-dataset</code>. Needs <code>identity</code>. Unreviewed.</p>
 artifact whose transfer its expected reuse does not repay</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L178">src/server/spool.ts:178</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L178">src/server/spool.ts:178</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="resources"><code class="tsd-tag">Optional</code><span>resources</span><a href="#resources" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">resources</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Resource.html" class="tsd-signature-type tsd-kind-type-alias">Resource</a><span class="tsd-signature-symbol">[]</span></div>
@@ -266,24 +266,24 @@ the server and answered with the rows they changed as <code>Spool-Delta</code>. 
 device to keep its pack current; the writes themselves work without it.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L127">src/server/spool.ts:127</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L127">src/server/spool.ts:127</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="routes"><span>routes</span><a href="#routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">routes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Route.html" class="tsd-signature-type tsd-kind-type-alias">Route</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L121">src/server/spool.ts:121</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L121">src/server/spool.ts:121</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="shadowsample"><code class="tsd-tag">Optional</code><span>shadow<wbr/>Sample</span><a href="#shadowsample" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">shadowSample</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the share of views, 0 to 1, that run in shadow while the mode is <code>serve</code>; default 0</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L164">src/server/spool.ts:164</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L164">src/server/spool.ts:164</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sink"><code class="tsd-tag">Optional</code><span>sink</span><a href="#sink" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">sink</span><span class="tsd-signature-symbol">?:</span> <a href="../interfaces/server.Sink.html" class="tsd-signature-type tsd-kind-interface">Sink</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L144">src/server/spool.ts:144</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L144">src/server/spool.ts:144</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="stamp"><code class="tsd-tag">Optional</code><span>stamp</span><a href="#stamp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">stamp</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">|</span> (<span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">number</span>)</div>
@@ -292,19 +292,19 @@ request. The stub's bytes change when it does, so advance it at each publish or 
 Absent, the stub's bytes are the same as before the option existed.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L225">src/server/spool.ts:225</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L225">src/server/spool.ts:225</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="store"><span>store</span><a href="#store" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">store</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/stores.VersionStore.html" class="tsd-signature-type tsd-kind-interface">VersionStore</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L128">src/server/spool.ts:128</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L128">src/server/spool.ts:128</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="thirdparty"><code class="tsd-tag">Optional</code><span>third<wbr/>Party</span><a href="#thirdparty" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">thirdParty</span><span class="tsd-signature-symbol">?:</span> <a href="index.ThirdPartyConfig.html" class="tsd-signature-type tsd-kind-type-alias">ThirdPartyConfig</a></div>
 <div class="tsd-comment tsd-typography"><p>the opt-in worker cache for versioned cross-origin files</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L203">src/server/spool.ts:203</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L203">src/server/spool.ts:203</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="views"><code class="tsd-tag">Optional</code><span>views</span><a href="#views" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">views</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -312,21 +312,21 @@ Absent, the stub's bytes are the same as before the option existed.</p>
 without one</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L169">src/server/spool.ts:169</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L169">src/server/spool.ts:169</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="work"><code class="tsd-tag">Optional</code><span>work</span><a href="#work" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">work</span><span class="tsd-signature-symbol">?:</span> <a href="server.WorkSeries.html" class="tsd-signature-type tsd-kind-type-alias">WorkSeries</a></div>
 <div class="tsd-comment tsd-typography"><p>records the time each request took, by route; read it with <code>work.samples()</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L171">src/server/spool.ts:171</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L171">src/server/spool.ts:171</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="worker"><code class="tsd-tag">Optional</code><span>worker</span><a href="#worker" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">worker</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>a bundled worker to serve in place of the embedded one, such as a bundle of <code>serve(config, renderers)</code> from <code>@drupflare/spool/sw</code>; it finds the config in <code>self.__SPOOL_CONFIG__</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L208">src/server/spool.ts:208</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L208">src/server/spool.ts:208</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="workermode"><code class="tsd-tag">Optional</code><span>worker<wbr/>Mode</span><a href="#workermode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">workerMode</span><span class="tsd-signature-symbol">?:</span> <a href="index.WorkerMode.html" class="tsd-signature-type tsd-kind-type-alias">WorkerMode</a></div>
@@ -336,7 +336,7 @@ checks the worker script on each navigation (WebKit bug 332455), so those pages 
 read in the page. <code>always</code> registers the worker on WebKit too.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L259">src/server/spool.ts:259</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L259">src/server/spool.ts:259</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="writes"><code class="tsd-tag">Optional</code><span>writes</span><a href="#writes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">writes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">classes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="index.Write.html" class="tsd-signature-type tsd-kind-type-alias">Write</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">enabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">remember</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
@@ -345,7 +345,7 @@ true: the worker then queues nothing and <code>/.spool/write</code> answers <cod
 Unreviewed.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/server/spool.ts#L142">src/server/spool.ts:142</a></li></ul></aside></section></section></details></main>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/2f609529ade508a343ee03dee8e891900e66bf24/src/server/spool.ts#L142">src/server/spool.ts:142</a></li></ul></aside></section></section></details></main>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

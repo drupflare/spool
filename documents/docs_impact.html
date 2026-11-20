@@ -12,6 +12,7 @@
 <div class="tsd-panel tsd-typography"><h1 id="impact-notice" class="tsd-anchor-link">Impact Notice<a href="#impact-notice" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <p>Spool lets a visitor's browser answer a page view it has already seen, without asking the site. A local view removes the document request, the transaction that carries it and the server work behind it. The page's own API calls and every third-party request still leave the browser unless the site declares <code>data</code> routes or turns on the third-party cache.</p>
 <p>This page says what that saves, how sure each number is and what it means in money. Every figure carries a label: L0 published by someone else, L1 measured here, L2 derived from L0 and L1, L3 a scenario. The sections after the notice show the readings and the arithmetic.</p>
+<p>Every headline row has a provenance, which names where its counts came from. <code>library 1.0.0, measured</code> is a count printed by a reading of the shipped package in which the worker controlled the spool arm. <code>library 1.0.0 page runtime, no worker</code> is a count from the shipped package where the reading's <code>controlled</code> field is false: the in-page navigation of the page runtime answered the views, and no worker was registered. <code>model over library counts (L3)</code> is a projection, a median or a byte formula over those counts. <code>review construction, not shipped</code> is a count from a construction the library does not implement, and <code>bound, no count</code> is a formula or a published rate. The last two rows sit in <a href="#constructions-that-are-not-shipped">Constructions That Are Not Shipped</a>.</p>
 <h2 id="headline-numbers" class="tsd-anchor-link">Headline Numbers<a href="#headline-numbers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>A net saving is the share of a baseline that spool removes after it pays for the bootstrap, the worker script (the stub), contacts, the sync and dataset requests, and writes. The baseline is the same visits with no spool. A negative saving is a result: spool sent more than the baseline. The multiplier is the baseline over spool. The per-workload and byte tables are in <a href="docs_economics.html#headline-numbers">Economics</a>; how each multiplier moved is under <a href="#moving-numbers">Moving Numbers</a>.</p>
 <table>
@@ -23,6 +24,7 @@
 <th style="text-align:right">multiplier</th>
 <th>label</th>
 <th>applies to</th>
+<th>provenance</th>
 </tr>
 </thead>
 <tbody>
@@ -33,6 +35,7 @@
 <td style="text-align:right">24.20x</td>
 <td>L2</td>
 <td>Chromium, 5 requests with spool; counts L1; all origin hits, stub on the Worker</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, 121 views</td>
@@ -41,6 +44,7 @@
 <td style="text-align:right">20.33x</td>
 <td>L2</td>
 <td>Firefox, 6 requests with spool; counts L1; all origin hits, stub on the Worker</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, one view a day for 5 days</td>
@@ -49,6 +53,7 @@
 <td style="text-align:right">1.00x</td>
 <td>L2</td>
 <td>Chromium, 5 requests with spool, no saving; counts L1; no stub fetched; Firefox did not start</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Worker-invocation equivalents, 121 views</td>
@@ -57,6 +62,7 @@
 <td style="text-align:right">40.33x</td>
 <td>L2</td>
 <td>Chromium; the stub and boot script served from a static tier</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker-invocation equivalents, one view a day for 5 days</td>
@@ -65,6 +71,7 @@
 <td style="text-align:right">1.00x</td>
 <td>L2</td>
 <td>Chromium; the stub and boot script served from a static tier</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Bytes, 121 views, the median document</td>
@@ -73,6 +80,7 @@
 <td style="text-align:right">7.51x</td>
 <td>L2</td>
 <td>Chromium; 274,709 B with spool after the ring, boot script and one stub fetch; the 17,054 B median over L1 sizes</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Origin requests, signed-in reader on defaults, 4 days</td>
@@ -80,7 +88,8 @@
 <td style="text-align:right">-185.7%</td>
 <td style="text-align:right">0.35x</td>
 <td>L2</td>
-<td>Chromium, 20 requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink</td>
+<td>Chromium, 20 requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, signed-in reader, session retention (opt-in), 4 days</td>
@@ -88,7 +97,8 @@
 <td style="text-align:right">-214.3%</td>
 <td style="text-align:right">0.32x</td>
 <td>L2</td>
-<td>Chromium, 22 requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink</td>
+<td>Chromium, 22 requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests on a held day, persistent retention, day 2</td>
@@ -96,7 +106,8 @@
 <td style="text-align:right">-300.0%</td>
 <td style="text-align:right">0.25x</td>
 <td>L2</td>
-<td>Chromium, day 2 of the persistent reader; 4 requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1</td>
+<td>Chromium, day 2 of the persistent reader; 4 requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, session revoked on the server after day 2</td>
@@ -104,7 +115,8 @@
 <td style="text-align:right">-157.1%</td>
 <td style="text-align:right">0.39x</td>
 <td>L2</td>
-<td>Chromium, 18 requests with spool, a loss; counts L1; persistent retention; no held page on day 3</td>
+<td>Chromium, 18 requests with spool, a loss; counts L1; persistent retention; no held page on day 3; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, public edit, family route</td>
@@ -113,6 +125,7 @@
 <td style="text-align:right">0.9x</td>
 <td>L2</td>
 <td>Chromium, 10 requests with spool, a loss; counts L1; 9 views over 4 days</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, public edit, stored-page route</td>
@@ -121,6 +134,7 @@
 <td style="text-align:right">0.53x</td>
 <td>L2</td>
 <td>Chromium, 17 requests with spool, a loss; counts L1; 9 views over 4 days</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier, Chromium</td>
@@ -129,6 +143,7 @@
 <td style="text-align:right">26.00x</td>
 <td>L2</td>
 <td>Chromium, stamped static files; unstamped files also give 5 (counts L1)</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier, Firefox</td>
@@ -137,6 +152,7 @@
 <td style="text-align:right">21.83x</td>
 <td>L2</td>
 <td>Firefox, stamped static files; unstamped files also give 6 (counts L1)</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier against worker only, Chromium</td>
@@ -145,6 +161,7 @@
 <td style="text-align:right">2.60x</td>
 <td>L2</td>
 <td>Chromium, stamped static files; counts L1</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier against worker only, Firefox</td>
@@ -153,6 +170,7 @@
 <td style="text-align:right">2.33x</td>
 <td>L2</td>
 <td>Firefox, stamped static files; counts L1</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, one tab, 2,000 views, Chromium</td>
@@ -161,6 +179,7 @@
 <td style="text-align:right">1,000x</td>
 <td>L2</td>
 <td>Chromium, 2 requests with spool; counts L1; the spool arm was not controlled by the worker in this reading (controlled false)</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Origin requests, one tab, 2,000 views, Firefox</td>
@@ -169,18 +188,11 @@
 <td style="text-align:right">667x</td>
 <td>L2</td>
 <td>Firefox, 3 requests with spool; counts L1; the spool arm was not controlled by the worker in this reading (controlled false)</td>
-</tr>
-<tr>
-<td>Origin requests, request law</td>
-<td>r x V requests</td>
-<td style="text-align:right">no finite ceiling</td>
-<td style="text-align:right">no finite value</td>
-<td>L2</td>
-<td>a bound over a floor of one request per client (Q &gt;= 1 + W + F), never a count</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 </tbody>
 </table>
-<p>The library readings come from 2026-11-20, on Chromium and Firefox, with every origin request counted. At 121 views Chromium sent 5 origin requests against 121: a net saving of 95.9% and a multiplier of 24.20x. Firefox gives 20.33x. That is 2,420,000 read views a day against the Free plan's 100,000, counting every origin hit (L2 over L1 counts). WebKit is not in the library readings. The signed-in, public-edit and revoked-session rows are Chromium only, because Firefox did not start the multi-day arms under libfaketime. The own-write scenario is not measured. The 121-view counts come from the single-day reading of the final tree, which supersedes the earlier 2026-11-20 reading; both have the same counts. At 2,000 views in one tab, Chromium sent 2 requests against 2,000 and Firefox 3 against 2,001 (counts L1, ratios L2). In those rows the spool arm was not controlled by the worker (<code>controlled</code> is false): it sent one document and the boot script. The review-2 thousands for a tab of 60,000 views stay L3 bounds. A signed-in reader on the persistent default makes 18 to 20 requests over four days against 7 across three repeat runs of the same code (the table row shows the first run, 20), and each held day costs 4 requests and 288 B against 1 request and 117 B (L1). The day-0 bootstrap is 6 to 8 requests across those runs, and the cause of that swing is not measured. With <code>cdn: { worker: true }</code>, the stub the origin serves falls from 141,976 B to 7,175 B, about 20 times fewer origin bytes (L2 over L1, one fixture), but Firefox downloads the core twice on its first install (269,730 B at the CDN, L1), and the site trusts the CDN host with the worker's code, since <code>importScripts</code> checks no hash.</p>
+<p>The library readings come from 2026-11-20, on Chromium and Firefox, with every origin request counted. At 121 views Chromium sent 5 origin requests against 121: a net saving of 95.9% and a multiplier of 24.20x. Firefox gives 20.33x. That is 2,420,000 read views a day against the Free plan's 100,000, counting every origin hit (L2 over L1 counts). WebKit is absent from every library reading. The library's headline covers Chromium and Firefox only. WebKit, which is every browser on iOS, defaults to no worker because of an upstream script check on every navigation; its figures are model rows or single script-check readings, never library readings. &quot;Chromium and Firefox&quot; is well under all of mobile. The signed-in, public-edit and revoked-session rows are Chromium only, because Firefox did not start the multi-day arms under libfaketime. The signed-in rows are not what a default install produces. They need <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; the row's scope states the proxy conditions. The own-write scenario is not measured. The 121-view counts come from the single-day reading of the final tree, which supersedes the earlier 2026-11-20 reading; both have the same counts. At 2,000 views in one tab, Chromium sent 2 requests against 2,000 and Firefox 3 against 2,001 (counts L1, ratios L2). In those rows the spool arm was not controlled by the worker (<code>controlled</code> is false): the in-page navigation of the page runtime answered the views, no worker was registered, and the arm sent one document and the boot script. The review-2 thousands for a tab of 60,000 views stay L3 bounds. A signed-in reader on the persistent default makes 18 to 20 requests over four days against 7 across three repeat runs of the same code (the table row shows the first run, 20), and each held day costs 4 requests and 288 B against 1 request and 117 B (L1). The day-0 bootstrap is 6 to 8 requests across those runs, and the cause of that swing is not measured. With <code>cdn: { worker: true }</code>, the stub the origin serves falls from 141,976 B to 7,175 B, about 20 times fewer origin bytes (L2 over L1, one fixture), but Firefox downloads the core twice on its first install (269,730 B at the CDN, L1), and the site trusts the CDN host with the worker's code, since <code>importScripts</code> checks no hash.</p>
 <table>
 <thead>
 <tr>
@@ -189,22 +201,17 @@
 <th>best multiplier</th>
 <th>label</th>
 <th>where the saving disappears or reverses</th>
+<th>provenance</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>A tab held open all day, 60,000 in-page views</td>
-<td>99.945% to 99.953%</td>
-<td>1,818x to 2,143x</td>
-<td>L3 workload over an L2 floor of one request; never a measured count</td>
-<td>A client that opens a new document each time pays the document, so the saving falls to the daily rows</td>
-</tr>
-<tr>
-<td>A population of 40 clients with mixed visits</td>
-<td>56.8%</td>
-<td>2.31x</td>
-<td>L3 workload, scratch construction, Chromium</td>
-<td>Fewer views per client; a client with one view costs the baseline</td>
+<td>Signed-in reader on defaults, 4 days</td>
+<td>-185.7%</td>
+<td>0.35x</td>
+<td>L1 counts, L2 ratio; Chromium; memory sink</td>
+<td>Day 0 carries the bootstrap; days 1 to 3 cost 4, 4 and 4 requests against 1 each on the baseline; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Read/write workspace, 10% writes</td>
@@ -212,13 +219,7 @@
 <td>6.67x</td>
 <td>L3 scenario; no reading of a visitor writing through the worker exists</td>
 <td>Writes reach the origin on every path, so they cap the saving at the writes share</td>
-</tr>
-<tr>
-<td>Signed-in reader on defaults, 4 days</td>
-<td>-185.7%</td>
-<td>0.35x</td>
-<td>L1 counts, L2 ratio; Chromium; memory sink</td>
-<td>Day 0 carries the bootstrap; days 1 to 3 cost 4, 4 and 4 requests against 1 each on the baseline</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Ungated two-view lifetime</td>
@@ -226,6 +227,7 @@
 <td>0.67x</td>
 <td>L3 scenario</td>
 <td>Bootstrap costs more than the one view it serves; the saving is a loss under every engine class</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>One view a day on a 127 B page, 5 days</td>
@@ -233,6 +235,7 @@
 <td>1.00x</td>
 <td>L1 counts, L2 ratio; Chromium; before the stub validator</td>
 <td>Spool sent 5 requests against 5, one per day; no stub or boot script was fetched (the bytes are in the measured readings)</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>WebKit with <code>workerMode: 'always'</code></td>
@@ -240,6 +243,48 @@
 <td>0.4x to 15.38x</td>
 <td>L3; WebKit sent a script check on every navigation (L1)</td>
 <td>The script check is one request per navigation, so a workload whose views are all documents gains nothing; the WebKit default avoids the check by registering no worker</td>
+<td>model over library counts (L3)</td>
+</tr>
+</tbody>
+</table>
+<p>The figures that count Worker-invocation equivalents assume the stub and boot script are served as static assets, which are not Worker invocations. The origin-request figures put the stub on the Worker. On a 127 B page read once a day, spool sent 5 requests against 5, and no stub is fetched on those five days (L1). The byte comparison for that page is under Measured Readings. The stub's cost on a static tier or on the Worker is in <a href="docs_economics.html#stub-on-a-static-tier-or-on-the-worker">Economics</a>.</p>
+<h2 id="constructions-that-are-not-shipped" class="tsd-anchor-link">Constructions That Are Not Shipped<a href="#constructions-that-are-not-shipped" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The rows in this section do not come from the shipped package. Each one counts a review construction, a hand-written server and client kept outside the library, or states a bound that no reading prints. The library does not implement the miss-triggered pack or the inlined client, so the figures here are not what <code>@drupflare/spool</code> produces. Each row keeps its figure and layer, and its last column gives its provenance.</p>
+<table>
+<thead>
+<tr>
+<th>case</th>
+<th>best saving</th>
+<th>best multiplier</th>
+<th>label</th>
+<th>where the saving disappears or reverses</th>
+<th>provenance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Origin requests, request law</td>
+<td>no finite ceiling</td>
+<td>no finite value</td>
+<td>L2</td>
+<td>a bound over a floor of one request per client (Q &gt;= 1 + W + F), never a count</td>
+<td>bound, no count</td>
+</tr>
+<tr>
+<td>A tab held open all day, 60,000 in-page views</td>
+<td>99.945% to 99.953%</td>
+<td>1,818x to 2,143x</td>
+<td>L3 workload over an L2 floor of one request; never a measured count</td>
+<td>A client that opens a new document each time pays the document, so the saving falls to the daily rows</td>
+<td>review construction, not shipped</td>
+</tr>
+<tr>
+<td>A population of 40 clients with mixed visits</td>
+<td>56.8%</td>
+<td>2.31x</td>
+<td>L3 workload, review construction, Chromium</td>
+<td>Fewer views per client; a client with one view costs the baseline</td>
+<td>review construction, not shipped</td>
 </tr>
 <tr>
 <td>Durable Object requests</td>
@@ -247,10 +292,10 @@
 <td>not a saving</td>
 <td>L2 over L0</td>
 <td>Spool without the live stream uses none; the stream adds one request per stream open and one per bump or revoke</td>
+<td>bound, no count</td>
 </tr>
 </tbody>
 </table>
-<p>The figures that count Worker-invocation equivalents assume the stub and boot script are served as static assets, which are not Worker invocations. The origin-request figures put the stub on the Worker. On a 127 B page read once a day, spool sent 5 requests against 5, and no stub is fetched on those five days (L1). The byte comparison for that page is under Measured Readings. The stub's cost on a static tier or on the Worker is in <a href="docs_economics.html#stub-on-a-static-tier-or-on-the-worker">Economics</a>.</p>
 <h2 id="what-spool-saves" class="tsd-anchor-link">What Spool Saves<a href="#what-spool-saves" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>The headline is 12.4 joules per local view (L2). It applies the Sustainable Web Design v4 intensities for the network, the data centre and the device to the 17,054 bytes of the document a local view replaces, then adds the origin's energy for one request. No meter read it.</p>
 <p>Meters read less, because they leave out the network and every data centre between the two ends. Three readings sit beside the headline:</p>
@@ -367,7 +412,7 @@
 <td>original v1, minimal construction</td>
 <td>2026-11-18</td>
 <td>40.33x (3 of 121; 97.52% saved)</td>
-<td>Chromium, Codex's 121-view mix, scratch model, loopback, all requests</td>
+<td>Chromium, Codex's 121-view mix, review model, loopback, all requests</td>
 <td>L2</td>
 <td>v1 review, 2026-11-18</td>
 <td>superseded</td>
@@ -473,7 +518,7 @@
 </tr>
 </tbody>
 </table>
-<p>The 40x and 13x figures divide the same baseline of 121 requests. They differ in the spool count: 3 requests for the scratch model's minimal construction, and 9 for the first library run, which gated its bootstrap on the second and third document loads, registered the worker and fetched the boot script. The 30.25x of the Codex construction and of the retrofit is 121 over 4. The 2026-11-20 reading has 5 for Chromium, and no earlier source divides 121 by it, so this page does. The earlier reading that gave 9 says the library made 6 more requests than the model; no source records which revision produced 9 or 5, so the later measured count is current. The Chromium multiplier at 121 views has been written as 40x, 30x, 13x and now 24.20x, each over a different spool count. WebKit has two retrofit rows because its two denominators differ: 23 origin requests, and 6 Worker calls.</p>
+<p>The 40x and 13x figures divide the same baseline of 121 requests. They differ in the spool count: 3 requests for the review model's minimal construction, and 9 for the first library run, which gated its bootstrap on the second and third document loads, registered the worker and fetched the boot script. The 30.25x of the Codex construction and of the retrofit is 121 over 4. The 2026-11-20 reading has 5 for Chromium, and no earlier source divides 121 by it, so this page does. The model's 3 is one first document and two bootstrap requests: its bootstrap is the pack and the stub, and it prices the 20 warm documents at zero, since a document under a running worker costs no request. The current reading's 5 for Chromium is three document requests, the boot script and the stub (<code>GET /courses/:id</code> 3, <code>GET /.spool/1.0.0/boot/1.js</code> 1, <code>GET /spool-sw.js</code> 1; 3 + 1 + 1 = 5, checked by the economics spec). The bootstrap is the same two requests in both, so the two the model does not count are the second and third document requests, which the reading's paths record without attributing them to a navigation. The Worker-invocation equivalent of 3 leaves out the boot script and the stub, which a static tier serves, and keeps the three documents. The earlier reading that gave 9 is superseded, and nothing here reconciles it with the current count. The Chromium multiplier at 121 views has been written as 40x, 30x, 13x and now 24.20x, each over a different spool count. WebKit has two retrofit rows because its two denominators differ: 23 origin requests, and 6 Worker calls.</p>
 <h3 id="reader-workloads" class="tsd-anchor-link">Reader Workloads<a href="#reader-workloads" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <table>
 <thead>
@@ -492,7 +537,7 @@
 <td>original v1, daily reader</td>
 <td>2026-11-18</td>
 <td>8.82x (68 of 600; 88.67% saved)</td>
-<td>20 views in 2 visits over 30 days, Chromium, scratch model count</td>
+<td>20 views in 2 visits over 30 days, Chromium, review model count</td>
 <td>L3</td>
 <td>v1 review, 2026-11-18</td>
 <td>superseded</td>
@@ -501,7 +546,7 @@
 <td>original v1, engaged reader</td>
 <td>2026-11-18</td>
 <td>30.61x (98 of 3,000; 96.73% saved)</td>
-<td>100 views in 3 visits over 30 days, Chromium, scratch model count</td>
+<td>100 views in 3 visits over 30 days, Chromium, review model count</td>
 <td>L3</td>
 <td>v1 review, 2026-11-18</td>
 <td>superseded</td>
@@ -3405,6 +3450,7 @@
 <th style="text-align:right">multiplier</th>
 <th>label</th>
 <th>applies to</th>
+<th>provenance</th>
 </tr>
 </thead>
 <tbody>
@@ -3415,6 +3461,7 @@
 <td style="text-align:right">24.20x</td>
 <td>L2</td>
 <td>Chromium, 5 requests with spool; counts L1; all origin hits, stub on the Worker</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, 121 views</td>
@@ -3423,6 +3470,7 @@
 <td style="text-align:right">20.33x</td>
 <td>L2</td>
 <td>Firefox, 6 requests with spool; counts L1; all origin hits, stub on the Worker</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, one view a day for 5 days</td>
@@ -3431,6 +3479,7 @@
 <td style="text-align:right">1.00x</td>
 <td>L2</td>
 <td>Chromium, 5 requests with spool, no saving; counts L1; no stub fetched; Firefox did not start</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Worker-invocation equivalents, 121 views</td>
@@ -3439,6 +3488,7 @@
 <td style="text-align:right">40.33x</td>
 <td>L2</td>
 <td>Chromium; the stub and boot script served from a static tier</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker-invocation equivalents, one view a day for 5 days</td>
@@ -3447,6 +3497,7 @@
 <td style="text-align:right">1.00x</td>
 <td>L2</td>
 <td>Chromium; the stub and boot script served from a static tier</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Bytes, 121 views, the median document</td>
@@ -3455,6 +3506,7 @@
 <td style="text-align:right">7.51x</td>
 <td>L2</td>
 <td>Chromium; 274,709 B with spool after the ring, boot script and one stub fetch; the 17,054 B median over L1 sizes</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Origin requests, signed-in reader on defaults, 4 days</td>
@@ -3462,7 +3514,8 @@
 <td style="text-align:right">-185.7%</td>
 <td style="text-align:right">0.35x</td>
 <td>L2</td>
-<td>Chromium, 20 requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink</td>
+<td>Chromium, 20 requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, signed-in reader, session retention (opt-in), 4 days</td>
@@ -3470,7 +3523,8 @@
 <td style="text-align:right">-214.3%</td>
 <td style="text-align:right">0.32x</td>
 <td>L2</td>
-<td>Chromium, 22 requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink</td>
+<td>Chromium, 22 requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests on a held day, persistent retention, day 2</td>
@@ -3478,7 +3532,8 @@
 <td style="text-align:right">-300.0%</td>
 <td style="text-align:right">0.25x</td>
 <td>L2</td>
-<td>Chromium, day 2 of the persistent reader; 4 requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1</td>
+<td>Chromium, day 2 of the persistent reader; 4 requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, session revoked on the server after day 2</td>
@@ -3486,7 +3541,8 @@
 <td style="text-align:right">-157.1%</td>
 <td style="text-align:right">0.39x</td>
 <td>L2</td>
-<td>Chromium, 18 requests with spool, a loss; counts L1; persistent retention; no held page on day 3</td>
+<td>Chromium, 18 requests with spool, a loss; counts L1; persistent retention; no held page on day 3; not what a default install produces: needs <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route; behind <code>spoolProxy</code>, a public route sends a request with a cookie outside the allowlist or an <code>Authorization</code> header to the origin, and a principal route needs <code>identity</code></td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, public edit, family route</td>
@@ -3495,6 +3551,7 @@
 <td style="text-align:right">0.9x</td>
 <td>L2</td>
 <td>Chromium, 10 requests with spool, a loss; counts L1; 9 views over 4 days</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, public edit, stored-page route</td>
@@ -3503,6 +3560,7 @@
 <td style="text-align:right">0.53x</td>
 <td>L2</td>
 <td>Chromium, 17 requests with spool, a loss; counts L1; 9 views over 4 days</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier, Chromium</td>
@@ -3511,6 +3569,7 @@
 <td style="text-align:right">26.00x</td>
 <td>L2</td>
 <td>Chromium, stamped static files; unstamped files also give 5 (counts L1)</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier, Firefox</td>
@@ -3519,6 +3578,7 @@
 <td style="text-align:right">21.83x</td>
 <td>L2</td>
 <td>Firefox, stamped static files; unstamped files also give 6 (counts L1)</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier against worker only, Chromium</td>
@@ -3527,6 +3587,7 @@
 <td style="text-align:right">2.60x</td>
 <td>L2</td>
 <td>Chromium, stamped static files; counts L1</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker invocations over the visit, static tier against worker only, Firefox</td>
@@ -3535,6 +3596,7 @@
 <td style="text-align:right">2.33x</td>
 <td>L2</td>
 <td>Firefox, stamped static files; counts L1</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, one tab, 2,000 views, Chromium</td>
@@ -3543,6 +3605,7 @@
 <td style="text-align:right">1,000x</td>
 <td>L2</td>
 <td>Chromium, 2 requests with spool; counts L1; the spool arm was not controlled by the worker in this reading (controlled false)</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
 <td>Origin requests, one tab, 2,000 views, Firefox</td>
@@ -3551,14 +3614,7 @@
 <td style="text-align:right">667x</td>
 <td>L2</td>
 <td>Firefox, 3 requests with spool; counts L1; the spool arm was not controlled by the worker in this reading (controlled false)</td>
-</tr>
-<tr>
-<td>Origin requests, request law</td>
-<td>r x V requests</td>
-<td style="text-align:right">no finite ceiling</td>
-<td style="text-align:right">no finite value</td>
-<td>L2</td>
-<td>a bound over a floor of one request per client (Q &gt;= 1 + W + F), never a count</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 </tbody>
 </table>
@@ -6139,6 +6195,6 @@
 <p>The vendor prices are inputs in <code>src/report/inputs.ts</code> with the date each page was read. Re-read the pages and edit those values to refresh the dollar tables.</p>
 <p><code>bun run impact:check</code> runs in CI and fails on any difference between the committed page and the readings.</p>
 </div><nav class="docs-pager" aria-label="Previous and next pages"><a rel="prev" class="docs-pager-prev" href="../documents/docs_economics.html"><span class="docs-pager-label">Previous</span><span class="docs-pager-title">Economics</span></a><a rel="next" class="docs-pager-next" href="../documents/TECHNICAL_REPORT.html"><span class="docs-pager-label">Next</span><span class="docs-pager-title">Technical Report</span></a></nav></main>
-<nav class="docs-toc" aria-labelledby="docs-toc-title"><p id="docs-toc-title">On this page</p><ul><li class="docs-toc-h2"><a href="#headline-numbers">Headline Numbers</a></li><li class="docs-toc-h2"><a href="#what-spool-saves">What Spool Saves</a></li><li class="docs-toc-h2"><a href="#demand-per-client">Demand Per Client</a></li><li class="docs-toc-h2"><a href="#moving-numbers">Moving Numbers</a></li><li class="docs-toc-h3"><a href="#origin-requests-at-121-views">Origin Requests at 121 Views</a></li><li class="docs-toc-h3"><a href="#reader-workloads">Reader Workloads</a></li><li class="docs-toc-h3"><a href="#free-plan-read-views-a-day">Free Plan Read Views a Day</a></li><li class="docs-toc-h3"><a href="#worker-invocations-with-a-static-tier">Worker Invocations With a Static Tier</a></li><li class="docs-toc-h3"><a href="#bytes">Bytes</a></li><li class="docs-toc-h3"><a href="#energy">Energy</a></li><li class="docs-toc-h2"><a href="#unit-and-scope">Unit and Scope</a></li><li class="docs-toc-h3"><a href="#energy-by-tier">Energy by Tier</a></li><li class="docs-toc-h2"><a href="#bandwidth-and-request-costs">Bandwidth and Request Costs</a></li><li class="docs-toc-h2"><a href="#an-institutions-figures">An Institution's Figures</a></li><li class="docs-toc-h3"><a href="#economics">Economics</a></li><li class="docs-toc-h3"><a href="#storage">Storage</a></li><li class="docs-toc-h3"><a href="#trust">Trust</a></li><li class="docs-toc-h3"><a href="#research-energy-carbon-and-water">Research: energy, carbon and water</a></li><li class="docs-toc-h2"><a href="#asset-trimming">Asset Trimming</a></li><li class="docs-toc-h3"><a href="#what-the-trim-removes-and-whether-it-is-safe">What the Trim Removes and Whether It Is Safe</a></li><li class="docs-toc-h3"><a href="#bytes-and-joules-saved">Bytes and Joules Saved</a></li><li class="docs-toc-h3"><a href="#per-million-views">Per Million Views</a></li><li class="docs-toc-h3"><a href="#churn-between-two-readings">Churn Between Two Readings</a></li><li class="docs-toc-h2"><a href="#first-payload">First Payload</a></li><li class="docs-toc-h2"><a href="#next-page-prediction">Next-Page Prediction</a></li><li class="docs-toc-h2"><a href="#savings-today-and-at-maximum">Savings Today and at Maximum</a></li><li class="docs-toc-h3"><a href="#metered-figures-beside-the-ledger">Metered Figures Beside the Ledger</a></li><li class="docs-toc-h3"><a href="#tabs-and-hidden-polls">Tabs and Hidden Polls</a></li><li class="docs-toc-h3"><a href="#lazy-loading-before-the-first-scroll">Lazy Loading Before the First Scroll</a></li><li class="docs-toc-h2"><a href="#how-the-figures-are-made">How the Figures Are Made</a></li><li class="docs-toc-h3"><a href="#measurement-labels">Measurement Labels</a></li><li class="docs-toc-h3"><a href="#accounting-quantities">Accounting Quantities</a></li><li class="docs-toc-h3"><a href="#traffic-measures">Traffic Measures</a></li><li class="docs-toc-h3"><a href="#views-channel">Views Channel</a></li><li class="docs-toc-h3"><a href="#counting-rules">Counting Rules</a></li><li class="docs-toc-h3"><a href="#evidence-behind-the-design">Evidence Behind the Design</a></li><li class="docs-toc-h3"><a href="#baselines">Baselines</a></li><li class="docs-toc-h2"><a href="#measured-readings">Measured Readings</a></li><li class="docs-toc-h3"><a href="#demo-page-bytes">Demo Page Bytes</a></li><li class="docs-toc-h3"><a href="#desktop-and-phone">Desktop and Phone</a></li><li class="docs-toc-h3"><a href="#first-views">First Views</a></li><li class="docs-toc-h3"><a href="#server-runtimes">Server Runtimes</a></li><li class="docs-toc-h3"><a href="#worker-request-cost">Worker Request Cost</a></li><li class="docs-toc-h3"><a href="#origin-term-by-workload">Origin Term by Workload</a></li><li class="docs-toc-h3"><a href="#third-party-requests">Third-Party Requests</a></li><li class="docs-toc-h3"><a href="#free-tier-ceiling">Free-Tier Ceiling</a></li><li class="docs-toc-h3"><a href="#loops-in-real-pages">Loops in Real Pages</a></li><li class="docs-toc-h3"><a href="#second-time-point">Second Time Point</a></li><li class="docs-toc-h2"><a href="#per-site-figures">Per-Site Figures</a></li><li class="docs-toc-h3"><a href="#what-a-repeat-view-moves">What a Repeat View Moves</a></li><li class="docs-toc-h3"><a href="#third-party-cacheability">Third-Party Cacheability</a></li><li class="docs-toc-h2"><a href="#dataset-patches">Dataset Patches</a></li><li class="docs-toc-h3"><a href="#measured-bytes">Measured Bytes</a></li><li class="docs-toc-h3"><a href="#break-even">Break-Even</a></li><li class="docs-toc-h3"><a href="#what-a-site-pays">What a Site Pays</a></li><li class="docs-toc-h3"><a href="#admission-and-the-model">Admission and the Model</a></li><li class="docs-toc-h2"><a href="#channels">Channels</a></li><li class="docs-toc-h2"><a href="#capacity">Capacity</a></li><li class="docs-toc-h3"><a href="#retained-nodes">Retained Nodes</a></li><li class="docs-toc-h3"><a href="#embodied-energy">Embodied Energy</a></li><li class="docs-toc-h3"><a href="#shared-responsibility">Shared Responsibility</a></li><li class="docs-toc-h2"><a href="#what-this-does-not-claim">What This Does Not Claim</a></li><li class="docs-toc-h2"><a href="#reproducing">Reproducing</a></li></ul></nav></div><footer>
+<nav class="docs-toc" aria-labelledby="docs-toc-title"><p id="docs-toc-title">On this page</p><ul><li class="docs-toc-h2"><a href="#headline-numbers">Headline Numbers</a></li><li class="docs-toc-h2"><a href="#constructions-that-are-not-shipped">Constructions That Are Not Shipped</a></li><li class="docs-toc-h2"><a href="#what-spool-saves">What Spool Saves</a></li><li class="docs-toc-h2"><a href="#demand-per-client">Demand Per Client</a></li><li class="docs-toc-h2"><a href="#moving-numbers">Moving Numbers</a></li><li class="docs-toc-h3"><a href="#origin-requests-at-121-views">Origin Requests at 121 Views</a></li><li class="docs-toc-h3"><a href="#reader-workloads">Reader Workloads</a></li><li class="docs-toc-h3"><a href="#free-plan-read-views-a-day">Free Plan Read Views a Day</a></li><li class="docs-toc-h3"><a href="#worker-invocations-with-a-static-tier">Worker Invocations With a Static Tier</a></li><li class="docs-toc-h3"><a href="#bytes">Bytes</a></li><li class="docs-toc-h3"><a href="#energy">Energy</a></li><li class="docs-toc-h2"><a href="#unit-and-scope">Unit and Scope</a></li><li class="docs-toc-h3"><a href="#energy-by-tier">Energy by Tier</a></li><li class="docs-toc-h2"><a href="#bandwidth-and-request-costs">Bandwidth and Request Costs</a></li><li class="docs-toc-h2"><a href="#an-institutions-figures">An Institution's Figures</a></li><li class="docs-toc-h3"><a href="#economics">Economics</a></li><li class="docs-toc-h3"><a href="#storage">Storage</a></li><li class="docs-toc-h3"><a href="#trust">Trust</a></li><li class="docs-toc-h3"><a href="#research-energy-carbon-and-water">Research: energy, carbon and water</a></li><li class="docs-toc-h2"><a href="#asset-trimming">Asset Trimming</a></li><li class="docs-toc-h3"><a href="#what-the-trim-removes-and-whether-it-is-safe">What the Trim Removes and Whether It Is Safe</a></li><li class="docs-toc-h3"><a href="#bytes-and-joules-saved">Bytes and Joules Saved</a></li><li class="docs-toc-h3"><a href="#per-million-views">Per Million Views</a></li><li class="docs-toc-h3"><a href="#churn-between-two-readings">Churn Between Two Readings</a></li><li class="docs-toc-h2"><a href="#first-payload">First Payload</a></li><li class="docs-toc-h2"><a href="#next-page-prediction">Next-Page Prediction</a></li><li class="docs-toc-h2"><a href="#savings-today-and-at-maximum">Savings Today and at Maximum</a></li><li class="docs-toc-h3"><a href="#metered-figures-beside-the-ledger">Metered Figures Beside the Ledger</a></li><li class="docs-toc-h3"><a href="#tabs-and-hidden-polls">Tabs and Hidden Polls</a></li><li class="docs-toc-h3"><a href="#lazy-loading-before-the-first-scroll">Lazy Loading Before the First Scroll</a></li><li class="docs-toc-h2"><a href="#how-the-figures-are-made">How the Figures Are Made</a></li><li class="docs-toc-h3"><a href="#measurement-labels">Measurement Labels</a></li><li class="docs-toc-h3"><a href="#accounting-quantities">Accounting Quantities</a></li><li class="docs-toc-h3"><a href="#traffic-measures">Traffic Measures</a></li><li class="docs-toc-h3"><a href="#views-channel">Views Channel</a></li><li class="docs-toc-h3"><a href="#counting-rules">Counting Rules</a></li><li class="docs-toc-h3"><a href="#evidence-behind-the-design">Evidence Behind the Design</a></li><li class="docs-toc-h3"><a href="#baselines">Baselines</a></li><li class="docs-toc-h2"><a href="#measured-readings">Measured Readings</a></li><li class="docs-toc-h3"><a href="#demo-page-bytes">Demo Page Bytes</a></li><li class="docs-toc-h3"><a href="#desktop-and-phone">Desktop and Phone</a></li><li class="docs-toc-h3"><a href="#first-views">First Views</a></li><li class="docs-toc-h3"><a href="#server-runtimes">Server Runtimes</a></li><li class="docs-toc-h3"><a href="#worker-request-cost">Worker Request Cost</a></li><li class="docs-toc-h3"><a href="#origin-term-by-workload">Origin Term by Workload</a></li><li class="docs-toc-h3"><a href="#third-party-requests">Third-Party Requests</a></li><li class="docs-toc-h3"><a href="#free-tier-ceiling">Free-Tier Ceiling</a></li><li class="docs-toc-h3"><a href="#loops-in-real-pages">Loops in Real Pages</a></li><li class="docs-toc-h3"><a href="#second-time-point">Second Time Point</a></li><li class="docs-toc-h2"><a href="#per-site-figures">Per-Site Figures</a></li><li class="docs-toc-h3"><a href="#what-a-repeat-view-moves">What a Repeat View Moves</a></li><li class="docs-toc-h3"><a href="#third-party-cacheability">Third-Party Cacheability</a></li><li class="docs-toc-h2"><a href="#dataset-patches">Dataset Patches</a></li><li class="docs-toc-h3"><a href="#measured-bytes">Measured Bytes</a></li><li class="docs-toc-h3"><a href="#break-even">Break-Even</a></li><li class="docs-toc-h3"><a href="#what-a-site-pays">What a Site Pays</a></li><li class="docs-toc-h3"><a href="#admission-and-the-model">Admission and the Model</a></li><li class="docs-toc-h2"><a href="#channels">Channels</a></li><li class="docs-toc-h2"><a href="#capacity">Capacity</a></li><li class="docs-toc-h3"><a href="#retained-nodes">Retained Nodes</a></li><li class="docs-toc-h3"><a href="#embodied-energy">Embodied Energy</a></li><li class="docs-toc-h3"><a href="#shared-responsibility">Shared Responsibility</a></li><li class="docs-toc-h2"><a href="#what-this-does-not-claim">What This Does Not Claim</a></li><li class="docs-toc-h2"><a href="#reproducing">Reproducing</a></li></ul></nav></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
 <div class="overlay"></div></body></html>

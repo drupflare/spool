@@ -36,6 +36,7 @@
 <th style="text-align:right">net saving</th>
 <th style="text-align:right">multiplier</th>
 <th>label</th>
+<th>provenance</th>
 </tr>
 </thead>
 <tbody>
@@ -45,6 +46,7 @@
 <td style="text-align:right">95.9%</td>
 <td style="text-align:right">24.20x</td>
 <td>L2</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, 121 views, Firefox</td>
@@ -52,6 +54,7 @@
 <td style="text-align:right">95.1%</td>
 <td style="text-align:right">20.33x</td>
 <td>L2</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Origin requests, one view a day for 5 days, Chromium</td>
@@ -59,13 +62,15 @@
 <td style="text-align:right">0.0%</td>
 <td style="text-align:right">1.00x</td>
 <td>L2</td>
+<td>library 1.0.0 page runtime, no worker</td>
 </tr>
 <tr>
-<td>Origin requests, signed-in reader on defaults, Chromium</td>
+<td>Origin requests, signed-in reader on defaults, Chromium; needs <code>principalDatasets: true</code>, <code>identity</code>, a principal route</td>
 <td>7 requests, no spool</td>
 <td style="text-align:right">-185.7%</td>
 <td style="text-align:right">0.35x</td>
 <td>L2</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Worker-invocation equivalents, 121 views, static tier</td>
@@ -73,6 +78,7 @@
 <td style="text-align:right">97.5%</td>
 <td style="text-align:right">40.33x</td>
 <td>L2</td>
+<td>library 1.0.0, measured</td>
 </tr>
 <tr>
 <td>Bytes, 121 views, 17,054 B median document</td>
@@ -80,6 +86,7 @@
 <td style="text-align:right">86.7%</td>
 <td style="text-align:right">7.51x</td>
 <td>L2</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Free plan, engaged daily public reader (read views a day)</td>
@@ -87,6 +94,7 @@
 <td style="text-align:right">96.0%</td>
 <td style="text-align:right">25.00x</td>
 <td>L3</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Paid plan, same reader, 100 million read views a month</td>
@@ -94,6 +102,7 @@
 <td style="text-align:right">100.0%</td>
 <td style="text-align:right">no finite value</td>
 <td>L3</td>
+<td>model over library counts (L3)</td>
 </tr>
 <tr>
 <td>Ungated two-view lifetime, requests</td>
@@ -101,10 +110,11 @@
 <td style="text-align:right">-50.0%</td>
 <td style="text-align:right">0.67x</td>
 <td>L3</td>
+<td>model over library counts (L3)</td>
 </tr>
 </tbody>
 </table>
-<p>Spool gains most where a client holds a copy across many views, and it loses where the bootstrap and the stub cost more than the views they serve: two views, and a signed-in reader whose requests exceed the baseline on every day. The library readings hold no WebKit and no own-write scenario. The signed-in and public-edit rows are Chromium only. The Worker-invocation row assumes the stub and boot script are served as static assets, and the origin-request rows put the stub on the Worker. The paid-plan row is 4 million Worker requests against 100 million, inside the 10 million included, so it costs $0.00.</p>
+<p>Spool gains most where a client holds a copy across many views, and it loses where the bootstrap and the stub cost more than the views they serve: two views, and a signed-in reader whose requests exceed the baseline on every day. WebKit is absent from every library reading. The library's headline covers Chromium and Firefox only. WebKit, which is every browser on iOS, defaults to no worker because of an upstream script check on every navigation; its figures are model rows or single script-check readings, never library readings. &quot;Chromium and Firefox&quot; is well under all of mobile. The library readings hold no own-write scenario. The signed-in and public-edit rows are Chromium only. The signed-in rows are not what a default install produces: they need <code>principalDatasets: true</code>, the <code>identity</code> option and a principal route. The provenance column uses the vocabulary defined in <a href="docs_economics.html#headline-numbers">Economics</a>. The Worker-invocation row assumes the stub and boot script are served as static assets, and the origin-request rows put the stub on the Worker. The paid-plan row is 4 million Worker requests against 100 million, inside the 10 million included, so it costs $0.00.</p>
 <p><strong>Verdict.</strong> The demand result is a count. With <code>updateViaCache: 'all'</code> and a 24-hour script lifetime, a controlled navigation reached no origin in Chromium and Firefox, and WebKit still re-checks the worker script. spool's own syncs and flushes are netted against that. No deployed site supplies traffic, so the share of a real site's requests this removes is unmeasured. Energy is a second objective an administrator may weigh. On one metered desktop a local view saves 0.80 J of package energy against optimized HTTP caching. The modelled figure for the same view is 12.4 J, and it is an allocation. A cold first view of a recorded public page costs a median 47.5 J of package energy above idle on that desktop (L1 windows, L2 per page). That is the cost of the page without spool. The cost of spool's own install and provisioning on a first visit is unmeasured.</p>
 <ol>
 <li>With <code>updateViaCache: 'all'</code> and a 24-hour script lifetime, 0 of 13 controlled navigations reached the origin in Chromium and Firefox (L1). WebKit differs, and the details are under <a href="#zero-network-navigation">Zero-Network Navigation</a>.</li>
