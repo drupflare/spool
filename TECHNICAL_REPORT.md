@@ -1,6 +1,6 @@
 # Technical Report: A Versioned Replica in the Browser
 
-What `@drupflare/spool` does, what each mechanism costs, and what was measured to find out. Written for maintainers and for a reader deciding whether to trust a spool number. Every figure carries its layer (L0 published, L1 measured here, L2 derived, L3 scenario) and either its method or a pointer to the `docs/impact.md` section or the `measurements/` file that holds it. This report restates no large table from `docs/impact.md`. Written 2026-11-15 and reframed 2026-11-16 against the 0.4.0 working tree.
+What `@drupflare/spool` does, what each mechanism costs, and what was measured to find out. Written for maintainers and for a reader deciding whether to trust a spool number. Every figure carries its layer (L0 published, L1 measured here, L2 derived, L3 scenario) and either its method or a pointer to the `docs/impact.md` section or the `measurements/` file that holds it. This report restates no large table from `docs/impact.md`. Written 2026-11-15 and reframed 2026-11-16 against the 0.4.0 working tree, and extended 2026-11-18 for v1 (package 1.0.0).
 
 ## Contents
 
@@ -19,18 +19,36 @@ What `@drupflare/spool` does, what each mechanism costs, and what was measured t
 
 spool removes repeated execution demand from a site's platform. It keeps an authorised, versioned replica of a site's dependencies in the browser and answers eligible page views and read requests locally: no network request, no Worker invocation, no server work. It is an enhancement to drupflare, a way for a request-limited plan to carry more views, and a research system whose figures carry a layer and a method. The server half (`src/server`, `src/protocol`, `src/stores`) names dependencies and versions. The device half (`src/sw`, `src/client`) holds them and renders. A proxy mode (`src/proxy`) fronts an origin that cannot load the library.
 
+**The v1 thesis.** One or a few requests make a site navigable and readable offline: the worker script and the site's pack, one request each. After that, a view that starts in the page costs no request, on a page with a swap region (`data-spool-swap` or `<main>`). The requests that remain are writes, misses, deltas and the first document after a lease. A held view needs no request, so the views one client makes per request have no finite ceiling (L2, from the request law below). What a site reaches in practice depends on how its views start, and no measurement here supplies that. The parts the library now implements are listed under [Architecture](#architecture). The counts below come from the library's node and browser tests and from a minimal construction on a fixture server, which the tests do not include.
+
+**Headline numbers.** The first table is copied from the first table of [Economics](docs/economics.md#headline-numbers) (library readings of 2026-11-20, Chromium and Firefox, a 1,000-course demo site). The last three rows come from the workload table in the same section (L3 workloads, Chromium and Firefox with a worker, stub on a static tier). A net saving is after bootstrap, stub, contact, the sync and dataset requests, and writes, and a negative one is a loss. How each multiplier moved from v0.4 to the library is under [Moving Numbers](docs/impact.md#moving-numbers).
+
+| figure                                                    | baseline               | net saving |      multiplier | label |
+| --------------------------------------------------------- | ---------------------- | ---------: | --------------: | ----- |
+| Origin requests, 121 views, Chromium                      | 121 requests, no spool |      95.9% |          24.20x | L2    |
+| Origin requests, 121 views, Firefox                       | 122 requests, no spool |      95.1% |          20.33x | L2    |
+| Origin requests, one view a day for 5 days, Chromium      | 5 requests, no spool   |       0.0% |           1.00x | L2    |
+| Origin requests, signed-in reader on defaults, Chromium   | 7 requests, no spool   |    -185.7% |           0.35x | L2    |
+| Worker-invocation equivalents, 121 views, static tier     | 121 requests, no spool |      97.5% |          40.33x | L2    |
+| Bytes, 121 views, 17,054 B median document                | 2,063,534 B, no spool  |      86.7% |           7.51x | L2    |
+| Free plan, engaged daily public reader (read views a day) | 100,000, no spool      |      96.0% |          25.00x | L3    |
+| Paid plan, same reader, 100 million read views a month    | $27.00, no spool       |     100.0% | no finite value | L3    |
+| Ungated two-view lifetime, requests                       | 1 request per view     |     -50.0% |           0.67x | L3    |
+
+Spool gains most where a client holds a copy across many views, and it loses where the bootstrap and the stub cost more than the views they serve: two views, and a signed-in reader whose requests exceed the baseline on every day. The library readings hold no WebKit and no own-write scenario. The signed-in and public-edit rows are Chromium only. The Worker-invocation row assumes the stub and boot script are served as static assets, and the origin-request rows put the stub on the Worker. The paid-plan row is 4 million Worker requests against 100 million, inside the 10 million included, so it costs $0.00.
+
 **Verdict.** The demand result is a count. With `updateViaCache: 'all'` and a 24-hour script lifetime, a controlled navigation reached no origin in Chromium and Firefox, and WebKit still re-checks the worker script. spool's own syncs and flushes are netted against that. No deployed site supplies traffic, so the share of a real site's requests this removes is unmeasured. Energy is a second objective an administrator may weigh. On one metered desktop a local view saves 0.80 J of package energy against optimized HTTP caching. The modelled figure for the same view is 12.4 J, and it is an allocation. A cold first view of a recorded public page costs a median 47.5 J of package energy above idle on that desktop (L1 windows, L2 per page). That is the cost of the page without spool. The cost of spool's own install and provisioning on a first visit is unmeasured.
 
 1. With `updateViaCache: 'all'` and a 24-hour script lifetime, 0 of 13 controlled navigations reached the origin in Chromium and Firefox (L1). WebKit differs, and the details are under [Zero-Network Navigation](#zero-network-navigation).
 2. A local view sends the server nothing. A network view costs it 0.61 to 0.98 J of package energy across node, bun, hono and workerd, 6 windows each, and a local view sent nothing in all but one window per runtime (L1; see [spool's Own Requests](#spools-own-requests)).
 3. A cold visit through `spoolProxy` made 2 requests from the first controlled visit to the first local view with the first-payload lever off, and 1 with it on (L1, exact counts, a synthetic page; see [First Payload](#first-payload)).
 4. A dataset update sends 227 to 232 B for one changed row. The v0.3 list refetch sends 2,236 to 191,744 B for 50 to 5,000 rows.
-5. The requests a platform sees per view follow a formula with three inputs, and a device's share of local views is at most one minus one over the views it makes in a freshness window (L3, [Request Arithmetic](README.md#request-arithmetic)). No multiplier follows from it until a site's traffic supplies the inputs.
+5. The requests a platform sees per view follow a formula with three inputs, and a device's share of local views is at most one minus one over the views it makes in a freshness window (L3, [Request Arithmetic](ADVANCED_USAGE.md#request-arithmetic)). No multiplier follows from it until a site's traffic supplies the inputs.
 6. A local view saves 0.80 J (L1, RAPL, 8 rounds; retake 0.817 J). In the report's one unit that is 0.223 kWh per million views (L2). The view is a repeat navigation of a mirror of `demo.drupflare.com` on one desktop. The energy of one deployment is small against an institution's total electricity and against the idle and hosting energy drupflare removes per site, so the weight energy gets is the administrator's choice.
 7. The modelled 12.4 J per view is an allocation. Sustainable Web Design v4 intensities are spread over 17,054 bytes of document, plus one origin request. No meter read it. It sits beside the metered 0.80 J and carries its own label.
 8. `trim` removed rules from 233 of 303 stylesheets with 0 false removals in 26,571 rule uses on Chromium's own coverage data. That check is this project's own and no outside oracle confirms it.
 9. The first-view corpus recorder had two defects, an identity-coded replay and dropped YouTube embeds. Both are fixed, and the v3 corpus was measured over 2 rounds. See [The First-View Class Fit](#the-first-view-class-fit), [Measurement Mistakes](#measurement-mistakes) and [Limits](#limits).
-10. Most of spool is engineering of known ideas. The registration option is documented on MDN, dictionary transport is RFC 9842, speculation rules, Workbox precaching and Fawkes-style static templating exist, unused-CSS removal is PurgeCSS-style, and partial replication is what sync engines such as Electric do. The distinct contract is narrow: a server-authoritative replica whose freshness policy lets a provisioned view render with no per-view validation request, with shadow mode and a fall back to the server. HTTP caching and earlier replication systems cover parts of it ([Prior Art](README.md#-prior-art)). The other contributions that can be defended are the four-layer labelled measurement method, the checked record of refuted mechanisms and the exact-count contract tests (server hits per local view), behind a frozen wire protocol.
+10. Most of spool is engineering of known ideas. The registration option is documented on MDN, dictionary transport is RFC 9842, speculation rules, Workbox precaching and Fawkes-style static templating exist, unused-CSS removal is PurgeCSS-style, and partial replication is what sync engines such as Electric do. The distinct contract is narrow: a server-authoritative replica whose freshness policy lets a provisioned view render with no per-view validation request, with shadow mode and a fall back to the server. HTTP caching and earlier replication systems cover parts of it ([Prior Art](README.md#prior-art)). The other contributions that can be defended are the four-layer labelled measurement method, the checked record of refuted mechanisms and the exact-count contract tests (server hits per local view), behind a frozen wire protocol.
 11. The ledger holds 15 closed mechanisms, each with its measurement and the objective it left open. The ledger is under [What Was Tried and Refuted](#what-was-tried-and-refuted).
 
 ## Measurement Rules
@@ -75,16 +93,31 @@ The demo site runs spool v0.3 features, so it is no baseline without spool. The 
 
 `bun run impact:check` fails when the committed `docs/impact.md` differs from what `measurements/` produces. It runs in CI. Each rig runs from `scripts/measure/` with `--dry-run` first, which prints the resolved plan and touches nothing. The RAPL runs need a Linux host with a readable package counter. They sit outside the hermetic gate, so a clean checkout reproduces the arithmetic and cannot reproduce the joules.
 
+The library's v1 checks run from these commands. The minimal construction's counts are not in the repository.
+
+```sh
+bunx vitest run --project=unit tests/unit/bundle.spec.ts tests/unit/coverage.spec.ts
+bunx vitest run --project=node tests/node/bundle.spec.ts tests/node/pack-store.spec.ts tests/node/middleware.spec.ts tests/node/conformance.spec.ts tests/node/sw-runtime.spec.ts
+bunx playwright test tests/browser/navigate.pw.ts tests/browser/pack-store.pw.ts tests/browser/netreads.pw.ts tests/browser/authenticated.pw.ts
+bun scripts/conformance.ts --url <origin> --dataset <name>
+```
+
+`bun scripts/conformance.ts` takes a running server's origin. With no arguments it prints usage and exits 2. `bun run conformance` runs the same script.
+
 ## Claims and Evidence
 
-| claim                                                | evidence                                                                                           | layer     | status                                      |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------- |
-| A local view saves energy on a desktop               | 0.80 J, difference of arm medians over 8 rounds; retake 0.817 J                                    | L1        | one desktop, against optimized HTTP caching |
-| Attributional saving per local view                  | 12.4 J: SWD v4 over 17,054 B plus a 0.455 J origin request, radio term 0                           | L2        | an allocation of the document request only  |
-| spool's own requests are netted                      | `Z_daily` nets syncs and flushes; one window in six per runtime shows up to 6 `/.spool/*` requests | L1 and L2 | modelled; no deployed trace                 |
-| A controlled navigation makes no request             | 0 of 13 navigations reach the origin in Chromium and Firefox                                       | L1        | Chromium and Firefox only                   |
-| A dataset patch costs fewer bytes than both controls | `measurements/dataset-baseline/2026-11-15.json`                                                    | L1        | synthetic rows, one run each                |
-| Platform requests per view fall with the local share | `L / (r - h*rho + h*s)`, [Request Arithmetic](README.md#request-arithmetic)                        | L3        | no deployed trace supplies h, r, rho or s   |
+| claim                                                                | evidence                                                                                                                                                        | layer     | status                                                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------------------------------------------------------- |
+| A local view saves energy on a desktop                               | 0.80 J, difference of arm medians over 8 rounds; retake 0.817 J                                                                                                 | L1        | one desktop, against optimized HTTP caching                 |
+| Attributional saving per local view                                  | 12.4 J: SWD v4 over 17,054 B plus a 0.455 J origin request, radio term 0                                                                                        | L2        | an allocation of the document request only                  |
+| spool's own requests are netted                                      | `Z_daily` nets syncs and flushes; one window in six per runtime shows up to 6 `/.spool/*` requests                                                              | L1 and L2 | modelled; no deployed trace                                 |
+| A controlled navigation makes no request                             | 0 of 13 navigations reach the origin in Chromium and Firefox                                                                                                    | L1        | Chromium and Firefox only                                   |
+| A dataset patch costs fewer bytes than both controls                 | `measurements/dataset-baseline/2026-11-15.json`                                                                                                                 | L1        | synthetic rows, one run each                                |
+| Platform requests per view fall with the local share                 | views the limit carries, [Request Arithmetic](ADVANCED_USAGE.md#request-arithmetic)                                                                             | L3        | no deployed trace supplies h, r, rho or s                   |
+| After bootstrap, an in-page view costs no request                    | 0 requests in Chromium, Firefox and WebKit, on the minimal construction; `tests/browser/navigate.pw.ts` asserts zero origin requests at 10, 100 and 1,000 views | L1        | loopback fixture; one site                                  |
+| A document navigation past the lease fetches the stub once           | 1 request in Chromium and Firefox, 0 inside the lease, at leases of 2, 6 and 20 s                                                                               | L1        | Chromium and Firefox; WebKit on macOS adds its script check |
+| The packed store reads one block per cold lookup                     | 1 block read per cold lookup, 0 on a cache hit; 0.244 to 0.602 ms per lookup at 10,000 and 100,000 rows                                                         | L1        | one run each, Apple M2 Pro; timings not asserted            |
+| The Express and Hono adapters answer the same counts on each backend | 47 of 47 counted checks on each of three backends in three engines, on the minimal fixture application                                                          | L1        | one fixture application                                     |
 
 The saving scales with the size of a site's document. Where the browser's own cache answered the document, a local view has no request to replace and saves nothing. `docs/impact.md` (Per-Site Figures) lists the 15 sites read so far, from 0 J to 669.4 J per local view on the allocation.
 
@@ -92,15 +125,218 @@ The saving scales with the size of a site's document. Where the browser's own ca
 
 The server declares routes with a strategy and a freshness contract. A route is `assembly` (a shell with holes plus data), `template`, `projection` (records sent once, the page computes the result) or `data`. The server sends an envelope that names an artifact's identity, scope, dependencies and a version vector. The worker keeps records and projections once in a lazily loaded graph and syncs only the next page's invalid ids, by cursor or by `need`.
 
-The worker renders `public` routes locally under hard or soft freshness. Shadow mode serves the network answer and compares it with a local render, per route or globally, with a sampled canary. Analytics are queued in the worker and flushed on a network moment that already happens. A provisioning rule sends an artifact only when `reuse x futureViews x avoided - provision - maintain` is positive.
+The worker renders `public` routes locally under hard or soft freshness. Shadow mode serves the network answer and compares it with a local render, per route or globally, with a sampled canary. Analytics are queued in the worker and flushed on a network moment that already happens. A provisioning rule sends an artifact only when the value below is positive, where `reuse` is the chance an artifact serves a later view, `futureViews` the later views one artifact serves, `avoided` the cost each such view keeps off the wire, and `provision` and `maintain` the costs of fetching the artifact and keeping it current, each weighed in bytes:
+
+```math
+\mathrm{reuse} \times \mathrm{futureViews} \times \mathrm{avoided} - \mathrm{provision} - \mathrm{maintain}
+```
 
 Signed-in data is partitioned per principal. The partition id is an HMAC under a server secret. Stored rows are sealed with AES-GCM under a non-extractable key, so deleting the key makes them unreadable. That is crypto-shredding at rest and gives no defence against script on the origin. Logout wipes before the request leaves. Authorisation stays on the server: the device holds only what the server already sent that principal.
 
 The wire protocol is frozen at `Spool-Protocol: 1`. `tests/node/protocol-freeze.spec.ts` pins the header names, paths, envelope encoding, response key sets, limits and public export names as literal values (`docs/protocol.md`, Stability). The shared `spool` IndexedDB database stays at version 2, because v0.2 and v0.3 workers open it at that version and fail with a `VersionError` on a higher one. New stores live in their own databases. The package version is the worker's runtime version, and a different one empties a worker's replica and asset caches.
 
+### v1 Architecture
+
+Version 1 adds the parts below. Each names the file that holds it. The wire protocol stays `Spool-Protocol: 1`: `BUNDLE_PREFIX` and `BUNDLE_DELTA_PREFIX` sit beside `PATHS`, which is unchanged.
+
+| part                  | source                                                           | what it does                                                                                                                                                                                                                                                        |
+| --------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page families         | `src/protocol/route.ts`, `src/sw/family.ts`                      | A template, projection or data route with a `family` binds a URL to one row of a dataset. The worker builds the page from the held row on each view and stores no copy.                                                                                             |
+| Cross-origin reads    | `src/protocol/route.ts`, `src/sw/router.ts`, `src/sw/runtime.ts` | A data route with an `origin` answers GETs to an API origin from held rows. A cross-origin miss goes out untouched.                                                                                                                                                 |
+| Site pack             | `src/protocol/bundle.ts`, `src/server/bundle.ts`                 | Framed gzip blocks of 128 sorted rows, an index frame with a SHA-256 per block, and a set digest. The digest sums row hashes modulo 2^256, and each hash covers its table, key and row (`src/protocol/query.ts`). Path and query index tables sit in the same pack. |
+| Pack and delta routes | `src/server/spool.ts`, `src/server/bundle.ts`                    | `GET /.spool/bundle/<version>` serves a pack as immutable. `GET /.spool/bundle/delta/<from>/<to>` serves one delta as JSON.                                                                                                                                         |
+| Device store          | `src/sw/pack/store.ts`                                           | IndexedDB database `spool-bundle` with blocks, index, overlay and head. A cold lookup reads one block. An install verifies each block, and a delta is checked against the digest before any write.                                                                  |
+| Stub                  | `src/server/stub.ts`, `src/server/spool.ts`                      | The worker script names its runtime hash, its pack version and up to four deltas, 16,384 B at most inline. The script's `max-age` is the lease, set by `freshness.maxAge`.                                                                                          |
+| Middleware            | `src/express/index.ts`, `src/hono/index.ts`                      | `spoolExpress` and `spoolHono` answer the worker script and `/.spool/*`, and tag eligible HTML responses.                                                                                                                                                           |
+| Conformance kit       | `scripts/conformance.ts`                                         | `runConformance` checks a server's answers against the protocol. The CLI is `bun scripts/conformance.ts --url <origin> --dataset <name>`.                                                                                                                           |
+| Coverage              | `src/sw/coverage.ts`                                             | `coverageReport` lists the GET requests that no family answers.                                                                                                                                                                                                     |
+| In-page views         | `src/client/navigate.ts`                                         | Answers a link to a held route in the page, with no document navigation.                                                                                                                                                                                            |
+| Bundle limits         | `src/protocol/bundle.ts`                                         | `MAX_BUNDLE_FRAME_BYTES` (8 MiB). A reader refuses a frame over the cap before it reads the payload.                                                                                                                                                                |
+
 Two further facts govern the design. A URL with a query string is never answered from a path's artifact unless the route declares a `query` schema, and the proxy and the worker send such a URL to the network. The drupflare adapter is a `spoolProxy` integration for eligible public traffic: a request with a cookie or an `Authorization` header bypasses spool.
 
 ## What Was Measured and Held
+
+### Request Law
+
+The requests a client makes per replica lifetime depend on how each view starts. Split the views into one first view, `V_p` in-page views, `V_w` document navigations with the worker running and `V_c` document navigations with the worker stopped. The requests come to `Q`, where `1` is the first document, `k` is what bootstrap adds beyond it, `c` and `d` are per-engine constants, `S` counts freshness contacts that no other request carried, `x` is requests per contact, and `W` and `F` are writes and misses:
+
+```math
+Q = 1 + k + c \times V_c + d \times V_w + 0 \times V_p + x \times S + W + F
+```
+
+The baseline makes the requests below for `V` views, where `r` is the requests per view:
+
+```math
+r \times V
+```
+
+The constants below come from the minimal construction (L1 counts, loopback, 1,000 rows). The earlier construction of the same fixture measured `k` at 3 and `x` at 2, and the build below cuts both.
+
+| constant                                                   | worker build | no-worker build | floor |
+| ---------------------------------------------------------- | -----------: | --------------: | ----: |
+| `k`, added by bootstrap                                    |            2 |               1 |     0 |
+| in-page view                                               |            0 |               0 |     0 |
+| `x`, requests per contact                                  |            1 |               1 |     1 |
+| contact inside the lease                                   |            0 |        no lease |     0 |
+| write                                                      |            1 |               1 |     1 |
+| update carried by a write, a miss or a document navigation |      0 extra |         0 extra |     0 |
+
+A client that holds no site data needs one request before it can render, so the requests obey the bound below. Nothing else is forced.
+
+```math
+Q \geq 1 + W + F
+```
+
+The multiplier per client, where `r` is the requests per view and `V` the views, is (L2):
+
+```math
+\frac{r \times V}{1 + W + F}
+```
+
+It has no finite value for reads. The limit on views is time. A local view takes a median 0.2 ms in Chromium, 1 ms in Firefox and 3 ms in WebKit to read, render and swap (L1, Apple M2 Pro). A 60 Hz display binds first, at 5.18 million views a day (L2).
+
+With no worker, bootstrap adds one request, so a client does not cost more than the baseline: one view costs 1 against 1, and two views cost 2 against 2. With a worker, a client that makes exactly two views costs 3 against 2 (L1 counts).
+
+Scenarios (L3 workloads, L1 costs, L2 ratios). Each cell is the multiplier, with the client's requests in brackets. The baseline and the floor are the requests in the first and second expression below, where `r`, `V`, `W` and `F` are as above:
+
+```math
+r \times V
+```
+
+```math
+1 + W + F
+```
+
+| scenario                                             | baseline | floor | worker, Chromium | worker, Firefox | worker, WebKit macOS |    no worker |
+| ---------------------------------------------------- | -------: | ----: | ---------------: | --------------: | -------------------: | -----------: |
+| One view                                             |        1 |     1 |           1x (1) |          1x (1) |               1x (1) |       1x (1) |
+| Two views, one visit                                 |        2 |     1 |        0.67x (3) |       0.67x (3) |            0.67x (3) |       1x (2) |
+| Five views, one visit                                |        5 |     1 |        1.67x (3) |       1.67x (3) |            1.67x (3) |     2.5x (2) |
+| Daily reader: 20 views in 2 visits, 30 days          |      600 |     1 |       8.82x (68) |      66.67x (9) |          3.82x (157) |   6.59x (91) |
+| Engaged reader: 100 views in 3 visits, 30 days       |    3,000 |     1 |      30.61x (98) |        333x (9) |         12.15x (247) | 19.87x (151) |
+| Workspace: 100 views, 10% writes, 5% misses, 30 days |    3,300 |   451 |      6.02x (548) |     7.19x (459) |          4.73x (697) |  5.49x (601) |
+
+The rows that separate the engines are the multi-day ones. Firefox pays for contacts only, while WebKit on macOS pays one script check per document navigation. The workspace row is the ceiling for a site with writes and misses: 7.32x at the floor (L2). Turning these rows into a deployed multiplier needs a site's traffic, which no reading here has.
+
+### In-Page Navigation
+
+A view that starts from a link to a held route, inside the page, makes no request in any engine. The page needs a swap region for this; a page with none navigates by document. On the minimal construction, 100 in-page reads made 0 requests with the worker running, after a restart, offline, and past the lease, in Chromium, Firefox and WebKit (L1 counts). The library's `src/client/navigate.ts` answers these views. `tests/browser/navigate.pw.ts` asserts zero origin requests for in-page views of unfetched ids at 10, 100 and 1,000 views. It also covers held family pages that equal the server's HTML, back and forward moves, offline views, and a declared GET form on a held list route. The counts in this subsection come from the minimal construction, not from that test run.
+
+### Packed Store
+
+The library keeps a site's rows as compressed blocks, not as one record per row. A lookup reads the head, the index record, the overlay and one block in one transaction. The browser test `tests/browser/pack-store.pw.ts` installs a pack, reads it, applies a delta and reads again after a reload, at 10,000 and 100,000 rows. The test asserts the record counts, at most one block read per lookup, one inflate per block read, and the same answers after a reload. The timings below are one run each on Apple M2 Pro (L1, not asserted):
+
+| engine   |    rows |  install | lookup, 1,000 random keys | storage usage |
+| -------- | ------: | -------: | ------------------------: | ------------: |
+| Chromium |  10,000 |    84 ms |       0.244 ms per lookup |     155,648 B |
+| Chromium | 100,000 |   920 ms |       0.376 ms per lookup |     884,736 B |
+| Firefox  |  10,000 |   231 ms |       0.387 ms per lookup |     914,384 B |
+| Firefox  | 100,000 | 2,339 ms |       0.558 ms per lookup |   8,816,544 B |
+| WebKit   |  10,000 |   320 ms |       0.436 ms per lookup |      88,292 B |
+| WebKit   | 100,000 | 3,214 ms |       0.602 ms per lookup |     879,101 B |
+
+Against the per-row layout of the earlier construction, the same 10,000 rows took a median 61.7 ms per item view in Chromium, against 1.7 ms in the packed layout. The per-row layout stored 794 bytes a row, and the packed layout 121 (L1, fixture, one run each).
+
+Gzip blocks give random access and small storage, but they cost wire bytes against one solid stream. For the same 10,000 synthetic rows, the packed layout is 1,146,591 B and brotli over the rows is 293,408 B (L1). The library uses 128-row gzip blocks, and no measurement has chosen the block size or codec.
+
+### The WebKit Script Check
+
+WebKit checks the worker script after a document navigation. The check arms a one-second timer and ignores navigations while it runs, so a rig must dwell at least 1.5 s between navigations to count them correctly. With that dwell:
+
+- macOS, persistent profile: one script request per document navigation (6 of 6) and one per new tab (3 of 3).
+- Linux, no disk cache: one per navigation (10 of 10).
+- Safari 26.5.2 on macOS: three navigations and one reload gave four script requests, about one second after each.
+
+The check is structural on macOS, and site code cannot remove it. WebKit's soft update asks the network disk cache for the script and goes to the network only without an entry. The page's requests use a cache partition that the soft update's request does not carry, and the soft-update loader never stores what it fetches (WebKit source at commit `eb96cf5`, read on 2026-11-18). So `updateViaCache` and any `max-age` have no effect on it. The count is one per navigation at stub lifetimes of 2, 6 and 20 seconds and a day. An explicit `registration.update()` does hit the cache on macOS. This looks like a WebKit defect. No bug report has been filed.
+
+Asset refetches are a separate cost, and a fix exists in the minimal construction. When the worker does not answer a subresource, WebKit restarts the load without a cache lookup, so each asset goes back to the network. Answering with `fetch(event.request)` goes through the worker's loader, which uses the disk cache. A probe decides which answer to give: a `fetch` with `cache: 'only-if-cached'` for a known asset, read through its Resource Timing entry. On a macOS persistent profile, the first controlled document made 3 asset requests plus 1 script request without the probe, and 0 plus 1 with it. Three new tabs made 9 plus 3 without it and 0 plus 3 with it (L1). The minimal construction made 0 asset requests across 10 documents and 3 tabs with a persistent profile, in Playwright and in Safari. The library's worker does not carry this probe (see Unmet Items).
+
+### Cold Worker
+
+When the worker is not running, Chromium and WebKit send the navigation to the network while the worker starts, then discard that response when the worker answers. Firefox sends none of these. On loopback the leaked request arrived every time: one document after a browser restart in Chromium and WebKit, and one after Chromium's worker was stopped through DevTools. Over real TLS the worker won the race in six of six cold restarts per engine against the deployed Worker, and the cold column was 0 in all three engines (L1). A document navigation after 40 s of idle leaked nothing in any engine. In Safari it leaked nothing after 2 minutes or 27 minutes. The rate on a warm HTTP/2 connection is unmeasured.
+
+### Lease and Freshness
+
+The stub's `max-age` is a lease. Inside it a contact costs nothing and teaches the client nothing new. Measured on the minimal construction with leases of 2, 6 and 20 s (L1 counts):
+
+| situation                                      |       Chromium |        Firefox |     WebKit macOS |
+| ---------------------------------------------- | -------------: | -------------: | ---------------: |
+| in-page reads, any age of stub                 |              0 |              0 |                0 |
+| document navigation inside the stub's lifetime |              0 |              0 | 1 (script check) |
+| first document navigation after the lifetime   |   1 (the stub) |   1 (the stub) |                1 |
+| `registration.update()` inside the lifetime    |              0 |              0 |                0 |
+| `registration.update()` after the lifetime     |              1 |              1 |                1 |
+| no worker registered                           | nothing forced | nothing forced |   nothing forced |
+
+The wall clock of the browser and the server moved forward under libfaketime on Linux, while the tab stayed open. `Date.now()` moved by 25 hours in both. At 25 hours, in-page reads with an update waiting made 0 requests in Chromium and WebKit, and a fetch of a cached asset made 0 in both. At 50 hours, a document navigation with two updates waiting made one request (the stub) in both, and that request delivered both updates. Firefox did not start under the preloaded library.
+
+A tab that reads in-page is never checked by the browser, even across a day. The browser forces a contact only on a document navigation after the lease. The service worker spec caps the lease at 24 hours for document navigations (L0). A site that publishes weekly can state a longer lease, and the client owns any contact it needs in between.
+
+Three things keep the contacts that remain few. A write, a miss or a document navigation carries the held version and returns the rows that changed, so it needs no separate contact. The lease length is the site's choice. The library's install path adopts an inline delta or fetches one delta, and its node tests cover both: a stub that names the held version installs nothing, an inline delta applies with no request, and a device that is far behind fetches one delta (`tests/node/sw-runtime.spec.ts`, `tests/node/bundle.spec.ts`). The lease has no browser test in the tree.
+
+### Link Radius and Ring Size
+
+Link radius does not work as a dial on real documentation graphs. From the entry page of docs.drupflare.com, radius 1 reaches 37 pages (250 KB of text as one stream) and radius 2 reaches all 300. On MDN's Service Worker API pages, radius 1 reaches 148 pages and radius 2 reaches all 300. A median page of docs.drupflare.com reaches 2 pages at radius 1 and 238 at radius 2 (L1 link graphs). Menus link everything, so a ring should be a byte budget filled in link order (L2 from the counts).
+
+A page record costs 1.1 to 1.8 KB on those documentation corpora, measured as brotli over a whole crawl (L1 per-page figures). The budget sets how many pages one response can carry (L2):
+
+| budget | what sets it                                     | pages at 1.1 to 1.8 KB |
+| ------ | ------------------------------------------------ | ---------------------: |
+| 100 KB | a ring inlined in the first document (L3 budget) |               55 to 90 |
+| 1 MB   | one second at 10 Mbit/s (L3 scenario)            |             580 to 950 |
+| 4 MB   | a 4 MB response (L3 budget)                      |         2,300 to 3,800 |
+| 25 MiB | one Workers static asset file (L0)               |       14,500 to 23,800 |
+| 1 GB   | Playwright WebKit's reported quota (L1)          |     580,000 to 950,000 |
+| 10 GiB | Firefox's best-effort group limit (L0, MDN)      |     5.9 to 9.7 million |
+
+HTTP sets no size limit on a response. The limits are the serving tier, the device quota and the wait a visitor accepts. In the minimal construction's fixture, a radius-1 ring holds 24 rows, 37 KB raw, and the first document grew by 1,917 B of brotli on a 960 B page (L1).
+
+One changed row moves every page that renders it, and the delta ships once (L1, 1,000 rows, 1,004 URLs). Query URLs are not in this count.
+
+| change                                 | rendered pages that change |  their HTML | the delta, one request |
+| -------------------------------------- | -------------------------: | ----------: | ---------------------: |
+| one article                            |                          3 |    10,954 B | 1,838 B (618 B brotli) |
+| an author row joined into its articles |                        106 |   406,677 B | 1,788 B (604 B brotli) |
+| a row in the sidebar of every page     |                      1,004 | 3,682,551 B | 1,806 B (611 B brotli) |
+
+### Real Drupflare Retrofit
+
+The minimal construction ran against drupflare's own site, first on loopback and then on a deployed Free-plan Worker (L1).
+
+On loopback, the baseline replay of the retrofit made 4 requests in Chromium and 4 in Firefox, and 23 in WebKit, over 121 views. It made 4, 4 and 6 Worker calls in the same engines, which matches the earlier counts.
+
+On the Free-plan Worker, the same fixture ran with the worker script, the client, the pack and the stylesheet as static files, and only documents served by the Worker. Each session cost one Worker invocation in each engine. A 108-view session covered the first document, bootstrap, 100 held reads, 5 documents and one restart. A 33-view session added six cold restarts, and each session recorded one invocation. Static asset requests did not count as invocations. One control window matched 200 of 200 Worker-bound requests, and the other matched 52 of 54, where one request returned a non-200 to curl and one is unexplained. The Worker was deleted after the reading.
+
+Over real HTTPS and HTTP/2, one sample each: the first document with its ring was 3,838 B on the wire (40,916 B raw), the stub 7,642 B (23,019 B raw), the client 9,004 B (27,925 B raw), and the pack 114,505 B.
+
+Cloudflare's pricing page says cached responses can bill as requests when Workers Caching is enabled, static assets included (L0). This reading counts recorded invocations on a Free account with that feature off. It is not an invoice.
+
+### Authenticated Projection
+
+The server owns the session and sends an explicit projection. Passwords, email addresses and a server-only secret never enter the response or the replica. Each login creates a principal and an epoch. Switching accounts replaces the active partition, and logout clears the shared state and invalidates the server session. The device holds the rows as AES-GCM ciphertext under a non-extractable key, held in IndexedDB.
+
+On the minimal construction, 54 of 54 checks pass across HTTP and workerd in Chromium, Firefox and WebKit (L1, 9 checks per combination). Each combination performs 100 authenticated reads with zero network requests. A successful PATCH makes exactly one server request, commits the server's trimmed title locally and reads it back with no GET. A write to another principal's row returns 403 and changes no local state.
+
+The library has the partition code and its checks in `tests/node/partitions.spec.ts`, and `tests/browser/authenticated.pw.ts` passes in Chromium (9 checks). The fixture does not prove automatic inference of every application's permissions, instantaneous remote revocation, out-of-order merges across devices, or offline write acceptance. Remote permission changes need a stated lease. The drupflare adapter still bypasses spool for requests that carry a cookie or an `Authorization` header, so this path does not run in production.
+
+### Express and Hono
+
+`spoolExpress` (`src/express/index.ts`) and `spoolHono` (`src/hono/index.ts`) answer `/spool-sw.js` and `/.spool/*` through the Spool object. They tag an eligible HTML reply (GET, status 200, `text/html`, no content encoding) and pass every other request through. The node tests run six checks on Express, on Hono with `@hono/node-server`, and on Hono through `app.fetch`: 18 of 18 pass in `tests/node/middleware.spec.ts` (L1). Each check compares the body and headers with the same application run without the middleware, so a POST, a HEAD, a JSON reply and a 404 reach the application unchanged.
+
+In the minimal fixture, one RESTful application runs on Express 5 and on Hono 4 (the reading used Express 5.3.0 and Hono 4.13.19). A 57-line adapter sits over one core and one read module that the application shares between server and browser. The fixture passed 47 of 47 counted checks on each of three backends in three engines (L1):
+
+| check                                                  |                  expected | result                                                                  |
+| ------------------------------------------------------ | ------------------------: | ----------------------------------------------------------------------- |
+| 12 pass-through requests, with and without the adapter |                     equal | 12 of 12 on each backend                                                |
+| first document, baseline plus the client script        |                         3 | 3 in each engine                                                        |
+| second view, stub and pack                             |                         2 | 2 in each engine                                                        |
+| 100 in-page views of unvisited articles                |                         0 | 0 in each engine                                                        |
+| 100 item reads and 20 list queries                     |                         0 | 0, bytes equal to the server's                                          |
+| PATCH, then item and list reads                        |                         1 | 1                                                                       |
+| five document navigations, 1.5 s dwell                 | 0 in Chromium and Firefox | 0, 0 and 6 in WebKit (five script checks and one client-script refetch) |
+
+The application declared its tables, called `commit` after each write, and wrote its own read module. The adapters are not zero-configuration. The library does not serialise functions for the browser. Templates ship as compiled JSON, and `build:sw` bundles the worker.
 
 ### Zero-Network Navigation
 
@@ -137,6 +373,8 @@ The saving against optimized caching is 0.80 J, the difference of the arm median
 
 The retakes of the other desktop experiments moved between -5.5% and +20.1% on single figures (`docs/impact.md`, Second Time Point). The largest, +20.1% on a CMS recompute at 15 mJ per request, shows what a single time point is worth on small quantities.
 
+Energy is a research figure under v1. The v1 counts in this report are exact and carry no energy, so none of them changes the joules here.
+
 The meter reads the browser, the co-located origin over loopback and the service worker. The round trip is emulated. A sparse real load also pays wake costs this loop never sees.
 
 ### The 12.4 J Allocation
@@ -152,7 +390,7 @@ The headline applies SWD v4's network (0.059), data centre (0.055) and device (0
 | Radio wake     |   0.00 | L1    |
 | Total          |   12.4 | L2    |
 
-The 17,054 B is the median repeat-view document over 59 views from 4 `measurements/repeat-nav` readings, and `scripts/impact.ts` refuses to run if `DOCUMENT_BYTES` drifts from it. Only the document counts, because an optimized HTTP cache already keeps static files. The page's API calls and every third-party request still leave the browser during a local view. The radio-wake term is 0 until a phone reading attributes a wake. As a unit, 12.4 J is 3.43 kWh per million views. It is an allocation. No meter read it, and the metered 0.80 J is the figure to compare against optimized caching.
+The 17,054 B is the median repeat-view document over 59 views from 4 `measurements/repeat-nav` readings, and `scripts/impact.ts` refuses to run if `DOCUMENT_BYTES` drifts from it. Only the document counts, because an optimized HTTP cache already keeps static files. The page's API calls and every third-party request still leave the browser during a local view. The radio-wake term is 0 until a phone reading attributes a wake. As a unit, 12.4 J is 3.43 kWh per million views. It is an allocation. No meter read it, and the metered 0.80 J is the figure to compare against optimized caching. Energy stays a research figure under v1, and the v1 request counts do not change this allocation.
 
 SWD's network term applies a per-byte intensity to measured bytes. Network energy is not proportional to data volume (Mytton, Lunden and Malmodin 2024, abstract only), and one institution's traffic cannot be tied to an operator's power state. The model likely overestimates actual emissions, by its own account.
 
@@ -282,23 +520,27 @@ The institution report leads with money, storage and trust. Its hosting counterf
 
 A closure records the mechanism, the measurement that closed it and the objective that stays open. No closure here closed an objective.
 
-| mechanism                                       | measurement that closed it                                                                                                                                                                                              | objective that stays open                                                        |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Facades for providers beyond YouTube and Vimeo  | `measurements/embed-markup/2026-10-26.json`: 249 pages of 52 sites, server-rendered markup. One Kaltura iframe, and it is a hero loop. The largest third-party bytes in the repeat reading are an autoplaying `<video>` | embedded third-party media bytes; Save-Data poster replacement of ambient loops  |
-| Automatic HTML decomposition                    | `measurements/payload/2026-10-19.json`: 172 internal pages of 10 Drupal sites, median unique part 7,603 B (brotli 5), 2.9% of pages at or under 2 KB                                                                    | unique-part entries for opaque pages; site-supplied fields, a Drupal module      |
-| Device-local navigation learner                 | `measurements/nav-replay/2026-10-26.json`: per-visitor blends equal the population model, a device-only model provisions nothing at a 2-page session                                                                    | next-page accuracy at equal bytes; real multi-day traces or a design partner     |
-| Energy-weighted image variant policy            | `measurements/rapl/2026-10-22-image-decode.json` and `-image-encode.json`: the transfer term at the SWD rate outweighs the decode difference, so the weighted rule always picks the smallest file                       | image bytes and joules where images are; a per-image choice from content class   |
-| Persistent shell                                | not started. It depended on automatic HTML decomposition, and its saving rested on a guessed 0.2 J per local view that no reading backs                                                                                 | browser CPU and joules per navigation; `content-visibility`, bfcache eligibility |
-| Power-state elasticity as an MWh channel        | `docs/impact.md` (Retained Nodes): about twice the work per sparse request, linear when batched, below the work cost above about 500 requests a second                                                                  | a fleet power-policy measurement on a server with visible states                 |
-| Network-gear power states                       | no causal tie can be shown from one institution's traffic (Counting Rules, 5)                                                                                                                                           | none attributable                                                                |
-| Compute elimination as an unconditional channel | `docs/impact.md` (Against a Server Cache): 0.82 J against a server cache for a CMS page                                                                                                                                 | the per-workload compute ledger                                                  |
-| Icon and meta-link interception                 | `measurements/link-assets/2026-10-20.json` and `measurements/rapl/2026-10-20-sw-request.json`: worker answer 18.9 mJ against 14.0 mJ for the browser cache; optimized headers give 0 requests in all three engines      | WebKit media refetch on every play                                               |
-| Proxy-side JavaScript removal                   | Chromium coverage: 36% used at load, 40% after one scroll, so a set removed for one visitor is wrong for another                                                                                                        | script cost; see the script survey below                                         |
-| Browser-chosen dictionaries                     | `measurements/dictionary-size/2026-10-22.json`: 2.0% and 3.3% at the median site                                                                                                                                        | a server that nominates the dictionary, built as `chooseBases`                   |
-| Hidden-page pause                               | `measurements/rapl/2026-10-26-idle-activity-hidden.json`: the saving range runs through zero                                                                                                                            | hidden-tab work; Chrome's intensive throttling caps what a pause can save        |
-| Third-party answers from the worker's store     | `docs/impact.md` (Third-Party Cacheability): answerable bytes 0 B at the median over 15 sites, one date                                                                                                                 | third-party repeat bytes on a wider sample                                       |
-| Stable chunks and stable aggregates             | `docs/impact.md` (Churn Between Two Readings): the built `dictionary` path covers churned aggregates at serve time. Stable chunks need build control outside spool                                                      | bytes of churned aggregates                                                      |
-| End-to-end metered session across versions      | closed as not metered: document views are zero-network in v0.2 to v0.4 by the same path, dataset paths differ in bytes the dataset arms give exactly, and loopback cannot meter network energy                          | an end-to-end session arm on a second machine                                    |
+| mechanism                                                              | measurement that closed it                                                                                                                                                                                                                | objective that stays open                                                                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Facades for providers beyond YouTube and Vimeo                         | `measurements/embed-markup/2026-10-26.json`: 249 pages of 52 sites, server-rendered markup. One Kaltura iframe, and it is a hero loop. The largest third-party bytes in the repeat reading are an autoplaying `<video>`                   | embedded third-party media bytes; Save-Data poster replacement of ambient loops                                   |
+| Automatic HTML decomposition                                           | `measurements/payload/2026-10-19.json`: 172 internal pages of 10 Drupal sites, median unique part 7,603 B (brotli 5), 2.9% of pages at or under 2 KB                                                                                      | unique-part entries for opaque pages; site-supplied fields, a Drupal module                                       |
+| Device-local navigation learner                                        | `measurements/nav-replay/2026-10-26.json`: per-visitor blends equal the population model, a device-only model provisions nothing at a 2-page session                                                                                      | next-page accuracy at equal bytes; real multi-day traces or a design partner                                      |
+| Energy-weighted image variant policy                                   | `measurements/rapl/2026-10-22-image-decode.json` and `-image-encode.json`: the transfer term at the SWD rate outweighs the decode difference, so the weighted rule always picks the smallest file                                         | image bytes and joules where images are; a per-image choice from content class                                    |
+| Persistent shell                                                       | not started. It depended on automatic HTML decomposition, and its saving rested on a guessed 0.2 J per local view that no reading backs                                                                                                   | browser CPU and joules per navigation; `content-visibility`, bfcache eligibility                                  |
+| Power-state elasticity as an MWh channel                               | `docs/impact.md` (Retained Nodes): about twice the work per sparse request, linear when batched, below the work cost above about 500 requests a second                                                                                    | a fleet power-policy measurement on a server with visible states                                                  |
+| Network-gear power states                                              | no causal tie can be shown from one institution's traffic (Counting Rules, 5)                                                                                                                                                             | none attributable                                                                                                 |
+| Compute elimination as an unconditional channel                        | `docs/impact.md` (Against a Server Cache): 0.82 J against a server cache for a CMS page                                                                                                                                                   | the per-workload compute ledger                                                                                   |
+| Icon and meta-link interception                                        | `measurements/link-assets/2026-10-20.json` and `measurements/rapl/2026-10-20-sw-request.json`: worker answer 18.9 mJ against 14.0 mJ for the browser cache; optimized headers give 0 requests in all three engines                        | WebKit media refetch on every play                                                                                |
+| Proxy-side JavaScript removal                                          | Chromium coverage: 36% used at load, 40% after one scroll, so a set removed for one visitor is wrong for another                                                                                                                          | script cost; see the script survey below                                                                          |
+| Browser-chosen dictionaries                                            | `measurements/dictionary-size/2026-10-22.json`: 2.0% and 3.3% at the median site                                                                                                                                                          | a server that nominates the dictionary, built as `chooseBases`                                                    |
+| Hidden-page pause                                                      | `measurements/rapl/2026-10-26-idle-activity-hidden.json`: the saving range runs through zero                                                                                                                                              | hidden-tab work; Chrome's intensive throttling caps what a pause can save                                         |
+| Third-party answers from the worker's store                            | `docs/impact.md` (Third-Party Cacheability): answerable bytes 0 B at the median over 15 sites, one date                                                                                                                                   | third-party repeat bytes on a wider sample                                                                        |
+| Stable chunks and stable aggregates                                    | `docs/impact.md` (Churn Between Two Readings): the built `dictionary` path covers churned aggregates at serve time. Stable chunks need build control outside spool                                                                        | bytes of churned aggregates                                                                                       |
+| End-to-end metered session across versions                             | closed as not metered: document views are zero-network in v0.2 to v0.4 by the same path, dataset paths differ in bytes the dataset arms give exactly, and loopback cannot meter network energy                                            | an end-to-end session arm on a second machine                                                                     |
+| WebKit's per-navigation script check, removed from site code on macOS  | `tests/browser` counts and the WebKit source read on 2026-11-18: one script request per document navigation at a 1.5 s dwell (6 of 6 on macOS, 10 of 10 on Linux); the soft-update request carries no cache partition and is never stored | the check is a WebKit behaviour; a bug report and a change in WebKit, not in site code                            |
+| A tab that reads in-page is checked by `max-age` alone                 | 0 requests in Chromium, Firefox and WebKit for in-page reads at any stub age, and 0 for 20 in-page reads 25 hours later with an update waiting (Linux, faked clock)                                                                       | a staleness bound for a tab that never navigates, which the client must enforce with its own contact              |
+| One record per row, with a full read on every view                     | 62 to 112 ms a view at 10,000 rows and 675 ms at 100,000 rows, in the earlier construction (L1, one run)                                                                                                                                  | a per-view cost that stays flat with site size; the packed store reads one block, 0.244 to 0.602 ms a lookup (L1) |
+| A contact inside the lease, or a refetch of the stub before it expires | 0 requests inside the lease; one request on the first document navigation after it, in Chromium and Firefox, at leases of 2, 6 and 20 s (L1)                                                                                              | a bound for a tab that never navigates, which the client owns                                                     |
 
 Three more closed on reasoning with no committed reading: AVIF (worse than WebP in tinyimg's encoder), font subsetting (no tool, no figure) and one site-wide CSS bundle (it would change cascade order).
 
@@ -369,19 +611,35 @@ Each paragraph says what happened, what it cost and what now prevents it.
 
 **`SECURITY.md` listed 0.1.x as supported at 0.4.0.** It now lists 0.4.x only.
 
+**The first WebKit rig counted one script check per phase.** Its 20 document navigations ran in 320 ms, and WebKit's one-second timer ignores a navigation that arrives while it runs. The rig therefore saw one check where there were many. At a 1.5 s dwell the count is one per navigation. The repository's browser test rules require a 1.5 s wait between document navigations for this reason.
+
+**The cold-worker leak was recorded as an entry cost.** An earlier rig counted the extra document after a browser restart as a cost of entry and did not tie it to the worker's state. The leak comes from the navigation going to the network while the worker starts. It appears after a restart or a forced stop, and not after idle time.
+
+**The baseline replay logged exit codes wrongly.** A `$(date)` substitution reset `$?`, so the PASS and FAIL lines are the record and the logged exit codes are not.
+
+**`keep_names` broke functions shipped with `toString()`.** Wrangler's bundler injected a `__name` helper that the page did not have. The first workerd run of the Express and Hono fixture failed every browser phase until `keep_names` was off. The library does not serialise functions for the browser. `build:sw` bundles the worker.
+
+**A corrupt-delta check compared against the wrong state.** On the first Linux WebKit run, the check compared the rejected install with the server's latest title, which that engine had not received. The check now compares with what the device held before the install, and the rerun passed.
+
+**An early theory counted document navigations as free.** A document navigation can cost a request even with the worker running (WebKit's script check), and a cold worker adds the document in Chromium and WebKit. Counting document navigations as free undercounted both.
+
+**A digest covered rows and not the path index.** In the minimal construction, the first digest left the path index out, so a corrupted index entry was accepted. The library's digest covers every table, and each row hash includes its table and key (`src/protocol/query.ts`, `src/protocol/bundle.ts`).
+
 ## Research Strength
 
 The comparison is with three sibling reports: bytebox, the drupflare worker's Zend park, and tinyimg.
 
-| row                                              | spool against the siblings                                                                                                                                                      |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claims backed by a measurement with method       | equal. Every reading carries `method` and `exclusions`                                                                                                                          |
-| Refuted approaches logged with their measurement | equal to the park and tinyimg, stronger than bytebox. One closure (the persistent shell) rests on a guessed 0.2 J                                                               |
-| Instrument mistakes recorded                     | equal in kind to tinyimg and the park, and recent: the rig's own checks found the corpus defects above                                                                          |
-| Reproduction from a clean checkout               | weaker than bytebox and tinyimg. The joule readings need a Linux host with a readable counter, and the 2026-11-15 readings and the code that derives them are not yet committed |
-| External validation                              | weaker than all three. One desktop, loopback replay, synthetic pages in places, no traffic-weighted mix, no deployed site, no replication by anyone else                        |
-| Size of the evidence base                        | moderate. 16 sites for repeat navigation, 10 Drupal sites for trim, a public dataset for navigation, one desktop and one phone                                                  |
-| What the report says it cannot show              | strong. `docs/impact.md` (What This Does Not Claim) and `docs/security.md` (Open Limitations)                                                                                   |
+| row                                              | spool against the siblings                                                                                                                                |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claims backed by a measurement with method       | equal. Every reading carries `method` and `exclusions`                                                                                                    |
+| Refuted approaches logged with their measurement | equal to the park and tinyimg, stronger than bytebox. One closure (the persistent shell) rests on a guessed 0.2 J                                         |
+| Instrument mistakes recorded                     | equal in kind to tinyimg and the park, and recent: the rig's own checks found the corpus defects above                                                    |
+| Reproduction from a clean checkout               | weaker than bytebox and tinyimg. The joule readings need a Linux host with a readable counter, and the 2026-11-15 readings are tracked in `measurements/` |
+| External validation                              | weaker than all three. One desktop, loopback replay, synthetic pages in places, no traffic-weighted mix, no deployed site, no replication by anyone else  |
+| Size of the evidence base                        | moderate. 16 sites for repeat navigation, 10 Drupal sites for trim, a public dataset for navigation, one desktop and one phone                            |
+| What the report says it cannot show              | strong. `docs/impact.md` (What This Does Not Claim) and `docs/security.md` (Open Limitations)                                                             |
+
+The v1 request counts were repeated on Linux (the Playwright 1.64.1 noble image on a Ryzen 9 9900X, Chromium 156.0.8078.80) and over real HTTPS against a deployed Free-plan Worker. The Linux counts match the Mac counts except for one unexplained case: after a restart with no worker, Linux Firefox refetched one immutable client script with the document, twice in two runs, and macOS Firefox did not. The cause is unknown. The cold-worker race was measured on loopback and on one real network. The Safari figures come from one Mac, driven through WebDriver.
 
 Three contributions have the best case for being research-grade. Each has one measurement that would strengthen it.
 
@@ -401,6 +659,23 @@ Three contributions have the best case for being research-grade. Each has one me
 - Ambient media has no metered reading of the joules an autoplaying video or looping embed costs. Bytes (`measurements/image-crawl/`) and prevalence (`measurements/avoidable-loops/`) are measured.
 - The subresource modes `passthrough` and `static-routing` have no reading. The README says neither is measured to save energy.
 - Two protocol facts are untested: an old worker against `/.spool/dataset` and `/.spool/write`, and a multi-instance site where a retry lands on another instance.
+- A public data route without a family answers a request that carries `Authorization` from the public store, which the protocol says it must not do. Changing it changes every data route that receives a bearer header, so it needs a ruling first.
+- A Bearer read of a family needs its dataset declared as a principal dataset, so each signed-in user holds a sealed copy of it. Whether a per-user copy of a public API dataset is acceptable is an open design question.
+- A collection answer matches only an API whose collection JSON equals the output of `shapeRows`. No declared mapping exists for other shapes.
+- Shadow mode for cross-origin families is untested.
+- A multi-version install (two or more missed versions in one install) has no node test.
+- The lease has node tests for its install paths and no browser test.
+- The install does not check the version, so a pack older than the head installs.
+- The quota check runs only when `installPack` receives the pack's size.
+- Plan routes have no query index, so a plan-backed list reads every block. Path and query index tables cover public routes only.
+- Block size and codec are not chosen by measurement. The earlier construction measured one solid brotli stream as smaller on the wire than gzip blocks (see Packed Store).
+- Compaction rewrites every block, and `applyDelta` reads each changed key in its own transaction.
+- The WebKit asset probe (a `fetch` with `cache: 'only-if-cached'`) is measured in the minimal construction. The library's worker does not carry it.
+- Express's `res.writeHead` and `res.flushHeaders` are not intercepted. A reply whose `Content-Type` is set only through `writeHead` passes through untagged, with no envelope and no client tag. The reply stays valid, and the gap is silent.
+- The Hono adapter clears `c.res` before it sets the decorated response, which relies on the setter in the installed Hono. A test catches a regression on the current version.
+- The conformance kit skips its error-500 check. A request cannot provoke a 500 without knowing a route that throws, and a conformant server may answer 400 to malformed input.
+- The conformance kit finds routes through `/spool-sw.js`. A server that does not serve the worker script gets the artifact, beacon-want and principal checks skipped.
+- Safari on iOS, Safari private windows and the 7-day storage cap are unmeasured.
 
 ## Limits
 
@@ -423,3 +698,13 @@ Sealed storage gives no protection against script on the origin. Tag names and t
 In shadow mode a non-200 network answer is neither read nor cancelled, so its copy buffers the body until the copy is collected. `ga4Sink` with `debug: true` records nothing.
 
 The attributional figures use SWD v4 intensities read from the method's web page, and no primary paper backs them. The Fawkes figures in `docs/impact.md` (92% of HTML tags identical across loads 12 hours apart, 75% across a week) were read in full text and are the authors' measurements. spool did not measure them.
+
+The v1 counts come from a fixture of 1,000 rows, except the packed store's 10,000 and 100,000 rows and the 1,004-URL fan-out. They run on loopback with an emulated origin, or over one real HTTPS link to a deployed Worker. A real site's document sizes, traffic and return rate are L3 inputs, and no reading has them.
+
+The digest is the sum of SHA-256 row hashes modulo 2^256 (`src/protocol/query.ts`). It detects corruption under a trusted origin. It is not an authenticator, because whoever can write a pack can write a matching digest.
+
+The reader caps a frame's compressed size (`MAX_BUNDLE_FRAME_BYTES`), but it does not cap a block's decompressed size. A hostile pack can therefore use more memory than its frame suggests.
+
+A static stub cannot carry a new version until the host publishes a new file. On such a host a publication is a deploy. A Worker that serves its own stub costs one invocation per contact instead.
+
+Playwright's trace recorder raised `ENOENT` at Firefox context close in one combined multi-engine run. The assertions passed in that run, and the Firefox project passed when run alone. The cause is unknown.
