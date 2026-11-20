@@ -1,0 +1,14 @@
+{
+	"name": "spool-fixture-vue",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build"
+	},
+	"dependencies": {
+		"@drupflare/spool": "file:../../../..",
+		"vite": "8.3.8",
+		"vue": "3.5.45",
+		"vue-router": "5.5.1"
+	}
+}
