@@ -1,0 +1,259 @@
+{
+	"schema": 1,
+	"rig": "storage",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "for the library pack at each row count and in each engine: wire bytes (plain, gzip, brotli), bootstrap time through the page client, navigator.storage.estimate() growth, item-view and list-view time through createPackStore, and whether every rendered page equals a Node render over the same rows",
+	"instrument": "Playwright persistent contexts with a fresh profile per run, running the bundled createPackStore, client bootstrap and template interpreter; view times are performance.now deltas in the page; node:zlib gzip (level 9) and brotli (quality 11) of the pack bytes",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic"
+	},
+	"software": {
+		"runtime": "bun 1.4.5",
+		"playwright": "1.64.1",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor"
+	},
+	"method": {
+		"engines": ["chromium", "firefox"],
+		"rows": [1000, 10000, 100000],
+		"blockRows": 128,
+		"budgetMs": 120000,
+		"itemViews": 200,
+		"coldViews": 20,
+		"listPasses": 2,
+		"record": "one row per key: { id, title, body }, keys from the courses site (String(101 + i)), body about 0.8 kB as in the v1 scratch model",
+		"install": "a partial ring with no tables and one pack url; bootstrap writes the ring, fetches the pack, installs it, and the rig reads the head and record counts",
+		"items": "200 keys evenly spaced over the rows; each view is getRow then interpretTemplate of the item template",
+		"lists": "scanTable of every row then interpretTemplate of the list template, 2 passes",
+		"equality": "every rendered string equals interpretTemplate in Node over the same sorted rows"
+	},
+	"exclusions": [
+		"none; a run that stopped at the budget or failed keeps its row with timeouts or error set"
+	],
+	"rows": [
+		{
+			"kind": "store",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.80",
+			"rows": 1000,
+			"blocks": 8,
+			"wire": {
+				"plain": 58246,
+				"gzip": 35324,
+				"brotli": 33478
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.80 Safari/537.36",
+			"installed": true,
+			"bootstrapMs": 26.100000381469727,
+			"usageBefore": 0,
+			"usageAfter": 67950,
+			"usageGrowthBytes": 67950,
+			"usageGrowthPerRow": 67.95,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 0.10000038146972656,
+				"viewP95Ms": 0.20000076293945312,
+				"coldViewP50Ms": 0.10000038146972656,
+				"lookupP50Ms": 0.10000038146972656,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [3.40000057220459, 2.8000001907348633],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		},
+		{
+			"kind": "store",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"rows": 1000,
+			"blocks": 8,
+			"wire": {
+				"plain": 58246,
+				"gzip": 35324,
+				"brotli": 33478
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0",
+			"installed": true,
+			"bootstrapMs": 38,
+			"usageBefore": 0,
+			"usageAfter": 259208,
+			"usageGrowthBytes": 259208,
+			"usageGrowthPerRow": 259.208,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 0,
+				"viewP95Ms": 1,
+				"coldViewP50Ms": 0,
+				"lookupP50Ms": 0,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [8, 7],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		},
+		{
+			"kind": "store",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.80",
+			"rows": 10000,
+			"blocks": 79,
+			"wire": {
+				"plain": 585356,
+				"gzip": 431732,
+				"brotli": 366800
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.80 Safari/537.36",
+			"installed": true,
+			"bootstrapMs": 105.90000057220459,
+			"usageBefore": 0,
+			"usageAfter": 626210,
+			"usageGrowthBytes": 626210,
+			"usageGrowthPerRow": 62.621,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 0.10000038146972656,
+				"viewP95Ms": 0.3000001907348633,
+				"coldViewP50Ms": 0.19999980926513672,
+				"lookupP50Ms": 0.10000038146972656,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [22, 38.5],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		},
+		{
+			"kind": "store",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"rows": 10000,
+			"blocks": 79,
+			"wire": {
+				"plain": 585356,
+				"gzip": 431732,
+				"brotli": 366800
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0",
+			"installed": true,
+			"bootstrapMs": 202,
+			"usageBefore": 0,
+			"usageAfter": 2072008,
+			"usageGrowthBytes": 2072008,
+			"usageGrowthPerRow": 207.2008,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 0,
+				"viewP95Ms": 1,
+				"coldViewP50Ms": 0,
+				"lookupP50Ms": 0,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [70, 67],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		},
+		{
+			"kind": "store",
+			"engine": "chromium",
+			"engineVersion": "156.0.8078.80",
+			"rows": 100000,
+			"blocks": 782,
+			"wire": {
+				"plain": 5884662,
+				"gzip": 4443440,
+				"brotli": 2939083
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.80 Safari/537.36",
+			"installed": true,
+			"bootstrapMs": 994.7000007629395,
+			"usageBefore": 0,
+			"usageAfter": 6131399,
+			"usageGrowthBytes": 6131399,
+			"usageGrowthPerRow": 61.31399,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 0.3000001907348633,
+				"viewP95Ms": 0.40000057220458984,
+				"coldViewP50Ms": 0.34999990463256836,
+				"lookupP50Ms": 0.3000001907348633,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [260.3999996185303, 261.6000003814697],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		},
+		{
+			"kind": "store",
+			"engine": "firefox",
+			"engineVersion": "157.0",
+			"rows": 100000,
+			"blocks": 782,
+			"wire": {
+				"plain": 5884662,
+				"gzip": 4443440,
+				"brotli": 2939083
+			},
+			"timeouts": [],
+			"notes": [],
+			"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0",
+			"installed": true,
+			"bootstrapMs": 1844,
+			"usageBefore": 0,
+			"usageAfter": 8560640,
+			"usageGrowthBytes": 8560640,
+			"usageGrowthPerRow": 85.6064,
+			"items": {
+				"n": 200,
+				"viewP50Ms": 1,
+				"viewP95Ms": 2,
+				"coldViewP50Ms": 1,
+				"lookupP50Ms": 1,
+				"timedOut": false
+			},
+			"lists": {
+				"n": 2,
+				"passMs": [615, 615],
+				"timedOut": false
+			},
+			"compared": 202,
+			"mismatches": [],
+			"equal": true
+		}
+	]
+}
