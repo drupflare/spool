@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { defineRoute, type TimedView } from '../../src/protocol/index';
 import { viewsOf } from '../../src/server/index';
 import { VIEW_BATCH, VIEW_HOLD_MS } from '../../src/sw/analytics';
+import { idbPartitions, idbVault } from '../../src/sw/partition';
 import type { ReplicaStorage } from '../../src/sw/storage';
-import { nav, sub } from './helpers';
+import { freshIndexedDB, nav, sub } from './helpers';
 import { HTML, rig, type RigOptions } from './rig';
 
 const body = (text: string) => `<html><head></head><body>${text}</body></html>`;
@@ -79,7 +80,7 @@ describe('shadow mode', () => {
 		const r = make({ mode: 'shadow' });
 		await r.visit('/soft/1');
 		const second = await r.visit('/soft/1');
-		expect(second).toContain('data-spool-client');
+		expect(second).toContain('data-spool-gate');
 		const views = await held(r.storage);
 		expect(views.map((v) => [v.tier, v.reason, v.mismatch])).toEqual([
 			['shadow', 'fresh', false]
@@ -423,5 +424,75 @@ describe('provisioning in a flush', () => {
 		await r.drive(nav('/soft/1'));
 		await r.drive(sub('/form', { method: 'POST', body: 'x' }));
 		expect(await r.runtime.replica.ids()).toEqual(['/soft/1']);
+	});
+});
+
+describe('principal shadow comparison', () => {
+	const grade = (user: string) => `grade-${user}-91`;
+	let answer = (user: string) => `${user} ${grade(user)}`;
+	const mine = defineRoute('/mine', {
+		strategy: 'template',
+		scope: 'principal',
+		template: { source: '<html><head></head><body>{{row.id}} {{row.grade}}</body></html>' },
+		load: (ctx) => ({
+			row: { id: ctx.identity?.principal, grade: grade(ctx.identity?.principal ?? '') }
+		})
+	});
+	// the rig's fetch carries no cookie, so the signed-in user is a closure, as in the directory tests
+	const who = { current: null as string | null };
+	const mineApp: RigOptions['app'] = () => {
+		const user = who.current;
+		if (!user) return new Response('sign in', { status: 401, headers: HTML });
+		return new Response(body(answer(user)), { headers: HTML });
+	};
+	const principalRig = () => {
+		const r = rig({
+			routes: [mine],
+			app: mineApp,
+			spool: {
+				mode: 'shadow',
+				identity: {
+					secret: 'shadow-secret',
+					resolve: () => (who.current ? { principal: who.current } : null)
+				}
+			}
+		});
+		who.current = 'ada';
+		const factory = freshIndexedDB();
+		const runtime = r.make({
+			partitions: idbPartitions(factory, idbVault(factory)),
+			broadcast: () => undefined
+		});
+		return { ...r, drive: (request: Request) => r.drive(request, runtime) };
+	};
+	const mineViews = async (r: ReturnType<typeof principalRig>) =>
+		(await held(r.storage))
+			.filter((v) => v.route === '/mine')
+			.map((v) => [v.tier, v.reason, v.mismatch]);
+
+	it('reports a principal route whose network answer matches its local render as clean', async () => {
+		const r = principalRig();
+		await r.drive(nav('/mine'));
+		await r.drive(nav('/mine'));
+		await r.drive(nav('/mine'));
+		expect(await mineViews(r)).toEqual([
+			['shadow', 'cold', null],
+			['shadow', 'fresh', false],
+			['shadow', 'fresh', false]
+		]);
+	});
+
+	it('reports a principal mismatch once, as a boolean, and no row value in any report', async () => {
+		const r = principalRig();
+		await r.drive(nav('/mine'));
+		await r.drive(nav('/mine'));
+		answer = (user) => `${user} ${grade(user)} changed`;
+		await r.drive(nav('/mine'));
+		answer = (user) => `${user} ${grade(user)}`;
+		await r.drive(nav('/mine'));
+		expect((await mineViews(r)).map((v) => v[2])).toEqual([null, false, true, false]);
+		const reports = JSON.stringify([...(await r.storage.readBeacons()), ...r.sink.events]);
+		expect(reports).not.toContain(grade('ada'));
+		expect(reports).not.toContain('changed');
 	});
 });

@@ -17,6 +17,20 @@ export const MAX_POLICY_PATHS = 128;
 /** header names and values, as stored in the replica meta */
 export type HeaderSet = Array<[string, string]>;
 
+/** the pairs in `value` whose name is an allowed policy header, or undefined when `value` is not a list */
+export function allowedPolicy(value: unknown): HeaderSet | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const names: readonly string[] = POLICY_HEADERS;
+	return value.filter(
+		(pair): pair is [string, string] =>
+			Array.isArray(pair) &&
+			pair.length === 2 &&
+			typeof pair[0] === 'string' &&
+			typeof pair[1] === 'string' &&
+			names.includes(pair[0])
+	);
+}
+
 /** the {@link POLICY_HEADERS} a response carries, possibly none */
 export function policyHeaders(headers: Headers): HeaderSet {
 	const out: HeaderSet = [];

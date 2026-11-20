@@ -243,9 +243,11 @@ describe('a sync for the next page', () => {
 	it('transfers exactly the ids the page needs that moved, in one request', async () => {
 		const g = await stale();
 		await g.visit('/c/101');
-		expect(g.log).toEqual(['GET /.spool/sync']);
-		expect(g.urls[0]).toContain('need=');
-		expect(g.urls[0]).not.toContain('from=');
+		expect(g.log).toEqual([]);
+		await g.visit('/nowhere');
+		expect(g.log).toEqual(['GET /nowhere', 'GET /.spool/sync']);
+		expect(g.urls[1]).toContain('need=');
+		expect(g.urls[1]).not.toContain('from=');
 		expect(g.syncs).toEqual([
 			{
 				protocol: 1,
@@ -261,6 +263,7 @@ describe('a sync for the next page', () => {
 	it('then refetches only what that change invalidated, naming what it holds', async () => {
 		const g = await stale();
 		await g.visit('/c/101');
+		await g.visit('/nowhere');
 		g.reset();
 		const html = await g.visit('/c/101');
 		expect(html).toContain('Advanced II');
@@ -275,6 +278,7 @@ describe('a sync for the next page', () => {
 		const g = await stale();
 		const cursor = g.runtime.replica.cursor;
 		await g.visit('/c/101');
+		await g.visit('/nowhere');
 		expect(g.runtime.replica.cursor).toBe(cursor);
 
 		g.reset();
@@ -292,11 +296,13 @@ describe('a sync for the next page', () => {
 		g.advance(901);
 		g.reset();
 		await g.visit('/c/101');
-		expect(g.log).toEqual(['GET /.spool/sync']);
+		await g.visit('/nowhere');
+		expect(g.log).toEqual(['GET /nowhere', 'GET /.spool/sync']);
 		expect(g.syncs[0]).toMatchObject({ changed: {}, partial: true });
+		g.reset();
 		await g.visit('/c/101');
 		await g.visit('/c/101');
-		expect(g.log).toEqual(['GET /.spool/sync']);
+		expect(g.log).toEqual([]);
 	});
 
 	it('asks for the artifact path too, so an explicit drop reaches a graph page', async () => {
@@ -305,6 +311,7 @@ describe('a sync for the next page', () => {
 		g.advance(901);
 		g.reset();
 		await g.visit('/d');
+		await g.visit('/nowhere');
 		expect(g.syncs[0]).toMatchObject({ dropped: ['/d'] });
 		expect(await g.runtime.replica.ids()).not.toContain('/d');
 	});

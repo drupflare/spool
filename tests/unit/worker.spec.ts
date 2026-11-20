@@ -25,7 +25,7 @@ describe('a Workers module fetch handler wrapped with spool', () => {
 		const envelope = decodeEnvelope(response.headers);
 		expect(envelope.artifact?.id).toBe('/node/5');
 		expect(envelope.artifact?.deps).toEqual(['node:5']);
-		expect(await response.text()).toContain('data-spool-client');
+		expect(await response.text()).toContain('data-spool-gate');
 	});
 
 	it('answers /.spool/artifact and /.spool/sync from the Durable Object store', async () => {
@@ -61,7 +61,7 @@ describe('the README Workers proxy example', () => {
 		try {
 			const secured = { ...env, PURGE_SECRET: 'workers-secret' };
 			const page = await proxyReadme.fetch(new Request('https://site.test/p/3'), secured);
-			expect(await page.text()).toContain('data-spool-client');
+			expect(await page.text()).toContain('data-spool-gate');
 			expect(decodeEnvelope(page.headers).artifact?.deps).toEqual(['node:3', 'menu']);
 			const worker = await proxyReadme.fetch(
 				new Request('https://site.test/spool-sw.js'),

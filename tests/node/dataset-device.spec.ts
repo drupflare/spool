@@ -959,10 +959,41 @@ describe('a route that answers queries from the rows the device holds', () => {
 		r.reset();
 		const stale = await get(r, path);
 		expect(stale).toBe(before);
-		expect([...r.log].sort()).toEqual(['GET /.spool/dataset', 'GET /.spool/sync']);
+		expect(r.log).toEqual([]);
+		await r.visit('/nowhere');
+		expect(r.log.sort()).toEqual(['GET /.spool/dataset', 'GET /.spool/sync', 'GET /nowhere']);
+		r.reset();
 		const fresh = await get(r, path);
-		expect(r.log).toHaveLength(2);
+		expect(r.log).toEqual([]);
 		expect(JSON.parse(fresh).items[0].title).toBe('Zzz last');
+	});
+
+	it('syncs a deferred dataset from a local view once the lease has passed, in one request', async () => {
+		const { dir, r, get } = await queryRig();
+		await get(r, '/api/directory');
+		await get(r, '/api/directory');
+		const path = '/api/directory?dept=cs&sort=-title';
+		await get(r, path);
+		const target = dir
+			.visibleRows()
+			.filter((x) => x.dept === 'cs')
+			.at(-1) as Row;
+		await dir.edit(target.id, { title: 'Zzz last' });
+		r.advance(86_400 - 1);
+		r.reset();
+		await get(r, path);
+		expect(r.log).toEqual([]);
+
+		r.advance(1);
+		await get(r, path);
+		await get(r, path);
+		expect(r.log.filter((entry) => entry.startsWith('GET /.spool/')).sort()).toEqual([
+			'GET /.spool/dataset',
+			'GET /.spool/sync'
+		]);
+		r.reset();
+		expect(JSON.parse(await get(r, path)).items[0].title).toBe('Zzz last');
+		expect(r.log).toEqual([]);
 	});
 
 	it('syncs a hard route before it answers, and shows the old rows when the network is down', async () => {
@@ -1022,7 +1053,9 @@ describe('a route that answers queries from the rows the device holds', () => {
 		r.advance(901);
 		r.reset();
 		await r.visit('/person/c00001');
-		expect([...r.log].sort()).toEqual(['GET /.spool/dataset', 'GET /.spool/sync']);
+		expect(r.log).toEqual([]);
+		await r.visit('/nowhere');
+		expect(r.log.sort()).toEqual(['GET /.spool/dataset', 'GET /.spool/sync', 'GET /nowhere']);
 		expect(r.urls.some((u) => u.includes('/.spool/artifact'))).toBe(false);
 		r.reset();
 		expect(await r.visit('/person/c00001')).toContain('<h1>Renamed</h1>');
@@ -1043,6 +1076,8 @@ describe('a route that answers queries from the rows the device holds', () => {
 		]);
 		await dir.remove('c00001');
 		r.advance(901);
+		await r.visit('/person/c00001');
+		await r.visit('/nowhere');
 		await r.visit('/person/c00002');
 		expect(await r.runtime.replica.ids()).toEqual(['/person/c00002']);
 	});
@@ -1099,7 +1134,11 @@ describe('a route that answers queries from the rows the device holds', () => {
 	it('tells the pages once, after the first dataset is held, to ask for persistent storage', async () => {
 		const { r } = await queryRig();
 		const told: unknown[] = [];
-		const runtime = r.make({ broadcast: (message) => void told.push(message) });
+		const runtime = r.make({
+			broadcast: (message) => {
+				if ((message as { type?: string }).type === 'spool:persist') told.push(message);
+			}
+		});
 		await r.drive(sub('/api/directory'), runtime);
 		expect(told).toEqual([]);
 		await r.drive(sub('/api/directory'), runtime);
@@ -1301,6 +1340,7 @@ async function planRig() {
 		app,
 		spool: { datasets: [directory(dir), directory(dir, 'v1', 'other')] }
 	});
+	await r.make({ config: { ...r.spool.config, policy: [] } }).activate();
 	return { dir, r };
 }
 
@@ -1323,17 +1363,18 @@ describe('a template route whose rows a plan answers from the held datasets', ()
 		).toThrow('join dataset "other" is not declared');
 	});
 
-	it('renders the oracle rows with zero requests, filtered and unfiltered', async () => {
+	it('renders the oracle rows with zero requests when filtered; a bare URL goes to the origin', async () => {
 		const { dir, r } = await planRig();
-		await r.visit('/plan');
-		await r.visit('/plan');
+		await r.visit('/plan?dept=math');
+		await r.visit('/plan?dept=math');
 		r.reset();
-		const all = await r.visit('/plan');
-		expect(r.log).toEqual([]);
-		expect(all).toContain(planPage(planOracle(dir)));
 		const math = await r.visit('/plan?dept=math');
 		expect(r.log).toEqual([]);
 		expect(math).toContain(planPage(planOracle(dir, 'math')));
+		r.reset();
+		const all = await r.visit('/plan');
+		expect(r.log).toEqual(['GET /plan']);
+		expect(all).toContain(planPage(planOracle(dir)));
 		expect(planOracle(dir)).toHaveLength(3);
 	});
 
@@ -1346,6 +1387,7 @@ describe('a template route whose rows a plan answers from the held datasets', ()
 		await dir.edit(target.id, { title: 'AAA first' });
 		r.advance(901);
 		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=cs&unknown=1');
 		r.reset();
 		const after = await r.visit('/plan?dept=cs');
 		expect(r.log).toEqual([]);
@@ -1364,7 +1406,8 @@ describe('a template route whose rows a plan answers from the held datasets', ()
 		await dir.edit(moved.id, { dept: 'art' });
 		r.advance(901);
 		await r.visit('/plan?dept=cs');
-		await r.visit('/plan?dept=cs');
+		await r.visit('/plan?dept=art');
+		await r.visit('/plan?dept=cs&unknown=1');
 		r.reset();
 		const cs = await r.visit('/plan?dept=cs');
 		expect(r.log).toEqual([]);
@@ -1419,11 +1462,9 @@ describe('a template route whose rows a plan answers from the held datasets', ()
 			},
 			spool: { datasets: [directory(dir), directory(other, 'v1', 'other')] }
 		});
-		await r.visit('/joined');
-		await r.visit('/joined');
 		r.reset();
 		const page = await r.visit('/joined');
-		expect(r.log).toEqual([]);
+		expect([...r.log].sort()).toEqual(['GET /.spool/artifact', 'GET /joined']);
 		expect(page).toContain('<i>c00001 Item 0001</i>');
 		expect(page).toContain('<i>c00000 </i>');
 		expect(page).toContain('<i>c00003 </i>');

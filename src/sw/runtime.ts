@@ -1,13 +1,23 @@
 import { parseArtifact, PROTOCOL_VERSION, type Artifact } from '../protocol/artifact.js';
 import { MAX_WANT, type BeaconEvent, type CatalogueAsk } from '../protocol/beacon.js';
+import type { BundleDelta } from '../protocol/bundle.js';
 import { applyStamp, type CollectorConfig } from '../protocol/collector.js';
-import { PATHS, type AssetMode, type SwConfig } from '../protocol/config.js';
+import {
+	BUNDLE_DELTA_PREFIX,
+	clientPath,
+	PATHS,
+	type AssetMode,
+	type StubPack,
+	type SwConfig
+} from '../protocol/config.js';
 import {
 	decodeEnvelope,
 	decodeEnvelopeOrClear,
 	HEADERS,
+	parseLiveDelta,
 	type Envelope,
-	type EnvelopeArtifact
+	type EnvelopeArtifact,
+	type LiveDelta
 } from '../protocol/envelope.js';
 import { shellHash } from '../protocol/hash.js';
 import { readInline } from '../protocol/inline.js';
@@ -27,6 +37,8 @@ import {
 import {
 	ifMatch,
 	WRITE_HEADERS,
+	writeFor,
+	type ResourceWrite,
 	type WriteFlush,
 	type WriteQueued,
 	type WriteRefusal,
@@ -41,9 +53,12 @@ import {
 	type DatasetOutcome,
 	type DatasetRefusal
 } from './dataset-sync.js';
-import { verdict } from './freshness.js';
+import { collectionPage, familyPage } from './family.js';
+import { verdict, type Verdict } from './freshness.js';
+import { createPackStore, type PackStore } from './pack/store.js';
 import type { PartitionHost } from './partition.js';
-import { policyHeaders, type HeaderSet } from './policy.js';
+import { allowedPolicy, policyHeaders, type HeaderSet } from './policy.js';
+import { probeCache, resourceTiming, shouldForward, type CacheProbe } from './probe.js';
 import {
 	Ledger,
 	plan,
@@ -68,7 +83,7 @@ import {
 } from './static.js';
 import type { DatasetMeta, ReplicaStorage } from './storage.js';
 import { THIRD_CACHE, THIRD_HEADERS, versionClass, type VersionClass } from './thirdparty.js';
-import { WriteQueue, type WriteRecord } from './write.js';
+import { settleWrite, WriteQueue, type WriteRecord, type WriteTimers } from './write.js';
 
 /** the slice of a `Cache` the runtime uses */
 export type CacheLike = {
@@ -89,6 +104,11 @@ export type CachesLike = {
 export type RuntimeDeps = {
 	config: SwConfig;
 	storage: ReplicaStorage;
+	/**
+	 * the pack store family routes read their rows from and a served pack is adopted into; default the
+	 * browser's IndexedDB, and none where there is none, so family routes go to the network
+	 */
+	pack?: PackStore;
 	fetch(input: Request | string, init?: RequestInit): Promise<Response>;
 	caches: CachesLike;
 	/** the worker's own origin */
@@ -108,10 +128,23 @@ export type RuntimeDeps = {
 	broadcast?(message: unknown): void;
 	/** the storage the origin may use and has used; default `navigator.storage.estimate` */
 	estimate?(): Promise<{ quota?: number; usage?: number }>;
+	/** the timers the declared-write deadlines run on; default the global timers */
+	timers?: WriteTimers;
+	/** how long the second lease renewal waits for a page to open the stream before it renews; default 3000 */
+	liveWaitMs?: number;
 };
 
 /** the worker's answer to a page's `spool:hello` */
-export type Hello = { type: 'spool:hello'; protocol: number; version: string; compatible: boolean };
+export type Hello = {
+	type: 'spool:hello';
+	protocol: number;
+	version: string;
+	compatible: boolean;
+	/** seconds the browser holds the worker script; absent from a worker built before the lease */
+	lease?: number;
+	/** epoch milliseconds of the worker's last server answer; absent until it has one */
+	contact?: number;
+};
 
 /** the worker's answer to `spool:status` */
 export type Status = {
@@ -146,6 +179,29 @@ export type PartitionStatus = {
 	/** the principal datasets held for this partition; always empty while the flag is off */
 	datasets: DatasetMeta[];
 };
+
+/**
+ * the worker's answer to `spool:live-state`: the site's stream setting (null when it has none), the
+ * partition held and the lowest cursor a side holds, which a stream starts its catch-up from
+ */
+export type LiveState = {
+	type: 'spool:live-state';
+	live: NonNullable<SwConfig['live']> | null;
+	partition: string | null;
+	have: number | null;
+};
+
+/** what a page tells the worker it read from its stream; `partition` is the one the stream was opened for */
+export type LiveMessage = { partition: string | null } & (
+	| { event: 'delta'; delta: LiveDelta }
+	| { event: 'lease'; leaseMs: number }
+	| { event: 'revoked' }
+	/** a visible session began: the worker counts lease renewals from zero */
+	| { event: 'session' }
+);
+
+/** the worker's answer to `spool:live`: false when a delta did not follow the cursor the worker holds, so the page connects again */
+export type LiveAck = { type: 'spool:live'; ok: boolean };
 
 /** the worker's answer to `spool:assets`: the mode asked for and whether Static Routing took effect */
 export type AssetsStatus = { type: 'spool:assets'; mode: AssetMode; routed: boolean };
@@ -188,6 +244,8 @@ export type Reply =
 	| GraphStatus
 	| LedgerStatus
 	| PartitionStatus
+	| LiveState
+	| LiveAck
 	| AssetsStatus
 	| HeldStatus;
 
@@ -220,6 +278,10 @@ const encoder = new TextEncoder();
 /** a static file's key is its pathname plus query string; this is the pathname a route matches */
 const pathOf = (key: string) => key.split('?', 1)[0] as string;
 
+/** a data route answered from held rows: an item family, or a collection of a cross-origin API */
+const isDataFamily = (route: SerializedRoute) =>
+	route.strategy === 'data' && (route.family !== undefined || route.origin !== undefined);
+
 function immutable(response: Response): boolean {
 	const control = response.headers.get('cache-control') ?? '';
 	if (/(?:^|,)\s*immutable\b/i.test(control)) return true;
@@ -251,6 +313,10 @@ type Side = {
 	writes?: WriteQueue;
 	/** set when the side is replaced or wiped; a sync that began under it discards its result */
 	dead: boolean;
+	/** a live stream has delivered every tag change since this side's cursor, so held pages are current */
+	covered: boolean;
+	/** the time, in this worker's clock, until which the stream's lease holds; 0 when none is open */
+	leaseUntil: number;
 };
 
 /** builds the request pipeline: local render, sync, provisioning, asset cache and beacon queue */
@@ -263,28 +329,38 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		deps.userAgent ?? (typeof navigator === 'undefined' ? '' : navigator.userAgent)
 	);
 	const prior = priorFrom(config.provision);
-	const replica = new Replica(storage, config.version, now);
+	const pack = deps.pack ?? (typeof indexedDB === 'undefined' ? undefined : createPackStore());
+	// only a new runtime empties what the device holds; a new content version keeps it
+	const codeVersion = config.runtime ?? config.version;
+	const replica = new Replica(storage, codeVersion, now);
 	const ledger = new Ledger();
 	const background = new Set<Promise<unknown>>();
 	const provisioning = new Map<string, Promise<void>>();
 	const declined = new Map<string, string | null>();
+	// a 404 or a decline holds for the version it came back at
+	const unavailable = new Map<string, number>();
 	const wants = new Set<string>();
 	const asked = new Set<string>();
 	let currentPath: string | null = null;
 	const latestView = new Map<string, string>();
-	const assetCache = `${ASSET_CACHE}${config.version}`;
-	const staticCache = `${STATIC_CACHE}${config.version}`;
+	const assetCache = `${ASSET_CACHE}${codeVersion}`;
+	const staticCache = `${STATIC_CACHE}${codeVersion}`;
 	const keyOf = (path: string) => new Request(`${origin}${path}`);
 	const startedAt = now();
 	const assetMode: AssetMode = config.assets ?? 'cache';
 	let routed = false;
 	let lastViewAt: number | null = null;
+	let lifetimes: number | undefined;
 	let loaded: Promise<void> | undefined;
 	let manifestLoad: Promise<void> | undefined;
 	let partitionLoad: Promise<void> | undefined;
 	let principal: Side | null = null;
 	let exclusive: Promise<unknown> = Promise.resolve();
 	const observing = config.mode === 'shadow';
+	// unanswered subresources are forwarded only after the probe finds the disk cache
+	const forwardsAssets = assetMode !== 'cache' && !observing;
+	let cachePath: CacheProbe | undefined;
+	let probed = false;
 	const manifestPending = () => config.manifest !== undefined && config.routes.length === 0;
 
 	const handles = new Map<string, Promise<CacheLike>>();
@@ -340,6 +416,99 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		return parseSyncResponse(await response.json());
 	}
 
+	/**
+	 * A declared write goes to the server once. A 2xx answer brings the held pack to the version the
+	 * server reached before the page gets the answer, so the next local read sees the change.
+	 */
+	async function declaredWrite(request: Request, write: ResourceWrite): Promise<Response> {
+		const body = await request
+			.clone()
+			.json()
+			.catch(() => undefined);
+		const response = await deps.fetch(await withHave(request));
+		const envelope = decodeEnvelopeOrClear(response.headers);
+		await early(envelope, false);
+		const expected = write.origin ?? origin;
+		if (response.ok && pack) {
+			await settleWrite(response, pack, fetchDelta, expected, {
+				write,
+				url: new URL(request.url),
+				body,
+				routes: config.routes
+			}).catch(() => undefined);
+		}
+		track(observe(response.headers, envelope, null, false, true, false, async () => undefined));
+		return response;
+	}
+
+	/** the delta from `from` to `to`, which the server answers for any two packs it holds */
+	async function fetchDelta(from: number, to: number): Promise<BundleDelta> {
+		const response = await deps.fetch(`${origin}${BUNDLE_DELTA_PREFIX}${from}/${to}`, {
+			credentials: 'same-origin'
+		});
+		if (!response.ok) throw new Error(`delta answered ${response.status}`);
+		return (await response.json()) as BundleDelta;
+	}
+
+	/**
+	 * Moves a held pack to the version the worker script carries. A pack behind it takes the inline
+	 * delta from its version, or one fetched delta when the inline ones do not reach it. The store
+	 * checks the digest before it writes, so a refused delta leaves the pack as it was.
+	 */
+	async function adoptPack(pack: PackStore, target: StubPack): Promise<void> {
+		// the replica loads first: applyEnvelope would save its meta over the stored one
+		await ready();
+		const head = await pack.head();
+		if (!head || head.version >= target.version) return;
+		const inline = target.deltas.find((delta) => delta.from === head.version);
+		await moveTo(pack, inline ?? (await fetchDelta(head.version, target.version)));
+	}
+
+	/**
+	 * Applies a pack delta, then tells the replica which tags it moved, so an artifact built on an
+	 * older row is dropped whichever path delivered the delta. A refused delta throws before either
+	 * step.
+	 */
+	async function moveTo(store: PackStore, delta: BundleDelta): Promise<void> {
+		await store.applyDelta(delta);
+		const moved = Object.keys(delta.tables).map((tag) => [tag, delta.to] as const);
+		await replica.applyEnvelope({ invalidate: Object.fromEntries(moved) }, null, false);
+	}
+
+	/** the request with `Spool-Have` naming the pack the device holds; same-origin requests only */
+	async function withHave(request: Request): Promise<Request> {
+		if (!pack || new URL(request.url).origin !== origin) return request;
+		let version: number | undefined;
+		try {
+			version = (await pack.head())?.version;
+		} catch {
+			return request;
+		}
+		if (version === undefined) return request;
+		try {
+			const headers = new Headers(request.headers);
+			headers.set(HEADERS.have, String(version));
+			return new Request(request, { headers });
+		} catch {
+			return request;
+		}
+	}
+
+	/**
+	 * Applies the `Spool-Delta` a same-origin answer carries to the held pack, then tells the replica
+	 * which tags moved, so an artifact built on an older row is dropped. A refused delta changes nothing.
+	 */
+	async function applyServerDelta(response: Response): Promise<void> {
+		const text = response.headers.get(HEADERS.delta);
+		if (text === null || !pack || !response.url) return;
+		if (new URL(response.url).origin !== origin) return;
+		try {
+			await moveTo(pack, JSON.parse(text) as BundleDelta);
+		} catch {
+			// a refused delta leaves the pack as it was
+		}
+	}
+
 	const policy = {
 		changesPerDay: prior.changesPerDay,
 		staleBytes: prior.avoidedBytes,
@@ -355,6 +524,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			if (asked.has(path) || out.includes(path) || (await replica.get(path))) continue;
 			const hit = matchRoute(config.routes, path);
 			if (!hit || hit.route.scope !== 'public' || hit.route.strategy === 'static') continue;
+			if (hit.route.family || hit.route.origin !== undefined) continue;
 			hot.push({
 				id: path,
 				kind: 'route',
@@ -374,8 +544,13 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 	}
 
 	/** the page the last view was on, when its route declares a catalogue; the queue skips a recent ask */
-	const catalogueAsk = (): CatalogueAsk | undefined =>
-		currentPath !== null ? { path: currentPath, sweep: true } : undefined;
+	// a complete held pack already has every page the catalogue would name, so no ask is sent
+	const catalogueAsk = async (): Promise<CatalogueAsk | undefined> => {
+		if (currentPath === null) return undefined;
+		const head = await pack?.head().catch(() => undefined);
+		if (head && !head.partial) return undefined;
+		return { path: currentPath, sweep: true };
+	};
 
 	/**
 	 * Stores the entries a flush brought, each marked unopened. An entry is kept only for a route
@@ -488,7 +663,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		scheduler: makeScheduler(replica),
 		deferred: new Set(),
 		loaded: Promise.resolve(),
-		dead: false
+		dead: false,
+		covered: false,
+		leaseUntil: 0
 	};
 	const scheduler = publicSide.scheduler;
 
@@ -618,14 +795,16 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			sharedRetention(),
 			config.principalDatasets !== undefined
 		);
-		const target = new Replica(sealed, config.version, now);
+		const target = new Replica(sealed, codeVersion, now);
 		return {
 			id,
 			replica: target,
 			scheduler: makeScheduler(target),
 			deferred: new Set(),
 			loaded: target.load(),
-			dead: false
+			dead: false,
+			covered: false,
+			leaseUntil: 0
 		};
 	}
 
@@ -650,10 +829,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		for (const name of principalLimits().keys()) datasetRefused.delete(name);
 	}
 
-	/** shuts the principal store, shreds its keys and deletes it; true when there was one */
-	function wipePartition(reason: string): Promise<boolean> {
+	/** shuts the principal store, shreds its keys and deletes it; true when there was one. `only` limits it to that partition */
+	function wipePartition(reason: string, only?: string): Promise<boolean> {
 		return serial(async () => {
 			await ready();
+			if (only !== undefined && principal?.id !== only) return false;
 			const old = principal;
 			principal = null;
 			old?.writes?.kill();
@@ -673,6 +853,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			const old = principal;
 			if (old?.id === id) return;
 			principal = makeSide(id);
+			swept = false;
 			old?.writes?.kill();
 			if (old) retire(old);
 			await (host as PartitionHost).setCurrent(id);
@@ -681,6 +862,99 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				deps.broadcast?.({ type: 'spool:cleared', reason: 'partition' });
 			}
 		});
+	}
+
+	// #region live stream
+
+	/** what the page needs to open a stream: whether the site has one, the partition held and the cursor to start from */
+	async function liveState(): Promise<LiveState> {
+		const side = await principalSide();
+		const cursors = [replica.cursor, side?.replica.cursor ?? null].filter(
+			(c): c is number => c !== null
+		);
+		return {
+			type: 'spool:live-state',
+			live: config.live ?? null,
+			partition: side?.id ?? null,
+			have: cursors.length > 0 ? Math.min(...cursors) : null
+		};
+	}
+
+	/**
+	 * Applies what the page read from its stream. The partition names the stream's own, so a late event
+	 * for a partition this worker has left changes nothing. A delta is applied to a side only when it
+	 * starts at or below that side's cursor; a gap ends the side's lease and tells the page to connect
+	 * again. A `revoked` event wipes the partition exactly as a logout does.
+	 */
+	/** lease renewals paid in this visible session; the second asks a page for the stream instead */
+	let liveRenewals = 0;
+	const liveWaiters = new Set<() => void>();
+
+	/** asks the pages to open the stream; true when a lease covered `side` before the wait ran out */
+	function wantLive(): Promise<boolean> {
+		if (!deps.broadcast) return Promise.resolve(false);
+		return new Promise<boolean>((resolve) => {
+			const ready = () => {
+				clearTimeout(timer);
+				resolve(true);
+			};
+			const timer = setTimeout(() => {
+				liveWaiters.delete(ready);
+				resolve(false);
+			}, deps.liveWaitMs ?? 3000);
+			liveWaiters.add(ready);
+			deps.broadcast?.({ type: 'spool:want-live' });
+		});
+	}
+
+	async function liveEvent(message: LiveMessage): Promise<LiveAck> {
+		if (message.event === 'session') {
+			liveRenewals = 0;
+			return { type: 'spool:live', ok: true };
+		}
+		if (message.event === 'revoked') {
+			if (message.partition !== null) await wipePartition('revoked', message.partition);
+			return { type: 'spool:live', ok: true };
+		}
+		return serial(async () => {
+			await ready();
+			const own = principal && principal.id === message.partition ? principal : null;
+			const publicLive = config.live?.public === true;
+			const sides = [...(own ? [own] : []), ...(publicLive ? [publicSide] : [])];
+			if (message.event === 'lease') {
+				const until = now() + message.leaseMs;
+				for (const side of sides) if (side.covered) side.leaseUntil = until;
+				if (own?.covered) {
+					for (const ready of [...liveWaiters]) ready();
+					liveWaiters.clear();
+				}
+				return { type: 'spool:live', ok: true };
+			}
+			let ok = true;
+			for (const side of sides) {
+				if (side.dead) continue;
+				const cursor = side.replica.cursor;
+				if (cursor === null) continue;
+				if (cursor < message.delta.from) {
+					side.covered = false;
+					side.leaseUntil = 0;
+					ok = false;
+					continue;
+				}
+				await side.replica.applySync(message.delta);
+				side.covered = true;
+			}
+			return { type: 'spool:live', ok };
+		});
+	}
+
+	// #endregion
+
+	// a page that loads after a navigation contact never hears its broadcast, so the hello carries it
+	let lastContact = 0;
+	function contacted(): void {
+		lastContact = now();
+		deps.broadcast?.({ type: 'spool:contact', at: lastContact });
 	}
 
 	/**
@@ -695,6 +969,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		navigation: boolean,
 		signedOut = false
 	): Promise<void> {
+		// a response from the server is a contact; the page's lease clock resets on it
+		if (envelope?.protocol === PROTOCOL_VERSION) contacted();
 		if (!host || !envelope || envelope.protocol !== PROTOCOL_VERSION) return;
 		await ready();
 		const clear = envelope.clear ?? [];
@@ -730,17 +1006,22 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 
 	async function sendWrite(record: WriteRecord): Promise<{ status: number; body?: unknown }> {
 		const query = `name=${encodeURIComponent(record.name)}&key=${encodeURIComponent(record.key)}`;
-		const response = await deps.fetch(`${origin}${PATHS.write}?${query}`, {
-			method: 'PUT',
-			headers: {
-				'content-type': 'application/json',
-				'if-match': ifMatch(record.base),
-				[WRITE_HEADERS.id]: record.id
-			},
-			body: JSON.stringify({ value: record.value }),
-			cache: 'no-store',
-			credentials: 'same-origin'
-		});
+		const request = await withHave(
+			new Request(`${origin}${PATHS.write}?${query}`, {
+				method: 'PUT',
+				headers: {
+					'content-type': 'application/json',
+					'if-match': ifMatch(record.base),
+					[WRITE_HEADERS.id]: record.id
+				},
+				body: JSON.stringify({ value: record.value }),
+				cache: 'no-store',
+				credentials: 'same-origin'
+			})
+		);
+		const response = await deps.fetch(request);
+		// the write answer carries no envelope, so the answer itself is the contact
+		contacted();
 		const body: unknown = await response.json().catch(() => undefined);
 		return { status: response.status, body };
 	}
@@ -752,7 +1033,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			classes: () => config.writes ?? [],
 			now,
 			send: sendWrite,
-			onFlush: (flush) => deps.broadcast?.({ type: 'spool:written', ...flush })
+			onFlush: (flush) => deps.broadcast?.({ type: 'spool:written', ...flush }),
+			timers: deps.timers
 		});
 		return side.writes;
 	}
@@ -770,11 +1052,33 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		if (queue) await queue.flush();
 	}
 
+	// a worker that was stopped leaves its deadlines behind; the first contact of each start checks them
+	let swept = false;
+	function sweepWrites(): Promise<void> | undefined {
+		if (swept) return undefined;
+		swept = true;
+		return principalSide()
+			.then((side) => (side ? queueOf(side)?.flushDue() : undefined))
+			.then(
+				() => undefined,
+				() => undefined
+			);
+	}
+
 	// #endregion
+
+	/** whether the held pack renders a public family page, so no artifact for it is needed */
+	async function packRenders(path: string, route: SerializedRoute): Promise<boolean> {
+		if (route.family === undefined || route.scope !== 'public') return false;
+		const dataset = route.family.dataset;
+		const held = async (key: string) => (pack ? pack.getRow(dataset, key) : undefined);
+		return (await familyPage(held, route, path, now())) !== undefined;
+	}
 
 	async function provision(
 		path: string,
 		route: SerializedRoute,
+		version: number,
 		partition?: string
 	): Promise<void> {
 		const side = route.scope === 'principal' ? await principalSide() : publicSide;
@@ -788,9 +1092,11 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		);
 		if (response.status === 204 && response.headers.get(HEADERS.provision) === 'declined') {
 			declined.set(path, response.headers.get(HEADERS.provisionReason));
+			unavailable.set(path, version);
 			return;
 		}
 		if (!response.ok) {
+			if (response.status === 404) unavailable.set(path, version);
 			if (route.scope === 'principal' && [401, 403, 404].includes(response.status)) {
 				await side.replica.drop([path]);
 			}
@@ -806,6 +1112,22 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		}
 		if (await side.replica.put(artifact, route.persist)) {
 			ledger.spend(path, { bytes: encoder.encode(text).length, requests: 1 });
+			// a persistent key outlives the worker, so rows seeded now are readable at the next return
+			if (route.scope === 'principal' && route.retention === 'persistent') {
+				await seedOwnRows(side, route).catch(() => undefined);
+			}
+		}
+	}
+
+	/** seeds the principal datasets `route` reads that this side does not hold */
+	async function seedOwnRows(side: Side, route: SerializedRoute): Promise<void> {
+		const names = new Set([
+			...(route.family ? [route.family.dataset] : []),
+			...(route.query?.dataset ? [route.query.dataset] : []),
+			...(route.query?.plan?.join ?? []).map((j) => j.dataset)
+		]);
+		for (const name of names) {
+			if (!(await side.replica.datasets.get(name))) seedDataset(name, side);
 		}
 	}
 
@@ -814,6 +1136,23 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		side.deferred.clear();
 		if (await side.scheduler.drain())
 			for (const path of paths) await side.replica.validate(path);
+	}
+
+	let leaseDrain: Promise<void> | undefined;
+	/** sends the public side's queued syncs without waiting for a network moment; one run at a time */
+	function drainAtLease(): void {
+		if (leaseDrain) return;
+		leaseDrain = (async () => {
+			await drainDeferred(publicSide);
+			const names = [...datasetsDeferred];
+			datasetsDeferred.clear();
+			for (const name of names) await syncDatasetOnce(name);
+		})()
+			.catch(() => undefined)
+			.finally(() => {
+				leaseDrain = undefined;
+			});
+		track(leaseDrain);
 	}
 
 	async function observe(
@@ -841,18 +1180,31 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				const fits =
 					hit &&
 					hit.route.strategy !== 'static' &&
+					hit.route.provisionable !== false &&
 					hit.route.scope === advertised.scope &&
 					!declined.has(advertised.id) &&
+					unavailable.get(advertised.id) !== advertised.version &&
 					own &&
 					(advertised.scope === 'public' || own.id === envelope.partition);
-				if (hit && own && fits && !(await own.replica.get(advertised.id))) {
+				if (
+					hit &&
+					own &&
+					fits &&
+					!(await packRenders(advertised.id, hit.route)) &&
+					!(await own.replica.get(advertised.id))
+				) {
 					if (advertised.scope === 'public' && modeFor(config, hit.route) === 'shadow') {
 						wants.add(advertised.id);
 					} else {
 						const key = `${advertised.scope}:${advertised.id}`;
 						const pending =
 							provisioning.get(key) ??
-							provision(advertised.id, hit.route, envelope.partition);
+							provision(
+								advertised.id,
+								hit.route,
+								advertised.version,
+								envelope.partition
+							);
 						provisioning.set(key, pending);
 						try {
 							await pending;
@@ -941,6 +1293,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				outgoing = request;
 			}
 		}
+		outgoing = await withHave(outgoing);
 		const response = await deps.fetch(outgoing);
 		const envelope = decodeEnvelopeOrClear(response.headers);
 		await early(envelope, navigation, after?.signedOut);
@@ -951,6 +1304,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const { visitor, copy } = kept ? branch(response) : { visitor: response, copy: null };
 		track(
 			(async () => {
+				await applyServerDelta(response);
 				try {
 					await after?.run(copy, envelope);
 				} catch {
@@ -970,23 +1324,79 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		return visitor;
 	}
 
-	/** `search` is the request's query string; the stored artifact is always the path's own */
+	/**
+	 * `search` is the request's query string; the stored artifact is always the path's own. A
+	 * principal route answers from the signed-in partition and a public one from the public side.
+	 */
 	async function decide(
 		path: string,
 		route: SerializedRoute,
 		dry: boolean,
 		search = ''
 	): Promise<Decision> {
+		const principal = route.scope === 'principal';
 		let side = publicSide;
-		if (route.scope === 'principal') {
+		if (principal) {
 			if (!host) return { reason: 'principal', staleSec: null };
 			const own = await principalSide();
 			if (!own) return { reason: 'cold', staleSec: null };
 			side = own;
 		}
 		const { replica: rep, scheduler: sched } = side;
-		let stored = await rep.get(path);
-		if (!stored) return { reason: 'cold', staleSec: null };
+		// a signed-in read takes its row from the partition's dataset; a public one from the pack
+		const heldRow = (dataset: string) => async (key: string) =>
+			principal
+				? (await rep.datasets.get(dataset))?.rows.get(key)
+				: await pack?.getRow(dataset, key);
+		const page = () => {
+			if (route.family && route.family.key !== 'viewer.id') {
+				return familyPage(heldRow(route.family.dataset), route, path, now());
+			}
+			if (route.origin !== undefined) return collectionPage(path, now());
+			return rep.get(path);
+		};
+		// a same-origin collection answers from the held pack's rows, so a write the pack holds shows at once
+		const packed = route.query?.dataset;
+		if (
+			packed !== undefined &&
+			!principal &&
+			pack &&
+			route.strategy === 'data' &&
+			route.family === undefined &&
+			route.origin === undefined &&
+			route.query?.plan === undefined
+		) {
+			const head = await pack.head();
+			if (head && !head.partial && head.tables.includes(packed)) {
+				const rows = (await pack.scanTable(packed)).map(([, row]) => row);
+				const rendered = await renderLocal(
+					config,
+					route,
+					collectionPage(path, now()).artifact,
+					renderers,
+					search,
+					rows
+				);
+				const headers = rep.policyOf(path) ?? replica.sitePolicy;
+				if (!rendered.ok || (!headers && !dry && !isDataFamily(route))) {
+					return { reason: 'refused', staleSec: null };
+				}
+				return { reason: 'fresh', html: rendered.html, headers, staleSec: 0 };
+			}
+		}
+		let stored = await page();
+		if (!stored) {
+			// a signed-in family miss seeds its dataset; this view still goes to the network
+			if (
+				principal &&
+				route.family &&
+				!dry &&
+				!(await rep.datasets.get(route.family.dataset))
+			) {
+				seedDataset(route.family.dataset, side);
+			}
+			return { reason: 'cold', staleSec: null };
+		}
 		const staleSec = () =>
 			stored ? Math.max(0, Math.floor((now() - rep.validatedAt(stored)) / 1000)) : null;
 		if (!rep.isCurrent(stored.artifact)) {
@@ -1008,10 +1418,29 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		// a page answers from the rows the device holds, so their age bounds the answer too
 		const queried = route.query?.dataset;
 		const joined = (route.query?.plan?.join ?? []).map((j) => j.dataset);
+		// a public list query reads the rows of a whole table the held pack carries
+		const listHead =
+			queried !== undefined &&
+			search !== '' &&
+			!principal &&
+			route.scope === 'public' &&
+			route.query?.plan === undefined &&
+			pack
+				? await pack.head()
+				: undefined;
+		const listRows =
+			queried !== undefined &&
+			listHead &&
+			!listHead.partial &&
+			listHead.tables.includes(queried) &&
+			pack
+				? (await pack.scanTable(queried)).map(([, row]) => row)
+				: undefined;
 		const dsNames = [
 			...new Set([
-				...(queried ? [queried] : []),
+				...(queried && listRows === undefined ? [queried] : []),
 				...joined,
+				...(principal && route.family ? [route.family.dataset] : []),
 				...(await rep.datasetsOf(stored.artifact))
 			])
 		];
@@ -1030,25 +1459,42 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			if (!dry) for (const name of missing) seedDataset(name, side);
 			return { reason: 'refused', staleSec: staleSec() };
 		}
-		if (limits) {
-			// held principal rows answer only while the last confirmed sync is inside maxStaleMs
-			const stale = dsNames.filter((name, i) => {
-				const age = now() - (appliedAt[i] as number);
-				return !(age >= 0 && age < (limits.get(name) as number));
-			});
-			if (stale.length > 0) {
-				if (!dry) for (const name of stale) principalDeferred.add(name);
-				return { reason: 'refused', staleSec: staleSec() };
-			}
-		}
+		// held principal rows answer only while the last confirmed sync is inside maxStaleMs
+		const pastLimit = () =>
+			limits
+				? dsNames.filter((name, i) => {
+						const age = now() - (appliedAt[i] as number);
+						return !(age >= 0 && age < (limits.get(name) as number));
+					})
+				: [];
+		// rows past that bound are refreshed before the page shows, as a hard route does
+		const refresh = pastLimit().length > 0;
+		if (refresh && dry) return { reason: 'refused', staleSec: staleSec() };
 		const known = (at: Array<number | undefined>) =>
 			at.filter((v): v is number => v !== undefined);
 		const fromCatalogue = stored.catalogue === true;
-		const action = verdict(
-			route.freshness,
-			Math.min(rep.validatedAt(stored), ...known(appliedAt)),
-			now()
-		);
+		// a lease the stream renews stands in for the bound; `isCurrent` and the dataset bounds above still apply
+		let action: Verdict = refresh
+			? 'sync-first'
+			: side.covered && now() < side.leaseUntil
+				? 'serve'
+				: verdict(
+						route.freshness,
+						Math.min(rep.validatedAt(stored), ...known(appliedAt)),
+						now()
+					);
+		// adaptive: the first renewal of a visible session is paid, the second becomes the stream
+		if (
+			action === 'sync-first' &&
+			!refresh &&
+			!dry &&
+			side !== publicSide &&
+			config.live?.mode === 'adaptive' &&
+			(liveRenewals += 1) === 2 &&
+			(await wantLive())
+		) {
+			action = 'serve';
+		}
 		const age = Math.max(
 			staleSec() as number,
 			...known(appliedAt).map((at) => Math.floor((now() - at) / 1000))
@@ -1065,18 +1511,30 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			reason = 'hard-sync';
 			if (!dry) {
 				const synced = await sched.sync(need, age);
+				// a sync that ended the session wiped this side, so its rows are not asked for again
+				if (side.dead) return { reason: 'refused', staleSec: age };
+				// a dataset applied inside both the route's bound and its own is as current as the page may be
+				const late = new Set(pastLimit());
+				const due = dsNames.filter((name, i) => {
+					const since = now() - (appliedAt[i] as number);
+					return (
+						late.has(name) || !(since >= 0 && since <= route.freshness.maxStale * 1000)
+					);
+				});
 				const dsSynced = (
-					await Promise.all(dsNames.map((name) => syncDatasetOnce(name, side)))
+					await Promise.all(due.map((name) => syncDatasetOnce(name, side)))
 				).every(datasetCurrent);
 				if (!(synced && dsSynced) && route.offline === 'refuse')
 					return { reason: 'hard-refused', staleSec: age };
 				if (dsNames.length > 0) {
 					appliedAt = await heldAt();
-					if (appliedAt.includes(undefined)) return { reason: 'refused', staleSec: age };
+					if (appliedAt.includes(undefined) || pastLimit().length > 0) {
+						return { reason: 'refused', staleSec: age };
+					}
 				}
 				if (synced) {
 					if (need) await rep.validate(path);
-					stored = await rep.get(path);
+					stored = await page();
 					if (!stored || !rep.isCurrent(stored.artifact)) {
 						return { reason: 'stale-after-sync', staleSec: age };
 					}
@@ -1084,24 +1542,21 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				if (!(synced && dsSynced)) reason = 'offline-stale';
 			}
 		} else if (action === 'serve-then-sync') {
-			if (route.sync === 'deferred') {
-				reason = 'soft-deferred';
-				if (!dry && need && sched.defer(need, age)) side.deferred.add(path);
-				if (!dry) {
-					for (const name of dsNames) {
-						(side === publicSide ? datasetsDeferred : principalDeferred).add(name);
-					}
+			// the sync waits for a network moment: a view made from the device's own copy sends nothing
+			reason = route.sync === 'deferred' ? 'soft-deferred' : 'soft-sync';
+			if (!dry) {
+				// a deferred route syncs only the ids it names; a soft one syncs the whole replica when it names none
+				const queued =
+					route.sync === 'deferred'
+						? need !== undefined && sched.defer(need, age)
+						: sched.queue(need, age);
+				if (queued && need) side.deferred.add(path);
+				for (const name of dsNames) {
+					(side === publicSide ? datasetsDeferred : principalDeferred).add(name);
 				}
-			} else {
-				reason = 'soft-sync';
-				if (!dry) {
-					track(
-						sched.sync(need, age).then(async (ok) => {
-							if (ok && need) await rep.validate(path);
-						})
-					);
-					for (const name of dsNames) track(syncDatasetOnce(name, side));
-				}
+				// a queue that has waited a lease is sent now, so a device that reads only locally still syncs
+				const waited = config.lease !== undefined && age >= config.lease;
+				if (side === publicSide && waited && (queued || dsNames.length > 0)) drainAtLease();
 			}
 		}
 
@@ -1113,9 +1568,9 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 			return { reason, response: kept, staleSec: age };
 		}
-		// never answer a page locally without the policy the site sent with it
+		// a page answers only with the policy the site sent with it; an API family is no page
 		const headers = rep.policyOf(path) ?? replica.sitePolicy;
-		if (!headers && !dry) return { reason: 'refused', staleSec: age };
+		if (!headers && !dry && !isDataFamily(route)) return { reason: 'refused', staleSec: age };
 		const plain = await rep.materialize(stored.artifact);
 		if (!plain.ok) {
 			// rows of a dataset not held yet: the page is sound, so keep it and seed the dataset
@@ -1128,9 +1583,16 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			return { reason: 'refused', staleSec: age };
 		}
 		const planned = route.query?.plan !== undefined;
+		// a bare public HTML list URL renders the stored page; other reads use the held rows
+		const bareHtml = search === '' && route.strategy !== 'data' && route.scope === 'public';
+		// stored data is the load output, not the origin's page; a bare plan goes to the network
+		if (planned && bareHtml) return { reason: 'refused', staleSec: age };
 		const rows =
-			queried === undefined || planned ? undefined : await rep.datasets.rows(queried);
-		if (queried !== undefined && !planned && !rows) return { reason: 'refused', staleSec: age };
+			queried === undefined || planned || bareHtml
+				? undefined
+				: (listRows ?? (await rep.datasets.rows(queried)));
+		if (queried !== undefined && !planned && !bareHtml && !rows)
+			return { reason: 'refused', staleSec: age };
 		const tables =
 			queried !== undefined && planned
 				? await rep.datasets.tables(queried, joined)
@@ -1177,6 +1639,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		request: Request
 	): Promise<Response> {
 		const shadow = runsShadow(config, route, random);
+		// a top-level load is a new page lifetime; a frame belongs to a page that stays open
+		if (request.destination === '' || request.destination === 'document') liveRenewals = 0;
 		const at = now();
 		const gapMs = lastViewAt === null ? null : at - lastViewAt;
 		lastViewAt = at;
@@ -1201,7 +1665,8 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			mismatch,
 			swAgeMs: at - startedAt,
 			gapMs,
-			...(from ? { from } : {})
+			...(from ? { from } : {}),
+			...(lifetimes === undefined ? {} : { lifetimes })
 		});
 		const record = async (mismatch: boolean | null) => {
 			if (config.views !== false) await analytics.record(viewToBeacon(view(mismatch), at));
@@ -1260,19 +1725,39 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		if (side) await side.replica.drop([path]);
 	}
 
-	/** answers a GET for a `data` route from the stored value; the page makes no request */
+	/**
+	 * answers a GET for a `data` route from the stored value; the page makes no request. A
+	 * principal route answers from the signed-in partition, and a cross-origin one only a request
+	 * with an `Authorization` header. A public route never answers one. A cross-origin miss goes
+	 * out untouched: a spool header on it would force a CORS preflight.
+	 */
 	async function dataFile(
 		request: Request,
 		path: string,
 		route: SerializedRoute
 	): Promise<Response> {
-		const decision = await decide(path, route, false, new URL(request.url).search);
+		const url = new URL(request.url);
+		const remote = url.origin !== origin;
+		const signed = request.headers.has('authorization');
+		// a public route holds no copy per viewer, so a bearer read never takes the store
+		const bearer = signed && route.scope === 'public';
+		// the API answers a cross-origin read with no header as anonymous, so the partition never does
+		const anonymous = remote && route.scope === 'principal' && !signed;
+		const decision: Decision =
+			bearer || anonymous
+				? { reason: 'refused', staleSec: null }
+				: await decide(path, route, false, url.search);
 		if (decision.html !== undefined) {
 			ledger.serve(path, decision.reason === 'catalogue');
 			const headers = new Headers(decision.headers);
 			headers.set('content-type', route.type ?? 'application/json');
+			if (remote) {
+				headers.set('access-control-allow-origin', origin);
+				headers.set('vary', 'origin');
+			}
 			return new Response(decision.html, { headers });
 		}
+		if (remote) return deps.fetch(request);
 		const response = await passthrough(request, false, {
 			provision: true,
 			route,
@@ -1365,6 +1850,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		const advertised = envelope?.artifact;
 		return (
 			(route.strategy === 'assembly' || route.strategy === 'template') &&
+			route.family === undefined &&
 			route.scope === 'public' &&
 			envelope?.protocol === PROTOCOL_VERSION &&
 			advertised?.hash !== undefined &&
@@ -1610,6 +2096,13 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 
 	async function run(request: Request): Promise<Response> {
 		await ready();
+		const declared = writeFor(
+			config.resourceWrites ?? [],
+			request.method,
+			new URL(request.url),
+			origin
+		);
+		if (declared) return declaredWrite(request, declared);
 		const route = classify(config, request, origin);
 		track(analytics.flushIfDue());
 		if (route.kind === 'logout') {
@@ -1634,13 +2127,29 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		return passthrough(request, request.mode === 'navigate');
 	}
 
+	// a cold worker otherwise loses the document to the network while it starts
+	async function navigationRoute(event: RoutableInstall): Promise<void> {
+		if (typeof event.addRoutes !== 'function') return;
+		try {
+			await event.addRoutes([
+				{ condition: { requestMode: 'navigate' }, source: 'fetch-event' }
+			]);
+		} catch {
+			// a refused route leaves the browser's default race in place
+		}
+	}
+
 	return {
 		replica,
 		ledger,
 		handle(request, wait) {
+			const pending = sweepWrites();
+			if (pending) wait(pending);
 			const kind = classify(config, request, origin).kind;
 			if (kind === 'ignore') return undefined;
-			if (kind === 'asset' && assetMode !== 'cache') return undefined;
+			if (kind === 'asset' && assetMode !== 'cache') {
+				return forwardsAssets && shouldForward(cachePath) ? deps.fetch(request) : undefined;
+			}
 			// a worker in shadow touches only navigations: subresources and beacons keep the browser's own path
 			if (
 				observing &&
@@ -1651,6 +2160,20 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				return undefined;
 			}
 			const before = new Set(background);
+			if (forwardsAssets && request.mode === 'navigate' && !probed) {
+				probed = true;
+				const url = new URL(clientPath(config.version), origin).href;
+				const probe = probeCache(
+					url,
+					(input, init) => deps.fetch(input, init),
+					resourceTiming
+				);
+				track(
+					probe.then((result) => {
+						cachePath = result;
+					})
+				);
+			}
 			const work = kind === 'asset' && !manifestPending() ? asset(request) : run(request);
 			return work
 				.catch(() => deps.fetch(request))
@@ -1658,9 +2181,19 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 		},
 		async install(event) {
 			if (assetMode === 'static-routing') routed = await installRoutes(event, config, origin);
+			else await navigationRoute(event);
+			if (config.pack && pack) await adoptPack(pack, config.pack);
+			// the stub is the server's answer, so an install that reads it is a contact
+			if (config.stamp !== undefined || config.pack !== undefined) contacted();
 		},
 		async activate() {
+			const pending = sweepWrites();
+			if (pending) track(pending);
 			await ready();
+			if (config.policy !== undefined && replica.sitePolicy === undefined) {
+				const policy = allowedPolicy(config.policy);
+				if (policy) await replica.keepPolicy(null, policy);
+			}
 			for (const name of await deps.caches.keys()) {
 				const old = CACHE_PREFIXES.some((prefix) => name.startsWith(prefix));
 				if (old && name !== assetCache && name !== staticCache)
@@ -1668,13 +2201,17 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 			}
 		},
 		async message(data) {
+			const pending = sweepWrites();
+			if (pending) track(pending);
 			const message = (data ?? {}) as { type?: unknown; protocol?: unknown };
 			if (message.type === 'spool:hello') {
 				return {
 					type: 'spool:hello',
 					protocol: PROTOCOL_VERSION,
 					version: config.version,
-					compatible: message.protocol === PROTOCOL_VERSION
+					compatible: message.protocol === PROTOCOL_VERSION,
+					...(config.lease === undefined ? {} : { lease: config.lease }),
+					...(lastContact === 0 ? {} : { contact: lastContact })
 				};
 			}
 			if (message.type === 'spool:status') {
@@ -1714,6 +2251,13 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 				}
 				return undefined;
 			}
+			if (message.type === 'spool:lifetimes') {
+				const count = (message as { count?: unknown }).count;
+				if (typeof count === 'number' && Number.isSafeInteger(count) && count >= 0) {
+					lifetimes = count;
+				}
+				return undefined;
+			}
 			if (message.type === 'spool:graph') {
 				await ready();
 				await replica.held();
@@ -1747,6 +2291,24 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
 					projections: side.replica.graph.projections.ids(),
 					datasets: await side.replica.datasets.list()
 				};
+			}
+			if (message.type === 'spool:live-state') return liveState();
+			if (message.type === 'spool:live') {
+				const { partition, event, delta, leaseMs } = message as Record<string, unknown>;
+				if (partition !== null && typeof partition !== 'string') return undefined;
+				if (event === 'revoked') return liveEvent({ partition, event });
+				if (event === 'session') return liveEvent({ partition: null, event });
+				if (event === 'lease' && typeof leaseMs === 'number' && leaseMs > 0) {
+					return liveEvent({ partition, event, leaseMs });
+				}
+				if (event === 'delta') {
+					try {
+						return liveEvent({ partition, event, delta: parseLiveDelta(delta) });
+					} catch {
+						return undefined;
+					}
+				}
+				return undefined;
 			}
 			if (message.type === 'spool:assets') {
 				return { type: 'spool:assets', mode: assetMode, routed };

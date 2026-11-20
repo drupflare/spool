@@ -1,8 +1,22 @@
+import type { BundleDelta } from '../protocol/bundle.js';
+import type { DatasetRow } from '../protocol/dataset.js';
+import { HEADERS } from '../protocol/envelope.js';
 import {
+	indexPlan,
+	indexRowsOf,
+	type IndexPlan,
+	type IndexRoute,
+	type IndexRow
+} from '../protocol/index-rows.js';
+import { matchPattern } from '../protocol/pattern.js';
+import {
+	applyPatch,
 	isWriteKey,
 	isWriteVersion,
 	newWriteId,
+	WRITE_HEADERS,
 	WRITE_STATUS,
+	type ResourceWrite,
 	type WriteConfig,
 	type WriteConflict,
 	type WriteFlush,
@@ -13,6 +27,7 @@ import {
 	type WriteState,
 	type WriteStatus
 } from '../protocol/write.js';
+import type { PackStore, Predicted } from './pack/store.js';
 import { seal, unseal, type KeyVault, type Row as Sealed } from './seal.js';
 
 const DB = 'spool-writes';
@@ -38,6 +53,8 @@ export type WriteRecord = {
 	edits: number;
 	/** flushes that failed with the outcome unknown; the same id and value are sent again */
 	attempts: number;
+	/** epoch ms the class deadline falls due; absent when the class has none or a flush failed */
+	due?: number;
 	/** an edit made after a request for `value` may have left; it goes out in a later flush */
 	next?: { value: unknown; bytes: number };
 	conflict?: WriteConflict;
@@ -196,6 +213,17 @@ export async function destroyWrites(factory: IDBFactory, partition: string): Pro
 /** what the worker's network layer answers for one flush request */
 export type WriteAnswer = { status: number; body?: unknown };
 
+/** the timer a write deadline is set on; a test injects one that fires on demand */
+export type WriteTimers = {
+	set(fn: () => unknown, ms: number): unknown;
+	clear(handle: unknown): void;
+};
+
+const browserTimers: WriteTimers = {
+	set: (fn, ms) => setTimeout(fn, ms),
+	clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>)
+};
+
 /** what {@link WriteQueue} needs from the worker */
 export type WriteQueueDeps = {
 	store: WriteStore;
@@ -206,6 +234,8 @@ export type WriteQueueDeps = {
 	send(record: WriteRecord): Promise<WriteAnswer>;
 	/** called after a flush that tried at least one record, with counts only */
 	onFlush?(flush: WriteFlush): void;
+	/** the timer the deadlines use; default the global timers */
+	timers?: WriteTimers;
 };
 
 const refuse = (code: WriteRefusalCode, message: string): WriteRefusal => ({
@@ -242,17 +272,81 @@ function conflictOf(body: unknown): WriteConflict | undefined {
  */
 export class WriteQueue {
 	readonly #deps: WriteQueueDeps;
+	readonly #timers: WriteTimers;
 	#tail: Promise<unknown> = Promise.resolve();
 	#flushing: Promise<WriteFlush> | null = null;
 	#dead = false;
+	#timer: { at: number; handle: unknown } | undefined;
 
 	constructor(deps: WriteQueueDeps) {
 		this.#deps = deps;
+		this.#timers = deps.timers ?? browserTimers;
 	}
 
 	/** stops the queue for good: no later call sends or stores anything */
 	kill(): void {
 		this.#dead = true;
+		this.#disarm();
+	}
+
+	/** the deadline a record of `name` falls due at, when its class has one */
+	#dueFor(name: string, now: number): number | undefined {
+		const delay = this.#deps.classes().find((c) => c.name === name)?.maxDelayMs;
+		return delay === undefined ? undefined : now + delay;
+	}
+
+	/** sets the timer for `at` unless an earlier one is set */
+	#arm(at: number): void {
+		if (this.#dead || (this.#timer !== undefined && this.#timer.at <= at)) return;
+		this.#disarm();
+		const handle = this.#timers.set(() => this.#fire(), Math.max(0, at - this.#deps.now()));
+		this.#timer = { at, handle };
+	}
+
+	#disarm(): void {
+		if (this.#timer !== undefined) this.#timers.clear(this.#timer.handle);
+		this.#timer = undefined;
+	}
+
+	#fire(): Promise<WriteFlush> {
+		this.#timer = undefined;
+		return this.flushDue().catch(() => ({ queued: 0, flushed: 0, conflicted: 0 }));
+	}
+
+	/** the earliest deadline a stored record holds, or undefined when none does */
+	async #earliest(after = -Infinity): Promise<number | undefined> {
+		const dues = (await this.#deps.store.all())
+			.filter((r) => r.state !== 'conflicted' && r.due !== undefined)
+			.map((r) => r.due as number)
+			.filter((due) => due > after);
+		return dues.length > 0 ? Math.min(...dues) : undefined;
+	}
+
+	/**
+	 * Sets the timer to the earliest deadline still ahead, or clears it. A deadline already past is left
+	 * to a later contact, so a store that keeps failing cannot turn the timer into a loop.
+	 */
+	async #rearm(): Promise<void> {
+		const earliest = await this.#earliest(this.#deps.now());
+		this.#disarm();
+		if (earliest !== undefined) this.#arm(earliest);
+	}
+
+	/**
+	 * Sends every queued record when the earliest deadline has passed, and arms the timer for a later
+	 * one. The worker calls it at a timer fire and at the first contact of each start, so a record
+	 * whose deadline passed while the worker was stopped goes out once.
+	 */
+	async flushDue(): Promise<WriteFlush> {
+		const earliest = await this.#serial(async () =>
+			this.#dead ? undefined : this.#earliest()
+		);
+		if (earliest === undefined) return { queued: 0, flushed: 0, conflicted: 0 };
+		if (earliest > this.#deps.now()) {
+			this.#arm(earliest);
+			return { queued: 0, flushed: 0, conflicted: 0 };
+		}
+		return this.flush();
 	}
 
 	#serial<T>(fn: () => Promise<T>): Promise<T> {
@@ -311,6 +405,7 @@ export class WriteQueue {
 						`${config.maxPending} keys of "${name}" are already queued`
 					);
 				}
+				const due = this.#dueFor(name, now);
 				const record: WriteRecord = {
 					name,
 					key,
@@ -322,21 +417,27 @@ export class WriteQueue {
 					updatedAt: now,
 					bytes,
 					edits: 1,
-					attempts: 0
+					attempts: 0,
+					...(due === undefined ? {} : { due })
 				};
 				await this.#deps.store.put(record);
+				if (due !== undefined) this.#arm(due);
 				return { ok: true, state: record.state, edits: 1 };
 			}
 			const sent = held.state === 'flushing' || held.attempts > 0;
+			const due =
+				held.due ?? (held.state === 'conflicted' ? undefined : this.#dueFor(name, now));
 			const next: WriteRecord = {
 				...held,
 				updatedAt: now,
 				edits: held.edits + 1,
+				...(due === undefined ? {} : { due }),
 				...(sent && held.state !== 'conflicted'
 					? { next: { value, bytes } }
 					: { value, bytes })
 			};
 			await this.#deps.store.put(next);
+			if (due !== undefined) this.#arm(due);
 			return { ok: true, state: next.state, edits: next.edits };
 		});
 	}
@@ -411,6 +512,7 @@ export class WriteQueue {
 			if (stop) break;
 		}
 		if (counts.queued > 0 && !this.#dead) this.#deps.onFlush?.(counts);
+		if (!this.#dead) await this.#serial(() => this.#rearm());
 		return counts;
 	}
 
@@ -426,8 +528,10 @@ export class WriteQueue {
 		const current = await store.get(sent.name, sent.key);
 		if (!current) return false;
 		const retry = async (bumped: boolean) => {
+			// a failed flush closes the deadline: the record waits for a moment, a start or a new write
+			const { due: _due, ...rest } = current;
 			await store.put({
-				...current,
+				...rest,
 				state: 'pending',
 				updatedAt: now,
 				attempts: current.attempts + (bumped ? 1 : 0)
@@ -445,6 +549,7 @@ export class WriteQueue {
 				return false;
 			}
 			const { value, bytes } = current.next;
+			const due = this.#dueFor(current.name, now);
 			await store.put({
 				name: current.name,
 				key: current.key,
@@ -456,7 +561,8 @@ export class WriteQueue {
 				queuedAt: current.queuedAt,
 				updatedAt: now,
 				edits: 1,
-				attempts: 0
+				attempts: 0,
+				...(due === undefined ? {} : { due })
 			});
 			return false;
 		}
@@ -487,7 +593,7 @@ export class WriteQueue {
 		now: number,
 		why: { conflict: WriteConflict } | { refusal: WriteRefusalCode }
 	): WriteRecord {
-		const { next: later, conflict: _c, refusal: _r, ...rest } = record;
+		const { next: later, conflict: _c, refusal: _r, due: _d, ...rest } = record;
 		return {
 			...rest,
 			...(later ? { value: later.value, bytes: later.bytes } : {}),
@@ -537,4 +643,127 @@ export class WriteQueue {
 		if (!outcome.ok || use === 'server') return outcome;
 		return { ok: true, flush: await this.flush({ name, key }) };
 	}
+}
+
+/**
+ * Brings a held pack to the version a declared write's answer reached. The answer's `Spool-Delta` goes
+ * first; one that starts at another version, or that the store refuses, costs one delta fetch to the
+ * version the answer names. The store checks a delta's digest before it writes, so a refused delta
+ * changes nothing. An answer that landed on another origin, after a redirect, applies nothing.
+ */
+/** the declared write a page sent, with its URL, its JSON body and the routes its index tables read */
+export type SentWrite = {
+	write: ResourceWrite;
+	url: URL;
+	body: unknown;
+	routes: readonly IndexRoute[];
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** the row and its index rows as a prediction; `row` absent predicts the removal of the key */
+function changeOf(plan: IndexPlan, dataset: string, key: string, row?: DatasetRow): Predicted {
+	const entries: IndexRow[] = [
+		[dataset, key, row ?? null],
+		...indexRowsOf(plan, dataset, key, row)
+	];
+	return {
+		puts: entries.flatMap(([table, id, value]): Predicted['puts'] =>
+			value === null ? [] : [[table, id, value]]
+		),
+		deletes: entries.flatMap(([table, id, value]): Predicted['deletes'] =>
+			value === null ? [[table, id]] : []
+		)
+	};
+}
+
+/**
+ * Predicts the rows a declared write changed when the answer named no version and sent no delta. The
+ * prediction is unconfirmed until the next verified delta settles it; `invalidate` predicts nothing.
+ */
+async function predict(
+	response: Response,
+	pack: PackStore,
+	{ write, url, body, routes }: SentWrite
+): Promise<void> {
+	const plan = indexPlan(routes);
+	const pathKey = matchPattern(write.pattern, url.pathname)?.[write.key];
+	const { dataset } = write;
+	if (write.apply === 'invalidate') return;
+	if (write.apply === 'delete') {
+		if (pathKey !== undefined) await pack.applyPredicted(changeOf(plan, dataset, pathKey));
+		return;
+	}
+	if (write.apply === 'response') {
+		const row = await response
+			.clone()
+			.json()
+			.catch(() => undefined);
+		if (!isRecord(row)) return;
+		const id = row[write.key];
+		if (typeof id !== 'string' && typeof id !== 'number') return;
+		const key = String(id);
+		if (pathKey !== undefined && pathKey !== key) return;
+		await pack.applyPredicted(changeOf(plan, dataset, key, row as DatasetRow));
+		return;
+	}
+	if (pathKey === undefined) return;
+	const held = await pack.getRow(dataset, pathKey);
+	if (!held) return;
+	const next: DatasetRow | undefined =
+		write.apply === 'merge'
+			? isRecord(body)
+				? ({ ...held, ...body } as DatasetRow)
+				: undefined
+			: applyPatch(held, body, write.apply);
+	if (next) await pack.applyPredicted(changeOf(plan, dataset, pathKey, next));
+}
+
+/**
+ * Brings the held pack to the version a declared write's answer reached. The answer's `Spool-Delta` goes
+ * first; one that starts at another version, or that the store refuses, costs one delta fetch to the
+ * version the answer names. An answer that names no version and sends no delta is predicted from the
+ * write's mode when `sent` is given. An answer with a digest and no delta is predicted, and the digest
+ * confirms the prediction or drops it at the cost of one delta fetch. An answer that landed on another
+ * origin, after a redirect, applies nothing.
+ */
+export async function settleWrite(
+	response: Response,
+	pack: PackStore,
+	fetchDelta: (from: number, to: number) => Promise<BundleDelta>,
+	expected: string,
+	sent?: SentWrite
+): Promise<void> {
+	if (!response.url || new URL(response.url).origin !== expected) return;
+	const head = await pack.head();
+	if (!head) return;
+	const header = response.headers.get(HEADERS.delta);
+	const inline = header === null ? undefined : (JSON.parse(header) as BundleDelta);
+	if (inline?.from === head.version) {
+		try {
+			await pack.applyDelta(inline);
+			return;
+		} catch {
+			// refused; the delta route below brings the pack up to the answer's version
+		}
+	}
+	const vector = response.headers.get(HEADERS.vector);
+	const reached = inline?.to ?? (vector === null ? undefined : Number(vector));
+	if (reached === undefined) {
+		if (sent) await predict(response, pack, sent);
+		return;
+	}
+	if (!Number.isSafeInteger(reached) || reached <= head.version) return;
+	const digest = response.headers.get(WRITE_HEADERS.digest);
+	if (inline === undefined && sent && digest !== null) {
+		await predict(response, pack, sent);
+		try {
+			await pack.confirmPredicted(reached, digest);
+			return;
+		} catch {
+			await pack.dropPredicted();
+		}
+	}
+	await pack.applyDelta(await fetchDelta(head.version, reached));
 }

@@ -22,14 +22,14 @@ const DATASET_META = 'datasetMeta';
 const META_KEY = 'replica';
 const FLUSH_KEY = 'flush';
 
-function wrap<T>(request: IDBRequest<T>): Promise<T> {
+export function wrap<T>(request: IDBRequest<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
 		request.onsuccess = () => resolve(request.result);
 		request.onerror = () => reject(request.error);
 	});
 }
 
-function done(tx: IDBTransaction): Promise<void> {
+export function done(tx: IDBTransaction): Promise<void> {
 	return new Promise((resolve, reject) => {
 		tx.oncomplete = () => resolve();
 		tx.onerror = () => reject(tx.error);

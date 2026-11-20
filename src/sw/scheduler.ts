@@ -92,6 +92,7 @@ export class Scheduler {
 	readonly #inflight = new Map<string, Promise<boolean>>();
 	readonly #policy: SyncPolicy;
 	#pending: Record<string, number> = {};
+	#full = false;
 	#pendingAge = 0;
 	/** the rate the benefit uses; moves as syncs report what changed */
 	readonly rate: ChangeRate;
@@ -147,8 +148,21 @@ export class Scheduler {
 			policy: this.#policy
 		});
 		if (benefit <= 0) return false;
-		for (const [id, version] of Object.entries(need)) {
-			this.#pending[id] = Math.min(version, this.#pending[id] ?? Infinity);
+		return this.queue(need, ageSec);
+	}
+
+	/**
+	 * Queues a sync for the next network moment whatever its benefit. `undefined` queues a full sync from
+	 * the cursor. Returns false when `need` names no id.
+	 */
+	queue(need: Record<string, number> | undefined, ageSec: number): boolean {
+		if (need === undefined) {
+			this.#full = true;
+		} else {
+			if (Object.keys(need).length === 0) return false;
+			for (const [id, version] of Object.entries(need)) {
+				this.#pending[id] = Math.min(version, this.#pending[id] ?? Infinity);
+			}
 		}
 		this.#pendingAge = Math.max(this.#pendingAge, ageSec);
 		return true;
@@ -159,14 +173,16 @@ export class Scheduler {
 		return Object.keys(this.#pending).sort();
 	}
 
-	/** runs the queued syncs as one request; true when nothing was queued */
+	/** runs the queued syncs as one request, or one full sync when one was queued; true when nothing was queued */
 	drain(): Promise<boolean> {
 		const need = this.#pending;
-		if (Object.keys(need).length === 0) return Promise.resolve(true);
+		const full = this.#full;
+		if (!full && Object.keys(need).length === 0) return Promise.resolve(true);
 		const age = this.#pendingAge;
 		this.#pending = {};
 		this.#pendingAge = 0;
-		return this.sync(need, age);
+		this.#full = false;
+		return this.sync(full ? undefined : need, age);
 	}
 
 	async #run(need?: Record<string, number>, ageSec?: number): Promise<boolean> {

@@ -1,5 +1,5 @@
 import { matchCollector, type CollectorConfig } from '../protocol/collector.js';
-import type { SwConfig } from '../protocol/config.js';
+import { LIVE_PATH, type SwConfig } from '../protocol/config.js';
 import { matchPattern, type Params } from '../protocol/pattern.js';
 import { matchRoute, type SerializedRoute } from '../protocol/route.js';
 
@@ -23,7 +23,8 @@ function thirdPartyOrigin(config: SwConfig, url: URL): boolean {
 
 /**
  * Sorts a request without touching it. A request to another origin is a held collector hit, a
- * file of an allowed third-party origin, or ignored so the browser handles it natively. A
+ * GET a data family answers for that origin, a file of an allowed third-party origin, or ignored so
+ * the browser handles it natively. A
  * same-origin one is a logout request, a queued beacon, a navigation on a declared route, a GET for
  * a JSON route, a GET for a subresource (cache-first when immutable), a GET of a file a static
  * route keeps, or a pass-through that the worker still observes for spool headers.
@@ -35,17 +36,30 @@ export function classify(config: SwConfig, request: Request, origin: string): Cl
 		if (collector && (request.method === 'POST' || request.method === 'GET')) {
 			return { kind: 'collector', collector };
 		}
+		if (request.method === 'GET' && !request.headers.has('range')) {
+			const remote = config.routes.filter((route) => route.origin === url.origin);
+			const hit = matchRoute(remote, url.pathname);
+			if (hit?.route.strategy === 'data' && (url.search === '' || hit.route.query)) {
+				return { kind: 'data', route: hit.route, path: url.pathname };
+			}
+		}
 		if (request.method === 'GET' && thirdPartyOrigin(config, url))
 			return { kind: 'thirdparty' };
 		return { kind: 'ignore' };
 	}
+	// the stream is the browser's own long-lived request; the worker never sits in it
+	if (url.pathname === LIVE_PATH) return { kind: 'ignore' };
 	if (config.logout?.some((pattern) => matchPattern(pattern, url.pathname))) {
 		return { kind: 'logout' };
 	}
 	if (request.method === 'POST' && config.beacons.includes(url.pathname))
 		return { kind: 'beacon' };
 	if (request.method !== 'GET') return { kind: 'pass' };
-	const hit = matchRoute(config.routes, url.pathname);
+	// a cross-origin family answers only its own origin's GETs, never the page's paths
+	const hit = matchRoute(
+		config.routes.filter((route) => route.origin === undefined),
+		url.pathname
+	);
 	// an artifact is keyed by path alone, so only a route with a query schema answers a query
 	const queried = url.search !== '' && !hit?.route.query;
 	if (request.mode !== 'navigate') {

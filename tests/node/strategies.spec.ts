@@ -1,19 +1,26 @@
 import { describe, expect, it } from 'vitest';
+import { HEADERS } from '../../src/protocol/envelope';
 import {
+	buildPack,
 	datasetProof,
 	decodeEnvelope,
+	defineDataset,
 	defineRoute,
 	equivalent,
 	evaluateQuery,
+	serializeRoute,
+	setProof,
 	type Artifact,
 	type QuerySchema,
 	type TimedView
 } from '../../src/protocol/index';
+import { GATE_ATTR } from '../../src/protocol/tag';
 import { SW_CORE } from '../../src/server/embedded';
 import { createSpool, viewsOf } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
+import { createPackStore } from '../../src/sw/pack/store';
 import type { ReplicaStorage } from '../../src/sw/storage';
-import { artifact, nav, sub } from './helpers';
+import { artifact, freshIndexedDB, nav, ORIGIN, sub } from './helpers';
 import { HTML, rig, type RigOptions } from './rig';
 
 const JSON_TYPE = { 'content-type': 'application/json' };
@@ -109,7 +116,11 @@ describe('data strategy', () => {
 		await get(r, '/api/course/1');
 		await r.spool.invalidate(['course:1']);
 		r.advance(901);
+		r.reset();
 		await get(r, '/api/course/1');
+		expect(r.log).toEqual([]);
+		// the queued sync lands at the next network moment
+		await r.drive(nav('/small/1'));
 		r.reset();
 		await get(r, '/api/course/1');
 		expect(r.log[0]).toBe('GET /api/course/1');
@@ -173,7 +184,7 @@ describe('projection strategy and the bundled worker', () => {
 		const body = await r.visit('/p/7', worker);
 		expect(r.log).toEqual([]);
 		expect(body).toContain('projection 7');
-		expect(body).toContain('data-spool-client');
+		expect(body).toContain(GATE_ATTR);
 	});
 
 	it('refuses a projection route that has no renderer and lets the network answer', async () => {
@@ -775,5 +786,167 @@ describe('query routes on the server', () => {
 				query: { list: 'a' }
 			})
 		).toThrow(/only with query\.dataset/);
+	});
+});
+
+describe('network-read families', () => {
+	const API = 'https://api.test';
+	const COURSES = [
+		{ id: 'c1', title: 'Algebra' },
+		{ id: 'c2', title: 'Biology' }
+	];
+	const family = { dataset: 'courses', key: 'id' };
+	const item = defineRoute('/v2/courses/:id', { strategy: 'data', origin: API, family });
+	const listing = defineRoute('/v2/courses', {
+		strategy: 'data',
+		origin: API,
+		query: { list: 'courses', dataset: 'courses', filter: { title: 'string' } },
+		load: () => ({})
+	});
+	const own = defineRoute('/api/courses/:id', { strategy: 'data', family });
+	const seen: Headers[] = [];
+	const network = (request: Request): Response => {
+		const url = new URL(request.url);
+		if (url.origin !== API) return new Response('missing', { status: 404, headers: HTML });
+		seen.push(request.headers);
+		const id = url.pathname.split('/').pop();
+		const row = COURSES.find((course) => course.id === id);
+		if (!row) return new Response('not found', { status: 404 });
+		return new Response(JSON.stringify(row), { headers: JSON_TYPE });
+	};
+
+	async function* once(bytes: Uint8Array<ArrayBuffer>) {
+		yield bytes;
+	}
+
+	/** a rig whose device holds the `courses` pack, unless `held` is false */
+	async function setup(held = true, extra: Array<ReturnType<typeof serializeRoute>> = []) {
+		const proof = await setProof(new Map(COURSES.map((row) => [row.id, row])));
+		const courses = defineDataset('courses', {
+			scope: 'public',
+			schema: 'v1',
+			maxRows: 1000,
+			maxBytes: 1_000_000,
+			key: (row) => row.id,
+			seed: () => COURSES,
+			read: (ids) => COURSES.filter((row) => ids.includes(row.id)),
+			changes: () => ({ cursor: 0, puts: [], deletes: [], proof }),
+			horizon: () => 0,
+			head: () => ({ cursor: 0, proof })
+		});
+		const r = rig({
+			routes: [item, listing, own],
+			app: network,
+			spool: { datasets: [courses] }
+		});
+		if (!held) return r;
+		const { bytes } = await buildPack({
+			version: 1,
+			tables: { courses: COURSES.map((row): [string, typeof row] => [row.id, row]) }
+		});
+		const pack = createPackStore(freshIndexedDB());
+		await pack.installPack(once(bytes));
+		const config = { ...r.spool.config, routes: [...r.spool.config.routes, ...extra] };
+		const target = r.make({ pack, config });
+		return { ...r, drive: (request: Request) => r.drive(request, target) };
+	}
+
+	it('answers an item the device never fetched from its API origin, with the row and CORS headers', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		r.reset();
+		const answer = await r.drive(sub(`${API}/v2/courses/c2`));
+		expect(r.log).toEqual([]);
+		expect(answer.status).toBe(200);
+		expect(answer.headers.get('content-type')).toBe('application/json');
+		expect(answer.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+		expect(answer.headers.get('vary')).toBe('origin');
+		expect(await answer.text()).toBe(JSON.stringify(COURSES[1]));
+	});
+
+	it('sends a key the dataset does not hold to the API untouched, with no spool header', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		r.reset();
+		const miss = await r.drive(sub(`${API}/v2/courses/c9`));
+		expect(miss.status).toBe(404);
+		expect(r.log).toEqual(['GET /v2/courses/c9']);
+		expect(seen.at(-1)?.has(HEADERS.vectorSeen)).toBe(false);
+	});
+
+	it('never answers an origin the family does not name', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		const ignored = r.runtime.handle(sub('https://other.test/v2/courses/c2'), () => undefined);
+		expect(ignored).toBeUndefined();
+	});
+
+	it('does not answer a same-origin GET of the API path from a cross-origin family', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		r.reset();
+		const answer = await r.drive(sub('/v2/courses/c2'));
+		expect(answer.status).toBe(404);
+		expect(r.log).toEqual(['GET /v2/courses/c2']);
+	});
+
+	it('never answers an Authorization request from the public store', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		r.reset();
+		const answer = await r.drive(
+			sub(`${API}/v2/courses/c2`, { headers: { authorization: 'Bearer t' } })
+		);
+		expect(answer.status).toBe(200);
+		expect(r.log).toEqual(['GET /v2/courses/c2']);
+	});
+
+	it('never answers a principal cross-origin route from the public pack, with or without the header', async () => {
+		// the server refuses this route over a public dataset, so only the worker config carries it
+		const principal = serializeRoute(
+			defineRoute('/v2/mine/:id', {
+				strategy: 'data',
+				scope: 'principal',
+				origin: API,
+				family
+			})
+		);
+		const r = await setup(true, [principal]);
+		await r.drive(sub(`${API}/v2/courses/c1`));
+		r.reset();
+		const bearer = { headers: { authorization: 'Bearer t' } };
+		await r.drive(sub(`${API}/v2/mine/c1`, bearer));
+		await r.drive(sub(`${API}/v2/mine/c2`));
+		expect(r.log).toEqual(['GET /v2/mine/c1', 'GET /v2/mine/c2']);
+	});
+
+	it('answers a collection from the held rows, and sends a parameter the route does not declare to the API', async () => {
+		const r = await setup();
+		await r.drive(sub(`${API}/v2/courses`));
+		r.reset();
+		const all = await r.drive(sub(`${API}/v2/courses`));
+		expect(r.log).toEqual([]);
+		const body = (await all.json()) as { courses: Array<{ id: string }> };
+		expect(body.courses.map((course) => course.id)).toEqual(['c1', 'c2']);
+		r.reset();
+		await r.drive(sub(`${API}/v2/courses?color=red`));
+		expect(r.log).toEqual(['GET /v2/courses']);
+	});
+
+	it('answers a same-origin item family from the row with no CORS header', async () => {
+		const r = await setup();
+		await r.drive(sub('/api/courses/c1'));
+		r.reset();
+		const answer = await r.drive(sub('/api/courses/c2'));
+		expect(r.log).toEqual([]);
+		expect(answer.headers.get('access-control-allow-origin')).toBeNull();
+		expect(await answer.text()).toBe(JSON.stringify(COURSES[1]));
+	});
+
+	it('sends an item to the network when the device holds no pack', async () => {
+		const r = await setup(false);
+		const answer = await r.drive(sub(`${API}/v2/courses/c1`));
+		expect(r.log).toEqual(['GET /v2/courses/c1']);
+		expect(await answer.text()).toBe(JSON.stringify(COURSES[0]));
 	});
 });
