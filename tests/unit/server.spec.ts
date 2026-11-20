@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cdnClientUrl } from '../../src/cdn/location';
+import { cdnClientUrl, cdnWorkerUrl } from '../../src/cdn/location';
+import { shellHash } from '../../src/protocol/hash';
 import {
 	artifactTag,
 	clientPath,
@@ -20,11 +21,13 @@ import {
 	analyticsEngineSink,
 	createSpool,
 	jsonLinesSink,
+	memoryBundleStore,
 	memorySink,
 	partitionId,
 	viewsOf,
 	workSeries,
 	type AnalyticsEngineLike,
+	type Spool,
 	type SpoolOptions
 } from '../../src/server/index';
 import { MAX_PIGGYBACK } from '../../src/server/spool';
@@ -113,6 +116,27 @@ describe('createSpool', () => {
 		expect(config.clientTag).toContain(clientPath(VERSION));
 	});
 
+	it('defaults views to on with a sink and to off without one', () => {
+		expect(setup().spool.config.views).toBeUndefined();
+		expect(createSpool({ routes, store: memoryStore() }).config.views).toBe(false);
+	});
+
+	it('lets an explicit views setting win over the sink', () => {
+		expect(setup({ views: true }).spool.config.views).toBeUndefined();
+		expect(setup({ views: false }).spool.config.views).toBe(false);
+		const noSink = createSpool({ routes, store: memoryStore(), views: true });
+		expect(noSink.config.views).toBeUndefined();
+	});
+
+	it('writes views false into the stub of a sinkless spool and nothing else', async () => {
+		const options = { routes, beacons: ['/cdn-cgi/rum'] };
+		const sinked = createSpool({ ...options, store: memoryStore(), sink: memorySink() });
+		const sinkless = createSpool({ ...options, store: memoryStore() });
+		const withSink = await sinked.stub().text();
+		const noSink = await sinkless.stub().text();
+		expect(noSink.length - withSink.length).toBe(',"views":false'.length);
+	});
+
 	it('uses the CDN script with its integrity hash when configured', () => {
 		const { spool } = setup({
 			cdn: { url: 'https://cdn.test/client.js', integrity: 'sha384-x' }
@@ -125,7 +149,7 @@ describe('createSpool', () => {
 		const { spool } = setup({ cdn: { integrity: 'sha384-x' } });
 		expect(spool.config.clientTag).toContain(`src="${cdnClientUrl(VERSION)}"`);
 		expect(cdnClientUrl(VERSION)).toBe(`https://cdn.drupflare.com/spool/${VERSION}/client.js`);
-		expect(spool.config.clientTag).toContain('crossorigin="anonymous"');
+		expect(spool.config.clientTag).toContain('data-integrity="sha384-x"');
 	});
 
 	it('refuses a pattern declared twice and a beacon path under /.spool/', () => {
@@ -155,7 +179,220 @@ describe('createSpool', () => {
 		expect(text).toContain(JSON.stringify(spool.config.version));
 		expect(text.endsWith(SW_CORE)).toBe(true);
 		expect(SW_CORE.length).toBeGreaterThan(1000);
-		expect(workerScript(spool.config)).toBe(text);
+		expect(workerScript({ ...spool.config, runtime: await shellHash(SW_CORE) })).toBe(text);
+	});
+
+	describe('the worker script validator', () => {
+		const SW = '/spool-sw.js';
+		const conditional = (etag: string, method = 'GET') =>
+			new Request(`${ORIGIN}${SW}`, { method, headers: { 'if-none-match': etag } });
+		const seeded = async (overrides: Partial<SpoolOptions> = {}) => {
+			const bundles = memoryBundleStore();
+			const { spool } = setup({ bundles, ...overrides });
+			await spool.publish(new URL(ORIGIN));
+			return { spool, bundles };
+		};
+		const etagOf = async (spool: Spool) => (await spool.stub(get(SW))).headers.get('etag');
+
+		it('sends a strong ETag that hashes the exact bytes of the script', async () => {
+			const { spool } = setup();
+			const response = await spool.stub(get(SW));
+			const text = await response.text();
+			expect(response.status).toBe(200);
+			expect(response.headers.get('etag')).toBe(`"${await shellHash(text)}"`);
+			expect(text).toBe(workerScript({ ...spool.config, runtime: await shellHash(SW_CORE) }));
+			expect(text).toBe(await spool.stub().text());
+		});
+
+		it('keeps the other headers as they were', async () => {
+			const { spool } = setup({ freshness: { maxAge: 7 } });
+			const response = await spool.stub(get(SW));
+			expect(response.headers.get('cache-control')).toBe('max-age=7');
+			expect(response.headers.get('service-worker-allowed')).toBe('/');
+			expect(response.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
+			expect(spool.stub().headers.has('etag')).toBe(false);
+		});
+
+		it('answers a matching If-None-Match with 304, no body and the same headers', async () => {
+			const { spool } = setup({ freshness: { maxAge: 7 } });
+			const full = await spool.stub(get(SW));
+			const etag = full.headers.get('etag')!;
+			const same = await spool.stub(conditional(etag));
+			expect(same.status).toBe(304);
+			expect(await same.text()).toBe('');
+			for (const name of ['cache-control', 'etag', 'service-worker-allowed']) {
+				expect(same.headers.get(name)).toBe(full.headers.get(name));
+			}
+		});
+
+		it.each([
+			['a weak copy a proxy made', (etag: string) => `W/${etag}`],
+			['a list that holds it', (etag: string) => `"other", ${etag}`],
+			['a star', () => '*']
+		])('matches %s', async (_name, header) => {
+			const { spool } = setup();
+			const etag = (await etagOf(spool))!;
+			expect((await spool.stub(conditional(header(etag)))).status).toBe(304);
+		});
+
+		it('answers another validator, or none, with the full script', async () => {
+			const { spool } = setup();
+			const full = await (await spool.stub(get(SW))).text();
+			for (const request of [conditional('"stale"'), conditional(''), get(SW)]) {
+				const response = await spool.stub(request);
+				expect(response.status).toBe(200);
+				expect(await response.text()).toBe(full);
+			}
+		});
+
+		it('answers HEAD like GET with no body, and 304 for a match', async () => {
+			const { spool } = setup();
+			const get200 = await spool.stub(get(SW));
+			const head = await spool.stub(new Request(`${ORIGIN}${SW}`, { method: 'HEAD' }));
+			expect(head.status).toBe(200);
+			expect(await head.text()).toBe('');
+			expect(head.headers.get('etag')).toBe(get200.headers.get('etag'));
+			const etag = get200.headers.get('etag')!;
+			expect((await spool.stub(conditional(etag, 'HEAD'))).status).toBe(304);
+		});
+
+		it('serves the same answers through handle()', async () => {
+			const { spool } = setup();
+			const etag = (await etagOf(spool))!;
+			const full = await spool.handle(get(SW), () => page());
+			expect(full.headers.get('etag')).toBe(etag);
+			const same = await spool.handle(conditional(etag), () => page());
+			expect(same.status).toBe(304);
+		});
+
+		it('gives the same validator for the same inputs', async () => {
+			expect(await etagOf(setup().spool)).toBe(await etagOf(setup().spool));
+			const { spool } = setup();
+			expect(await etagOf(spool)).toBe(await etagOf(spool));
+		});
+
+		it('gives another validator for another stamp, config or pack head', async () => {
+			const base = await etagOf(setup().spool);
+			const stamped = await etagOf(setup({ stamp: 1 }).spool);
+			expect(stamped).not.toBe(base);
+			expect(await etagOf(setup({ stamp: 2 }).spool)).not.toBe(stamped);
+			expect(await etagOf(setup({ policy: {} }).spool)).not.toBe(base);
+			expect(await etagOf(setup({ freshness: { maxAge: 60 } }).spool)).not.toBe(base);
+			const { spool } = await seeded();
+			const first = await etagOf(spool);
+			await spool.invalidate(['node:1']);
+			await spool.publish(new URL(ORIGIN));
+			expect(await etagOf(spool)).not.toBe(first);
+		});
+
+		it('follows a stamp function as it moves', async () => {
+			let stamp = 1;
+			const { spool } = setup({ stamp: () => stamp });
+			const one = await etagOf(spool);
+			stamp = 2;
+			expect(await etagOf(spool)).not.toBe(one);
+		});
+	});
+
+	describe('cdn.worker', () => {
+		const SW = '/spool-sw.js';
+		const cdn = { integrity: 'sha384-x' };
+		const line = async (spool: Spool) => {
+			const text = await spool.stub().text();
+			return {
+				text,
+				head: text.slice(0, text.indexOf('\n')),
+				rest: text.slice(text.indexOf('\n') + 1)
+			};
+		};
+
+		it('makes the stub the config and one importScripts line, with no core inline', async () => {
+			const { spool } = setup({ cdn: { ...cdn, worker: true } });
+			const { text, head, rest } = await line(spool);
+			const url = cdnWorkerUrl(VERSION, await shellHash(SW_CORE));
+			expect(url).toBe(
+				`https://cdn.drupflare.com/spool/${VERSION}/spool-sw.js?h=${await shellHash(SW_CORE)}`
+			);
+			expect(rest).toBe(`importScripts(${JSON.stringify(url)});`);
+			expect(head).toBe(
+				workerScript({ ...spool.config, runtime: await shellHash(SW_CORE) }, '').slice(
+					0,
+					-1
+				)
+			);
+			expect(text).not.toContain(SW_CORE.slice(0, 200));
+			expect(text.length).toBeLessThan(SW_CORE.length / 4);
+		});
+
+		it('leaves the stub byte for byte as it was when worker is unset or false', async () => {
+			const plain = await line(setup({ cdn }).spool);
+			expect(plain.rest).toBe(SW_CORE);
+			expect((await line(setup({ cdn: { ...cdn, worker: false } }).spool)).text).toBe(
+				plain.text
+			);
+			const none = setup().spool;
+			expect(await none.stub().text()).toBe(
+				workerScript({ ...none.config, runtime: await shellHash(SW_CORE) })
+			);
+		});
+
+		it('names the core by version and by content hash', async () => {
+			expect(cdnWorkerUrl('1.2.3', 'abc')).toBe(
+				'https://cdn.drupflare.com/spool/1.2.3/spool-sw.js?h=abc'
+			);
+			expect(cdnWorkerUrl('1.2.4', 'abc')).not.toBe(cdnWorkerUrl('1.2.3', 'abc'));
+			expect(cdnWorkerUrl('1.2.3', 'abd')).not.toBe(cdnWorkerUrl('1.2.3', 'abc'));
+			const other = setup({
+				cdn: { ...cdn, worker: { url: 'https://assets.test/core.js' } }
+			});
+			expect((await line(other.spool)).rest).toBe(
+				'importScripts("https://assets.test/core.js");'
+			);
+		});
+
+		it('takes a custom worker only with its own url', async () => {
+			const worker = 'self.addEventListener("fetch",()=>{});';
+			expect(() => setup({ worker, cdn: { ...cdn, worker: true } })).toThrow(
+				/custom worker needs cdn.worker.url/
+			);
+			const { spool } = setup({
+				worker,
+				cdn: { ...cdn, worker: { url: 'https://assets.test/mine.js' } }
+			});
+			expect((await line(spool)).rest).toBe('importScripts("https://assets.test/mine.js");');
+			expect((await line(spool)).head).toContain(
+				`"runtime":${JSON.stringify(await shellHash(worker))}`
+			);
+		});
+
+		it.each([
+			'',
+			'core.js',
+			'//cdn.test/core.js',
+			'javascript:alert(1)',
+			'ftp://cdn.test/core.js'
+		])('refuses the core url %j', (url) => {
+			expect(() => setup({ cdn: { ...cdn, worker: { url } } })).toThrow(
+				/absolute http or https URL/
+			);
+		});
+
+		it('keeps the validator: a strong ETag of the small stub, 304 on a match, new after a stamp', async () => {
+			const { spool } = setup({ cdn: { ...cdn, worker: true } });
+			const full = await spool.stub(get(SW));
+			const text = await full.text();
+			expect(text).toBe(await spool.stub().text());
+			const etag = full.headers.get('etag');
+			expect(etag).toBe(`"${await shellHash(text)}"`);
+			const same = await spool.stub(
+				new Request(`${ORIGIN}${SW}`, { headers: { 'if-none-match': etag! } })
+			);
+			expect(same.status).toBe(304);
+			expect(await same.text()).toBe('');
+			expect(same.headers.get('cache-control')).toBe('max-age=86400');
+			const stamped = setup({ cdn: { ...cdn, worker: true }, stamp: 1 }).spool;
+			expect((await stamped.stub(get(SW))).headers.get('etag')).not.toBe(etag);
+		});
 	});
 
 	it('hands a request that is not under /.spool/ to the app', async () => {
@@ -167,6 +404,56 @@ describe('createSpool', () => {
 		);
 		expect(response.status).toBe(201);
 		expect(response.headers.get(HEADERS.protocol)).toBe('1');
+	});
+});
+
+describe('a template route that is a placeholder', () => {
+	const template = (pattern: string, source: string, extra: Record<string, unknown> = {}) =>
+		createSpool({
+			routes: [
+				defineRoute(pattern, {
+					strategy: 'template',
+					template: { source },
+					load: () => ({}),
+					...extra
+				} as Parameters<typeof defineRoute>[1])
+			],
+			store: memoryStore()
+		});
+
+	it.each([
+		['/x', ''],
+		['/x', '   '],
+		['/x', '...'],
+		['/x', '…'],
+		['/x', '{{! nothing yet }}'],
+		['/articles/:id', '<h1>/articles/7</h1>'],
+		['/a/:x/b/:y', '<!doctype html><title>t</title><p>same for every row</p>']
+	])('refuses %s with the source %j and names the route', (pattern, source) => {
+		expect(() => template(pattern, source)).toThrow(
+			`${pattern}: the template is a placeholder`
+		);
+		expect(() => template(pattern, source)).toThrow(
+			expect.objectContaining({ code: 'bad-template' })
+		);
+	});
+
+	it.each([
+		['/about', '<h1>About</h1><p>One constant page</p>'],
+		['/articles/:id', '<h1>{{row.title}}</h1>'],
+		['/articles/:id', '{{#if row}}<h1>{{row.title}}</h1>{{/if}}'],
+		['/lists/:id', '<ul>{{#each items}}<li>{{this}}</li>{{/each}}</ul>']
+	])('accepts %s with the source %j', (pattern, source) => {
+		expect(() => template(pattern, source)).not.toThrow();
+	});
+
+	it('leaves other strategies alone', () => {
+		expect(() =>
+			createSpool({
+				routes: [defineRoute('/files/:name', { strategy: 'static' })],
+				store: memoryStore()
+			})
+		).not.toThrow();
 	});
 });
 
@@ -997,6 +1284,16 @@ describe('/.spool/beacon with want', () => {
 		const body = (await response?.json()) as { artifacts: unknown[] };
 		expect(body.artifacts.map((a) => parseArtifact(a).id)).toEqual(['/node/1', '/page/a']);
 		expect(viewsOf(sink.events)).toHaveLength(1);
+	});
+
+	it('answers a want flush from a spool with no sink', async () => {
+		const spool = createSpool({ routes, store: memoryStore() });
+		const response = await spool.respond(
+			post({ protocol: 1, events: [viewToBeacon(VIEW, 1)], want: ['/node/1'] })
+		);
+		expect(response?.status).toBe(200);
+		const body = (await response?.json()) as { artifacts: unknown[] };
+		expect(body.artifacts.map((a) => parseArtifact(a).id)).toEqual(['/node/1']);
 	});
 
 	it('answers 204 for a flush that wants nothing, and 400 for a bad want', async () => {

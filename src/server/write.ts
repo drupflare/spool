@@ -1,5 +1,15 @@
+import {
+	buildPack,
+	bundleDigest,
+	makeDelta,
+	readBundle,
+	type BundleRows
+} from '../protocol/bundle.js';
+import type { Dataset } from '../protocol/dataset.js';
+import { HEADERS } from '../protocol/envelope.js';
+import { ProtocolError } from '../protocol/errors.js';
 import { shellHash } from '../protocol/hash.js';
-import type { Identity } from '../protocol/route.js';
+import type { Identity, Route } from '../protocol/route.js';
 import {
 	isWriteId,
 	isWriteKey,
@@ -10,6 +20,8 @@ import {
 	type WriteContext,
 	type WriteRefusalCode
 } from '../protocol/write.js';
+import type { VersionStore } from '../stores/version-store.js';
+import { buildBundle, indexTables, memoryBundleStore, type BundleStore } from './bundle.js';
 import { json } from './sync.js';
 
 /** how many `(class, principal, key)` slots the server remembers an applied write id for */
@@ -145,4 +157,113 @@ export function createWriteServer(options: WriteServerOptions): WriteServer {
 			});
 		}
 	};
+}
+
+/** the most bytes a `Spool-Delta` header may carry; past it the worker fetches the delta route */
+export const DELTA_HEADER_BYTES = 16_384;
+
+/** what {@link createResourceWrites} takes */
+export type ResourceWriteOptions = {
+	datasets: ReadonlyMap<string, Dataset>;
+	store: VersionStore;
+	bundles: BundleStore;
+	/** the site's routes; their index tables go into every pack a write builds, as `publish` does */
+	routes: readonly Route[];
+	blockRows?: number;
+	maxBytes?: number;
+};
+
+/**
+ * Runs a declared resource write's handler and, when it answers 2xx, attaches the rows the handler
+ * changed as `Spool-Delta`. The store moves to the version of the new pack, and that pack is kept, so the
+ * delta route and the worker script can reach it. Writes run one at a time, so each starts from the pack
+ * the one before it left.
+ */
+export function createResourceWrites(
+	options: ResourceWriteOptions
+): (
+	request: Request,
+	next: (request: Request) => Response | Promise<Response>
+) => Promise<Response> {
+	let tail: Promise<unknown> = Promise.resolve();
+	return (request, next) => {
+		const run = tail.then(() => runResourceWrite(request, next, options));
+		tail = run.catch(() => undefined);
+		return run;
+	};
+}
+
+/** the rows of one public dataset, read in full; for a dataset whose `changes` answers `reset` */
+async function reseed(dataset: Dataset, url: URL): Promise<BundleRows> {
+	const scratch = memoryBundleStore();
+	await buildBundle({ store: scratch, datasets: [dataset], version: 0, url });
+	const bytes = await scratch.get(0);
+	if (!bytes) throw new ProtocolError('bad-bundle', `${dataset.name}: the reseed stored no pack`);
+	return (await readBundle(bytes)).state.tables[dataset.name] ?? [];
+}
+
+async function runResourceWrite(
+	request: Request,
+	next: (request: Request) => Response | Promise<Response>,
+	{ datasets, store, bundles, routes, blockRows, maxBytes }: ResourceWriteOptions
+): Promise<Response> {
+	const url = new URL(request.url);
+	const ctx = { request, url };
+	const publics = [...datasets.values()].filter((dataset) => dataset.scope === 'public');
+	const before = await store.cursor();
+	const heads = new Map<string, number>();
+	for (const dataset of publics) heads.set(dataset.name, (await dataset.head(ctx)).cursor);
+	if (!(await bundles.get(before))) {
+		await buildBundle({
+			store: bundles,
+			datasets: publics,
+			routes,
+			version: before,
+			url,
+			blockRows,
+			maxBytes
+		});
+	}
+	const bytes = await bundles.get(before);
+	const response = await next(request);
+	if (!bytes || !response.ok) return response;
+
+	const base = await readBundle(bytes);
+	const tables: Record<string, BundleRows> = {};
+	for (const dataset of publics) tables[dataset.name] = base.state.tables[dataset.name] ?? [];
+	const moved: string[] = [];
+	for (const dataset of publics) {
+		const change = await dataset.changes(heads.get(dataset.name) as number, ctx);
+		if (change === 'reset') {
+			tables[dataset.name] = await reseed(dataset, url);
+			moved.push(dataset.name);
+			continue;
+		}
+		if (change.puts.length === 0 && change.deletes.length === 0) continue;
+		const rows = new Map(tables[dataset.name] ?? []);
+		for (const { key } of change.deletes) rows.delete(key);
+		if (change.puts.length > 0) {
+			for (const row of await dataset.read(change.puts, ctx)) rows.set(dataset.key(row), row);
+		}
+		tables[dataset.name] = [...rows];
+		moved.push(dataset.name);
+	}
+	if (moved.length === 0) return response;
+
+	const to = await store.bump(moved);
+	const state = { version: to, tables: { ...tables, ...indexTables(routes, tables) } };
+	const built = await buildPack(state, blockRows, maxBytes);
+	await bundles.put(to, built.bytes);
+	const text = JSON.stringify(await makeDelta(base.state, state));
+	const headers = new Headers(response.headers);
+	if (new TextEncoder().encode(text).length <= DELTA_HEADER_BYTES) {
+		headers.set(HEADERS.delta, text);
+	} else {
+		headers.set(WRITE_HEADERS.digest, await bundleDigest(state.tables));
+	}
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers
+	});
 }

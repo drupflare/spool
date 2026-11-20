@@ -304,6 +304,55 @@ async function measurePatch(dataset: Dataset, stats: DatasetStats, ctx: DatasetC
 /** the admission inputs `respondDataset` needs from the server: its prior and what it has seen, by dataset name */
 export type Admission = { prior: ProvisionPrior; stats: Map<string, DatasetStats> };
 
+/**
+ * The fields of a row one viewer may hold, from the dataset's `fields`. A family dataset with no
+ * `fields` gives the viewer its own row whole and refuses any other row; a dataset no family reads
+ * has no view and every row goes out whole.
+ */
+export function viewOf(
+	dataset: Dataset,
+	viewer: Identity,
+	family = false
+): ((row: DatasetRow) => DatasetRow) | undefined {
+	const { fields } = dataset;
+	if (fields === undefined) {
+		if (!family) return undefined;
+		return (row) => {
+			if (dataset.key(row) === viewer.principal) return row;
+			return bad(dataset, 'a row of another principal needs a fields function');
+		};
+	}
+	return (row) => {
+		const names: unknown = fields.call(dataset, viewer, row);
+		if (!Array.isArray(names) || names.some((name) => typeof name !== 'string')) {
+			return bad(dataset, 'fields must return a list of field names');
+		}
+		const out: DatasetRow = {};
+		for (const name of names as string[]) if (Object.hasOwn(row, name)) out[name] = row[name];
+		return out;
+	};
+}
+
+/**
+ * The body with each row cut to the viewer's fields. A proof is taken again over the cut rows, since
+ * the backend's proof covers the whole row and the device checks the rows it holds against it.
+ */
+async function viewed(
+	dataset: Dataset,
+	body: DatasetResponse,
+	ctx: DatasetContext,
+	view: (row: DatasetRow) => DatasetRow
+): Promise<DatasetResponse> {
+	const puts = body.puts.map(({ key, row }) => ({ key, row: view(row) }));
+	if (body.proof === undefined) return { ...body, puts };
+	const all = new Map<string, DatasetRow>();
+	for await (const raw of rowsOf(dataset, ctx)) {
+		const [key, row] = keyed(dataset, raw);
+		all.set(key, view(row));
+	}
+	return { ...body, puts, proof: await setProof(all) };
+}
+
 /** who is asking a principal dataset, and the `Spool-Partition` value that names them */
 export type DatasetPrincipal = { identity: Identity; partition: string };
 
@@ -318,13 +367,17 @@ async function respondPrincipalDataset(
 	url: URL,
 	dataset: Dataset,
 	ask: DatasetRequest,
-	who: (() => Promise<DatasetPrincipal | null>) | undefined
+	who: (() => Promise<DatasetPrincipal | null>) | undefined,
+	families: ReadonlySet<string>
 ): Promise<Response> {
 	const caller = who ? await who() : null;
 	if (!caller) return json({ error: 'sign in' }, 401, { 'cache-control': 'private, no-store' });
 	let body: DatasetResponse;
 	try {
-		body = await answerDataset(dataset, ask, { request, url, principal: caller.identity });
+		const ctx = { request, url, principal: caller.identity };
+		body = await answerDataset(dataset, ask, ctx);
+		const view = viewOf(dataset, caller.identity, families.has(dataset.name));
+		if (view) body = await viewed(dataset, body, ctx, view);
 	} catch (error) {
 		if (error instanceof ProtocolError && error.code === 'dataset-forbidden') {
 			return json({ error: 'forbidden' }, 403, { 'cache-control': 'private, no-store' });
@@ -348,13 +401,14 @@ export async function respondDataset(
 	url: URL,
 	datasets: ReadonlyMap<string, Dataset>,
 	admission: Admission,
-	who?: () => Promise<DatasetPrincipal | null>
+	who: (() => Promise<DatasetPrincipal | null>) | undefined,
+	families: ReadonlySet<string>
 ): Promise<Response> {
 	const ask = parseDatasetRequest(url.searchParams);
 	const dataset = datasets.get(ask.name);
 	if (!dataset) return json({ error: 'no dataset' }, 404);
 	if (dataset.scope === 'principal')
-		return respondPrincipalDataset(request, url, dataset, ask, who);
+		return respondPrincipalDataset(request, url, dataset, ask, who, families);
 	const ctx = { request, url };
 	if (dataset.provision !== 'auto') {
 		const body = await answerDataset(dataset, ask, ctx);
