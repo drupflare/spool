@@ -40,6 +40,8 @@ Use a public route for content that every visitor sees. Use a principal route on
 depends on who asks. A principal route is kept sealed in that person's partition on the device, and
 it carries a stricter default contract (below), so it costs more to serve.
 
+For a public collection that editors change, declare a `family` route. In the four-day public edit reading, the stored-page route (a `template` with `depends`) made 17 requests over nine views, against 10 requests for the family route over the same views (L1, `measurements/demand/2026-11-20-days-ship-a.json`). The family route is the one to declare for an editable public collection.
+
 ### Freshness
 
 `freshness` takes `maxStale`, in seconds, and a `mode`. The defaults are in `DEFAULT_FRESHNESS`
