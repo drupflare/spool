@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { controlled } from './fixture';
 
 /**
  * The contract spool rests on: once a service worker controls the page, a navigation it answers
@@ -53,7 +54,7 @@ test('a controlled navigation never reaches the server', async ({ page, context,
 	await page.evaluate(() =>
 		navigator.serviceWorker.register('/spool-sw.js', { updateViaCache: 'all' })
 	);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.reload();
 
 	hits.length = 0;

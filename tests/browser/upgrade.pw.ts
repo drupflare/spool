@@ -9,6 +9,7 @@ import { toNodeListener } from '../../src/node/listener';
 import type * as Server from '../../src/server/index';
 import type * as Stores from '../../src/stores/index';
 import { VERSION } from '../../src/version';
+import { controlled } from './fixture';
 
 const BOUND = 2;
 const PRIOR = [
@@ -112,7 +113,7 @@ function spoolOf(
 			} as never)
 		);
 	}
-	return createSpool({ routes, store });
+	return createSpool({ routes, store, bootstrap: 'first-view' });
 }
 
 const db = new Map<string, string>(['1', '2', '3'].map((id) => [id, `body of ${id}`]));
@@ -170,7 +171,7 @@ const held = (page: Page) =>
 
 async function install(page: Page, origin: string, version: string) {
 	await page.goto(`${origin}/n/1`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	expect(await client(page)).toEqual({ version, compatible: true });
 	await page.goto(`${origin}/n/2`);
 	await expect.poll(() => held(page)).toContain('/n/2');

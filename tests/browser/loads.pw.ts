@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { viewsOf } from '../../src/server/index';
-import { startFixture, type Fixture } from './fixture';
+import { controlled, startFixture, type Fixture } from './fixture';
 
 type SpoolWindow = { spool: { ready: Promise<unknown> } };
 
@@ -16,7 +16,7 @@ test('a page reports the cross-origin resources it loaded, and one that loaded n
 	page
 }) => {
 	await page.goto(`${fx.origin}/n/1`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 
 	await page.goto(`${fx.origin}/n/1`);

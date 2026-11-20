@@ -10,7 +10,7 @@ import {
 import { createSpool, defineRoute, viewsOf } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
 import { VERSION } from '../../src/version';
-import { BOUND, listen, startFixture, type Fixture, type Hit } from './fixture';
+import { BOUND, controlled, listen, startFixture, type Fixture, type Hit } from './fixture';
 
 const PATHS = ['/n/1', '/n/2', '/n/3', '/hard/1', '/soft/1', '/asm/about'];
 
@@ -62,7 +62,7 @@ async function quiet(): Promise<void> {
 /** registers the worker through the page runtime, then visits every fixture path so each is provisioned */
 async function warm(page: Page): Promise<void> {
 	await page.goto(`${fx.origin}${PATHS[0]}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	for (const path of PATHS) {
 		await page.goto(`${fx.origin}${path}`);
@@ -75,18 +75,22 @@ test('the page runtime registers the worker with updateViaCache all and the hand
 	page
 }) => {
 	await page.goto(`${fx.origin}${PATHS[0]}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	const result = await page.evaluate(async () => {
 		const client = await (window as unknown as SpoolWindow).spool.ready;
 		const registration = await navigator.serviceWorker.getRegistration();
 		return { hello: (client as Client).hello, cache: registration?.updateViaCache };
 	});
 	expect(result.cache).toBe('all');
+	const stub = await fetch(`${fx.origin}/spool-sw.js`);
+	const configured = Number(/max-age=(\d+)/.exec(stub.headers.get('cache-control') ?? '')?.[1]);
+	expect(configured).toBeGreaterThan(0);
 	expect(result.hello).toEqual({
 		type: 'spool:hello',
 		protocol: 1,
 		version: VERSION,
-		compatible: true
+		compatible: true,
+		lease: configured
 	});
 });
 
@@ -167,7 +171,7 @@ test('hard: past the bound nothing is displayed before a required sync, then a c
 	await expect.poll(hits).toEqual(['/.spool/sync', '/hard/1', '/.spool/artifact']);
 });
 
-test('soft: past the bound the local page shows first and exactly one sync follows', async ({
+test('soft: past the bound the local page shows first and exactly one sync follows at the next network moment', async ({
 	page
 }) => {
 	await warm(page);
@@ -176,14 +180,18 @@ test('soft: past the bound the local page shows first and exactly one sync follo
 	fx.hits.length = 0;
 	await page.goto(`${fx.origin}/soft/1`);
 	await expect(page.locator('h1')).toHaveText('soft 1');
-	await expect.poll(hits).toEqual(['/.spool/sync']);
+	await new Promise((r) => setTimeout(r, 1500));
+	expect(hits()).toEqual([]);
+
+	await page.goto(`${fx.origin}/nowhere`);
+	await expect.poll(hits).toEqual(['/nowhere', '/.spool/sync']);
 
 	await page.goto(`${fx.origin}/soft/1`);
 	await page.goto(`${fx.origin}/n/1`);
 	await page.goto(`${fx.origin}/soft/1`);
 	await expect(page.locator('h1')).toHaveText('soft 1');
 	await new Promise((r) => setTimeout(r, 300));
-	expect(hits()).toEqual(['/.spool/sync']);
+	expect(hits()).toEqual(['/nowhere', '/.spool/sync']);
 });
 
 test('held beacons reach their own endpoint with the bodies the page sent, after the flush', async ({
@@ -235,9 +243,32 @@ test('held beacons reach their own endpoint with the bodies the page sent, after
 	expect(viewsOf(fx.sink.events).length).toBeGreaterThan(0);
 });
 
+test('a spool with no sink queues no view and sends no beacon over five navigations', async ({
+	page
+}) => {
+	const bare = await startFixture({ sinkless: true });
+	try {
+		await page.goto(`${bare.origin}/n/1`);
+		await controlled(page);
+		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
+		for (const path of ['/n/2', '/n/3', '/n/1', '/n/2'])
+			await page.goto(`${bare.origin}${path}`);
+		await sleepPast(1);
+		const stub = await page.evaluate(
+			async (origin) => (await fetch(`${origin}/spool-sw.js`)).text(),
+			bare.origin
+		);
+		expect(stub).toContain('"views":false');
+		expect(bare.hits.filter((h) => h.path === '/.spool/beacon')).toEqual([]);
+		expect(bare.sink.events).toEqual([]);
+	} finally {
+		await bare.stop();
+	}
+});
+
 test('closing IndexedDB on pagehide makes the connection unusable', async ({ page }) => {
 	await page.goto(`${fx.origin}${PATHS[0]}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	const result = await page.evaluate(async () => {
 		const client = await (window as unknown as SpoolWindow).spool.ready;
 		const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -276,6 +307,7 @@ test.describe('a template page that carries its artifact', () => {
 
 	test.beforeAll(async () => {
 		const spool = createSpool({
+			bootstrap: 'first-view',
 			routes: [
 				defineRoute('/i/:id', {
 					strategy: 'template',
@@ -311,7 +343,7 @@ test.describe('a template page that carries its artifact', () => {
 		browserName
 	}) => {
 		await page.goto(`${origin}/i/1`);
-		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		await controlled(page);
 		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 		await page.goto(`${origin}/i/2`);
 		await expect.poll(async () => (await status(page)).artifacts).toContain('/i/2');
@@ -354,6 +386,7 @@ test.describe('a query route', () => {
 
 	test.beforeAll(async () => {
 		const spool = createSpool({
+			bootstrap: 'first-view',
 			routes: [
 				defineRoute('/people', {
 					strategy: 'template',
@@ -397,7 +430,7 @@ test.describe('a query route', () => {
 		browserName
 	}) => {
 		await page.goto(`${origin}/people`);
-		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		await controlled(page);
 		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 		await page.goto(`${origin}/people`);
 		await expect.poll(async () => (await status(page)).artifacts).toContain('/people');

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { normalise, parseArtifact } from '../../src/protocol/index';
-import { BOUND, startCampus, type Fixture } from './fixture';
+import { BOUND, controlled, startCampus, type Fixture } from './fixture';
 
 const PATHS = ['/c/101', '/t/ada', '/d'];
 
@@ -51,7 +51,7 @@ const stored = (page: Page) =>
 
 async function warm(page: Page): Promise<void> {
 	await page.goto(`${fx.origin}${PATHS[0]}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	for (const path of PATHS) {
 		await page.goto(`${fx.origin}${path}`);
@@ -114,9 +114,13 @@ test('a record change costs one need-sync for the next page and a refetch of onl
 	fx.responses.length = 0;
 	await page.goto(`${fx.origin}/c/101`);
 	await expect(page.locator('h1')).toHaveText('Intro');
-	await expect.poll(() => hits().map((h) => h.path)).toEqual(['/.spool/sync']);
-	expect(hits()[0]?.search).toContain('need=');
-	expect(hits()[0]?.search).not.toContain('from=');
+	await new Promise((r) => setTimeout(r, 1500));
+	expect(hits()).toEqual([]);
+
+	await page.goto(`${fx.origin}/nowhere`);
+	await expect.poll(() => hits().map((h) => h.path)).toEqual(['/nowhere', '/.spool/sync']);
+	expect(hits()[1]?.search).toContain('need=');
+	expect(hits()[1]?.search).not.toContain('from=');
 	const sync = JSON.parse(fx.responses[0]?.text as string) as { changed: Record<string, number> };
 	expect(Object.keys(sync.changed)).toEqual(['course:102']);
 

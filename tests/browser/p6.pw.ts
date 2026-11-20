@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { thirdPartyReport } from '../../src/report/index';
 import { viewsOf } from '../../src/server/index';
+import { controlled } from './fixture';
 import { startP6, type P6Fixture } from './fixture-p56';
 
 let fx: P6Fixture;
@@ -29,7 +30,7 @@ const beacons = async (page: Page) =>
 
 async function register(page: Page, path: string): Promise<void> {
 	await page.goto(`${fx.origin}${path}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.evaluate(
 		() => (globalThis as unknown as { spool: { ready: Promise<unknown> } }).spool.ready
 	);

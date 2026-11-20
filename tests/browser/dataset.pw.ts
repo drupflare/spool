@@ -1,15 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
+import { spawnSync } from 'node:child_process';
 import {
+	buildPack,
+	compileTemplate,
 	defineDataset,
 	digestAdd,
 	digestSub,
+	equivalent,
+	interpretTemplate,
 	rowHash,
 	setProof,
 	type QuerySchema
 } from '../../src/protocol/index';
 import { createSpool, defineRoute } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
-import { listen, type Hit } from './fixture';
+import { controlled, listen, type Hit } from './fixture';
 
 type Row = { id: string; title: string; dept: string };
 type SpoolWindow = { spool: { ready: Promise<unknown> } };
@@ -72,6 +77,11 @@ const dataset = defineDataset<Row>(NAME, {
 const layout = (summary: string, items: string) =>
 	`<!doctype html><html><head><meta charset="utf-8"><title>Directory</title></head><body><main><h1>Directory</h1><p id="summary">${summary}</p><ul>${items}</ul></main></body></html>`;
 
+const rowTemplate = {
+	source: layout('row {{params.id}}', '<li>{{row.id}} {{row.title}}</li>')
+};
+const compiledRow = compileTemplate(rowTemplate);
+
 const page = (dept: string | null, n: number) => {
 	const all = sorted().filter((r) => dept === null || r.dept === dept);
 	return {
@@ -81,6 +91,19 @@ const page = (dept: string | null, n: number) => {
 	};
 };
 
+/** the pack store as one browser module, bundled from the working tree by bun */
+function bundle(entry: string): string {
+	const built = spawnSync('bun', ['build', entry, '--target', 'browser', '--format', 'esm'], {
+		encoding: 'utf8',
+		maxBuffer: 64 * 1024 * 1024
+	});
+	if (built.status !== 0) throw new Error(`bun build ${entry} failed: ${built.stderr}`);
+	return built.stdout;
+}
+
+const PACK_HOST = `<!doctype html><meta charset="utf-8"><title>pack host</title><script type="module">import * as pack from '/pack.js';window.pack=pack;</script>`;
+
+let packJs = '';
 let origin: string;
 let stop: () => Promise<void>;
 const log: Hit[] = [];
@@ -90,8 +113,10 @@ const own = () =>
 		.filter((path) => !['/spool-sw.js', '/.spool/beacon', '/cdn-cgi/rum'].includes(path));
 
 test.beforeAll(async () => {
+	packJs = bundle('src/sw/pack/store.ts');
 	digest = (await setProof(rows)).digest;
 	const spool = createSpool({
+		bootstrap: 'first-view',
 		routes: [
 			defineRoute('/browse', {
 				strategy: 'template',
@@ -122,6 +147,12 @@ test.beforeAll(async () => {
 					}
 				},
 				load: () => ({})
+			}),
+			defineRoute('/rows/:id', {
+				strategy: 'template',
+				template: rowTemplate,
+				family: { dataset: NAME, key: 'id' },
+				load: (ctx) => rows.get(ctx.params['id'] as string)
 			})
 		],
 		store: memoryStore(),
@@ -129,6 +160,16 @@ test.beforeAll(async () => {
 	});
 	const app = (request: Request) => {
 		const url = new URL(request.url);
+		if (url.pathname === '/pack.js') {
+			return new Response(packJs, {
+				headers: { 'content-type': 'text/javascript; charset=utf-8' }
+			});
+		}
+		if (url.pathname === '/pack-host') {
+			return new Response(PACK_HOST, {
+				headers: { 'content-type': 'text/html; charset=utf-8' }
+			});
+		}
 		if (url.pathname === '/plan') {
 			const dept = url.searchParams.get('dept');
 			const groups = [...DEPTS]
@@ -139,6 +180,13 @@ test.beforeAll(async () => {
 			return new Response(`<main><ul>${groups}</ul></main>`, {
 				headers: { 'content-type': 'text/html; charset=utf-8' }
 			});
+		}
+		if (url.pathname.startsWith('/rows/')) {
+			const id = url.pathname.slice('/rows/'.length);
+			const row = rows.get(id);
+			if (!row) return new Response('not found', { status: 404 });
+			const html = interpretTemplate(compiledRow, { params: { id }, row });
+			return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
 		}
 		if (url.pathname !== '/browse') return new Response('not found', { status: 404 });
 		const dept = url.searchParams.get('dept');
@@ -180,7 +228,10 @@ const expected = (dept: string, n: number) => page(dept, n).items.map((r) => `${
 
 async function seed(p: Page): Promise<void> {
 	await p.goto(`${origin}/browse`);
-	await p.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	// a page with no ring loads the runtime from the second view, so view 1 costs the baseline
+	await p.waitForTimeout(1600);
+	await p.goto(`${origin}/browse`);
+	await controlled(p);
 	await p.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await p.goto(`${origin}/browse`);
 	await expect.poll(() => artifacts(p)).toContain('/browse');
@@ -228,6 +279,10 @@ test('holds a dataset, answers queries from it offline, applies a patch, and rec
 	await new Promise((r) => setTimeout(r, 2300));
 	log.length = 0;
 	await tab.goto(`${origin}/browse?dept=cs&page=2`);
+	await new Promise((r) => setTimeout(r, 1500));
+	expect(own()).toEqual([]);
+	expect((await datasets(tab)).datasets[0]?.cursor).toBe(cursor - 1);
+	await tab.goto(`${origin}/nowhere`);
 	await expect.poll(async () => (await datasets(tab)).datasets[0]?.cursor).toBe(cursor);
 	await tab.goto(`${origin}/browse?dept=cs&page=2`);
 	await expect(tab.locator('li').first()).toHaveText('r015 Patched 15');
@@ -259,4 +314,59 @@ test('answers a plan route from the held rows with no server request', async ({ 
 	await tab.goto(`${origin}/plan?dept=cs`);
 	await expect(tab.locator('li')).toHaveText(['cs 34']);
 	expect(own()).toEqual([]);
+});
+
+test('renders a family row the page never fetched from the held rows, equal to the server page', async ({
+	page: tab,
+	browser
+}) => {
+	const pause = () => new Promise((r) => setTimeout(r, 1600));
+	await seed(tab);
+	const packed = await buildPack({
+		version: 1,
+		tables: { [NAME]: sorted().map((row): [string, Row] => [row.id, row]) }
+	});
+	await tab.goto(`${origin}/pack-host`);
+	await tab.waitForFunction(() => 'pack' in window);
+	const installed = await tab.evaluate(async (bytes: number[]) => {
+		const { pack } = window as unknown as {
+			pack: {
+				createPackStore(factory: IDBFactory): {
+					installPack(
+						source: AsyncIterable<Uint8Array<ArrayBuffer>>
+					): Promise<{ installed: boolean }>;
+				};
+			};
+		};
+		async function* once() {
+			yield new Uint8Array(bytes);
+		}
+		return pack.createPackStore(indexedDB).installPack(once());
+	}, Array.from(packed.bytes));
+	expect(installed.installed).toBe(true);
+	await pause();
+	await tab.goto(`${origin}/rows/r001`);
+	await pause();
+	log.length = 0;
+	await tab.goto(`${origin}/rows/r042`);
+	await expect(tab.locator('li')).toHaveText('r042 Title 42');
+	expect(own()).toEqual([]);
+	// both sides go through the browser's own serialiser, with no worker, to compare like with like
+	const plain = await browser.newContext({ serviceWorkers: 'block' });
+	const server = await plain.newPage();
+	await server.goto(`${origin}/rows/r042`);
+	const strip = (html: string) =>
+		html.replace(/<script src="\/\.spool\/[^"]*"[^>]*><\/script>/g, '');
+	const verdict = equivalent(strip(await tab.content()), strip(await server.content()));
+	await plain.close();
+	expect(verdict.equal, verdict.equal ? '' : verdict.reason).toBe(true);
+});
+
+test('sends a family row to the network when the device holds no pack', async ({ page: tab }) => {
+	await seed(tab);
+	await new Promise((r) => setTimeout(r, 1600));
+	log.length = 0;
+	await tab.goto(`${origin}/rows/r007`);
+	await expect(tab.locator('li')).toHaveText('r007 Title 7');
+	expect(own()[0]).toBe('/rows/r007');
 });

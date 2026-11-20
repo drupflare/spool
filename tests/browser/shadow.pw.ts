@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { viewsOf } from '../../src/server/index';
 import { VIEW_BATCH } from '../../src/sw/analytics';
-import { startFixture, type Fixture } from './fixture';
+import { controlled, startFixture, type Fixture } from './fixture';
 
 const WARM = ['/n/1', '/n/2', '/div/1'];
 const ROUNDS = VIEW_BATCH + 5;
@@ -50,7 +50,7 @@ async function walk(context: BrowserContext, withWorker: boolean): Promise<Page>
 	const page = await context.newPage();
 	await load(page, WARM[0] as string);
 	if (withWorker) {
-		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		await controlled(page);
 		await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	}
 	for (const path of WARM) {

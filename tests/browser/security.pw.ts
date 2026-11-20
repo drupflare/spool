@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSpool, defineRoute, memorySink } from '../../src/server/index';
 import { memoryStore } from '../../src/stores/index';
-import { listen, type Fixture, type Hit } from './fixture';
+import { controlled, listen, type Fixture, type Hit } from './fixture';
 
 const CSP = "default-src 'self'; script-src 'self'";
 const SOURCE =
@@ -21,6 +21,7 @@ const hits: Hit[] = [];
 
 test.beforeAll(async () => {
 	const spool = createSpool({
+		bootstrap: 'first-view',
 		routes: [
 			defineRoute('/sec/:id', {
 				strategy: 'template',
@@ -74,7 +75,7 @@ test('a local view carries the site headers and the policy still blocks inline s
 	page: tab
 }) => {
 	await tab.goto(`${fx.origin}/sec/1`);
-	await tab.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(tab);
 	await tab.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await tab.goto(`${fx.origin}/sec/1`);
 	await expect.poll(async () => await stored(tab), { timeout: 15_000 }).toContain('/sec/1');
@@ -94,7 +95,7 @@ test('a per-response nonce runs on a network view and not on a local one, whose 
 	page: tab
 }) => {
 	await tab.goto(`${fx.origin}/nonce/1`);
-	await tab.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(tab);
 	await tab.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await tab.goto(`${fx.origin}/nonce/1`);
 	expect(await tab.evaluate(() => (window as unknown as { inlineRan?: true }).inlineRan)).toBe(

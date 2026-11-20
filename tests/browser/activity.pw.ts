@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { startFixture, type Fixture } from './fixture';
+import { controlled, startFixture, type Fixture } from './fixture';
 
 type SpoolWindow = {
 	spool: {
@@ -56,6 +56,7 @@ test('a loop pauses while its target is off screen and resumes when it is back',
 	page
 }) => {
 	await page.goto(`${fx.origin}/n/1`);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await page.evaluate(() => {
 		const main = document.querySelector('main');
@@ -102,6 +103,7 @@ test('a loop pauses once its page has been hidden for hiddenAfterMs, and resumes
 }) => {
 	await page.addInitScript(visibilityControl);
 	await page.goto(`${fx.origin}/n/1`);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await registerLoop(page, { hiddenAfterMs: 200 });
 

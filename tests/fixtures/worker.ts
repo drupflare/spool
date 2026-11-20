@@ -1,7 +1,7 @@
 import { createSpool, defineRoute } from '../../src/server/index';
 import { durableObjectStore } from '../../src/stores/durable-object';
 
-export { SpoolVersions } from '../../src/stores/durable-object';
+export { SpoolLive, SpoolVersions } from '../../src/stores/durable-object';
 
 export const NODE_PAGE = (id: string) =>
 	`<!doctype html><html><head><title>Node ${id}</title></head><body><h1>Node ${id}</h1></body></html>`;

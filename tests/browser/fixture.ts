@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { toNodeListener } from '../../src/node/listener';
@@ -64,7 +65,19 @@ const escape = (text: string) =>
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#39;');
 
-export type FixtureOptions = { mode?: Mode; cdn?: SpoolOptions['cdn'] };
+export type FixtureOptions = {
+	mode?: Mode;
+	cdn?: SpoolOptions['cdn'];
+	/** defaults to `first-view`, so the runtime is on view 1; `second-view` is the A5 gate, for specs whose subject it is */
+	bootstrap?: SpoolOptions['bootstrap'];
+	/** leaves the spool without a sink, so its default `views` is off and the worker queues no view event */
+	sinkless?: boolean;
+};
+
+/** waits until the worker controls the page; a `first-view` site has it after view 1, a default site after view 2 */
+export async function controlled(page: Page): Promise<void> {
+	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+}
 
 export async function startFixture(options: FixtureOptions = {}): Promise<Fixture> {
 	const hits: Hit[] = [];
@@ -148,10 +161,11 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 	const spool = createSpool({
 		routes,
 		store: memoryStore(),
-		sink,
+		...(options.sinkless ? {} : { sink }),
 		beacons: ['/cdn-cgi/rum'],
 		mode: options.mode,
-		cdn: options.cdn
+		cdn: options.cdn,
+		bootstrap: options.bootstrap ?? 'first-view'
 	});
 
 	const html = (text: string) =>
@@ -209,7 +223,12 @@ export async function startCampus(): Promise<Fixture> {
 	const hits: Hit[] = [];
 	const world = campus({ freshness: { maxStale: BOUND, mode: 'soft' } });
 	const sink = memorySink();
-	const spool = createSpool({ routes: world.routes, store: memoryStore(), sink });
+	const spool = createSpool({
+		routes: world.routes,
+		store: memoryStore(),
+		sink,
+		bootstrap: 'first-view'
+	});
 	const app = (request: Request): Response => {
 		const { pathname } = new URL(request.url);
 		const body = world.html(pathname);
@@ -254,7 +273,8 @@ export async function listen(
 			hit.body = await request.clone().text();
 			hit.type = request.headers.get('content-type');
 		}
-		hits.push(hit);
+		// browsers request /favicon.ico on their own, so it is not a page request
+		if (pathname !== '/favicon.ico') hits.push(hit);
 		if (gate && pathname === '/.spool/sync') await gate;
 		const response = await spool.handle(request, app);
 		if (pathname === '/.spool/sync' || pathname === '/.spool/artifact') {

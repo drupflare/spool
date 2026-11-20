@@ -68,7 +68,11 @@ async function start(manifest: TrimManifest): Promise<Fixture> {
 	});
 	await new Promise<void>((resolve) => originServer.listen(0, '127.0.0.1', resolve));
 	const origin = `http://127.0.0.1:${(originServer.address() as AddressInfo).port}`;
-	const proxy = spoolProxy({ origin, spool: { store: memoryStore() }, trim: manifest });
+	const proxy = spoolProxy({
+		origin,
+		spool: { store: memoryStore(), bootstrap: 'first-view' },
+		trim: manifest
+	});
 	const frontServer: Server = createServer(toNodeListener((request) => proxy(request)));
 	await new Promise<void>((resolve) => frontServer.listen(0, '127.0.0.1', resolve));
 	const close = (server: Server) =>
@@ -142,6 +146,8 @@ test('a trimmed stylesheet gives each corpus page the computed styles the full f
 		await proxied.goto(`${fx.front}${path}`);
 		const direct = await browser.newPage();
 		await direct.goto(`${fx.origin}${path}`);
+		await proxied.mouse.move(1270, 710);
+		await direct.mouse.move(1270, 710);
 		const [mine, full] = [await computed(proxied), await computed(direct)];
 		expect(mine.length, path).toBeGreaterThan(0);
 		expect(mine, path).toEqual(full);

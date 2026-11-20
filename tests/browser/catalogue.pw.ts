@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { viewsOf } from '../../src/server/index';
-import { startFixture, type Fixture } from './fixture';
+import { controlled, startFixture, type Fixture } from './fixture';
 
 type Client = { status(): Promise<{ artifacts: string[]; beacons: number }> };
 type SpoolWindow = { spool: { ready: Promise<Client | null> } };
@@ -49,7 +49,7 @@ const muteRum = (page: Page) =>
 async function warm(fx: Fixture, page: Page, path: string): Promise<void> {
 	await muteRum(page);
 	await page.goto(`${fx.origin}${path}`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	await page.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	await page.goto(`${fx.origin}${path}`);
 	await expect.poll(async () => (await status(page)).artifacts).toContain(path);

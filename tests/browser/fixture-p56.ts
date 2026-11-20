@@ -48,6 +48,7 @@ export async function startAuth(extra: Partial<SpoolOptions> = {}): Promise<Auth
 		})
 	});
 	const spool = createSpool({
+		bootstrap: 'first-view',
 		routes: [
 			defineRoute('/grades', principal('persistent', GRADES)),
 			defineRoute('/inbox', principal('session', INBOX)),
@@ -240,6 +241,7 @@ export async function startP6(
 		`<!doctype html><html><head><meta charset="utf-8"><title>third</title><style>@font-face{font-family:T;src:url(${other.origin}/s/t/v1/a.woff2) format('woff2')}body{font-family:T,sans-serif}</style><script src="${other.origin}/lib.3f9a1c2b4d.js" crossorigin="anonymous"></script></head><body><nav><a href="/third/1">t1</a> <a href="/third/2">t2</a> <a href="/p/1">p1</a></nav><h1>third {{id}}</h1><script>${extra}</script></body></html>`;
 	const collect = `navigator.sendBeacon('${other.origin}/collect?cid=7&p='+encodeURIComponent(location.pathname),'hit');`;
 	const spool = createSpool({
+		bootstrap: 'first-view',
 		routes: [
 			defineRoute('/third/:id', {
 				strategy: 'template',
