@@ -1,0 +1,6 @@
+{
+	"name": "spool-example-static-worker-count",
+	"main": "count.ts",
+	"compatibility_date": "2026-08-01",
+	"assets": { "directory": "./public" }
+}
