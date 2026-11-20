@@ -65,7 +65,7 @@ describe('a static route on the server half', () => {
 		const first = await r.drive(nav('/about'));
 		const network = await first.text();
 		expect(network).toContain('about 1');
-		expect(network).toContain('data-spool-client');
+		expect(network).toContain('data-spool-gate');
 		expect(r.log).toContain('GET /about');
 		r.reset();
 
@@ -379,6 +379,7 @@ describe('a static site with no server', () => {
 		p.world.routes[1] = { pattern: '/app.js', strategy: 'static', version: 'build-2' };
 		p.advance(901);
 		await p.drive(sub('/app.js'));
+		await p.visit('/nowhere');
 		const after = (await p.runtime().message({ type: 'spool:status' })) as {
 			artifacts: string[];
 		};
@@ -415,7 +416,7 @@ describe('a static site with no server', () => {
 		expect(p.log).toEqual([]);
 	});
 
-	it('shows a soft file at once and revalidates after it', async () => {
+	it('shows a soft file at once and revalidates at the next network moment', async () => {
 		const p = plain();
 		await p.visit('/');
 		const next = PAGE.replace('about 1', 'about 2');
@@ -424,7 +425,12 @@ describe('a static site with no server', () => {
 		p.advance(901);
 		p.reset();
 		expect(await p.visit('/')).toBe(PAGE);
-		expect(p.log).toEqual(['GET /spool.json']);
+		expect(p.log).toEqual([]);
+		expect(await p.visit('/')).toBe(PAGE);
+		expect(p.log).toEqual([]);
+		p.reset();
+		await p.visit('/nowhere');
+		expect(p.log).toEqual(['GET /nowhere', 'GET /spool.json']);
 		p.reset();
 		expect(await p.visit('/')).toBe(next);
 		expect(p.log).toEqual(['GET /']);

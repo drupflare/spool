@@ -87,7 +87,7 @@ export function splitBody(body: ReadableStream<Uint8Array>): {
 	};
 	void (async () => {
 		for (;;) {
-			let step: ReadableStreamReadResult<Uint8Array>;
+			let step: Awaited<ReturnType<typeof reader.read>>;
 			try {
 				step = await reader.read();
 			} catch (reason) {

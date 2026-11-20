@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CLIENT_CORE, SW_CORE } from '../../src/server/embedded';
+import { controlled } from './fixture';
 
 /**
  * A site that is only files: pages, assets, `spool-sw.js`, `client.js` and `spool.json`, with no
@@ -96,7 +97,7 @@ const stored = (target: Page) =>
 /** registers the worker, then loads every page twice so the second load, controlled, stores it */
 async function warm(target: Page, paths: string[]): Promise<void> {
 	await target.goto(`${origin}/`);
-	await target.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(target);
 	await target.evaluate(() => (window as unknown as SpoolWindow).spool.ready);
 	for (const path of paths) {
 		await target.goto(`${origin}${path}`);
