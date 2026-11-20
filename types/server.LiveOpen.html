@@ -17,7 +17,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">LiveOpen</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#first">first</a><span class="tsd-signature-symbol">:</span> <a href="server.LiveFrame.html" class="tsd-signature-type tsd-kind-type-alias">LiveFrame</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#keepalivems">keepaliveMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#leasems">leaseMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxagems">maxAgeMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#partition">partition</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#signal">signal</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#socket">socket</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#valid">valid</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L8">src/server/live.ts:8</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L8">src/server/live.ts:8</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -43,42 +43,42 @@
 <div class="tsd-comment tsd-typography"><p>events written first, in order: <code>hello</code> and the catch-up <code>delta</code></p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L12">src/server/live.ts:12</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L12">src/server/live.ts:12</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="keepalivems"><span>keepalive<wbr/>Ms</span><a href="#keepalivems" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">keepaliveMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>milliseconds between keepalive comments</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L16">src/server/live.ts:16</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L16">src/server/live.ts:16</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="leasems"><span>lease<wbr/>Ms</span><a href="#leasems" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">leaseMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>how long each <code>lease</code> event grants, in milliseconds; a lease follows <code>first</code> and then every half of it</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L14">src/server/live.ts:14</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L14">src/server/live.ts:14</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxagems"><span>max<wbr/>Age<wbr/>Ms</span><a href="#maxagems" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxAgeMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>the stream closes after this long, so the next connect resolves the identity again; 0 never</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L18">src/server/live.ts:18</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L18">src/server/live.ts:18</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="partition"><span>partition</span><a href="#partition" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">partition</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>the principal partition id the page holds; null for a public stream</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L10">src/server/live.ts:10</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L10">src/server/live.ts:10</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="signal"><code class="tsd-tag">Optional</code><span>signal</span><a href="#signal" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span></div>
 <div class="tsd-comment tsd-typography"><p>the request's abort signal; a stream closes when it aborts</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L20">src/server/live.ts:20</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L20">src/server/live.ts:20</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="socket"><code class="tsd-tag">Optional</code><span>socket</span><a href="#socket" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">socket</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -86,7 +86,7 @@
 any other hub ignores it and answers the stream, which makes the page fall back to SSE.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L31">src/server/live.ts:31</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L31">src/server/live.ts:31</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="valid"><code class="tsd-tag">Optional</code><span>valid</span><a href="#valid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">valid</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -95,7 +95,7 @@ A hub that runs in another isolate cannot take a function, so it ignores this an
 <a href="../interfaces/server.LiveHub.html#revoke" class="tsd-kind-method">LiveHub.revoke</a> and <code>maxAgeMs</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/server/live.ts#L26">src/server/live.ts:26</a></li></ul></aside></section></section></details></main>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/server/live.ts#L26">src/server/live.ts:26</a></li></ul></aside></section></section></details></main>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

@@ -17,7 +17,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">QueryPlan</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#from">from</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#group">group</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">aggregates</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.PlanAggregate.html" class="tsd-signature-type tsd-kind-type-alias">PlanAggregate</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">by</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#join">join</a><span class="tsd-signature-symbol">?:</span> <a href="index.PlanJoin.html" class="tsd-signature-type tsd-kind-type-alias">PlanJoin</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#limit">limit</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#pagesize">pageSize</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sort">sort</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#where">where</a><span class="tsd-signature-symbol">?:</span> <a href="index.PlanCondition.html" class="tsd-signature-type tsd-kind-type-alias">PlanCondition</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L40">src/protocol/plan.ts:40</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L40">src/protocol/plan.ts:40</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -42,43 +42,43 @@
 <div class="tsd-comment tsd-typography"><p>base fields the plan may read; the output row carries exactly these</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L42">src/protocol/plan.ts:42</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L42">src/protocol/plan.ts:42</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="group"><code class="tsd-tag">Optional</code><span>group</span><a href="#group" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">group</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">aggregates</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.PlanAggregate.html" class="tsd-signature-type tsd-kind-type-alias">PlanAggregate</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">by</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L46">src/protocol/plan.ts:46</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L46">src/protocol/plan.ts:46</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="join"><code class="tsd-tag">Optional</code><span>join</span><a href="#join" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">join</span><span class="tsd-signature-symbol">?:</span> <a href="index.PlanJoin.html" class="tsd-signature-type tsd-kind-type-alias">PlanJoin</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L43">src/protocol/plan.ts:43</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L43">src/protocol/plan.ts:43</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="limit"><span>limit</span><a href="#limit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">limit</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>most result rows (groups or joined rows) the plan answers locally</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L51">src/protocol/plan.ts:51</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L51">src/protocol/plan.ts:51</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="pagesize"><span>page<wbr/>Size</span><a href="#pagesize" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">pageSize</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L49">src/protocol/plan.ts:49</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L49">src/protocol/plan.ts:49</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sort"><code class="tsd-tag">Optional</code><span>sort</span><a href="#sort" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">sort</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>fields the <code>sort</code> parameter may name; a leading minus in the URL sorts descending</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L48">src/protocol/plan.ts:48</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L48">src/protocol/plan.ts:48</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="where"><code class="tsd-tag">Optional</code><span>where</span><a href="#where" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">where</span><span class="tsd-signature-symbol">?:</span> <a href="index.PlanCondition.html" class="tsd-signature-type tsd-kind-type-alias">PlanCondition</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>conditions, all ANDed; a condition whose parameter is absent is skipped</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/drupflare/spool/blob/111e204312c1e2e2aff7c93c42cb1d7689a68698/src/protocol/plan.ts#L45">src/protocol/plan.ts:45</a></li></ul></aside></section></section></details></main>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/5e9392c184e24a11d037dd589d84c6fef142417a/src/protocol/plan.ts#L45">src/protocol/plan.ts:45</a></li></ul></aside></section></section></details></main>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
