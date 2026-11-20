@@ -1,0 +1,10 @@
+{
+	"name": "spool-example-nuxt-route",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"h3": "^1",
+		"nuxt": "^4.0.0"
+	}
+}

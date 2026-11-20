@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-next-route",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"next": "^16.0.0"
+	}
+}

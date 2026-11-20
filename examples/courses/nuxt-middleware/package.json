@@ -1,0 +1,10 @@
+{
+	"name": "spool-example-nuxt-middleware",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"h3": "^1",
+		"nuxt": "^4.0.0"
+	}
+}
