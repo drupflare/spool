@@ -12,8 +12,10 @@ and capacity channels, the free-tier ceiling) and `traffic.ts` (`Z_annual`, `Z_d
 `Z_peak_work`, the three P factors per engine, mismatches per route), `measurement.ts` (the
 schema-1 reading format and its validating reader) and `derive.ts` (per-view joules, fits and
 counts from readings). `measurements/` holds every reading, written by `scripts/measure/*.ts`;
-`scripts/impact.ts` renders `docs/impact.md` from them and `docs/impact.src.md`, and a node test
-fails when the committed page differs. `src/protocol`, `src/server`,
+`scripts/impact.ts` renders `docs/impact.md` from them and `docs/impact.src.md`, and
+`scripts/economics.ts` renders `docs/economics.md` from `docs/economics.src.md`; a node test checks
+the figures are sane (not negative), and none checks the committed pages against a render.
+`src/protocol`, `src/server`,
 `src/node` and `src/stores` are the server half (envelope, version vector, `assembly` and
 `template` routes, `/.spool/sync` with `from` or `need`, `/.spool/artifact` with `have`,
 `/.spool/beacon` with `want`, `createSpool`, sinks, the work series, `SpoolVersions`). `src/sw` and
@@ -104,6 +106,7 @@ bun run impact                      # regenerates docs/impact.md from measuremen
 bun run impact:check                # fails when docs/impact.md differs from the readings
 bun run measure:on-wire             # also measure:repeat-nav, zero-network, device-cpu, iphone, rapl, traces; add --dry-run first
 bun run build:cdn                   # dist/cdn/client.js, spool-sw.js and manifest.json (schema 2)
+bun run smoke:examples              # wrangler dev --local on the five Worker examples; needs bun run build first
 bun run publish:cdn --dev --dry-run # prints the wrangler puts; never run a real publish without Gregory
 ```
 
