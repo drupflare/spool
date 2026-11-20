@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-dashboard-hono",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"hono": "^4.13.13"
+	}
+}

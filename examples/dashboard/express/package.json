@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-dashboard-express",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"express": "^5.3.0"
+	}
+}
