@@ -1,0 +1,20 @@
+{
+	"name": "spool-fixture-next",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "next build",
+		"start": "node server.ts"
+	},
+	"dependencies": {
+		"@drupflare/spool": "file:../../../..",
+		"next": "16.4.6",
+		"react": "19.2.0",
+		"react-dom": "19.2.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"@types/react": "^19.3.0",
+		"typescript": "5"
+	}
+}
