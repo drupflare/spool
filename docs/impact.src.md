@@ -4,6 +4,18 @@ Spool lets a visitor's browser answer a page view it has already seen, without a
 
 This page says what that saves, how sure each number is and what it means in money. Every figure carries a label: L0 published by someone else, L1 measured here, L2 derived from L0 and L1, L3 a scenario. The sections after the notice show the readings and the arithmetic.
 
+## Headline Numbers
+
+A net saving is the share of a baseline that spool removes after it pays for the bootstrap, the worker script (the stub), contacts, the sync and dataset requests, and writes. The baseline is the same visits with no spool. A negative saving is a result: spool sent more than the baseline. The multiplier is the baseline over spool. The per-workload and byte tables are in [Economics](economics.md#headline-numbers); how each multiplier moved is under [Moving Numbers](#moving-numbers).
+
+{{table:headline}}
+
+The library readings come from {{value:headlineDate}}, on Chromium and Firefox, with every origin request counted. At 121 views Chromium sent {{value:headlineChromiumSpool}} origin requests against {{value:headlineChromiumBaseline}}: a net saving of {{value:headlineChromiumShare}} and a multiplier of {{value:headlineChromiumX}}. Firefox gives {{value:headlineFirefoxX}}. That is {{value:headlineFreeChromium}} read views a day against the Free plan's {{value:headlineFreeLimit}}, counting every origin hit (L2 over L1 counts). WebKit is not in the library readings. The signed-in, public-edit and revoked-session rows are Chromium only, because Firefox did not start the multi-day arms under libfaketime. The own-write scenario is not measured. The 121-view counts come from the single-day reading of the final tree, which supersedes the earlier 2026-11-20 reading; both have the same counts. At 2,000 views in one tab, Chromium sent 2 requests against 2,000 and Firefox 3 against 2,001 (counts L1, ratios L2). In those rows the spool arm was not controlled by the worker (`controlled` is false): it sent one document and the boot script. The review-2 thousands for a tab of 60,000 views stay L3 bounds. A signed-in reader on the persistent default makes 18 to 20 requests over four days against 7 across three repeat runs of the same code (the table row shows the first run, 20), and each held day costs 4 requests and 288 B against 1 request and 117 B (L1). The day-0 bootstrap is 6 to 8 requests across those runs, and the cause of that swing is not measured. With `cdn: { worker: true }`, the stub the origin serves falls from 141,976 B to 7,175 B, about 20 times fewer origin bytes (L2 over L1, one fixture), but Firefox downloads the core twice on its first install (269,730 B at the CDN, L1), and the site trusts the CDN host with the worker's code, since `importScripts` checks no hash.
+
+{{table:headline-extremes}}
+
+The figures that count Worker-invocation equivalents assume the stub and boot script are served as static assets, which are not Worker invocations. The origin-request figures put the stub on the Worker. On a 127 B page read once a day, spool sent {{value:headlineDailySpool}} requests against {{value:headlineDailyBaseline}}, and no stub is fetched on those five days (L1). The byte comparison for that page is under Measured Readings. The stub's cost on a static tier or on the Worker is in [Economics](economics.md#stub-on-a-static-tier-or-on-the-worker).
+
 ## What Spool Saves
 
 The headline is {{value:headlineJ}} joules per local view (L2). It applies the Sustainable Web Design v4 intensities for the network, the data centre and the device to the {{value:revisitBytesInput}} bytes of the document a local view replaces, then adds the origin's energy for one request. No meter read it.
@@ -19,6 +31,70 @@ Meters read less, because they leave out the network and every data centre betwe
 On the server, a local view sent nothing in all but one window per runtime, and its measured energy ({{value:runtimeLocalHigh}} J at most, as a median) sits inside the idle drift. The ranges and the method are under Measured Readings.
 
 Spool does not claim that the headline is a meter reading, a saving in radio wakes, a capacity saving without evidence that equipment was removed, or a figure for paced or cellular phone use. The full list is under What This Does Not Claim.
+
+## Demand Per Client
+
+A client that holds a copy of a site's data answers most views without asking the site. A host bills requests, so this section counts requests. Over one replica lifetime, the period a client keeps one copy, the requests that reach the origin come to `Q`, where `1` is the first document the client loads, `k` the requests bootstrap adds beyond that document, `V_c` the document navigations made while the service worker is stopped, `c` the requests each of those costs, `V_w` the document navigations made while the worker runs, `d` the requests each of those costs, `V_p` the in-page views, `S` the freshness contacts that no other request carried, `x` the requests each contact costs, and `W` and `F` the writes and misses:
+
+```math
+Q = 1 + k + c \times V_c + d \times V_w + 0 \times V_p + x \times S + W + F
+```
+
+A held copy answers the in-page views on a page with a swap region, so each of them costs 0. A site without spool pays for writes and misses too.
+
+Without spool, the same client costs the requests below, where `r` is the requests per view and `V` is the views:
+
+```math
+r \times V
+```
+
+Each constant below is a count from one rig on one day, so it is L1. The counts differ by engine:
+
+{{table:demand-counts}}
+
+A client that makes {{value:sessionViews}} views in one session (the first document, bootstrap, {{value:sessionHeldReads}} held reads, {{value:sessionDocuments}} documents and {{value:sessionRestarts}} restart) cost one Worker invocation in each engine on a Free-plan account, which was the first document. That reading is in the Capacity section.
+
+The practical multiplier is the views per document navigation that reaches the network. The theoretical multiplier has no finite value, since a held copy answers every in-page view. A site whose pages carry a swap region, and whose links navigate in-page, keeps most views off the network. Each document navigation that reaches the network costs `c` or `d` requests, as the table gives.
+
+WebKit on macOS checks the worker script once for each document navigation, about one second after it. A document navigation therefore costs one request in that engine.
+
+## Moving Numbers
+
+Each table follows one quantity through the stages of the project: v0.4, the original v1 implementation, the follow-ups, review 2 and the library today. The stages before the library are the counts each source printed. This page divides the two counts to get each ratio, and every ratio matches the one its source printed. The rows come from the earlier stage reports, named by date. A figure a later reading replaced stays in its table, marked superseded. Where sources disagree, the later measured figure is current.
+
+### Origin Requests at 121 Views
+
+{{table:moving-origin}}
+
+The 40x and 13x figures divide the same baseline of 121 requests. They differ in the spool count: 3 requests for the scratch model's minimal construction, and 9 for the first library run, which gated its bootstrap on the second and third document loads, registered the worker and fetched the boot script. The 30.25x of the Codex construction and of the retrofit is 121 over 4. The 2026-11-20 reading has 5 for Chromium, and no earlier source divides 121 by it, so this page does. The earlier reading that gave 9 says the library made 6 more requests than the model; no source records which revision produced 9 or 5, so the later measured count is current. The Chromium multiplier at 121 views has been written as 40x, 30x, 13x and now {{value:headlineChromiumX}}, each over a different spool count. WebKit has two retrofit rows because its two denominators differ: 23 origin requests, and 6 Worker calls.
+
+### Reader Workloads
+
+{{table:moving-reader}}
+
+The daily reader is not one workload across these rows. The original v1 reader makes 20 views in 2 visits, review 2 makes 600 views in 60 visits, and the library readings make one view a day for 5 days, with a local-only, public-edit and signed-in reader over three to four leases. The thousands for a tab held open all day are a bound over a floor of one request per client, with 60,000 baseline requests over 28 to 33 construction requests. They are never a measured count: the 10,000 and 60,000 view models were dropped from the rig, so these thousands stay L3 bounds. The stub is {{value:headlineStub}} B in the local-only reading (L1), and a stub fetch repays after {{value:headlineRepaid}} held views of a {{value:headlineDocument}} B document (L2).
+
+Under `workerMode: 'auto'`, WebKit registers no worker, so its multiplier is the no-worker one. With `'always'` it is the worker multiplier plus one script check per navigation. With `'always'`, WebKit checks the worker script on every document navigation, and site code cannot remove that check. The check is a WebKit issue, reported upstream to WebKit as a bug. It is a finding of this page and not a gap in the code.
+
+### Free Plan Read Views a Day
+
+{{table:moving-free}}
+
+### Worker Invocations With a Static Tier
+
+{{table:moving-worker}}
+
+The 121x to 60,000x figures assume the stub, pack and client are static files, and a deployment has to serve them that way. The library rows count every request except the boot script and the stub, so they are Worker-invocation equivalents under that assumption.
+
+### Bytes
+
+{{table:moving-bytes}}
+
+### Energy
+
+{{table:moving-energy}}
+
+The energy figures are different quantities: an allocation and two meters. They sit side by side and are never summed. The headline rows read the original desktop reading; its retake is under Second Time Point.
 
 ## Unit and Scope
 
@@ -100,7 +176,13 @@ The dollar figures are energy charges only. The record holds no campus tariff, n
 
 ### Storage
 
-The storage block compares the bytes each dataset holds on the device and on the server with a declared budget for each side. The worker does not report those bytes yet, and the device store that would hold them is not built. This page therefore prints no storage figure. A report given storage inputs shows the held bytes and whether each side is within budget.
+The storage block compares the bytes each dataset holds on the device and on the server with a declared budget for each side. The worker does not report those bytes for an institution yet, so this page prints no institution storage figure. A report given storage inputs shows the held bytes and whether each side is within budget.
+
+The device layouts were measured on a synthetic site of {{value:storageRowsSmall}} and {{value:storageRowsLarge}} rows in Chromium, Firefox and WebKit, on one Apple M2 Pro (L1). The plain layout keeps one record per row. The packed layout keeps rows in gzip blocks, and a view reads the one block it needs. Every rendered page matched a Node render of the same rows.
+
+At {{value:storageRowsLarge}} rows the plain layout costs {{value:plainRowChromium}} B a row in Chromium, {{value:plainRowWebkit}} B in WebKit and {{value:plainRowFirefox}} B in Firefox, measured as the change in storage usage. The packed layout costs {{value:packedRowLow}} to {{value:packedRowHigh}} B a row. A plain view takes {{value:plainItemLow}} to {{value:plainItemHigh}} ms (the median item view in the three engines) and {{value:plainItem100k}} ms at {{value:storageRowsXl}} rows in Chromium. A packed view takes {{value:packedItemLow}} to {{value:packedItemHigh}} ms at {{value:storageRowsLarge}} and at {{value:storageRowsXl}} rows. On the wire, {{value:storageRowsLarge}} synthetic rows are {{value:wirePacked}} B as packed gzip blocks against {{value:wireBrotli}} B as one brotli stream of the plain seed. The packed set is larger on the wire and smaller in browser storage and read time.
+
+Real pages follow the same arithmetic. Over {{value:crawlPages}} pages of docs.drupflare.com and {{value:crawlPages}} pages of MDN's Service Worker section, one brotli stream holds the visible text at {{value:realTextLow}} to {{value:realTextHigh}} B a page and the HTML at {{value:realHtmlLow}} to {{value:realHtmlHigh}} B a page. Compressed page by page, the HTML costs {{value:realDocsPage}} B a page on docs.drupflare.com and {{value:realMdnPage}} B a page on MDN. The crawl totals are L1, and the per-page figures are L2 (each total over 300 pages).
 
 ### Trust
 
@@ -124,7 +206,7 @@ Water covers the data-centre share only. Direct water is used on site. Indirect 
 
 {{table:institution-carbon-water}}
 
-The goal ladder sets each goal as a share of a page view's own footprint. An average view costs {{value:avgViewJoules}} J on the attributional basis, which is {{value:avgViewKwhPerMv}} kWh per million views (L2). First views carry the central share of {{value:firstViewShareCentral}} (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of {{value:goalHighShare}}% is a scenario (L3). Each cell gives kWh a year.
+The goal ladder is a research scenario with no target attached. It sets each share as a fraction of a page view's own footprint. An average view costs {{value:avgViewJoules}} J on the attributional basis, which is {{value:avgViewKwhPerMv}} kWh per million views (L2). First views carry the central share of {{value:firstViewShareCentral}} (L3), and the first-view and repeat-view bytes come from the Web Almanac (L0) and the repeat-navigation rig (L1). The shares of 2.5%, 5%, 10% and 25% are proposed, not adopted. The high case of {{value:goalHighShare}}% is a scenario (L3). Each cell gives kWh a year.
 
 {{table:goal-ladder}}
 
@@ -211,6 +293,8 @@ A first-order model over the population's counts earns more per provisioned kilo
 ## Savings Today and at Maximum
 
 The proxy has four byte-saving levers beyond the trim: converting JPEG and PNG to WebP under a width ceiling, deferring video, replacing embeds with a facade, and sending new CSS and JavaScript aggregates against text the browser already holds. This section sizes each one on a first view of a page, with the median first, then the mean. Every byte figure is L1 (a crawl or a Chromium coverage run). Every joule figure is L2: those bytes at the Sustainable Web Design v4 rate of {{value:swdTotal}} kWh/GB, with no origin term, since a smaller file is the same request.
+
+The levers cut the bytes of a network view and leave its request in place. The figures below apply to a first view of a page. A view answered inside the page costs no request and no bytes, and a document navigation that reaches the network costs the requests set out in Demand Per Client. The levers therefore sit beside the request count and do not replace it.
 
 Two corpora carry the figures and they are never added together. The image-crawl corpus is {{value:ledgerCrawlPages}} desktop pages on {{value:ledgerCrawlSites}} public sites, each loaded with an empty cache (reading `measurements/image-crawl`). The trim corpus is {{value:ledgerTrimPages}} internal pages on {{value:ledgerTrimSites}} Drupal sites of the trim reading, which is where the aggregate churn was measured. A page's saving is the sum of its levers, and a site's figure is the mean over its pages.
 
@@ -337,7 +421,13 @@ The code is in `src/report/traffic.ts`. `Z_annual` names the tiers: Meaningful a
 
 ### Views Channel
 
-The channel's energy is `E_views = V x Z_annual x J_view`, where `V` is the institution's yearly views and `J_view` is the joules one local view avoids. Two `J_view` figures exist, and the page always prints both. Both are floors: they count what a meter or a published model attributes to a view today, and the work is to raise them.
+The channel's energy, `E_views`, is the product below, where `V` is the institution's yearly views, `Z_annual` the share of its views that are strict zero-network local views, and `J_view` the joules one local view avoids:
+
+```math
+E_{\mathrm{views}} = V \times Z_{\mathrm{annual}} \times J_{\mathrm{view}}
+```
+
+Two `J_view` figures exist, and the page always prints both. Both are floors: they count what a meter or a published model attributes to a view today, and the work is to raise them.
 
 #### Attributional Headline
 
@@ -372,8 +462,8 @@ Each finding forced a mechanism in code. Labels give what was read: full text, a
 | 43% of higher-education sessions are on phones, 2.3 pages per session                                                                                                                                                     | OHO 2023 benchmarks, 2022 data (web page)         | the mobile share and the session-entry view                                                 |
 | A controlled navigation reaches the origin zero times in Chromium and Firefox with `updateViaCache: 'all'` and a one-day script lifetime                                                                                  | the zero-network reading (L1)                     | the registration in `src/client/register.ts`; the worker script served with `max-age=86400` |
 | Cloudflare's analytics script posts to `/cdn-cgi/rum` about twice per navigation                                                                                                                                          | the views reading (L1)                            | beacon queueing in the worker                                                               |
-| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                                                                                  | a probe in the browser lane (L1)                  | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
-| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                                                                                      | a probe in the browser lane (L1)                  | the worker's asset cache and the per-engine zero-network tests                              |
+| Firefox does not route `fetch` with `keepalive` through a service worker                                                                                                                                                  | a probe in the browser run (L1)                   | a limit of the beacon queue in `src/sw/analytics.ts`: a keepalive post bypasses it          |
+| WebKit re-fetches a page's cacheable subresources once on the first controlled navigation and routes subresources through the worker                                                                                      | a probe in the browser run (L1)                   | the worker's asset cache and the per-engine zero-network tests                              |
 | Page weight is dominated by new media; a revisit moves few bytes, and the browser still lists dozens of cached requests                                                                                                   | the repeat-navigation and on-wire readings (L1)   | the target is the transaction, so `Z_annual` counts views that make no request              |
 | A server cache already removes recompute, and a projection relocates work                                                                                                                                                 | the compute readings (L1)                         | the strategies `assembly` and `template` first, and the projection net-of-relocation rule   |
 | Median 0.24 Wh for a Gemini text prompt, including 10% provisioned idle and facility overhead                                                                                                                             | Elsworth et al., arXiv 2508.15734 (full text, L0) | such figures are never printed as spool savings                                             |
@@ -388,6 +478,12 @@ Spool's saving is credited against an optimized HTTP baseline: immutable hashed 
 - **Fawkes-style patching.** Sends a patch against a stored template on each load, so it still makes one request per view.
 
 ## Measured Readings
+
+### Demo Page Bytes
+
+{{table:demo-bytes}}
+
+A 127 B document is smaller than the 2,587 B inline gate and 449 B ring that each network document carries (gate L1, from the built gate string in `src/server/embedded.ts`; ring L2, 3,036 B per document less the gate), so the byte comparison on it says nothing about a real page.
 
 ### Desktop and Phone
 
@@ -456,7 +552,7 @@ The HTTP cache is the only reuse in this measurement. Nothing in spool reuses ex
 
 The median page spent {{value:wvRatioMedian}} times its cold first view on the repeat view. Task time in a repeat navigation went to script ({{value:wvScript}}), layout ({{value:wvLayout}}) and style recalculation ({{value:wvRecalc}}), as medians over pages. The three can overlap, so they are not summed. {{value:wvRefetchPages}} pages ({{value:wvRefetchShare}}%) fetched more than half of their cold view's bytes again. The repeat navigations sent {{value:wvConditional}} conditional requests, and the replay answered {{value:wvNotModified}} with a 304. The replay keeps no ETag or Last-Modified, so the browser has no validator to send.
 
-The M8 closure used a guess of {{value:wvM8Guess}} J per local view, which is {{value:wvM8KwhPerMv}} kWh per million views (L3). The guess was not measured. The measured repeat view averages {{value:wvJoulesMean}} J, which is {{value:wvKwhPerMv}} kWh per million views and {{value:wvVsGuess}} times the guess (L3). That is arithmetic on the desktop reading, not a saving. The decision on C10 is not made here.
+An earlier scenario used a guess of {{value:wvM8Guess}} J per local view, which is {{value:wvM8KwhPerMv}} kWh per million views (L3). The guess was not measured. The measured repeat view averages {{value:wvJoulesMean}} J, which is {{value:wvKwhPerMv}} kWh per million views and {{value:wvVsGuess}} times the guess (L3). That is arithmetic on the desktop reading, not a saving.
 {{/first-view-warm}}{{/first-view}}
 
 ### Server Runtimes
@@ -562,7 +658,7 @@ A view is strict zero-network only when it makes no request at all, and the serv
 
 {{table:third-party}}
 
-Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and a view with any is not strict zero-network. WebKit also re-checks the worker script on some navigations, which `updateViaCache: 'all'` with a 24-hour script lifetime removes in Chromium and Firefox:
+Spool's page runtime counts cross-origin loads per view (`crossOriginLoads`) and a view with any is not strict zero-network. With `updateViaCache: 'all'` and a 24-hour script lifetime, Chromium and Firefox make no script request on a controlled navigation. WebKit on macOS still checks the script once per document navigation, so a document navigation there costs one request (see Demand Per Client). The zero-network results by engine:
 
 {{table:zero-network}}
 
@@ -584,7 +680,7 @@ The crawl ran on a machine its operator was using. The operator says the early p
 
 The thresholds of each class are in the reading's method and were fixed before the crawl. A window counts only when its page was in the state it was recorded in for at least 18 of its 20 seconds. A class that needs a window that failed that test is marked not measured, not false.
 
-Most loaded pages had at least one class in their front window, and the `any` row is that union. No page reached the hidden frame-loop threshold. In some hidden windows the page ran nothing at all, not even a one-second timer, while the same page had activity in front. The crawl cannot yet separate a stopped page from a quiet one, so the hidden rows may read low.
+Most loaded pages had at least one class in their front window, and the `any` row is that union. No page reached the hidden frame-loop threshold. In some hidden windows the page ran nothing at all, not even a one-second timer, while the same page had activity in front. The crawl cannot separate a stopped page from a quiet one, so the hidden rows may read low.
 {{/avoidable-loops}}
 
 {{#second-time-point}}
@@ -698,9 +794,19 @@ Spool reports it as three separate results, and any of them can read zero. A fou
 
 "No physical capacity saving demonstrated" is a valid report beside a large drop in requests.
 
-The table is a sensitivity model, not an institutional one. It keeps `max(2, ceil(N x (1 - Z x 0.9)))` servers of `N` throughput-sized ones, where 0.9 is the share of load that is reads (L3).
+The table is a sensitivity model, not an institutional one. It keeps the number of servers below, out of `N` throughput-sized ones, where `Z` is the local share of views and 0.9 is the share of load that is reads (L3):
+
+```math
+\max\left(2, \left\lceil N \times (1 - Z \times 0.9) \right\rceil\right)
+```
 
 {{table:capacity}}
+
+The retrofit reading on a local clone of the drupflare Worker, run without a deployment, replays {{value:retrofitViews}} views (L1 counts): one bootstrap, {{value:retrofitInPage}} in-page views and {{value:retrofitDocuments}} document navigations. The table gives the requests that reached the origin and the Worker invocations in each engine, with the ratios they imply (L2 over those counts).
+
+{{table:retrofit}}
+
+`h_W` is one minus the Worker calls over the {{value:retrofitViews}} views. These ratios measure Worker demand on one site. They are not a capacity saving, since no server was removed, and the capacity channel counts none of them.
 
 Peak traces and SLOs replace this rule in a real report. Spool generates one per institution from its telemetry and the institution's own traces (`src/report/`).
 
