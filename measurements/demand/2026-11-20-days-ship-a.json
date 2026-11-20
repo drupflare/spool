@@ -1,0 +1,1413 @@
+{
+	"schema": 1,
+	"rig": "demand",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "Origin requests, Worker-invocation equivalents and bytes per device per day, with and without spool, for visitors who return after one lease or more, per engine.",
+	"instrument": "Playwright persistent contexts reopened on one profile each day; the wall clock of the server and the browser moved together by libfaketime reading an offset file; every request that reaches the origin handler is counted with its method, path, response bytes, day and view.",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic",
+		"container": "spool-v1-browser:1",
+		"loadAverageAtStart": "0.17 0.56 3.16"
+	},
+	"software": {
+		"node": "v26.3.0",
+		"bun": "1.4.5",
+		"playwright": "1.64.1",
+		"faketime": "libfaketime preloaded from /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1, version not read"
+	},
+	"method": {
+		"scenarios": [
+			{
+				"name": "Daily reader: one document a day, 5 days",
+				"views": [1, 1, 1, 1, 1],
+				"gapH": 25,
+				"site": "courses",
+				"pages": "spread"
+			},
+			{
+				"name": "Local-only reader across three leases",
+				"views": [3, 2, 2, 2],
+				"gapH": 25,
+				"site": "courses",
+				"pages": "spread"
+			},
+			{
+				"name": "Public edit: a held course changes between days",
+				"views": [3, 2, 2, 2],
+				"gapH": 25,
+				"site": "live",
+				"pages": "course",
+				"edits": [
+					{
+						"day": 2,
+						"kind": "course",
+						"text": "Intro to Drupal, revised"
+					}
+				]
+			},
+			{
+				"name": "Public edit, stored page route with depends: a held course changes between days",
+				"views": [3, 2, 2, 2],
+				"gapH": 25,
+				"site": "live",
+				"pages": "course",
+				"edits": [
+					{
+						"day": 2,
+						"kind": "course",
+						"text": "Intro to Drupal, revised"
+					}
+				],
+				"variant": "stored"
+			}
+		],
+		"arms": ["baseline", "spool"],
+		"engines": ["chromium"],
+		"courses": 1000,
+		"dwellMs": 1500,
+		"settleMs": 1500,
+		"tailMs": 6000,
+		"clockWaitMs": 2500,
+		"bootstrap": "second-view",
+		"swap": true,
+		"leaseSeconds": 86400,
+		"noCache": "1",
+		"dontFakeMonotonic": "1",
+		"realEpochMs": "1795158613595"
+	},
+	"exclusions": [
+		"the monotonic clock is not faked; waits and timers run in real time, so a lease is crossed by the wall clock only",
+		"a row with fatal set did not finish its arm; its days hold the counts of the days that started",
+		"a row with wrong above 0 has a page that did not show the course title; a reader drops it",
+		"dynamic counts every request but the stub and the scripts; it is the invocation count only when a static tier serves those (L2 over the hit log)",
+		"the dataset never changes, so a sync carries no patch; the bytes of a sync that carries a change are not in this reading",
+		"a Firefox row that failed to start under the preloaded library is the result for that engine"
+	],
+	"rows": [
+		{
+			"engine": "chromium",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "baseline",
+			"views": 5,
+			"requests": 5,
+			"bytes": 645,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 5
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 137,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 137
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 4,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158616119,
+					"pageMs": 1795158616942
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248628347,
+					"pageMs": 1795248629235
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795338639943,
+					"pageMs": 1795338640452
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795428651470,
+					"pageMs": 1795428652036
+				},
+				{
+					"day": 4,
+					"offsetH": 100,
+					"nodeMs": 1795518663557,
+					"pageMs": 1795518664139
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Course 138"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Course 175"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Course 212"
+				},
+				{
+					"day": 4,
+					"step": 0,
+					"text": "Course 249"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "spool",
+			"views": 5,
+			"requests": 5,
+			"bytes": 15825,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 5
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 3173,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 3173
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 3163,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 3163
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 3163,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 3163
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 3163,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 3163
+						}
+					}
+				},
+				{
+					"day": 4,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 3163,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 3163
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158675270,
+					"pageMs": 1795158675941
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248687741,
+					"pageMs": 1795248688440
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795338700649,
+					"pageMs": 1795338701145
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795428712665,
+					"pageMs": 1795428713449
+				},
+				{
+					"day": 4,
+					"offsetH": 100,
+					"nodeMs": 1795518725475,
+					"pageMs": 1795518726847
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Course 138"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Course 175"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Course 212"
+				},
+				{
+					"day": 4,
+					"step": 0,
+					"text": "Course 249"
+				}
+			],
+			"workerViews": []
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Local-only reader across three leases",
+			"arm": "baseline",
+			"views": 9,
+			"requests": 9,
+			"bytes": 1153,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 9
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 3,
+					"dynamic": 3,
+					"bytes": 391,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 391
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158738966,
+					"pageMs": 1795158739549
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248757945,
+					"pageMs": 1795248758449
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795338773059,
+					"pageMs": 1795338774449
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795428789347,
+					"pageMs": 1795428790140
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Course 138"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Course 175"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Course 212"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Course 249"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Course 286"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Course 323"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Course 360"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Course 397"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Local-only reader across three leases",
+			"arm": "spool",
+			"views": 9,
+			"requests": 10,
+			"bytes": 223938,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 4,
+				"POST /.spool/beacon": 2
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 5,
+					"dynamic": 3,
+					"bytes": 223938,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 9499
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 75872
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 138567
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 0,
+					"bytes": 0,
+					"byType": {
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 0,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 0,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158804671,
+					"pageMs": 1795158805048
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248827164,
+					"pageMs": 1795248827849
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795338848466,
+					"pageMs": 1795338849350
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795428870760,
+					"pageMs": 1795428871650
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Course 138"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Course 175"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Course 212"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Course 249"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Course 286"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Course 323"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Course 360"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Course 397"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795248828347,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 213,
+					"gapMs": null
+				},
+				{
+					"at": 1795248833745,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 5611,
+					"gapMs": 5398
+				},
+				{
+					"at": 1795338850148,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 498,
+					"gapMs": null
+				},
+				{
+					"at": 1795338857240,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 7590,
+					"gapMs": 7092
+				},
+				{
+					"at": 1795428872843,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 902,
+					"gapMs": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Public edit: a held course changes between days",
+			"arm": "baseline",
+			"views": 9,
+			"requests": 9,
+			"bytes": 1305,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 9
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 3,
+					"dynamic": 3,
+					"bytes": 411,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 411
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 274,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 274
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 310,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 310
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 310,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 310
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158893564,
+					"pageMs": 1795158894340
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248912257,
+					"pageMs": 1795248912840
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795338927251,
+					"pageMs": 1795338927837
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795428943340,
+					"pageMs": 1795428944036
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Public edit: a held course changes between days",
+			"arm": "spool",
+			"views": 9,
+			"requests": 10,
+			"bytes": 363887,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 4,
+				"POST /.spool/beacon": 2
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 5,
+					"dynamic": 3,
+					"bytes": 224542,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 9519
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 75872
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139151
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 0,
+					"bytes": 0,
+					"byType": {
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 139345,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139345
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 0,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795158959179,
+					"pageMs": 1795158960147
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795248984257,
+					"pageMs": 1795248985540
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339007456,
+					"pageMs": 1795339008049
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429027562,
+					"pageMs": 1795429028347
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795248987048,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 1,
+					"swAgeMs": 1211,
+					"gapMs": null
+				},
+				{
+					"at": 1795248994846,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 9009,
+					"gapMs": 7798
+				},
+				{
+					"at": 1795339008635,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 384,
+					"gapMs": null
+				},
+				{
+					"at": 1795339013639,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 1,
+					"swAgeMs": 5388,
+					"gapMs": 5004
+				},
+				{
+					"at": 1795429029446,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 0,
+					"swAgeMs": 896,
+					"gapMs": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Public edit, stored page route with depends: a held course changes between days",
+			"arm": "baseline",
+			"views": 9,
+			"requests": 9,
+			"bytes": 1305,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 9
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 3,
+					"dynamic": 3,
+					"bytes": 411,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 411
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 274,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 274
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 310,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 310
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 310,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 310
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159050245,
+					"pageMs": 1795159050845
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249069355,
+					"pageMs": 1795249070034
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339085154,
+					"pageMs": 1795339085639
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429100464,
+					"pageMs": 1795429101249
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Public edit, stored page route with depends: a held course changes between days",
+			"arm": "spool",
+			"views": 9,
+			"requests": 17,
+			"bytes": 329596,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 4,
+				"GET /.spool/1.0.0/client.js": 1,
+				"GET /spool-sw.js": 4,
+				"GET /.spool/artifact": 2,
+				"GET /.spool/sync": 3,
+				"POST /.spool/beacon": 3
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 6,
+					"dynamic": 4,
+					"bytes": 187107,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 8433
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 39423
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139085
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 166
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 3,
+					"dynamic": 2,
+					"bytes": 65,
+					"byType": {
+						"drain": {
+							"requests": 1,
+							"bytes": 65
+						},
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 142359,
+					"byType": {
+						"drain": {
+							"requests": 1,
+							"bytes": 76
+						},
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139279
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2829
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 175
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 3,
+					"dynamic": 2,
+					"bytes": 65,
+					"byType": {
+						"drain": {
+							"requests": 1,
+							"bytes": 65
+						},
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159115853,
+					"pageMs": 1795159116441
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249141149,
+					"pageMs": 1795249143742
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339166560,
+					"pageMs": 1795339170644
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429193940,
+					"pageMs": 1795429196250
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 1,
+					"step": 1,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Intro to Drupal"
+				},
+				{
+					"day": 2,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Intro to Drupal, revised"
+				},
+				{
+					"day": 3,
+					"step": 1,
+					"text": "Intro to Drupal, revised"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795159126834,
+					"route": "/courses/:id",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 4394,
+					"gapMs": null
+				},
+				{
+					"at": 1795249145147,
+					"route": "/courses/:id",
+					"tier": "local-revalidate",
+					"reason": "soft-sync",
+					"staleSec": 90016,
+					"swAgeMs": 908,
+					"gapMs": null
+				},
+				{
+					"at": 1795249151243,
+					"route": "/courses/:id",
+					"tier": "local",
+					"reason": "fresh",
+					"staleSec": 5,
+					"swAgeMs": 7004,
+					"gapMs": 6096
+				},
+				{
+					"at": 1795339172134,
+					"route": "/courses/:id",
+					"tier": "local-revalidate",
+					"reason": "soft-sync",
+					"staleSec": 90026,
+					"swAgeMs": 1197,
+					"gapMs": null
+				},
+				{
+					"at": 1795339178048,
+					"route": "/courses/:id",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 7111,
+					"gapMs": 5914
+				},
+				{
+					"at": 1795429197434,
+					"route": "/courses/:id",
+					"tier": "local-revalidate",
+					"reason": "soft-sync",
+					"staleSec": 90017,
+					"swAgeMs": 888,
+					"gapMs": null
+				}
+			]
+		}
+	]
+}

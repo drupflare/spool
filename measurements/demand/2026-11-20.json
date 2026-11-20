@@ -1,0 +1,321 @@
+{
+	"schema": 1,
+	"rig": "demand",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "Origin requests a reader model makes with and without spool, per engine, for single-day scenarios.",
+	"instrument": "Playwright persistent contexts; every request that reaches the origin handler is counted with its method, path and response bytes.",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic"
+	},
+	"software": {
+		"node": "v26.3.0",
+		"bun": "1.4.5",
+		"playwright": "1.64.1"
+	},
+	"method": {
+		"scenarios": [
+			{
+				"name": "One view, never returns",
+				"views": 1,
+				"warm": 0
+			},
+			{
+				"name": "Two views, one visit",
+				"views": 2,
+				"warm": 0
+			},
+			{
+				"name": "Five views, one visit",
+				"views": 5,
+				"warm": 0
+			},
+			{
+				"name": "Codex's mix: 1 + 100 in-page + 20 warm documents",
+				"views": 121,
+				"warm": 20
+			}
+		],
+		"arms": ["baseline", "spool"],
+		"engines": ["chromium", "firefox"],
+		"courses": 1000,
+		"dwellMs": 1500,
+		"settleMs": 1500,
+		"tailMs": 1500,
+		"bootstrap": "second-view",
+		"swap": true,
+		"clickGapMs": 150
+	},
+	"exclusions": [
+		"a row with fatal set did not finish its arm and holds no count a reader may use",
+		"a row with wrong above 0 has a page that did not show the course title; a reader drops it"
+	],
+	"rows": [
+		{
+			"engine": "chromium",
+			"scenario": "One view, never returns",
+			"arm": "baseline",
+			"views": 1,
+			"requests": 1,
+			"bytes": 137,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1
+			},
+			"steps": [1]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "One view, never returns",
+			"arm": "spool",
+			"views": 1,
+			"requests": 1,
+			"bytes": 2582,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1
+			},
+			"steps": [1]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Two views, one visit",
+			"arm": "baseline",
+			"views": 2,
+			"requests": 2,
+			"bytes": 264,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 2
+			},
+			"steps": [1, 1]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Two views, one visit",
+			"arm": "spool",
+			"views": 2,
+			"requests": 2,
+			"bytes": 78003,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /.spool/1.0.0/boot/1.js": 1
+			},
+			"steps": [1, 1]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Five views, one visit",
+			"arm": "baseline",
+			"views": 5,
+			"requests": 5,
+			"bytes": 645,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 5
+			},
+			"steps": [1, 1, 1, 1, 1]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Five views, one visit",
+			"arm": "spool",
+			"views": 5,
+			"requests": 2,
+			"bytes": 78003,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /.spool/1.0.0/boot/1.js": 1
+			},
+			"steps": [1, 1, 0, 0, 0]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Codex's mix: 1 + 100 in-page + 20 warm documents",
+			"arm": "baseline",
+			"views": 121,
+			"requests": 121,
+			"bytes": 15401,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 121
+			},
+			"steps": [
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Codex's mix: 1 + 100 in-page + 20 warm documents",
+			"arm": "spool",
+			"views": 121,
+			"requests": 5,
+			"bytes": 220617,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 1
+			},
+			"steps": [
+				1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0
+			]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "One view, never returns",
+			"arm": "baseline",
+			"views": 1,
+			"requests": 2,
+			"bytes": 146,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /favicon.ico": 1
+			},
+			"steps": [2]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "One view, never returns",
+			"arm": "spool",
+			"views": 1,
+			"requests": 2,
+			"bytes": 2591,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /favicon.ico": 1
+			},
+			"steps": [2]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Two views, one visit",
+			"arm": "baseline",
+			"views": 2,
+			"requests": 3,
+			"bytes": 273,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 2,
+				"GET /favicon.ico": 1
+			},
+			"steps": [2, 1]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Two views, one visit",
+			"arm": "spool",
+			"views": 2,
+			"requests": 3,
+			"bytes": 78012,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /favicon.ico": 1,
+				"GET /.spool/1.0.0/boot/1.js": 1
+			},
+			"steps": [2, 1]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Five views, one visit",
+			"arm": "baseline",
+			"views": 5,
+			"requests": 6,
+			"bytes": 654,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 5,
+				"GET /favicon.ico": 1
+			},
+			"steps": [2, 1, 1, 1, 1]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Five views, one visit",
+			"arm": "spool",
+			"views": 5,
+			"requests": 3,
+			"bytes": 78012,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 1,
+				"GET /favicon.ico": 1,
+				"GET /.spool/1.0.0/boot/1.js": 1
+			},
+			"steps": [2, 1, 0, 0, 0]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Codex's mix: 1 + 100 in-page + 20 warm documents",
+			"arm": "baseline",
+			"views": 121,
+			"requests": 122,
+			"bytes": 15410,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 121,
+				"GET /favicon.ico": 1
+			},
+			"steps": [
+				2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1
+			]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Codex's mix: 1 + 100 in-page + 20 warm documents",
+			"arm": "spool",
+			"views": 121,
+			"requests": 6,
+			"bytes": 220626,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /favicon.ico": 1,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 1
+			},
+			"steps": [
+				2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0
+			]
+		}
+	]
+}

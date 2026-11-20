@@ -1,0 +1,1437 @@
+{
+	"schema": 1,
+	"rig": "demand",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "Origin requests, Worker-invocation equivalents and bytes per device per day, with and without spool, for visitors who return after one lease or more, per engine.",
+	"instrument": "Playwright persistent contexts reopened on one profile each day; the wall clock of the server and the browser moved together by libfaketime reading an offset file; every request that reaches the origin handler is counted with its method, path, response bytes, day and view.",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic",
+		"container": "spool-v1-browser:1",
+		"loadAverageAtStart": "0.13 2.89 5.80"
+	},
+	"software": {
+		"node": "v26.3.0",
+		"bun": "1.4.5",
+		"playwright": "1.64.1",
+		"faketime": "libfaketime preloaded from /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1, version not read"
+	},
+	"method": {
+		"scenarios": [
+			{
+				"name": "Principal reader, session stays valid, session retention",
+				"views": [3, 1, 1, 1],
+				"gapH": 25,
+				"site": "live",
+				"pages": "me",
+				"login": "ada"
+			},
+			{
+				"name": "Principal reader, session ends on the server after day 2, session retention",
+				"views": [3, 1, 1, 1],
+				"gapH": 25,
+				"site": "live",
+				"pages": "me",
+				"login": "ada",
+				"revokeAfterDay": 2
+			},
+			{
+				"name": "Principal edit: the visitor row changes between days, session retention",
+				"views": [3, 1, 1, 1],
+				"gapH": 25,
+				"site": "live",
+				"pages": "me",
+				"login": "ada",
+				"edits": [
+					{
+						"day": 2,
+						"kind": "member",
+						"text": "Ada Park, edited"
+					}
+				]
+			},
+			{
+				"name": "Principal reader, session stays valid, persistent retention and depends on members",
+				"views": [3, 1, 1, 1],
+				"gapH": 25,
+				"site": "live",
+				"pages": "me",
+				"login": "ada",
+				"variant": "persistent"
+			}
+		],
+		"arms": ["baseline", "spool"],
+		"engines": ["chromium"],
+		"courses": 1000,
+		"dwellMs": 1500,
+		"settleMs": 1500,
+		"tailMs": 6000,
+		"clockWaitMs": 2500,
+		"bootstrap": "second-view",
+		"swap": true,
+		"leaseSeconds": 86400,
+		"noCache": "1",
+		"dontFakeMonotonic": "1",
+		"realEpochMs": "1795159593310"
+	},
+	"exclusions": [
+		"the monotonic clock is not faked; waits and timers run in real time, so a lease is crossed by the wall clock only",
+		"a row with fatal set did not finish its arm; its days hold the counts of the days that started",
+		"a row with wrong above 0 has a page that did not show the course title; a reader drops it",
+		"dynamic counts every request but the stub and the scripts; it is the invocation count only when a static tier serves those (L2 over the hit log)",
+		"the dataset never changes, so a sync carries no patch; the bytes of a sync that carries a change are not in this reading",
+		"a Firefox row that failed to start under the preloaded library is the result for that engine"
+	],
+	"rows": [
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session stays valid, session retention",
+			"arm": "baseline",
+			"views": 6,
+			"requests": 7,
+			"bytes": 711,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 4,
+					"dynamic": 4,
+					"bytes": 360,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 351
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159595832,
+					"pageMs": 1795159596887
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249615295,
+					"pageMs": 1795249617799
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339629228,
+					"pageMs": 1795339630092
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429641698,
+					"pageMs": 1795429645690
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session stays valid, session retention",
+			"arm": "spool",
+			"views": 6,
+			"requests": 22,
+			"bytes": 196849,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6,
+				"GET /.spool/1.0.0/client.js": 1,
+				"GET /spool-sw.js": 4,
+				"GET /.spool/artifact": 4,
+				"GET /.spool/dataset": 3,
+				"POST /.spool/beacon": 3
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 7,
+					"dynamic": 5,
+					"bytes": 187174,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 8439
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 39423
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139148
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159658034,
+					"pageMs": 1795159658798
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249684893,
+					"pageMs": 1795249685598
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339704000,
+					"pageMs": 1795339704597
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429721503,
+					"pageMs": 1795429722291
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795159669496,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 3502,
+					"gapMs": null
+				},
+				{
+					"at": 1795249687296,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 1397,
+					"gapMs": null
+				},
+				{
+					"at": 1795339705388,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 490,
+					"gapMs": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session ends on the server after day 2, session retention",
+			"arm": "baseline",
+			"views": 6,
+			"requests": 7,
+			"bytes": 601,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 4,
+					"dynamic": 4,
+					"bytes": 360,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 351
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 7,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 7
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159738917,
+					"pageMs": 1795159739487
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249757296,
+					"pageMs": 1795249757886
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339769293,
+					"pageMs": 1795339770103
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429781202,
+					"pageMs": 1795429781890
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session ends on the server after day 2, session retention",
+			"arm": "spool",
+			"views": 6,
+			"requests": 21,
+			"bytes": 193650,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6,
+				"GET /.spool/1.0.0/client.js": 1,
+				"GET /spool-sw.js": 4,
+				"GET /.spool/artifact": 3,
+				"POST /.spool/beacon": 3,
+				"GET /.spool/dataset": 3
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 7,
+					"dynamic": 5,
+					"bytes": 187174,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 8439
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 39423
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139148
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 4,
+					"dynamic": 3,
+					"bytes": 26,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 19
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 7
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159793132,
+					"pageMs": 1795159793596
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249818719,
+					"pageMs": 1795249819703
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339837697,
+					"pageMs": 1795339838299
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429854601,
+					"pageMs": 1795429855087
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": null
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795159803297,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 3700,
+					"gapMs": null
+				},
+				{
+					"at": 1795249820691,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 699,
+					"gapMs": null
+				},
+				{
+					"at": 1795339839001,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 307,
+					"gapMs": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal edit: the visitor row changes between days, session retention",
+			"arm": "baseline",
+			"views": 6,
+			"requests": 7,
+			"bytes": 727,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 4,
+					"dynamic": 4,
+					"bytes": 360,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 351
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 125,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 125
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 125,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 125
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159868397,
+					"pageMs": 1795159868995
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249888394,
+					"pageMs": 1795249888801
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339900510,
+					"pageMs": 1795339901791
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429913008,
+					"pageMs": 1795429913787
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park, edited"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park, edited"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal edit: the visitor row changes between days, session retention",
+			"arm": "spool",
+			"views": 6,
+			"requests": 22,
+			"bytes": 336150,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6,
+				"GET /.spool/1.0.0/client.js": 1,
+				"GET /spool-sw.js": 4,
+				"GET /.spool/artifact": 4,
+				"POST /.spool/beacon": 3,
+				"GET /.spool/dataset": 3
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 7,
+					"dynamic": 5,
+					"bytes": 187174,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 8439
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 39423
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139148
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3225,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 155
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 142502,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 265
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2821
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 163
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139253
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 5,
+					"dynamic": 4,
+					"bytes": 3249,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 265
+						},
+						"document": {
+							"requests": 1,
+							"bytes": 2821
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 163
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159924921,
+					"pageMs": 1795159925588
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795249951897,
+					"pageMs": 1795249952292
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795339966816,
+					"pageMs": 1795339967488
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795429982992,
+					"pageMs": 1795429983497
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park, edited"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park, edited"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795159935800,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 3909,
+					"gapMs": null
+				},
+				{
+					"at": 1795249952691,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 199,
+					"gapMs": null
+				},
+				{
+					"at": 1795339967994,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 299,
+					"gapMs": null
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session stays valid, persistent retention and depends on members",
+			"arm": "baseline",
+			"views": 6,
+			"requests": 7,
+			"bytes": 711,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 6
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 4,
+					"dynamic": 4,
+					"bytes": 360,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 351
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 117,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 117
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795159996923,
+					"pageMs": 1795159997293
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795250015724,
+					"pageMs": 1795250016598
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795340027915,
+					"pageMs": 1795340028699
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795430039812,
+					"pageMs": 1795430040497
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park"
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Principal reader, session stays valid, persistent retention and depends on members",
+			"arm": "spool",
+			"views": 6,
+			"requests": 18,
+			"bytes": 190832,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"POST /login": 1,
+				"GET /me": 4,
+				"GET /.spool/1.0.0/client.js": 1,
+				"GET /spool-sw.js": 4,
+				"GET /.spool/artifact": 1,
+				"GET /.spool/dataset": 3,
+				"POST /.spool/beacon": 2,
+				"GET /.spool/sync": 2
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 6,
+					"dynamic": 4,
+					"bytes": 187022,
+					"byType": {
+						"login": {
+							"requests": 1,
+							"bytes": 9
+						},
+						"document": {
+							"requests": 3,
+							"bytes": 8439
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 39423
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 139151
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 4,
+					"dynamic": 3,
+					"bytes": 3234,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 2813
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"artifact": {
+							"requests": 1,
+							"bytes": 164
+						},
+						"dataset": {
+							"requests": 1,
+							"bytes": 257
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 4,
+					"dynamic": 3,
+					"bytes": 288,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"drain": {
+							"requests": 2,
+							"bytes": 288
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 4,
+					"dynamic": 3,
+					"bytes": 288,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"drain": {
+							"requests": 2,
+							"bytes": 288
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 0
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795160051527,
+					"pageMs": 1795160052102
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795250075619,
+					"pageMs": 1795250076489
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795340092402,
+					"pageMs": 1795340094300
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795430114915,
+					"pageMs": 1795430116205
+				}
+			],
+			"shown": [
+				{
+					"day": 0,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 1,
+					"text": "Ada Park"
+				},
+				{
+					"day": 0,
+					"step": 2,
+					"text": "Ada Park"
+				},
+				{
+					"day": 1,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 2,
+					"step": 0,
+					"text": "Ada Park"
+				},
+				{
+					"day": 3,
+					"step": 0,
+					"text": "Ada Park"
+				}
+			],
+			"workerViews": [
+				{
+					"at": 1795250077688,
+					"route": "/me",
+					"tier": "network",
+					"reason": "cold",
+					"staleSec": null,
+					"swAgeMs": 801,
+					"gapMs": null
+				},
+				{
+					"at": 1795340095287,
+					"route": "/me",
+					"tier": "local-revalidate",
+					"reason": "hard-sync",
+					"staleSec": 90013,
+					"swAgeMs": 587,
+					"gapMs": null
+				}
+			]
+		}
+	]
+}

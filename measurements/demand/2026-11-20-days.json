@@ -1,0 +1,540 @@
+{
+	"schema": 1,
+	"rig": "demand",
+	"date": "2026-11-20",
+	"layer": "L1",
+	"question": "Origin requests, Worker-invocation equivalents and bytes per device per day, with and without spool, for visitors who return after one lease or more, per engine.",
+	"instrument": "Playwright persistent contexts reopened on one profile each day; the wall clock of the server and the browser moved together by libfaketime reading an offset file; every request that reaches the origin handler is counted with its method, path, response bytes, day and view.",
+	"machine": {
+		"name": "paisley-park",
+		"cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+		"os": "linux 6.8.0-138-generic",
+		"container": "spool-v1-browser:1",
+		"loadAverageAtStart": "0.24 0.53 1.09"
+	},
+	"software": {
+		"node": "v26.3.0",
+		"bun": "1.4.5",
+		"playwright": "1.64.1",
+		"faketime": "libfaketime preloaded from /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1, version not read"
+	},
+	"method": {
+		"scenarios": [
+			{
+				"name": "Daily reader: one document a day, 5 days",
+				"views": [1, 1, 1, 1, 1],
+				"gapH": 25
+			},
+			{
+				"name": "Local-only reader across three leases",
+				"views": [3, 2, 2, 2],
+				"gapH": 25
+			}
+		],
+		"arms": ["baseline", "spool"],
+		"engines": ["chromium", "firefox"],
+		"courses": 1000,
+		"dwellMs": 1500,
+		"settleMs": 1500,
+		"tailMs": 6000,
+		"clockWaitMs": 2500,
+		"bootstrap": "second-view",
+		"swap": true,
+		"leaseSeconds": 86400,
+		"noCache": "1",
+		"dontFakeMonotonic": "1",
+		"realEpochMs": "1795143971507"
+	},
+	"exclusions": [
+		"the monotonic clock is not faked; waits and timers run in real time, so a lease is crossed by the wall clock only",
+		"a row with fatal set did not finish its arm; its days hold the counts of the days that started",
+		"a row with wrong above 0 has a page that did not show the course title; a reader drops it",
+		"dynamic counts every request but the stub and the scripts; it is the invocation count only when a static tier serves those (L2 over the hit log)",
+		"the dataset never changes, so a sync carries no patch; the bytes of a sync that carries a change are not in this reading",
+		"a Firefox row that failed to start under the preloaded library is the result for that engine"
+	],
+	"rows": [
+		{
+			"engine": "chromium",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "baseline",
+			"views": 5,
+			"requests": 5,
+			"bytes": 645,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 5
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 137,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 137
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				},
+				{
+					"day": 4,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 127,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 127
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795143974027,
+					"pageMs": 1795143974951
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795233987264,
+					"pageMs": 1795233988149
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795323999857,
+					"pageMs": 1795324003845
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795414017251,
+					"pageMs": 1795414019144
+				},
+				{
+					"day": 4,
+					"offsetH": 100,
+					"nodeMs": 1795504030867,
+					"pageMs": 1795504036748
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "spool",
+			"views": 5,
+			"requests": 8,
+			"bytes": 495557,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 3,
+				"POST /.spool/beacon": 1
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 2582,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 2582
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 1,
+					"bytes": 2572,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 2572
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 3,
+					"dynamic": 1,
+					"bytes": 215463,
+					"byType": {
+						"document": {
+							"requests": 1,
+							"bytes": 2572
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 75421
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 1,
+					"dynamic": 0,
+					"bytes": 137470,
+					"byType": {
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				},
+				{
+					"day": 4,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 137470,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795144048676,
+					"pageMs": 1795144055141
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795234068066,
+					"pageMs": 1795234073545
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795324086448,
+					"pageMs": 1795324093852
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795414107653,
+					"pageMs": 1795414112145
+				},
+				{
+					"day": 4,
+					"offsetH": 100,
+					"nodeMs": 1795504132449,
+					"pageMs": 1795504136352
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Local-only reader across three leases",
+			"arm": "baseline",
+			"views": 9,
+			"requests": 9,
+			"bytes": 1153,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {
+				"GET /courses/:id": 9
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 3,
+					"dynamic": 3,
+					"bytes": 391,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 391
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 2,
+					"bytes": 254,
+					"byType": {
+						"document": {
+							"requests": 2,
+							"bytes": 254
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795144154082,
+					"pageMs": 1795144157443
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795234175869,
+					"pageMs": 1795234180747
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795324198777,
+					"pageMs": 1795324205148
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795414220852,
+					"pageMs": 1795414224746
+				}
+			]
+		},
+		{
+			"engine": "chromium",
+			"scenario": "Local-only reader across three leases",
+			"arm": "spool",
+			"views": 9,
+			"requests": 10,
+			"bytes": 633027,
+			"wrong": 0,
+			"controlled": true,
+			"paths": {
+				"GET /courses/:id": 3,
+				"GET /.spool/1.0.0/boot/1.js": 1,
+				"GET /spool-sw.js": 4,
+				"POST /.spool/beacon": 2
+			},
+			"days": [
+				{
+					"day": 0,
+					"requests": 5,
+					"dynamic": 3,
+					"bytes": 220617,
+					"byType": {
+						"document": {
+							"requests": 3,
+							"bytes": 7726
+						},
+						"asset": {
+							"requests": 1,
+							"bytes": 75421
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				},
+				{
+					"day": 1,
+					"requests": 1,
+					"dynamic": 0,
+					"bytes": 137470,
+					"byType": {
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				},
+				{
+					"day": 2,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 137470,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				},
+				{
+					"day": 3,
+					"requests": 2,
+					"dynamic": 1,
+					"bytes": 137470,
+					"byType": {
+						"beacon": {
+							"requests": 1,
+							"bytes": 0
+						},
+						"stub": {
+							"requests": 1,
+							"bytes": 137470
+						}
+					}
+				}
+			],
+			"clock": [
+				{
+					"day": 0,
+					"offsetH": 0,
+					"nodeMs": 1795144242087,
+					"pageMs": 1795144247743
+				},
+				{
+					"day": 1,
+					"offsetH": 25,
+					"nodeMs": 1795234270381,
+					"pageMs": 1795234275147
+				},
+				{
+					"day": 2,
+					"offsetH": 50,
+					"nodeMs": 1795324300052,
+					"pageMs": 1795324303050
+				},
+				{
+					"day": 3,
+					"offsetH": 75,
+					"nodeMs": 1795414326385,
+					"pageMs": 1795414331344
+				}
+			]
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "baseline",
+			"views": 5,
+			"requests": 0,
+			"bytes": 0,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {},
+			"days": [],
+			"clock": [],
+			"fatal": "launchPersistentContext: Timeout 60000ms exceeded."
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Daily reader: one document a day, 5 days",
+			"arm": "spool",
+			"views": 5,
+			"requests": 0,
+			"bytes": 0,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {},
+			"days": [],
+			"clock": [],
+			"fatal": "launchPersistentContext: Timeout 60000ms exceeded."
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Local-only reader across three leases",
+			"arm": "baseline",
+			"views": 9,
+			"requests": 0,
+			"bytes": 0,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {},
+			"days": [],
+			"clock": [],
+			"fatal": "launchPersistentContext: Timeout 60000ms exceeded."
+		},
+		{
+			"engine": "firefox",
+			"scenario": "Local-only reader across three leases",
+			"arm": "spool",
+			"views": 9,
+			"requests": 0,
+			"bytes": 0,
+			"wrong": 0,
+			"controlled": false,
+			"paths": {},
+			"days": [],
+			"clock": [],
+			"fatal": "launchPersistentContext: Timeout 60000ms exceeded."
+		}
+	]
+}
