@@ -403,3 +403,134 @@ export const HOSTING_KWH_PER_SITE = {
 		source: 'drupflare/worker docs/impact/energy/production-baseline.md: worst case, one small VPS, 2 vCPU, 15%'
 	}
 } as const satisfies Record<string, Input>;
+
+const count = (value: number, column: string, term: string): Input => ({
+	value,
+	unit: 'requests',
+	layer: 'L1',
+	source: `review/model.json, column "${column}", ${term}`
+});
+
+const review = (value: number, what: string): Input => ({
+	value,
+	unit: 'requests',
+	layer: 'L1',
+	source: `review/REVIEW.md section 3, ${what}; Chromium, Firefox and WebKit; measured on 2026-11-18`
+});
+
+/** the request-law constants of `Q`, each a count from review/model.json or the review's constants table */
+export const DEMAND = {
+	bootstrapWorker: count(2, 'min worker, Chromium', 'k'),
+	bootstrapNoWorker: count(1, 'min no worker, any engine', 'k'),
+	contact: count(1, 'min worker, Chromium', 'x'),
+	contactInLease: review(0, '"contact inside the lease", min worker column'),
+	write: review(1, '"write" row, min worker column'),
+	inPage: review(0, '"in-page view" row, min worker column'),
+	coldChromium: count(1, 'min worker, Chromium', 'cold'),
+	coldRoute: count(0, 'min worker + route, Chromium', 'cold'),
+	coldFirefox: count(0, 'min worker, Firefox', 'cold'),
+	coldWebkitMac: count(2, 'min worker, WebKit macOS', 'cold'),
+	coldWebkitLinux: count(1, 'min worker, WebKit Linux', 'cold'),
+	coldTls: {
+		value: 0,
+		unit: 'requests',
+		layer: 'L1',
+		source: 'review/REVIEW.md section 8, six cold restarts per engine against the deployed Worker; Chromium, Firefox and WebKit; measured on 2026-11-18; the count is Worker invocations'
+	},
+	warmChromium: count(0, 'min worker, Chromium', 'warm'),
+	warmFirefox: count(0, 'min worker, Firefox', 'warm'),
+	warmWebkitMac: count(1, 'min worker, WebKit macOS', 'warm'),
+	warmWebkitLinux: count(0, 'min worker, WebKit Linux', 'warm')
+} as const satisfies Record<string, Input>;
+
+const retrofit = (value: number, unit: string, what: string): Input => ({
+	value,
+	unit,
+	layer: 'L1',
+	source: `drupflare Worker retrofit reading, ${what}`
+});
+
+/** counted views of the retrofit reading: one bootstrap, then the in-page and document views below */
+export const RETROFIT_VIEWS = retrofit(121, 'views', 'counted views, warm static assets');
+export const RETROFIT_IN_PAGE = retrofit(100, 'views', 'in-page views');
+export const RETROFIT_DOCUMENTS = retrofit(20, 'views', 'document navigations');
+
+/** requests that reached the origin over the retrofit views; WebKit includes its script check per navigation */
+export const RETROFIT_ORIGIN = {
+	chromium: retrofit(4, 'requests', 'origin requests, Chromium'),
+	firefox: retrofit(4, 'requests', 'origin requests, Firefox'),
+	webkit: retrofit(23, 'requests', 'origin requests, WebKit')
+} as const satisfies Record<string, Input>;
+
+/** Worker invocations over the retrofit views, per engine */
+export const RETROFIT_WORKER = {
+	chromium: retrofit(4, 'calls', 'Worker invocations, Chromium'),
+	firefox: retrofit(4, 'calls', 'Worker invocations, Firefox'),
+	webkit: retrofit(6, 'calls', 'Worker invocations, WebKit')
+} as const satisfies Record<string, Input>;
+
+const session = (value: number, what: string): Input => ({
+	value,
+	unit: 'views',
+	layer: 'L1',
+	source: `review/deploy/runs/2026-11-18T09-36-16-583Z/reading.json, ${what}; three engines; measured on 2026-11-18`
+});
+
+/** the deployed session of section 8: the rig's phases, one Worker invocation each for the first document */
+export const SESSION = {
+	views: session(
+		108,
+		'phases first-document, second-view-bootstrap, 100-held-reads, 5-documents and restart-document'
+	),
+	heldReads: session(100, 'phase 100-held-reads'),
+	documents: session(5, 'phase 5-documents'),
+	restarts: session(1, 'phase restart-document')
+} as const satisfies Record<string, Input>;
+
+const bench = (value: number, unit: string, what: string): Input => ({
+	value,
+	unit,
+	layer: 'L1',
+	source: `review/storage RESULTS.md, ${what}`
+});
+
+/** the device layouts at 1,000, 10,000 and 100,000 rows, on the M2 Pro bench */
+export const STORAGE = {
+	rowsSmall: bench(1000, 'rows', 'synthetic site, 1,000 rows'),
+	rowsLarge: bench(10000, 'rows', 'synthetic site, 10,000 rows'),
+	rowsXl: bench(100000, 'rows', 'synthetic site, 100,000 rows, Chromium only'),
+	plainRowChromium: bench(794.3, 'B a row', '10k, usage, codex, Chromium'),
+	plainRowFirefox: bench(9373.2, 'B a row', '10k, usage, codex, Firefox'),
+	plainRowWebkit: bench(1754.5, 'B a row', '10k, usage, codex, WebKit'),
+	packedRowChromium: bench(121.2, 'B a row', '10k, usage, packed, Chromium'),
+	packedRowFirefox: bench(396.3, 'B a row', '10k, usage, packed, Firefox'),
+	packedRowWebkit: bench(115.4, 'B a row', '10k, usage, packed, WebKit'),
+	plainItemChromium: bench(61.7, 'ms', '10k, item p50, codex, Chromium'),
+	plainItemFirefox: bench(112, 'ms', '10k, item p50, codex, Firefox'),
+	plainItemWebkit: bench(65, 'ms', '10k, item p50, codex, WebKit'),
+	packedItemChromium: bench(1.7, 'ms', '10k, item p50, packed, Chromium'),
+	packedItemFirefox: bench(2, 'ms', '10k, item p50, packed, Firefox'),
+	packedItemWebkit: bench(2, 'ms', '10k, item p50, packed, WebKit'),
+	plainItemChromium100k: bench(675.3, 'ms', '100k, item p50, codex, Chromium'),
+	packedItemChromium100k: bench(2.7, 'ms', '100k, item p50, packed, Chromium'),
+	wirePacked: bench(1146591, 'B', '10k, wire, packed gzip blocks'),
+	wireBrotli: bench(293408, 'B', '10k, wire, one brotli stream of the plain seed')
+} as const satisfies Record<string, Input>;
+
+const crawl = (value: number, unit: string, what: string): Input => ({
+	value,
+	unit,
+	layer: 'L1',
+	source: `review/radius RESULTS.md, ${what}`
+});
+
+/** the 300-page crawls behind the real-page figures; each total is summed over the pages */
+export const CRAWL = {
+	pages: crawl(300, 'pages', 'max-pages cap, docs.drupflare.com and MDN Service Worker API'),
+	docsText: crawl(326886, 'B', 'solidBrotliBytes text, docs.drupflare.com, one stream'),
+	mdnText: crawl(532348, 'B', 'solidBrotliBytes text, MDN, one stream'),
+	docsHtml: crawl(505352, 'B', 'solidBrotliBytes html, docs.drupflare.com, one stream'),
+	mdnHtml: crawl(991858, 'B', 'solidBrotliBytes html, MDN, one stream'),
+	docsHtmlEach: crawl(1027054, 'B', 'brotliBytes per page, summed, docs.drupflare.com'),
+	mdnHtmlEach: crawl(5711674, 'B', 'brotliBytes per page, summed, MDN')
+} as const satisfies Record<string, Input>;

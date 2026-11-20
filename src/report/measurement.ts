@@ -17,7 +17,11 @@ export const RIGS = [
 	'first-payload',
 	'embed-markup',
 	'dataset-baseline',
-	'avoidable-loops'
+	'avoidable-loops',
+	'storage',
+	'demand',
+	'examples',
+	'static-host'
 ] as const;
 
 /** one of {@link RIGS} */

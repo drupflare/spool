@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 import { DATASET_DEFAULTS } from '../src/protocol/provision';
 import {
+	CRAWL,
+	DEMAND,
 	DICTIONARY_ARMS,
 	DOCUMENT_BYTES,
 	EGRID_LB_PER_MWH,
@@ -23,7 +25,14 @@ import {
 	PUE,
 	RADIO_J,
 	REPEAT_VIEW_BYTES,
+	RETROFIT_DOCUMENTS,
+	RETROFIT_IN_PAGE,
+	RETROFIT_ORIGIN,
+	RETROFIT_VIEWS,
+	RETROFIT_WORKER,
 	SERVER_WATTS,
+	SESSION,
+	STORAGE,
 	SWD_V4,
 	TIERS,
 	WATER_DIRECT,
@@ -73,6 +82,7 @@ import {
 	repeatNavFigures,
 	repeatSplitBySite,
 	requestUsd,
+	retrofitRatio,
 	runtimeRun,
 	saving,
 	serverYearMWh,
@@ -100,6 +110,13 @@ import {
 	type Spread,
 	type WindowCount
 } from '../src/report/index';
+import {
+	IMPACT_VALUES,
+	MEASURED_TABLES,
+	MOVING_TABLES,
+	buildHeadlineFigures,
+	pickFigures
+} from './headline';
 import { isMain } from './measure/lib';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -3078,6 +3095,161 @@ export function buildFigures(readings: Readings): Figures {
 		blocks['second-time-point'] = true;
 	}
 	// #endregion
+	// #region demand, retrofit, storage and crawl
+	const d = Object.fromEntries(
+		Object.entries(DEMAND).map(([name, input]) => [
+			`demand${tierName(name)}`,
+			fixed(input.value)
+		])
+	);
+	t['demand-counts'] = table(
+		['term', 'measured count (L1)'],
+		[
+			['first view', 'equal to the baseline in every engine'],
+			[
+				'`k`',
+				`${d.demandBootstrapWorker} with a worker, ${d.demandBootstrapNoWorker} without`
+			],
+			['`Vp`, an in-page view', `${d.demandInPage} in every engine`],
+			[
+				'`x`',
+				`${d.demandContact} request per contact; ${d.demandContactInLease} for a contact inside the stub's lease`
+			],
+			[
+				'`W`',
+				`${d.demandWrite} request per write, and the response carries the changed rows`
+			],
+			[
+				'`d`',
+				`${d.demandWarmChromium} in Chromium, ${d.demandWarmFirefox} in Firefox and ${d.demandWarmWebkitLinux} in Linux WebKit; ${d.demandWarmWebkitMac} in WebKit on macOS and in Safari 26.5.2`
+			],
+			[
+				'`c`',
+				`${d.demandColdChromium} in Chromium; ${d.demandColdRoute} in Chromium with a static route; ${d.demandColdFirefox} in Firefox; ${d.demandColdWebkitMac} in WebKit on macOS; ${d.demandColdWebkitLinux} in WebKit on Linux with a persistent profile; ${d.demandColdTls} in all three engines over real TLS`
+			]
+		]
+	);
+	v.retrofitViews = fixed(RETROFIT_VIEWS.value);
+	v.retrofitInPage = fixed(RETROFIT_IN_PAGE.value);
+	v.retrofitDocuments = fixed(RETROFIT_DOCUMENTS.value);
+	const retrofitEngines: Array<[string, 'chromium' | 'firefox' | 'webkit']> = [
+		['Chromium', 'chromium'],
+		['Firefox', 'firefox'],
+		['WebKit', 'webkit']
+	];
+	t.retrofit = table(
+		[
+			'engine',
+			'requests to the origin, Q',
+			'Worker calls',
+			'h_W',
+			'multiplier, views over Worker calls'
+		],
+		retrofitEngines.map(([label, engine]) => {
+			const ratio = retrofitRatio(RETROFIT_VIEWS.value, RETROFIT_WORKER[engine].value);
+			return [
+				label,
+				fixed(RETROFIT_ORIGIN[engine].value),
+				fixed(RETROFIT_WORKER[engine].value),
+				`${fixed(ratio.h * 100, 2)}%`,
+				fixed(ratio.multiplier, 2)
+			];
+		}),
+		[1, 2, 3, 4]
+	);
+	v.sessionViews = fixed(SESSION.views.value);
+	v.sessionHeldReads = fixed(SESSION.heldReads.value);
+	v.sessionDocuments = fixed(SESSION.documents.value);
+	v.sessionRestarts = fixed(SESSION.restarts.value);
+	v.storageRowsSmall = fixed(STORAGE.rowsSmall.value);
+	v.storageRowsLarge = fixed(STORAGE.rowsLarge.value);
+	v.storageRowsXl = fixed(STORAGE.rowsXl.value);
+	v.plainRowChromium = fixed(STORAGE.plainRowChromium.value);
+	v.plainRowFirefox = fixed(STORAGE.plainRowFirefox.value);
+	v.plainRowWebkit = fixed(STORAGE.plainRowWebkit.value);
+	const packedRows = [
+		STORAGE.packedRowChromium,
+		STORAGE.packedRowFirefox,
+		STORAGE.packedRowWebkit
+	].map((s) => s.value);
+	v.packedRowLow = fixed(Math.min(...packedRows));
+	v.packedRowHigh = fixed(Math.max(...packedRows));
+	const plainItems = [
+		STORAGE.plainItemChromium,
+		STORAGE.plainItemFirefox,
+		STORAGE.plainItemWebkit
+	].map((s) => s.value);
+	v.plainItemLow = fixed(Math.min(...plainItems));
+	v.plainItemHigh = fixed(Math.max(...plainItems));
+	v.plainItem100k = fixed(STORAGE.plainItemChromium100k.value);
+	const packedItems = [
+		STORAGE.packedItemChromium,
+		STORAGE.packedItemFirefox,
+		STORAGE.packedItemWebkit,
+		STORAGE.packedItemChromium100k
+	].map((s) => s.value);
+	v.packedItemLow = fixed(Math.min(...packedItems), 1);
+	v.packedItemHigh = fixed(Math.max(...packedItems), 1);
+	v.wirePacked = fixed(STORAGE.wirePacked.value);
+	v.wireBrotli = fixed(STORAGE.wireBrotli.value);
+	v.crawlPages = fixed(CRAWL.pages.value);
+	const textPerPage = [CRAWL.docsText, CRAWL.mdnText].map((s) => s.value / CRAWL.pages.value);
+	v.realTextLow = fixed(Math.min(...textPerPage));
+	v.realTextHigh = fixed(Math.max(...textPerPage));
+	const htmlPerPage = [CRAWL.docsHtml, CRAWL.mdnHtml].map((s) => s.value / CRAWL.pages.value);
+	v.realHtmlLow = fixed(Math.min(...htmlPerPage));
+	v.realHtmlHigh = fixed(Math.max(...htmlPerPage));
+	v.realDocsPage = fixed(CRAWL.docsHtmlEach.value / CRAWL.pages.value);
+	v.realMdnPage = fixed(CRAWL.mdnHtmlEach.value / CRAWL.pages.value);
+	// #endregion
+
+	// #region headline and moving numbers
+	const headline = buildHeadlineFigures(readings, { fixed, table, pinned });
+	Object.assign(v, pickFigures(headline, IMPACT_VALUES, []).values);
+	Object.assign(
+		t,
+		pickFigures(
+			headline,
+			[],
+			['headline', 'headline-extremes', ...MEASURED_TABLES, ...MOVING_TABLES]
+		).tables
+	);
+	const viewsOriginal = pinned(readings, ORIGINAL_RAPL.views);
+	const phoneReading = latest(readings, 'iphone', 'projection');
+	t['moving-energy'] = table(
+		['stage', 'date', 'joules per view', 'what it is', 'label', 'source', 'status'],
+		[
+			[
+				'headline allocation',
+				'inputs read 2026-10-18',
+				`${v.headlineJ} J`,
+				'SWD v4 intensities over the repeat-view document, plus one origin request; no meter read it',
+				'L2',
+				'`src/report/inputs.ts`',
+				'current'
+			],
+			[
+				'desktop, original reading',
+				viewsOriginal.date,
+				`${v.desktopSaving} J saved`,
+				'package energy against optimized HTTP caching',
+				'L1',
+				`\`measurements/${ORIGINAL_RAPL.views}\``,
+				'current'
+			],
+			[
+				'iPhone 14 Pro',
+				phoneReading.date,
+				`${v.phoneSaving} J saved`,
+				'whole phone, screen on, over Wi-Fi, against a network view',
+				'L1',
+				`\`measurements/iphone/${phoneReading.date}-projection.json\``,
+				'current'
+			]
+		]
+	);
+	// #endregion
+
 	void spread;
 	void deviceCpuFigures;
 	return { values: v, tables: t, blocks };

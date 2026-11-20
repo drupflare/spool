@@ -362,3 +362,14 @@ export function nextShare(
 	for (const pair of pairs) if (pair.from === from) out[pair.route] = pair.views / total;
 	return out;
 }
+
+/**
+ * The share `h` of a baseline's requests a deployment holds back, and its multiplier (baseline over
+ * requests), from the baseline request count and the requests that reached the origin.
+ */
+export function retrofitRatio(
+	baseline: number,
+	requests: number
+): { h: number; multiplier: number } {
+	return { h: 1 - requests / baseline, multiplier: baseline / requests };
+}
