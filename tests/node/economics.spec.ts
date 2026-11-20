@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { buildEconomics } from '../../scripts/economics';
 import { loadReadings, render, unusedFigures } from '../../scripts/impact';
-import { WORKLOADS, requestsByClass } from '../../src/report/index';
+import {
+	NOT_SHIPPED,
+	PROVENANCE,
+	WORKLOADS,
+	requestsByClass,
+	workerRequests
+} from '../../src/report/index';
 import { parseMeasurementText } from '../../src/report/measurement';
 import { figureFaults } from './figure-sanity';
 
@@ -82,6 +88,58 @@ const PERSISTENT_STAYS =
 const PERSISTENT_ENDS =
 	'Principal reader, session ends on the server after day 2, persistent retention and depends on members';
 const SESSION_STAYS = 'Principal reader, session stays valid, session retention';
+
+describe('the headline provenance', () => {
+	const headlineTables = [
+		'headline',
+		'headline-workloads',
+		'headline-bytes',
+		'headline-extremes',
+		'headline-not-shipped'
+	];
+	const { tables } = buildEconomics(loadReadings());
+	const rowsOf = (name: string) => (tables[name] ?? '').split('\n').slice(2);
+	const cellsOf = (row: string) =>
+		row
+			.split('|')
+			.slice(1, -1)
+			.map((c) => c.trim());
+	const provenanceOf = (name: string) => rowsOf(name).map((row) => cellsOf(row).at(-1));
+
+	it('gives every headline row one value from the fixed vocabulary, and uses each value', () => {
+		const seen = headlineTables.flatMap(provenanceOf);
+		for (const value of seen) expect(PROVENANCE).toContain(value);
+		expect([...new Set(seen)].sort()).toEqual([...PROVENANCE].sort());
+	});
+
+	it('keeps scratch and bound rows out of every headline section', () => {
+		for (const name of headlineTables.filter((t) => t !== 'headline-not-shipped')) {
+			for (const value of provenanceOf(name)) expect(NOT_SHIPPED).not.toContain(value);
+		}
+	});
+
+	it('moves four rows into the not-shipped section: the request law, two scratch rows and the Durable Object row', () => {
+		expect(rowsOf('headline-not-shipped')).toHaveLength(4);
+		for (const value of provenanceOf('headline-not-shipped'))
+			expect(NOT_SHIPPED).toContain(value);
+	});
+});
+
+describe('the 121-view composition in the single-day reading', () => {
+	const MIX = "Codex's mix: 1 + 100 in-page + 20 warm documents";
+	it('is 3 documents, the boot script and the stub, 5 requests in all', () => {
+		const row = armRow('demand/2026-11-20-single.json', MIX, 'spool') as Row & {
+			paths: Record<string, number>;
+		};
+		expect(row.requests).toBe(5);
+		expect(row.paths).toEqual({
+			'GET /courses/:id': 3,
+			'GET /.spool/1.0.0/boot/1.js': 1,
+			'GET /spool-sw.js': 1
+		});
+		expect(workerRequests(row)).toBe(3);
+	});
+});
 
 describe('the headline counts, read from the ship readings', () => {
 	it('counts the once-a-day reader at 5 requests on both arms', () => {

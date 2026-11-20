@@ -3211,7 +3211,13 @@ export function buildFigures(readings: Readings): Figures {
 		pickFigures(
 			headline,
 			[],
-			['headline', 'headline-extremes', ...MEASURED_TABLES, ...MOVING_TABLES]
+			[
+				'headline',
+				'headline-extremes',
+				'headline-not-shipped',
+				...MEASURED_TABLES,
+				...MOVING_TABLES
+			]
 		).tables
 	);
 	const viewsOriginal = pinned(readings, ORIGINAL_RAPL.views);

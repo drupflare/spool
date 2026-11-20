@@ -3,6 +3,7 @@ import {
 	DOCUMENT_BYTES,
 	ENGINE_CLASS_LABELS,
 	HISTORY,
+	NOT_SHIPPED,
 	STUB_304_BYTES,
 	WORKLOADS,
 	avoidedShare,
@@ -23,10 +24,12 @@ import {
 	requestsByClass,
 	requireLayers,
 	spoolBytes,
+	spoolControlled,
 	stageMultiplier,
 	type DemandCount,
 	type Headline,
 	type Measurement,
+	type Provenance,
 	type Stage
 } from '../src/report/index';
 import type { Figures, Readings } from './impact';
@@ -177,7 +180,47 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 		layer: Headline['layer'],
 		basis: Headline['basis'],
 		scope: string
-	): Headline => ({ id, name, baseline, share, multiplier, layer, basis, scope });
+	): Headline => ({
+		id,
+		name,
+		baseline,
+		share,
+		multiplier,
+		layer,
+		basis,
+		scope,
+		provenance: PROVENANCE_OF[id]!
+	});
+	const shipped = (from: Measurement, name: string, engine = 'chromium'): Provenance =>
+		spoolControlled(from, engine, name)
+			? 'library 1.0.0, measured'
+			: 'library 1.0.0 page runtime, no worker';
+	const SIGNED_IN_ON =
+		'not what a default install produces: needs `principalDatasets: true`, the `identity` option and a principal route; behind `spoolProxy`, a public route sends a request with a cookie outside the allowlist or an `Authorization` header to the origin, and a principal route needs `identity`';
+	const PROVENANCE_OF: Record<string, Provenance> = {
+		'origin-chromium': shipped(single, chromiumMix.scenario),
+		'origin-firefox': shipped(single, firefoxMix.scenario, 'firefox'),
+		'origin-daily': shipped(days, daily(longCounts).scenario),
+		'worker-chromium': shipped(single, chromiumMix.scenario),
+		'worker-daily': shipped(days, daily(workerLong).scenario),
+		'bytes-median': 'model over library counts (L3)',
+		'origin-signed-in': shipped(persistent, PERSISTENT_STAYS),
+		'origin-session': shipped(session, SESSION_STAYS),
+		'held-day-persistent': shipped(persistent, PERSISTENT_STAYS),
+		'origin-revoked': shipped(persistent, PERSISTENT_ENDS),
+		'origin-edit-family': shipped(days, 'Public edit: a held course changes between days'),
+		'origin-edit-stored': shipped(
+			days,
+			'Public edit, stored page route with depends: a held course changes between days'
+		),
+		'static-chromium': 'library 1.0.0, measured',
+		'static-firefox': 'library 1.0.0, measured',
+		'static-vs-worker-chromium': 'library 1.0.0, measured',
+		'static-vs-worker-firefox': 'library 1.0.0, measured',
+		'tab-chromium': shipped(single, 'One tab, 2,000 views'),
+		'tab-firefox': shipped(single, 'One tab, 2,000 views', 'firefox'),
+		floor: 'bound, no count'
+	};
 	const rows: Headline[] = [
 		headline(
 			'origin-chromium',
@@ -240,7 +283,7 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 			pair(signedInPair),
 			'L2',
 			'net',
-			`Chromium, ${signedInPair.spool} requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink`
+			`Chromium, ${signedInPair.spool} requests with spool, a loss; counts L1; persistent retention, the default; 6 views over 4 days; the spool arm has a memory sink; ${SIGNED_IN_ON}`
 		),
 		headline(
 			'origin-session',
@@ -249,7 +292,7 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 			pair(sessionPair),
 			'L2',
 			'net',
-			`Chromium, ${sessionPair.spool} requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink`
+			`Chromium, ${sessionPair.spool} requests with spool, a loss; counts L1; 6 views over 4 days; the spool arm has a memory sink; ${SIGNED_IN_ON}`
 		),
 		headline(
 			'held-day-persistent',
@@ -261,7 +304,7 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 			}),
 			'L2',
 			'net',
-			`Chromium, day 2 of the persistent reader; ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 2)} requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1`
+			`Chromium, day 2 of the persistent reader; ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 2)} requests with spool (a beacon, the sync and the dataset request, and a stub check), a loss; counts L1; ${SIGNED_IN_ON}`
 		),
 		headline(
 			'origin-revoked',
@@ -270,7 +313,7 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 			pair(revokedPair),
 			'L2',
 			'net',
-			`Chromium, ${revokedPair.spool} requests with spool, a loss; counts L1; persistent retention; no held page on day 3`
+			`Chromium, ${revokedPair.spool} requests with spool, a loss; counts L1; persistent retention; no held page on day 3; ${SIGNED_IN_ON}`
 		),
 		headline(
 			'origin-edit-family',
@@ -364,15 +407,18 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 	const t: Record<string, string> = {};
 	const v: Record<string, string> = {};
 	t.headline = table(
-		['figure', 'baseline', 'net saving', 'multiplier', 'label', 'applies to'],
-		rows.map((r) => [
-			r.name,
-			r.baseline,
-			r.basis === 'floor' ? 'no finite ceiling' : pct(r.share),
-			times(r.multiplier),
-			r.layer,
-			r.scope
-		]),
+		['figure', 'baseline', 'net saving', 'multiplier', 'label', 'applies to', 'provenance'],
+		rows
+			.filter((r) => !NOT_SHIPPED.includes(r.provenance))
+			.map((r) => [
+				r.name,
+				r.baseline,
+				pct(r.share),
+				times(r.multiplier),
+				r.layer,
+				r.scope,
+				r.provenance
+			]),
 		[2, 3]
 	);
 
@@ -426,8 +472,16 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 		[1, 2, 3, 4]
 	);
 	t['headline-bytes'] = table(
-		['case', 'bytes, no spool', 'bytes, spool', 'net saving', 'multiplier', 'label'],
-		bytesRows,
+		[
+			'case',
+			'bytes, no spool',
+			'bytes, spool',
+			'net saving',
+			'multiplier',
+			'label',
+			'provenance'
+		],
+		bytesRows.map((r) => [...r, 'model over library counts (L3)']),
 		[1, 2, 3, 4]
 	);
 
@@ -471,9 +525,10 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 			'Free plan read views a day, no spool to best (L3)',
 			'paid plan, 100 million read views a month, no spool to best (L3)',
 			'net bytes saved per read view, worker, stub in full each lifetime (L3)',
-			'net bytes saved per read view, worker, stub revalidated (L3)'
+			'net bytes saved per read view, worker, stub revalidated (L3)',
+			'provenance'
 		],
-		perWorkload.map((p) => p.cells),
+		perWorkload.map((p) => [...p.cells, 'model over library counts (L3)']),
 		[1, 3, 4, 7, 8, 9, 10]
 	);
 
@@ -496,72 +551,92 @@ export function buildHeadlineFigures(readings: Readings, h: Helpers): Figures {
 	const tab = stage('review 2, one tab all day, low end');
 	const tabHigh = stage('review 2, one tab all day, high end');
 	const population = stage('review 2, population of 40 clients');
-	t['headline-extremes'] = table(
+	const EXTREMES_HEADERS = [
+		'case',
+		'best saving',
+		'best multiplier',
+		'label',
+		'where the saving disappears or reverses',
+		'provenance'
+	];
+	t['headline-extremes'] = table(EXTREMES_HEADERS, [
 		[
-			'case',
-			'best saving',
-			'best multiplier',
-			'label',
-			'where the saving disappears or reverses'
+			'Signed-in reader on defaults, 4 days',
+			pct(avoidedShare(signedInPair.baseline, signedInPair.spool)),
+			times(multiplierOf(signedInPair.baseline, signedInPair.spool)),
+			'L1 counts, L2 ratio; Chromium; memory sink',
+			`Day 0 carries the bootstrap; days 1 to 3 cost ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 1)}, ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 2)} and ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 3)} requests against 1 each on the baseline; ${SIGNED_IN_ON}`,
+			PROVENANCE_OF['origin-signed-in']!
 		],
 		[
-			[
-				'A tab held open all day, 60,000 in-page views',
-				`${pct3(avoidedShare(tab.baseline!, tab.spool!))} to ${pct3(avoidedShare(tabHigh.baseline!, tabHigh.spool!))}`,
-				`${times(stageMultiplier(tab))} to ${times(stageMultiplier(tabHigh))}`,
-				'L3 workload over an L2 floor of one request; never a measured count',
-				'A client that opens a new document each time pays the document, so the saving falls to the daily rows'
-			],
-			[
-				'A population of 40 clients with mixed visits',
-				...stageCell(population),
-				'L3 workload, scratch construction, Chromium',
-				'Fewer views per client; a client with one view costs the baseline'
-			],
-			[
-				'Read/write workspace, 10% writes',
-				pct(workspace.bw.best.share),
-				times(workspace.bw.best.multiplier),
-				'L3 scenario; no reading of a visitor writing through the worker exists',
-				'Writes reach the origin on every path, so they cap the saving at the writes share'
-			],
-			[
-				'Signed-in reader on defaults, 4 days',
-				pct(avoidedShare(signedInPair.baseline, signedInPair.spool)),
-				times(multiplierOf(signedInPair.baseline, signedInPair.spool)),
-				'L1 counts, L2 ratio; Chromium; memory sink',
-				`Day 0 carries the bootstrap; days 1 to 3 cost ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 1)}, ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 2)} and ${dayRequests(persistent, PERSISTENT_STAYS, 'spool', 3)} requests against 1 each on the baseline`
-			],
-			[
-				'Ungated two-view lifetime',
-				pct(twoView.bw.best.share),
-				times(twoView.bw.best.multiplier),
-				'L3 scenario',
-				'Bootstrap costs more than the one view it serves; the saving is a loss under every engine class'
-			],
-			[
-				'One view a day on a 127 B page, 5 days',
-				pct(avoidedShare(daily(longCounts).baseline, daily(longCounts).spool)),
-				times(multiplierOf(daily(longCounts).baseline, daily(longCounts).spool)),
-				'L1 counts, L2 ratio; Chromium; before the stub validator',
-				`Spool sent ${daily(longCounts).spool} requests against ${daily(longCounts).baseline}, one per day; no stub or boot script was fetched (the bytes are in the measured readings)`
-			],
-			[
-				"WebKit with `workerMode: 'always'`",
-				pct(Math.max(...always.map((a) => a.share))),
-				`${times(Math.min(...always.map((a) => a.multiplier)))} to ${times(Math.max(...always.map((a) => a.multiplier)))}`,
-				'L3; WebKit sent a script check on every navigation (L1)',
-				'The script check is one request per navigation, so a workload whose views are all documents gains nothing; the WebKit default avoids the check by registering no worker'
-			],
-			[
-				'Durable Object requests',
-				'not a saving',
-				'not a saving',
-				'L2 over L0',
-				'Spool without the live stream uses none; the stream adds one request per stream open and one per bump or revoke'
-			]
+			'Read/write workspace, 10% writes',
+			pct(workspace.bw.best.share),
+			times(workspace.bw.best.multiplier),
+			'L3 scenario; no reading of a visitor writing through the worker exists',
+			'Writes reach the origin on every path, so they cap the saving at the writes share',
+			'model over library counts (L3)'
+		],
+		[
+			'Ungated two-view lifetime',
+			pct(twoView.bw.best.share),
+			times(twoView.bw.best.multiplier),
+			'L3 scenario',
+			'Bootstrap costs more than the one view it serves; the saving is a loss under every engine class',
+			'model over library counts (L3)'
+		],
+		[
+			'One view a day on a 127 B page, 5 days',
+			pct(avoidedShare(daily(longCounts).baseline, daily(longCounts).spool)),
+			times(multiplierOf(daily(longCounts).baseline, daily(longCounts).spool)),
+			'L1 counts, L2 ratio; Chromium; before the stub validator',
+			`Spool sent ${daily(longCounts).spool} requests against ${daily(longCounts).baseline}, one per day; no stub or boot script was fetched (the bytes are in the measured readings)`,
+			PROVENANCE_OF['origin-daily']!
+		],
+		[
+			"WebKit with `workerMode: 'always'`",
+			pct(Math.max(...always.map((a) => a.share))),
+			`${times(Math.min(...always.map((a) => a.multiplier)))} to ${times(Math.max(...always.map((a) => a.multiplier)))}`,
+			'L3; WebKit sent a script check on every navigation (L1)',
+			'The script check is one request per navigation, so a workload whose views are all documents gains nothing; the WebKit default avoids the check by registering no worker',
+			'model over library counts (L3)'
 		]
-	);
+	]);
+	const notShippedRows = rows
+		.filter((r) => NOT_SHIPPED.includes(r.provenance))
+		.map((r) => [
+			r.name,
+			'no finite ceiling',
+			'no finite value',
+			r.layer,
+			r.scope,
+			r.provenance
+		]);
+	t['headline-not-shipped'] = table(EXTREMES_HEADERS, [
+		...notShippedRows,
+		[
+			'A tab held open all day, 60,000 in-page views',
+			`${pct3(avoidedShare(tab.baseline!, tab.spool!))} to ${pct3(avoidedShare(tabHigh.baseline!, tabHigh.spool!))}`,
+			`${times(stageMultiplier(tab))} to ${times(stageMultiplier(tabHigh))}`,
+			'L3 workload over an L2 floor of one request; never a measured count',
+			'A client that opens a new document each time pays the document, so the saving falls to the daily rows',
+			'review construction, not shipped'
+		],
+		[
+			'A population of 40 clients with mixed visits',
+			...stageCell(population),
+			'L3 workload, review construction, Chromium',
+			'Fewer views per client; a client with one view costs the baseline',
+			'review construction, not shipped'
+		],
+		[
+			'Durable Object requests',
+			'not a saving',
+			'not a saving',
+			'L2 over L0',
+			'Spool without the live stream uses none; the stream adds one request per stream open and one per bump or revoke',
+			'bound, no count'
+		]
+	]);
 
 	v.headlineStub = fixed(sizes.stub);
 	v.headlineBoot = fixed(sizes.boot);
@@ -775,7 +850,8 @@ export const HEADLINE_TABLES = [
 	'headline',
 	'headline-workloads',
 	'headline-bytes',
-	'headline-extremes'
+	'headline-extremes',
+	'headline-not-shipped'
 ];
 
 /** the 127 B demo page's bytes: measured, printed beside the readings, never in the headline */

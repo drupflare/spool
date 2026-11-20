@@ -274,6 +274,7 @@ describe('the headline arithmetic', () => {
 			multiplier: 2,
 			layer: 'L2',
 			basis: 'net',
+			provenance: 'library 1.0.0, measured',
 			scope: 's'
 		};
 		expect(requireLayers([ok])).toHaveLength(1);

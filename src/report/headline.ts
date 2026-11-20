@@ -108,7 +108,34 @@ export type Headline = {
 	layer: Layer | '';
 	basis: 'net' | 'gross' | 'floor';
 	scope: string;
+	provenance: Provenance;
 };
+
+/** where a headline's counts come from; every headline row carries exactly one of these */
+export const PROVENANCE = [
+	'library 1.0.0, measured',
+	'library 1.0.0 page runtime, no worker',
+	'model over library counts (L3)',
+	'review construction, not shipped',
+	'bound, no count'
+] as const;
+
+export type Provenance = (typeof PROVENANCE)[number];
+
+/** provenances that move a row out of the headline sections into the not-shipped section */
+export const NOT_SHIPPED: readonly Provenance[] = [
+	'review construction, not shipped',
+	'bound, no count'
+];
+
+/** whether the spool arm of one finished pair was controlled by the worker (the reading's `controlled` field) */
+export function spoolControlled(reading: Measurement, engine: string, scenario: string): boolean {
+	const row = rowsOf(reading).find(
+		(r) => r.arm === 'spool' && r.engine === engine && r.scenario === scenario
+	);
+	if (!row) throw new RangeError(`no spool arm for ${engine} ${scenario}`);
+	return row.controlled === true;
+}
 
 const LAYERS = new Set(['L0', 'L1', 'L2', 'L3']);
 
@@ -127,6 +154,7 @@ type DemandRow = {
 	views: number;
 	requests: number;
 	bytes: number;
+	controlled?: boolean;
 	wrong?: number;
 	fatal?: string;
 	paths?: Record<string, number>;
@@ -349,7 +377,7 @@ export const HISTORY: readonly Stage[] = [
 		date: '2026-11-18',
 		baseline: 121,
 		spool: 3,
-		condition: "Chromium, Codex's 121-view mix, scratch model, loopback, all requests",
+		condition: "Chromium, Codex's 121-view mix, review model, loopback, all requests",
 		layer: 'L2',
 		source: 'v1 review, 2026-11-18',
 		status: 'superseded'
@@ -415,7 +443,7 @@ export const HISTORY: readonly Stage[] = [
 		date: '2026-11-18',
 		baseline: 600,
 		spool: 68,
-		condition: '20 views in 2 visits over 30 days, Chromium, scratch model count',
+		condition: '20 views in 2 visits over 30 days, Chromium, review model count',
 		layer: 'L3',
 		source: 'v1 review, 2026-11-18',
 		status: 'superseded'
@@ -426,7 +454,7 @@ export const HISTORY: readonly Stage[] = [
 		date: '2026-11-18',
 		baseline: 3000,
 		spool: 98,
-		condition: '100 views in 3 visits over 30 days, Chromium, scratch model count',
+		condition: '100 views in 3 visits over 30 days, Chromium, review model count',
 		layer: 'L3',
 		source: 'v1 review, 2026-11-18',
 		status: 'superseded'
