@@ -71,7 +71,7 @@ export type QueueDeps = {
 	 * within {@link CATALOGUE_REASK_MS}. A due ask makes {@link BeaconQueue.flushAtMoment} flush
 	 * and nothing else does, so it adds no request on a local view or with nothing held
 	 */
-	catalogue?(): CatalogueAsk | undefined;
+	catalogue?(): CatalogueAsk | undefined | Promise<CatalogueAsk | undefined>;
 };
 
 /**
@@ -145,7 +145,7 @@ export class BeaconQueue {
 		const others = held.some((b) => !own(b.event.path));
 		const views = held.filter((b) => b.event.path === VIEW_PATH).length;
 		const wanted = ((await this.#deps.want?.()) ?? []).length > 0;
-		const asking = (await this.#due(this.#deps.catalogue?.())) !== undefined;
+		const asking = (await this.#due(await this.#deps.catalogue?.())) !== undefined;
 		const oldest = Math.min(...held.map((b) => b.event.at));
 		const aged = this.#deps.now() - oldest >= VIEW_HOLD_MS;
 		if (others || wanted || asking || aged || views >= VIEW_BATCH) return this.flush();
@@ -276,7 +276,7 @@ export class BeaconQueue {
 		}
 		const batched = held.filter((h) => inBatch(h.event));
 		let wanted = (await want?.()) ?? [];
-		let ask = await this.#due(catalogue?.());
+		let ask = await this.#due(await catalogue?.());
 		if (batched.length === 0 && wanted.length === 0) return ok;
 		let done = true;
 		for (let at = 0; at < Math.max(batched.length, 1); at += FLUSH_CHUNK) {
