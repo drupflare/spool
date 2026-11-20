@@ -1,0 +1,10 @@
+{
+	"name": "spool-example-aws-lambda",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"@hono/aws-lambda": "^1.0.1",
+		"hono": "^4.13.13"
+	}
+}

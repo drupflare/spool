@@ -1,0 +1,8 @@
+{
+	"name": "spool-example-vercel",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../.."
+	}
+}

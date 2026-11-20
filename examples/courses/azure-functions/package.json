@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-azure-functions",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@azure/functions": "^4.16.5",
+		"@drupflare/spool": "file:../../.."
+	}
+}

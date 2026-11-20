@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-netlify-functions",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"@netlify/functions": "^6.0.2"
+	}
+}

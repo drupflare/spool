@@ -1,0 +1,10 @@
+{
+	"name": "spool-example-google-cloud-functions",
+	"private": true,
+	"type": "module",
+	"main": "google-cloud.ts",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"@google-cloud/functions-framework": "^5.0.5"
+	}
+}

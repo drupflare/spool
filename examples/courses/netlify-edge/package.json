@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-netlify-edge",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"@netlify/edge-functions": "^4.0.2"
+	}
+}
