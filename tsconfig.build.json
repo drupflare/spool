@@ -13,8 +13,10 @@
 		"dist",
 		"coverage",
 		"src/node",
+		"src/express",
 		"src/client",
 		"src/cdn/client.ts",
-		"src/sw"
+		"src/sw",
+		"src/nuxt/index.ts"
 	]
 }

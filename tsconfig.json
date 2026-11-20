@@ -30,8 +30,11 @@
 		"tests/browser",
 		"tests/node",
 		"src/node",
+		"src/express",
 		"src/client",
 		"src/cdn/client.ts",
-		"src/sw"
+		"src/sw",
+		"src/nuxt/index.ts",
+		"tests/fixtures/frameworks"
 	]
 }

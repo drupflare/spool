@@ -9,6 +9,8 @@
 		"src/sw/**/*.ts",
 		"src/client/**/*.ts",
 		"src/cdn/client.ts",
+		"src/nuxt/index.ts",
+		"src/nuxt/runtime/index.ts",
 		"src/version.ts"
 	],
 	"exclude": ["node_modules", "dist", "coverage"]
