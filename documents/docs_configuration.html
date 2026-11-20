@@ -1,0 +1,287 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Configuration | @drupflare/spool - v1.0.0</title><link rel="icon" href="../assets/favicon.ico" sizes="any"/><link rel="icon" type="image/png" href="../assets/favicon.png"/><link rel="apple-touch-icon" href="../assets/favicon.png"/><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body class="docs-guide"><script>try{document.documentElement.dataset.theme=localStorage.getItem("tsd-theme")||"os"}catch(e){document.documentElement.dataset.theme="os"}</script><a class="docs-skip" href="#docs-main">Skip to content</a>
+<header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><button type="button" class="docs-menu" popovertarget="docs-sidebar">Menu</button><a href="../index.html" class="title">@drupflare/spool <span class="docs-version">v1.0.0</span></a>
+<button id="tsd-search-trigger" class="tsd-widget docs-search" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg><span>Search the docs</span><kbd aria-hidden="true">/</kbd></button><a class="docs-github" href="https://github.com/drupflare/spool">GitHub</a><button type="button" class="docs-theme" id="docs-theme" hidden><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><span class="docs-sr">Theme</span></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog></div></header>
+<div class="container container-main">
+<div class="docs-sidebar" id="docs-sidebar" popover><div class="docs-sidebar-head"><span>Documentation</span><button type="button" class="docs-close" popovertarget="docs-sidebar" popovertargetaction="hide">Close</button></div><nav class="docs-nav" aria-label="Documentation"><details class="docs-group" data-group="Start"><summary>Start</summary><ul><li><a href="../index.html">Overview</a></li><li><a href="../documents/docs_getting-started.html">Getting Started</a></li><li><a href="https://github.com/drupflare/spool/tree/master/examples" class="docs-ext" rel="noopener">Examples</a></li></ul></details><details class="docs-group" data-group="Integrate"><summary>Integrate</summary><ul><li><a href="../documents/docs_adapters_README.html">All Adapters</a></li></ul><p class="docs-section" id="docs-section-1-0">Servers and Runtimes</p><ul aria-labelledby="docs-section-1-0"><li><a href="../documents/docs_adapters_node.html">Node</a></li><li><a href="../documents/docs_adapters_express.html">Express</a></li><li><a href="../documents/docs_adapters_fastify.html">Fastify</a></li><li><a href="../documents/docs_adapters_koa.html">Koa</a></li><li><a href="../documents/docs_adapters_hapi.html">hapi</a></li><li><a href="../documents/docs_adapters_nestjs.html">NestJS</a></li><li><a href="../documents/docs_adapters_hono.html">Hono</a></li><li><a href="../documents/docs_adapters_elysia.html">Elysia</a></li><li><a href="../documents/docs_adapters_itty-router.html">itty-router</a></li><li><a href="../documents/docs_adapters_bun.html">Bun</a></li><li><a href="../documents/docs_adapters_deno.html">Deno</a></li></ul><p class="docs-section" id="docs-section-1-1">Frameworks</p><ul aria-labelledby="docs-section-1-1"><li><a href="../documents/docs_adapters_nuxt-module.html">Nuxt Module</a></li><li><a href="../documents/docs_adapters_nuxt-and-nitro.html">Nuxt and Nitro</a></li><li><a href="../documents/docs_adapters_nextjs.html">Next.js</a></li><li><a href="../documents/docs_adapters_next-adapter.html">Next Adapter</a></li><li><a href="../documents/docs_adapters_react-router.html">React Router</a></li><li><a href="../documents/docs_adapters_vite.html">Vite</a></li><li><a href="../documents/docs_adapters_vue.html">Vue</a></li><li><a href="../documents/docs_adapters_angular.html">Angular</a></li></ul><p class="docs-section" id="docs-section-1-2">Platforms</p><ul aria-labelledby="docs-section-1-2"><li><a href="../documents/docs_adapters_cloudflare-workers.html">Cloudflare Workers</a></li><li><a href="../documents/docs_adapters_cloudflare-pages-functions.html">Cloudflare Pages Functions</a></li><li><a href="../documents/docs_adapters_netlify-functions.html">Netlify Functions</a></li><li><a href="../documents/docs_adapters_netlify-edge-functions.html">Netlify Edge Functions</a></li><li><a href="../documents/docs_adapters_vercel-functions.html">Vercel Functions</a></li><li><a href="../documents/docs_adapters_aws-lambda.html">AWS Lambda</a></li><li><a href="../documents/docs_adapters_azure-functions.html">Azure Functions</a></li><li><a href="../documents/docs_adapters_google-cloud-functions.html">Google Cloud Functions</a></li></ul></details><details class="docs-group" data-group="Configure" open><summary>Configure</summary><ul><li><a href="../documents/docs_configuration.html" aria-current="page">Configuration</a></li><li><a href="../documents/ADVANCED_USAGE.html">Advanced Usage</a></li></ul></details><details class="docs-group" data-group="Reference"><summary>Reference</summary><ul><li><a href="../documents/docs_protocol.html">Wire Protocol</a></li><li><a href="../modules.html">API Reference</a></li><li><a href="../index.html#subpath-exports">Subpath Exports</a></li></ul></details><details class="docs-group" data-group="Trust"><summary>Trust</summary><ul><li><a href="../documents/docs_security.html">Security</a></li><li><a href="../documents/SECURITY.html">Security Policy</a></li><li><a href="../documents/docs_economics.html">Economics</a></li><li><a href="../documents/docs_impact.html">Impact</a></li><li><a href="../documents/TECHNICAL_REPORT.html">Technical Report</a></li></ul></details></nav><a class="docs-side-gh" href="https://github.com/drupflare/spool">GitHub</a></div>
+<main class="col-content" id="docs-main" tabindex="-1">
+<p class="docs-eyebrow">Configure</p>
+<div class="tsd-panel tsd-typography"><h1 id="configuration" class="tsd-anchor-link">Configuration<a href="#configuration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>This page covers the settings an operator decides first: which routes are public, how old a
+stored page may get, where the bundles live, and how the page runtime loads. Each setting gives its
+default, the value this page recommends and the reason. Defaults come from the code and the file
+that holds them is named. Where a recommendation is a judgment rather than something the code or a
+measurement fixes, the text says so.</p>
+<p>Figures carry a layer: L0 is a published default or a package constant, L1 a measurement under
+<code>measurements/</code>, L2 a derivation from those, and L3 a scenario. Proxy mode, collectors, trimming,
+image conversion and the reports are in <a href="ADVANCED_USAGE.html">Advanced Usage</a>. If the server does
+not answer yet, start with <a href="docs_getting-started.html">Getting Started</a>.</p>
+<h2 id="routes-and-freshness" class="tsd-anchor-link">Routes and Freshness<a href="#routes-and-freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A route has one of two scopes. A <code>public</code> route serves the same page to every visitor. A
+<code>principal</code> route serves one signed-in person and needs the <code>identity</code> option on <code>createSpool</code>.
+Public is the default.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">defineRoute</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">news</span><span class="hl-1"> = </span><span class="hl-0">defineRoute</span><span class="hl-1">(</span><span class="hl-2">&#39;/news/:slug&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-9">strategy:</span><span class="hl-1"> </span><span class="hl-2">&#39;template&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">template:</span><span class="hl-1"> { </span><span class="hl-9">source:</span><span class="hl-1"> </span><span class="hl-2">&#39;&lt;h1&gt;{{row.title}}&lt;/h1&gt;&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-9">family:</span><span class="hl-1"> { </span><span class="hl-9">dataset:</span><span class="hl-1"> </span><span class="hl-2">&#39;news&#39;</span><span class="hl-1">, </span><span class="hl-9">key:</span><span class="hl-1"> </span><span class="hl-2">&#39;slug&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-9">freshness:</span><span class="hl-1"> { </span><span class="hl-9">maxStale:</span><span class="hl-1"> </span><span class="hl-15">300</span><span class="hl-1">, </span><span class="hl-9">mode:</span><span class="hl-1"> </span><span class="hl-2">&#39;soft&#39;</span><span class="hl-1"> }</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">account</span><span class="hl-1"> = </span><span class="hl-0">defineRoute</span><span class="hl-1">(</span><span class="hl-2">&#39;/account&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-9">scope:</span><span class="hl-1"> </span><span class="hl-2">&#39;principal&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">strategy:</span><span class="hl-1"> </span><span class="hl-2">&#39;template&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">template:</span><span class="hl-1"> { </span><span class="hl-9">source:</span><span class="hl-1"> </span><span class="hl-2">&#39;&lt;h1&gt;{{owner}}&lt;/h1&gt;&#39;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-0">depends</span><span class="hl-9">:</span><span class="hl-1"> (</span><span class="hl-9">ctx</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> [</span><span class="hl-2">`account:</span><span class="hl-10">${</span><span class="hl-9">ctx</span><span class="hl-5">.</span><span class="hl-9">identity</span><span class="hl-5">?.</span><span class="hl-9">principal</span><span class="hl-10">}</span><span class="hl-2">`</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-0">load</span><span class="hl-9">:</span><span class="hl-1"> (</span><span class="hl-9">ctx</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> ({ </span><span class="hl-9">owner:</span><span class="hl-1"> </span><span class="hl-9">ctx</span><span class="hl-1">.</span><span class="hl-9">identity</span><span class="hl-1">?.</span><span class="hl-9">principal</span><span class="hl-1"> })</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Use a public route for content that every visitor sees. Use a principal route only where the page
+depends on who asks. A principal route is kept sealed in that person's partition on the device, and
+it carries a stricter default contract (below), so it costs more to serve.</p>
+<h3 id="freshness" class="tsd-anchor-link">Freshness<a href="#freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>freshness</code> takes <code>maxStale</code>, in seconds, and a <code>mode</code>. The defaults are in <code>DEFAULT_FRESHNESS</code>
+(<code>src/protocol/route.ts</code>):</p>
+<ul>
+<li>Public: <code>maxStale</code> 900, mode <code>soft</code> (L0).</li>
+<li>Principal: <code>maxStale</code> 300, mode <code>hard</code> (L0).</li>
+</ul>
+<p>In <code>soft</code> mode the device shows the stored page at once and queues one sync for a later network
+moment. In <code>hard</code> mode the device syncs first and shows the page only if it is still current. A
+soft route therefore makes no request for the view that finds its bound passed. A device that
+reads only local pages never reaches a network moment, so a queued sync that has waited a full
+lease (<code>freshness.maxAge</code>, one day by default) is sent from the next local view, at most once a
+lease (<code>docs/protocol.md</code>, Lease). A hard route makes a request on each view after the bound
+passes.</p>
+<p>Recommendation: keep the public default for most content. Lower <code>maxStale</code> for data that changes
+within the hour. Make a route <code>hard</code> only where showing an old page does harm, such as a grade or a
+price. This is a judgment. The reason is the request count above: <code>hard</code> puts a sync on the view
+path, and <code>soft</code> moves it off.</p>
+<p>The examples set their own values. The homepage example uses 300 seconds soft for news and events,
+and 86,400 seconds hard for program and about pages. These are example settings, not measurements.</p>
+<h3 id="tags" class="tsd-anchor-link">Tags<a href="#tags" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>depends</code> names the tags a page is built from. <code>spool.invalidate(tags)</code> marks every stored page
+with a matching tag as changed, and the device fetches it again at its next sync. A tag a page
+reads but does not list is not invalidated, so that page keeps its old copy until <code>maxStale</code>
+passes.</p>
+<p>Recommendation: list one tag per record the page reads and one per collection a list reads, such as
+<code>node:&lt;id&gt;</code> and <code>nodes</code>. This is a judgment that follows from the rule above.</p>
+<h3 id="lists-and-filters" class="tsd-anchor-link">Lists and Filters<a href="#lists-and-filters" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A list route declares <code>query</code> with a <code>dataset</code>. Its <code>pageSize</code> turns on the <code>page</code> parameter. Without
+<code>pageSize</code> the route answers one page of everything, and its artifact holds the whole collection
+(<code>docs/protocol.md</code>, Query Routes; <a href="ADVANCED_USAGE.html#query-routes">Query Routes</a>).</p>
+<p>Recommendation: set <code>pageSize</code> to the number of items the list shows. This is a judgment. A
+collection sent in full is large, and the device pages through a copy it already holds.</p>
+<p>Declare only the filters and sort fields the page uses. The worker answers a query string locally
+only when every parameter appears in the schema. Any other query string goes to the network
+(<code>docs/protocol.md</code>, Query Routes).</p>
+<h2 id="server-options" class="tsd-anchor-link">Server Options<a href="#server-options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Most of the server's behavior comes from <code>createSpool</code>. The options below are the ones a first
+deployment touches. Every option is optional unless the text says otherwise.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createSpool</span><span class="hl-1">, </span><span class="hl-9">memoryBundleStore</span><span class="hl-1">, </span><span class="hl-9">memorySink</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">routes</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;./routes&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">spool</span><span class="hl-1"> = </span><span class="hl-0">createSpool</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">routes</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">bundles:</span><span class="hl-1"> </span><span class="hl-0">memoryBundleStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">sink:</span><span class="hl-1"> </span><span class="hl-0">memorySink</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">mode:</span><span class="hl-1"> </span><span class="hl-2">&#39;shadow&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">beacons:</span><span class="hl-1"> [</span><span class="hl-2">&#39;/cdn-cgi/rum&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-9">policy:</span><span class="hl-1"> { </span><span class="hl-2">&#39;content-security-policy&#39;</span><span class="hl-9">:</span><span class="hl-1"> </span><span class="hl-2">&quot;script-src &#39;self&#39;&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="store-and-bundles" class="tsd-anchor-link">Store and Bundles<a href="#store-and-bundles" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>store</code> is required. <code>memoryStore</code> serves one process. Any deployment with more than one instance
+needs a store all of them share, such as <code>durableObjectStore</code> on Cloudflare
+(<a href="docs_getting-started.html#keep-the-version-store">Getting Started</a>).</li>
+<li><code>bundles</code> has no default. Without it, <code>GET /.spool/bundle/&lt;version&gt;</code> answers <code>404</code>, and a family
+page carries no ring (<code>docs/protocol.md</code>, Ring). Recommendation: pass a bundle store on any site
+with family routes or datasets. Reason: the ring is how the first document gives the page its
+rows.</li>
+<li><code>publish(url)</code> builds the pack at the store cursor. A data change moves the cursor. A page gets no
+ring until a pack exists for the new cursor, so call <code>invalidate</code>, then <code>publish</code>. The doc comment
+on <code>publish</code> in <code>src/server/spool.ts</code> says to call <code>invalidate</code> after a data change.</li>
+<li><code>bundle.ringBytes</code> defaults to 24,576 (L0). The code comment calls this default unmeasured. Keep
+it. <code>bundle.blockRows</code> defaults to 128 and <code>bundle.maxBytes</code> to 8,388,608, the frame cap
+(<code>src/protocol/bundle.ts</code>, L0). Keep both.</li>
+</ul>
+<h3 id="stub-lease" class="tsd-anchor-link">Stub Lease<a href="#stub-lease" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>freshness.maxAge</code> is the lease of <code>/spool-sw.js</code> in the browser's cache. It defaults to 86,400
+seconds, one day (<code>STUB_MAX_AGE</code>, <code>src/server/spool.ts</code>, L0). Recommendation: keep the default.
+Chromium checked the stub on the first navigation after each 24 hours whatever the lease was, as
+the code comment records (measured in Chromium only). A longer lease therefore cuts no checks. A
+shorter one adds one check per lease per page, at load or at an in-page view
+(<code>docs/protocol.md</code>, Lease). Lower it only when a deploy must reach devices sooner than a day.
+A check after the lease costs the full script, 138,569 to 152,832 B over the example sites (L1),
+unless the host passes the request to <code>spool.stub(request)</code>, so the browser can revalidate with
+<code>If-None-Match</code>; <code>stub()</code> with no request sends no validator. The stub then carries an <code>ETag</code>
+and an unchanged script answers <code>304</code> with no body in Chromium and Firefox (L1, Chromium 156,
+Firefox 157; <a href="docs_economics.html">Economics</a> has the reading). WebKit sends no validator and gets the full script each time (L1, WebKit 27.2). A
+changed script is one full response everywhere, so a site with one view a day pays it on each
+day the script changed (<code>docs/protocol.md</code>, Worker Script).</li>
+<li><code>stamp</code> is a counter, or a function that returns one, that changes the stub's bytes. It has no
+default. Set it when a static host republishes the stub at each lease period, so a forced check
+installs the new script. Otherwise leave it out.</li>
+<li><code>static</code> is an option of the Vite, Vue, React Router and Nuxt plugins, not of <code>createSpool</code>. It
+defaults to on: the build writes spool's own files (the runtime, the stub, the packs and a <code>_headers</code>
+file) into the public directory with <code>spool.publishStatic</code>, and the site's pages still come from its
+server. <code>false</code> turns it off. Its <code>policy</code> defaults to the spool's <code>policy</code> option, then a page the
+instance answered, then the <code>/*</code> block of a <code>_headers</code> file in the output, then none. Leave it unset
+unless the build cannot see the site's security headers (<a href="docs_adapters_vite.html#static-tier">Vite</a>).</li>
+</ul>
+<h3 id="page-runtime" class="tsd-anchor-link">Page Runtime<a href="#page-runtime" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>clientTag</code> defaults to <code>'inline'</code>. The inline gate stands in for the script tag on a second-view
+page, and it loads the runtime from the second view. A one-view visitor makes no request for the
+runtime (<code>src/server/spool.ts</code>). Use <code>'script'</code> when the page's Content Security Policy forbids
+inline scripts. A first-view site always uses the tag, whatever this option says.</li>
+<li><code>bootstrap</code> defaults to <code>'second-view'</code>. Set to <code>'first-view'</code>, the device fetches the pack on the
+first view. Economics puts the bootstrap at two requests after the first document with a worker
+(L3, a design figure with no reading yet, <code>docs/economics.md</code>). Recommendation: keep
+<code>'second-view'</code>. A visitor who makes one view then pays nothing. The worker waits for the third view
+inside one lease period (<code>freshness.maxAge</code>, a day by default), so a visitor who returns once a day
+never installs one. Switch to <code>'first-view'</code> only
+when the reports show that most visits make two or more views. That is a judgment.</li>
+<li><code>cdn</code> is off by default. The runtime then comes from <code>/.spool/&lt;version&gt;/client.js</code> on the site's
+own origin. Recommendation: keep the same-origin default. A CDN load needs the CDN origin in
+<code>script-src</code> and the integrity hash for the version (<code>docs/security.md</code>, Script Delivery).</li>
+<li><code>cdn.worker</code> is off by default. Set to <code>true</code>, or to <code>{ url }</code> for another host, the stub is the
+config and one <code>importScripts</code> line, and the worker core comes from the CDN. The stub then costs
+7,175 B in place of 141,976 B at the site's origin (L1, one fixture), and a deploy that changes
+only the stub sends the short one. WebKit checks the worker script on each navigation, and the
+check fetches the imported script from the CDN too (L1, WebKit 27.2 on Linux). A browser checks no hash for an imported script, so the site
+trusts the CDN host with code that answers every request of the origin. Recommendation: keep it
+off unless the stub's bytes are a cost you have measured, and run
+<code>publishStatic(sink, { verifyCore: true })</code> when it is on. This is a judgment
+(<code>docs/security.md</code>, Worker Core from the CDN).</li>
+<li><code>workerMode</code> defaults to <code>'auto'</code>. <code>'never'</code> serves no service worker, so <code>/spool-sw.js</code> answers
+<code>404</code>. <code>'auto'</code> registers the worker everywhere except WebKit, where a page that carries a ring
+keeps its reads in the page and registers none. WebKit re-fetches the worker script after each
+document navigation (bug 332455), a WebKit issue that site code cannot remove
+(<a href="docs_protocol.html#webkit-default">WebKit Default</a>). <code>'always'</code> keeps the worker on WebKit too. Recommendation: keep <code>'auto'</code>. Use <code>'never'</code> only where the site cannot
+or should not run a worker, and <code>'always'</code> only where a WebKit visitor's typed documents must come
+from the worker and the script request per navigation is acceptable. This is a judgment. In that mode a public HTML page carries the declared writes in its ring,
+or in a <code>spool-writes</code> element when it has no ring; on a gate site every public HTML page carries
+the ring (<a href="../#page-runtime">Page Runtime</a>).</li>
+<li><code>policy</code> has no default. The worker takes the site's security headers from the stub, and the stub
+takes them from this option or from the last HTML page the server answered
+(<code>docs/security.md</code>, Content Security Policy). A worker with no page yet has no policy, so local
+renders wait for one. Recommendation: set <code>policy</code> to the site's policy headers when the policy
+is part of the release, so the first install already carries it. This is a judgment.</li>
+</ul>
+<h3 id="views-shadow-mode-and-sinks" class="tsd-anchor-link">Views, Shadow Mode and Sinks<a href="#views-shadow-mode-and-sinks" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>mode</code> defaults to <code>'serve'</code>. <code>'shadow'</code> renders each page locally, compares it with the network
+answer and never serves the local copy. A route's own <code>mode</code> overrides it. Recommendation: start a
+new site in <code>'shadow'</code>, check the mismatches, then switch to <code>'serve'</code>
+(<a href="ADVANCED_USAGE.html#shadow-mode">Shadow Mode</a>).</li>
+<li><code>shadowSample</code> defaults to 0. It is the share of views, from 0 to 1, that run in shadow while the
+rest are served. The Shadow Mode section uses 0.05 as an example value. Pick the share from the
+traffic you can afford to check. This is a judgment.</li>
+<li><code>views</code> defaults to <code>true</code> when there is a <code>sink</code>, so each page view reports a <code>spool.view</code> event.
+With no <code>sink</code> it defaults to <code>false</code>, and the worker queues no view event. An explicit
+<code>views: true</code> with no <code>sink</code> still sends them, and the server drops them. The mismatch counts, the
+route-to-route shares and the catalogue figures all read these events (<code>docs/protocol.md</code>, View
+Events).</li>
+<li><code>sink</code> has no default. Events the worker sends to <code>/.spool/beacon</code>, and drop counts, go to the
+sink, and the reports read it with <code>viewsOf(sink.events)</code>. Recommendation: set a sink on any site
+whose reports you read.</li>
+<li><code>beacons</code> has no default. It lists the same-origin POST paths that analytics scripts send to. A
+post to a path not in this list makes a request on every view, which defeats a local view.
+Listed paths are queued and sent at a network moment that happens anyway
+(<a href="ADVANCED_USAGE.html#analytics-batching">Analytics Batching</a>). Recommendation: list the paths
+your analytics scripts post to.</li>
+</ul>
+<h3 id="assets-and-third-parties" class="tsd-anchor-link">Assets and Third Parties<a href="#assets-and-third-parties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>assets</code> defaults to <code>'cache'</code>, which answers an immutable same-origin file from the worker's
+cache. Recommendation: keep the default. <code>'static-routing'</code> has no energy reading in
+<code>docs/impact.md</code>, and <code>'passthrough'</code> leaves the file to the browser's own cache
+(<a href="ADVANCED_USAGE.html#subresource-handling">Subresource Handling</a>).</li>
+<li><code>thirdParty</code> is off by default. Recommendation: leave it off until <code>thirdPartyReport</code> ranks an
+origin high enough to matter. Then allow only that origin
+(<a href="ADVANCED_USAGE.html#third-party-files">Third-Party Files</a>).</li>
+</ul>
+<h3 id="provisioning-and-catalogue" class="tsd-anchor-link">Provisioning and Catalogue<a href="#provisioning-and-catalogue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><code>provision</code> sets the priors the server uses before it has telemetry. Each number is a scenario
+assumption, and the operator should replace it with measured values (<code>src/protocol/config.ts</code>).
+Recommendation: leave the priors unset until a site has its own reports.</li>
+<li><code>catalogueBytes</code> defaults to 32,768 compressed bytes (L0). It caps what one catalogue bundle
+carries. Keep the default.</li>
+<li><code>catalogueConfidence</code> defaults to 0, which judges each share on its point value. The option
+documents 1.28 as one-sided 90% confidence. Recommendation: leave it at 0 until the shares have
+counts behind them, then set 1.28.</li>
+<li><code>inlineMaxBytes</code> defaults to 0, which is off. Set above 0, it puts a template page's artifact in
+the page, and every network view of that page then pays for those bytes and one more load, with
+or without a worker (<code>src/server/spool.ts</code>). Recommendation: keep 0.</li>
+</ul>
+<h3 id="provisionable-routes" class="tsd-anchor-link">Provisionable Routes<a href="#provisionable-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A family route with a key other than <code>viewer.id</code> and no <code>load</code> is not provisionable. Its row comes
+from the dataset, so there is no artifact to send. The route declaration has no <code>provisionable</code>
+option. <code>defineRoute</code> sets the flag, and no site sets it by hand (<code>src/protocol/route.ts</code>).</p>
+<h2 id="identity-and-sign-in" class="tsd-anchor-link">Identity and Sign-In<a href="#identity-and-sign-in" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Principal routes need the <code>identity</code> option. Without it, a principal artifact request answers <code>401</code>
+with <code>sign in</code>, and <code>createSpool</code> refuses declared writes and principal datasets. The options below
+are the ones to decide before the first signed-in page ships.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createSpool</span><span class="hl-1">, </span><span class="hl-9">memoryBundleStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">routes</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;./routes&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">spool</span><span class="hl-1"> = </span><span class="hl-0">createSpool</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-9">routes</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">bundles:</span><span class="hl-1"> </span><span class="hl-0">memoryBundleStore</span><span class="hl-1">(),</span><br/><span class="hl-1">  </span><span class="hl-9">identity:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-9">secret:</span><span class="hl-1"> </span><span class="hl-2">&#39;a long random value kept on the server&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-0">resolve</span><span class="hl-9">:</span><span class="hl-1"> () </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-10">null</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-9">logout:</span><span class="hl-1"> [</span><span class="hl-2">&#39;/logout&#39;</span><span class="hl-1">]</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+<ul>
+<li><code>identity.secret</code> keys the partition id, an HMAC of the principal. The browser can tell users
+apart from it without learning who they are. Recommendation: a long random value from the
+server's secret store. A value that leaks lets anyone compute the partition id of a known
+principal.</li>
+<li><code>identity.resolve</code> returns <code>{ principal }</code> for the request's session, or <code>null</code>. The server calls
+it on each request it handles, so keep it to a session lookup.</li>
+<li><code>logout</code> has no default. List every path that ends a session. The worker wipes the principal's
+store before the logout request leaves, so the wipe works with the network down
+(<a href="ADVANCED_USAGE.html#authenticated-data">Authenticated Data</a>).</li>
+<li>A principal route's <code>retention</code> defaults to <code>'persistent'</code>, a non-extractable key in IndexedDB
+that survives a worker restart and a browser restart and is deleted at logout. Declare
+<code>retention: 'session'</code> on a shared or kiosk device: that key lives in the worker's memory, so
+the browser discarding the worker makes the held page and rows unreadable, and every return is a
+network view (<a href="docs_security.html#sealed-stores">Sealed Stores</a>).</li>
+<li><code>live</code> is on by default when <code>identity</code> is set, except on Workers, where it needs a <code>hub</code>, such as
+<code>durableObjectHub(env.SPOOL_LIVE)</code> (<code>liveSettings</code>, <code>src/server/live.ts</code>). A visible page then holds
+one <code>/.spool/live</code> stream and renews its lease inside it. With <code>durableObjectHub(ns, { hibernate: true })</code>,
+pages open a WebSocket instead, and an idle object can hibernate. Pages whose upgrade fails fall back
+to SSE. Hibernation saves no dollars at the documented scenario
+(<a href="docs_economics.html#hibernation-transport">Economics</a>).</li>
+</ul>
+<h2 id="starting-values" class="tsd-anchor-link">Starting Values<a href="#starting-values" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>These are starting points for two common sites. Each non-default setting names its reason.</p>
+<p>A public content site, such as a blog or a course catalogue, starts with:</p>
+<ul>
+<li>Public routes at the default <code>soft</code> freshness. Shorten <code>maxStale</code> for data that changes within
+the hour.</li>
+<li>A bundle store, so family pages carry a ring.</li>
+<li><code>pageSize</code> on every list route, set to the number the list shows.</li>
+<li><code>mode: 'shadow'</code> on the first deploy, then <code>'serve'</code> once mismatches are gone.</li>
+<li>A sink, so the reports have events to read.</li>
+<li><code>beacons</code> for each analytics post path, if the site runs analytics scripts.</li>
+</ul>
+<p>A dashboard with principal data and writes starts with:</p>
+<ul>
+<li><code>identity</code> with a secret and a <code>resolve</code> that returns the session's principal.</li>
+<li><code>logout</code> listing every session-ending path.</li>
+<li>Principal routes at the default hard bound of 300 seconds. Revocation rides the same bound, so a
+removed permission can show until the first required sync past it
+(<a href="ADVANCED_USAGE.html#authenticated-data">Authenticated Data</a>). Keep the bound short.</li>
+<li>Principal datasets only after review, since the option is documented as unreviewed. A principal
+dataset needs <code>principalDatasets: true</code> and its own <code>maxStaleMs</code>. The dashboard example uses
+600,000 ms, ten minutes. That value is an example, not a measurement.</li>
+<li>Declared writes off. <code>writes</code> is off by default and documented as unreviewed. Resource writes,
+which declare item routes with <code>defineResource</code>, need no flag, and they need a bundle store so the
+device keeps its pack current.</li>
+</ul>
+<h2 id="checking-your-setup" class="tsd-anchor-link">Checking Your Setup<a href="#checking-your-setup" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The <a href="docs_getting-started.html#check-that-it-works">Getting Started</a> page gives three <code>curl</code> checks for the
+stub, the gate and the envelope. Those confirm the server half is wired. The checks below confirm
+the device side.</p>
+<p>A healthy site shows these counts. The README states the first one as a contract, and the zero
+network browser test holds it:</p>
+<ul>
+<li>A local view makes zero server hits in Chromium and Firefox. The README states this as the
+contract (L1, the browser test in <code>tests/browser/zero-network.pw.ts</code>).</li>
+<li>In WebKit on macOS, a page with a worker makes one request to re-check <code>/spool-sw.js</code> on each
+document navigation (L1, <a href="../#browser-support">Browser Support</a>). Under the default
+<code>workerMode</code> a WebKit page that carries a ring registers no worker and makes none; a typed
+document there is a network request, as without spool.</li>
+<li>Each page makes at most one stub check per lease (<code>docs/protocol.md</code>, Lease).</li>
+<li>A first view has the reason <code>cold</code> and the tier <code>network</code>. A fresh view has the reason <code>fresh</code> and
+the tier <code>local</code> (<code>docs/protocol.md</code>, View Events).</li>
+</ul>
+<p>Shadow mode shows what the local render would have sent. A view with <code>mismatch: true</code> names a route
+whose template and application disagree. The check below reads the mismatches from the sink.</p>
+<pre><code class="ts"><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">createSpool</span><span class="hl-1">, </span><span class="hl-9">memorySink</span><span class="hl-1">, </span><span class="hl-9">viewsOf</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/server&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">memoryStore</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@drupflare/spool/stores&#39;</span><span class="hl-1">;</span><br/><span class="hl-8">import</span><span class="hl-1"> { </span><span class="hl-9">routes</span><span class="hl-1"> } </span><span class="hl-8">from</span><span class="hl-1"> </span><span class="hl-2">&#39;./routes&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">sink</span><span class="hl-1"> = </span><span class="hl-0">memorySink</span><span class="hl-1">();</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-11">spool</span><span class="hl-1"> = </span><span class="hl-0">createSpool</span><span class="hl-1">({ </span><span class="hl-9">routes</span><span class="hl-1">, </span><span class="hl-9">store:</span><span class="hl-1"> </span><span class="hl-0">memoryStore</span><span class="hl-1">(), </span><span class="hl-9">sink</span><span class="hl-1">, </span><span class="hl-9">mode:</span><span class="hl-1"> </span><span class="hl-2">&#39;shadow&#39;</span><span class="hl-1"> });</span><br/><br/><span class="hl-8">export</span><span class="hl-1"> </span><span class="hl-10">const</span><span class="hl-1"> </span><span class="hl-0">mismatches</span><span class="hl-1"> = () </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-0">viewsOf</span><span class="hl-1">(</span><span class="hl-9">sink</span><span class="hl-1">.</span><span class="hl-9">events</span><span class="hl-1">).</span><span class="hl-0">filter</span><span class="hl-1">((</span><span class="hl-9">view</span><span class="hl-1">) </span><span class="hl-10">=&gt;</span><span class="hl-1"> </span><span class="hl-9">view</span><span class="hl-1">.</span><span class="hl-9">mismatch</span><span class="hl-1"> === </span><span class="hl-10">true</span><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Treat a non-empty result as a failure to fix before <code>mode</code> moves to <code>'serve'</code>.</p>
+</div><nav class="docs-pager" aria-label="Previous and next pages"><a rel="prev" class="docs-pager-prev" href="../documents/docs_adapters_google-cloud-functions.html"><span class="docs-pager-label">Previous</span><span class="docs-pager-title">Google Cloud Functions</span></a><a rel="next" class="docs-pager-next" href="../documents/ADVANCED_USAGE.html"><span class="docs-pager-label">Next</span><span class="docs-pager-title">Advanced Usage</span><span class="docs-pager-desc">Routes, freshness, datasets, authenticated data, writes, proxy mode and reports.</span></a></nav></main>
+<nav class="docs-toc" aria-labelledby="docs-toc-title"><p id="docs-toc-title">On this page</p><ul><li class="docs-toc-h2"><a href="#routes-and-freshness">Routes and Freshness</a></li><li class="docs-toc-h3"><a href="#freshness">Freshness</a></li><li class="docs-toc-h3"><a href="#tags">Tags</a></li><li class="docs-toc-h3"><a href="#lists-and-filters">Lists and Filters</a></li><li class="docs-toc-h2"><a href="#server-options">Server Options</a></li><li class="docs-toc-h3"><a href="#store-and-bundles">Store and Bundles</a></li><li class="docs-toc-h3"><a href="#stub-lease">Stub Lease</a></li><li class="docs-toc-h3"><a href="#page-runtime">Page Runtime</a></li><li class="docs-toc-h3"><a href="#views-shadow-mode-and-sinks">Views, Shadow Mode and Sinks</a></li><li class="docs-toc-h3"><a href="#assets-and-third-parties">Assets and Third Parties</a></li><li class="docs-toc-h3"><a href="#provisioning-and-catalogue">Provisioning and Catalogue</a></li><li class="docs-toc-h3"><a href="#provisionable-routes">Provisionable Routes</a></li><li class="docs-toc-h2"><a href="#identity-and-sign-in">Identity and Sign-In</a></li><li class="docs-toc-h2"><a href="#starting-values">Starting Values</a></li><li class="docs-toc-h2"><a href="#checking-your-setup">Checking Your Setup</a></li></ul></nav></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

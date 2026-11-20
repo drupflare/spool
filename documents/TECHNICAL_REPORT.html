@@ -1,0 +1,1351 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Technical Report | @drupflare/spool - v1.0.0</title><link rel="icon" href="../assets/favicon.ico" sizes="any"/><link rel="icon" type="image/png" href="../assets/favicon.png"/><link rel="apple-touch-icon" href="../assets/favicon.png"/><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body class="docs-guide"><script>try{document.documentElement.dataset.theme=localStorage.getItem("tsd-theme")||"os"}catch(e){document.documentElement.dataset.theme="os"}</script><a class="docs-skip" href="#docs-main">Skip to content</a>
+<header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><button type="button" class="docs-menu" popovertarget="docs-sidebar">Menu</button><a href="../index.html" class="title">@drupflare/spool <span class="docs-version">v1.0.0</span></a>
+<button id="tsd-search-trigger" class="tsd-widget docs-search" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg><span>Search the docs</span><kbd aria-hidden="true">/</kbd></button><a class="docs-github" href="https://github.com/drupflare/spool">GitHub</a><button type="button" class="docs-theme" id="docs-theme" hidden><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><span class="docs-sr">Theme</span></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog></div></header>
+<div class="container container-main">
+<div class="docs-sidebar" id="docs-sidebar" popover><div class="docs-sidebar-head"><span>Documentation</span><button type="button" class="docs-close" popovertarget="docs-sidebar" popovertargetaction="hide">Close</button></div><nav class="docs-nav" aria-label="Documentation"><details class="docs-group" data-group="Start"><summary>Start</summary><ul><li><a href="../index.html">Overview</a></li><li><a href="../documents/docs_getting-started.html">Getting Started</a></li><li><a href="https://github.com/drupflare/spool/tree/master/examples" class="docs-ext" rel="noopener">Examples</a></li></ul></details><details class="docs-group" data-group="Integrate"><summary>Integrate</summary><ul><li><a href="../documents/docs_adapters_README.html">All Adapters</a></li></ul><p class="docs-section" id="docs-section-1-0">Servers and Runtimes</p><ul aria-labelledby="docs-section-1-0"><li><a href="../documents/docs_adapters_node.html">Node</a></li><li><a href="../documents/docs_adapters_express.html">Express</a></li><li><a href="../documents/docs_adapters_fastify.html">Fastify</a></li><li><a href="../documents/docs_adapters_koa.html">Koa</a></li><li><a href="../documents/docs_adapters_hapi.html">hapi</a></li><li><a href="../documents/docs_adapters_nestjs.html">NestJS</a></li><li><a href="../documents/docs_adapters_hono.html">Hono</a></li><li><a href="../documents/docs_adapters_elysia.html">Elysia</a></li><li><a href="../documents/docs_adapters_itty-router.html">itty-router</a></li><li><a href="../documents/docs_adapters_bun.html">Bun</a></li><li><a href="../documents/docs_adapters_deno.html">Deno</a></li></ul><p class="docs-section" id="docs-section-1-1">Frameworks</p><ul aria-labelledby="docs-section-1-1"><li><a href="../documents/docs_adapters_nuxt-module.html">Nuxt Module</a></li><li><a href="../documents/docs_adapters_nuxt-and-nitro.html">Nuxt and Nitro</a></li><li><a href="../documents/docs_adapters_nextjs.html">Next.js</a></li><li><a href="../documents/docs_adapters_next-adapter.html">Next Adapter</a></li><li><a href="../documents/docs_adapters_react-router.html">React Router</a></li><li><a href="../documents/docs_adapters_vite.html">Vite</a></li><li><a href="../documents/docs_adapters_vue.html">Vue</a></li><li><a href="../documents/docs_adapters_angular.html">Angular</a></li></ul><p class="docs-section" id="docs-section-1-2">Platforms</p><ul aria-labelledby="docs-section-1-2"><li><a href="../documents/docs_adapters_cloudflare-workers.html">Cloudflare Workers</a></li><li><a href="../documents/docs_adapters_cloudflare-pages-functions.html">Cloudflare Pages Functions</a></li><li><a href="../documents/docs_adapters_netlify-functions.html">Netlify Functions</a></li><li><a href="../documents/docs_adapters_netlify-edge-functions.html">Netlify Edge Functions</a></li><li><a href="../documents/docs_adapters_vercel-functions.html">Vercel Functions</a></li><li><a href="../documents/docs_adapters_aws-lambda.html">AWS Lambda</a></li><li><a href="../documents/docs_adapters_azure-functions.html">Azure Functions</a></li><li><a href="../documents/docs_adapters_google-cloud-functions.html">Google Cloud Functions</a></li></ul></details><details class="docs-group" data-group="Configure"><summary>Configure</summary><ul><li><a href="../documents/docs_configuration.html">Configuration</a></li><li><a href="../documents/ADVANCED_USAGE.html">Advanced Usage</a></li></ul></details><details class="docs-group" data-group="Reference"><summary>Reference</summary><ul><li><a href="../documents/docs_protocol.html">Wire Protocol</a></li><li><a href="../modules.html">API Reference</a></li><li><a href="../index.html#subpath-exports">Subpath Exports</a></li></ul></details><details class="docs-group" data-group="Trust" open><summary>Trust</summary><ul><li><a href="../documents/docs_security.html">Security</a></li><li><a href="../documents/SECURITY.html">Security Policy</a></li><li><a href="../documents/docs_economics.html">Economics</a></li><li><a href="../documents/docs_impact.html">Impact</a></li><li><a href="../documents/TECHNICAL_REPORT.html" aria-current="page">Technical Report</a></li></ul></details></nav><a class="docs-side-gh" href="https://github.com/drupflare/spool">GitHub</a></div>
+<main class="col-content" id="docs-main" tabindex="-1">
+<p class="docs-eyebrow">Trust</p>
+<div class="tsd-panel tsd-typography"><h1 id="technical-report-a-versioned-replica-in-the-browser" class="tsd-anchor-link">Technical Report: A Versioned Replica in the Browser<a href="#technical-report-a-versioned-replica-in-the-browser" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>What <code>@drupflare/spool</code> does, what each mechanism costs, and what was measured to find out. Written for maintainers and for a reader deciding whether to trust a spool number. Every figure carries its layer (L0 published, L1 measured here, L2 derived, L3 scenario) and either its method or a pointer to the <code>docs/impact.md</code> section or the <code>measurements/</code> file that holds it. This report restates no large table from <code>docs/impact.md</code>. Written 2026-11-15 and reframed 2026-11-16 against the 0.4.0 working tree, and extended 2026-11-18 for v1 (package 1.0.0).</p>
+<h2 id="contents" class="tsd-anchor-link">Contents<a href="#contents" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><a href="#executive-summary">Executive Summary</a></li>
+<li><a href="#measurement-rules">Measurement Rules</a></li>
+<li><a href="#claims-and-evidence">Claims and Evidence</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#what-was-measured-and-held">What Was Measured and Held</a></li>
+<li><a href="#what-was-tried-and-refuted">What Was Tried and Refuted</a></li>
+<li><a href="#measurement-mistakes">Measurement Mistakes</a></li>
+<li><a href="#research-strength">Research Strength</a></li>
+<li><a href="#unmet-items">Unmet Items</a></li>
+<li><a href="#limits">Limits</a></li>
+</ul>
+<h2 id="executive-summary" class="tsd-anchor-link">Executive Summary<a href="#executive-summary" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>spool removes repeated execution demand from a site's platform. It keeps an authorised, versioned replica of a site's dependencies in the browser and answers eligible page views and read requests locally: no network request, no Worker invocation, no server work. It is an enhancement to drupflare, a way for a request-limited plan to carry more views, and a research system whose figures carry a layer and a method. The server half (<code>src/server</code>, <code>src/protocol</code>, <code>src/stores</code>) names dependencies and versions. The device half (<code>src/sw</code>, <code>src/client</code>) holds them and renders. A proxy mode (<code>src/proxy</code>) fronts an origin that cannot load the library.</p>
+<p><strong>The v1 thesis.</strong> One or a few requests make a site navigable and readable offline: the worker script and the site's pack, one request each. After that, a view that starts in the page costs no request, on a page with a swap region (<code>data-spool-swap</code> or <code>&lt;main&gt;</code>). The requests that remain are writes, misses, deltas and the first document after a lease. A held view needs no request, so the views one client makes per request have no finite ceiling (L2, from the request law below). What a site reaches in practice depends on how its views start, and no measurement here supplies that. The parts the library now implements are listed under <a href="#architecture">Architecture</a>. The counts below come from the library's node and browser tests and from a minimal construction on a fixture server, which the tests do not include.</p>
+<p><strong>Headline numbers.</strong> The first table is copied from the first table of <a href="docs_economics.html#headline-numbers">Economics</a> (library readings of 2026-11-20, Chromium and Firefox, a 1,000-course demo site). The last three rows come from the workload table in the same section (L3 workloads, Chromium and Firefox with a worker, stub on a static tier). A net saving is after bootstrap, stub, contact, the sync and dataset requests, and writes, and a negative one is a loss. How each multiplier moved from v0.4 to the library is under <a href="docs_impact.html#moving-numbers">Moving Numbers</a>.</p>
+<table>
+<thead>
+<tr>
+<th>figure</th>
+<th>baseline</th>
+<th style="text-align:right">net saving</th>
+<th style="text-align:right">multiplier</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Origin requests, 121 views, Chromium</td>
+<td>121 requests, no spool</td>
+<td style="text-align:right">95.9%</td>
+<td style="text-align:right">24.20x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Origin requests, 121 views, Firefox</td>
+<td>122 requests, no spool</td>
+<td style="text-align:right">95.1%</td>
+<td style="text-align:right">20.33x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Origin requests, one view a day for 5 days, Chromium</td>
+<td>5 requests, no spool</td>
+<td style="text-align:right">0.0%</td>
+<td style="text-align:right">1.00x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Origin requests, signed-in reader on defaults, Chromium</td>
+<td>7 requests, no spool</td>
+<td style="text-align:right">-185.7%</td>
+<td style="text-align:right">0.35x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Worker-invocation equivalents, 121 views, static tier</td>
+<td>121 requests, no spool</td>
+<td style="text-align:right">97.5%</td>
+<td style="text-align:right">40.33x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Bytes, 121 views, 17,054 B median document</td>
+<td>2,063,534 B, no spool</td>
+<td style="text-align:right">86.7%</td>
+<td style="text-align:right">7.51x</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Free plan, engaged daily public reader (read views a day)</td>
+<td>100,000, no spool</td>
+<td style="text-align:right">96.0%</td>
+<td style="text-align:right">25.00x</td>
+<td>L3</td>
+</tr>
+<tr>
+<td>Paid plan, same reader, 100 million read views a month</td>
+<td>$27.00, no spool</td>
+<td style="text-align:right">100.0%</td>
+<td style="text-align:right">no finite value</td>
+<td>L3</td>
+</tr>
+<tr>
+<td>Ungated two-view lifetime, requests</td>
+<td>1 request per view</td>
+<td style="text-align:right">-50.0%</td>
+<td style="text-align:right">0.67x</td>
+<td>L3</td>
+</tr>
+</tbody>
+</table>
+<p>Spool gains most where a client holds a copy across many views, and it loses where the bootstrap and the stub cost more than the views they serve: two views, and a signed-in reader whose requests exceed the baseline on every day. The library readings hold no WebKit and no own-write scenario. The signed-in and public-edit rows are Chromium only. The Worker-invocation row assumes the stub and boot script are served as static assets, and the origin-request rows put the stub on the Worker. The paid-plan row is 4 million Worker requests against 100 million, inside the 10 million included, so it costs $0.00.</p>
+<p><strong>Verdict.</strong> The demand result is a count. With <code>updateViaCache: 'all'</code> and a 24-hour script lifetime, a controlled navigation reached no origin in Chromium and Firefox, and WebKit still re-checks the worker script. spool's own syncs and flushes are netted against that. No deployed site supplies traffic, so the share of a real site's requests this removes is unmeasured. Energy is a second objective an administrator may weigh. On one metered desktop a local view saves 0.80 J of package energy against optimized HTTP caching. The modelled figure for the same view is 12.4 J, and it is an allocation. A cold first view of a recorded public page costs a median 47.5 J of package energy above idle on that desktop (L1 windows, L2 per page). That is the cost of the page without spool. The cost of spool's own install and provisioning on a first visit is unmeasured.</p>
+<ol>
+<li>With <code>updateViaCache: 'all'</code> and a 24-hour script lifetime, 0 of 13 controlled navigations reached the origin in Chromium and Firefox (L1). WebKit differs, and the details are under <a href="#zero-network-navigation">Zero-Network Navigation</a>.</li>
+<li>A local view sends the server nothing. A network view costs it 0.61 to 0.98 J of package energy across node, bun, hono and workerd, 6 windows each, and a local view sent nothing in all but one window per runtime (L1; see <a href="#spools-own-requests">spool's Own Requests</a>).</li>
+<li>A cold visit through <code>spoolProxy</code> made 2 requests from the first controlled visit to the first local view with the first-payload lever off, and 1 with it on (L1, exact counts, a synthetic page; see <a href="#first-payload">First Payload</a>).</li>
+<li>A dataset update sends 227 to 232 B for one changed row. The v0.3 list refetch sends 2,236 to 191,744 B for 50 to 5,000 rows.</li>
+<li>The requests a platform sees per view follow a formula with three inputs, and a device's share of local views is at most one minus one over the views it makes in a freshness window (L3, <a href="ADVANCED_USAGE.html#request-arithmetic">Request Arithmetic</a>). No multiplier follows from it until a site's traffic supplies the inputs.</li>
+<li>A local view saves 0.80 J (L1, RAPL, 8 rounds; retake 0.817 J). In the report's one unit that is 0.223 kWh per million views (L2). The view is a repeat navigation of a mirror of <code>demo.drupflare.com</code> on one desktop. The energy of one deployment is small against an institution's total electricity and against the idle and hosting energy drupflare removes per site, so the weight energy gets is the administrator's choice.</li>
+<li>The modelled 12.4 J per view is an allocation. Sustainable Web Design v4 intensities are spread over 17,054 bytes of document, plus one origin request. No meter read it. It sits beside the metered 0.80 J and carries its own label.</li>
+<li><code>trim</code> removed rules from 233 of 303 stylesheets with 0 false removals in 26,571 rule uses on Chromium's own coverage data. That check is this project's own and no outside oracle confirms it.</li>
+<li>The first-view corpus recorder had two defects, an identity-coded replay and dropped YouTube embeds. Both are fixed, and the v3 corpus was measured over 2 rounds. See <a href="#the-first-view-class-fit">The First-View Class Fit</a>, <a href="#measurement-mistakes">Measurement Mistakes</a> and <a href="#limits">Limits</a>.</li>
+<li>Most of spool is engineering of known ideas. The registration option is documented on MDN, dictionary transport is RFC 9842, speculation rules, Workbox precaching and Fawkes-style static templating exist, unused-CSS removal is PurgeCSS-style, and partial replication is what sync engines such as Electric do. The distinct contract is narrow: a server-authoritative replica whose freshness policy lets a provisioned view render with no per-view validation request, with shadow mode and a fall back to the server. HTTP caching and earlier replication systems cover parts of it (<a href="../#prior-art">Prior Art</a>). The other contributions that can be defended are the four-layer labelled measurement method, the checked record of refuted mechanisms and the exact-count contract tests (server hits per local view), behind a frozen wire protocol.</li>
+<li>The ledger holds 15 closed mechanisms, each with its measurement and the objective it left open. The ledger is under <a href="#what-was-tried-and-refuted">What Was Tried and Refuted</a>.</li>
+</ol>
+<h2 id="measurement-rules" class="tsd-anchor-link">Measurement Rules<a href="#measurement-rules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each figure carries one label, and a derived figure keeps its label wherever it travels.</p>
+<table>
+<thead>
+<tr>
+<th>label</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>published by someone else, source named</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>measured here, on the hardware the reading's file names</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>derived: arithmetic over L0 and L1 figures</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>a scenario: an assumption, or a what-if no reading backs</td>
+</tr>
+</tbody>
+</table>
+<p>A figure that mixes an L2 product with an L3 term is L3 as a whole. Per-view energy is also given in kWh per million views, where 1 J per view is 0.2778 kWh per million views. The unit makes readings comparable, and no figure here is a target.</p>
+<ol>
+<li><strong>Meter and allocation sit side by side, labelled.</strong> The metered figure is the package energy of one desktop. The attributional figure spreads a published per-byte intensity over measured bytes.</li>
+<li><strong>The baseline is optimized HTTP caching.</strong> Immutable hashed assets, ETag revalidation and compression are the site's own fix and spool takes no credit for them. Every dataset result carries two controls, v0.3 and native HTTP.</li>
+<li><strong>Tests assert exact counts.</strong> Server hits per local view, requests per sync, records per patch. No test asserts a timing or an energy threshold. Magnitudes live in readings.</li>
+<li><strong>Every reading carries its method and exclusions.</strong> The schema (<code>measurements/README.md</code>, File Format) holds <code>rig</code>, <code>date</code>, <code>layer</code>, <code>question</code>, <code>instrument</code>, <code>machine</code>, <code>software</code>, <code>method</code>, <code>exclusions</code> and raw <code>rows</code>. <code>scripts/impact.ts</code> derives per-view figures from rows and stores none. A node test reads every file through <code>src/report/measurement.ts</code>.</li>
+<li><strong>Arms rotate and idle is subtracted.</strong> In the RAPL rig arm order rotates per round, an idle window opens each round, and joules are reported above the idle draw of the same round. A window is dropped when other containers used more than 100 ms of CPU per second of it. The rule sees containers only. It missed a container that started inside a window until the rig counted one from zero, and it never sees a host process.</li>
+<li><strong>A retake sits beside its original.</strong> <code>scripts/impact.ts</code> pins every headline RAPL figure to the original date (<code>ORIGINAL_RAPL</code>) and prints the retake in a Second Time Point section. A retake on the same machine gives a second time point and no independent replication.</li>
+<li><strong>No feature is turned off to get a clean run.</strong> A defect that blocks a measurement is its first result. The rig measures shipped defaults.</li>
+<li><strong>A reading is labelled by what was read.</strong> Papers are cited as full text or abstract only. A number from a search summary is not written down.</li>
+<li><strong>A negative result closes a mechanism and leaves its objective open.</strong> Each closure records the measurement and the objective that remains.</li>
+<li><strong>Page bytes from a replay are checked for encoding.</strong> Added after the first-view corpus defect below.</li>
+</ol>
+<h3 id="environment" class="tsd-anchor-link">Environment<a href="#environment" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<table>
+<thead>
+<tr>
+<th>item</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>meter host</td>
+<td>paisley-park, AMD Ryzen 9 9900X, Ubuntu 24.04, governor <code>powersave</code>; the 2026-11-15 retake adds <code>amd-pstate-epp</code> with EPP <code>performance</code> to the machine record</td>
+</tr>
+<tr>
+<td>meter</td>
+<td>RAPL package-0 and core counters read through sysfs; no DRAM, platform or wall domain exists on the host</td>
+</tr>
+<tr>
+<td>browser in the meter</td>
+<td>Chromium (new headless) in the Playwright v1.62.1 noble container, <code>--cpus 8 --memory 6g</code></td>
+</tr>
+<tr>
+<td>origin in the meter</td>
+<td>a Node static mirror of <code>demo.drupflare.com</code> in the same container, 40 ms emulated round trip, 300 navigations per window, 8 rounds, 30 s idle window</td>
+</tr>
+<tr>
+<td>idle draw</td>
+<td>18.77 W median package (<code>docs/impact.md</code>, Desktop and Phone)</td>
+</tr>
+<tr>
+<td>zero-network host</td>
+<td>MacBook Pro, Apple M2 Pro, macOS 26.5.2, Playwright 1.62.1 bundled Chromium, Firefox and WebKit</td>
+</tr>
+<tr>
+<td>what the meter omits</td>
+<td>the display, the network interface, the radio, every router and data centre between the two ends, and any DRAM draw</td>
+</tr>
+</tbody>
+</table>
+<p>The demo site runs spool v0.3 features, so it is no baseline without spool. The 0.652 J spool arm in the desktop reading is a spool-served page and sets no ceiling on what a mechanism can save per view.</p>
+<h3 id="reproducing" class="tsd-anchor-link">Reproducing<a href="#reproducing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>bun run impact:check</code> fails when the committed <code>docs/impact.md</code> differs from what <code>measurements/</code> produces. It runs in CI. Each rig runs from <code>scripts/measure/</code> with <code>--dry-run</code> first, which prints the resolved plan and touches nothing. The RAPL runs need a Linux host with a readable package counter. They sit outside the hermetic gate, so a clean checkout reproduces the arithmetic and cannot reproduce the joules.</p>
+<p>The library's v1 checks run from these commands. The minimal construction's counts are not in the repository.</p>
+<pre><code class="sh"><span class="hl-0">bunx</span><span class="hl-1"> </span><span class="hl-2">vitest</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-10">--project=unit</span><span class="hl-1"> </span><span class="hl-2">tests/unit/bundle.spec.ts</span><span class="hl-1"> </span><span class="hl-2">tests/unit/coverage.spec.ts</span><br/><span class="hl-0">bunx</span><span class="hl-1"> </span><span class="hl-2">vitest</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-10">--project=node</span><span class="hl-1"> </span><span class="hl-2">tests/node/bundle.spec.ts</span><span class="hl-1"> </span><span class="hl-2">tests/node/pack-store.spec.ts</span><span class="hl-1"> </span><span class="hl-2">tests/node/middleware.spec.ts</span><span class="hl-1"> </span><span class="hl-2">tests/node/conformance.spec.ts</span><span class="hl-1"> </span><span class="hl-2">tests/node/sw-runtime.spec.ts</span><br/><span class="hl-0">bunx</span><span class="hl-1"> </span><span class="hl-2">playwright</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1"> </span><span class="hl-2">tests/browser/navigate.pw.ts</span><span class="hl-1"> </span><span class="hl-2">tests/browser/pack-store.pw.ts</span><span class="hl-1"> </span><span class="hl-2">tests/browser/netreads.pw.ts</span><span class="hl-1"> </span><span class="hl-2">tests/browser/authenticated.pw.ts</span><br/><span class="hl-0">bun</span><span class="hl-1"> </span><span class="hl-2">scripts/conformance.ts</span><span class="hl-1"> </span><span class="hl-10">--url</span><span class="hl-1"> &lt;</span><span class="hl-2">origi</span><span class="hl-1">n&gt; </span><span class="hl-10">--dataset</span><span class="hl-1"> &lt;</span><span class="hl-2">nam</span><span class="hl-1">e&gt;</span>
+</code><button type="button">Copy</button></pre>
+
+<p><code>bun scripts/conformance.ts</code> takes a running server's origin. With no arguments it prints usage and exits 2. <code>bun run conformance</code> runs the same script.</p>
+<h2 id="claims-and-evidence" class="tsd-anchor-link">Claims and Evidence<a href="#claims-and-evidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<table>
+<thead>
+<tr>
+<th>claim</th>
+<th>evidence</th>
+<th>layer</th>
+<th>status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A local view saves energy on a desktop</td>
+<td>0.80 J, difference of arm medians over 8 rounds; retake 0.817 J</td>
+<td>L1</td>
+<td>one desktop, against optimized HTTP caching</td>
+</tr>
+<tr>
+<td>Attributional saving per local view</td>
+<td>12.4 J: SWD v4 over 17,054 B plus a 0.455 J origin request, radio term 0</td>
+<td>L2</td>
+<td>an allocation of the document request only</td>
+</tr>
+<tr>
+<td>spool's own requests are netted</td>
+<td><code>Z_daily</code> nets syncs and flushes; one window in six per runtime shows up to 6 <code>/.spool/*</code> requests</td>
+<td>L1 and L2</td>
+<td>modelled; no deployed trace</td>
+</tr>
+<tr>
+<td>A controlled navigation makes no request</td>
+<td>0 of 13 navigations reach the origin in Chromium and Firefox</td>
+<td>L1</td>
+<td>Chromium and Firefox only</td>
+</tr>
+<tr>
+<td>A dataset patch costs fewer bytes than both controls</td>
+<td><code>measurements/dataset-baseline/2026-11-15.json</code></td>
+<td>L1</td>
+<td>synthetic rows, one run each</td>
+</tr>
+<tr>
+<td>Platform requests per view fall with the local share</td>
+<td>views the limit carries, <a href="ADVANCED_USAGE.html#request-arithmetic">Request Arithmetic</a></td>
+<td>L3</td>
+<td>no deployed trace supplies h, r, rho or s</td>
+</tr>
+<tr>
+<td>After bootstrap, an in-page view costs no request</td>
+<td>0 requests in Chromium, Firefox and WebKit, on the minimal construction; <code>tests/browser/navigate.pw.ts</code> asserts zero origin requests at 10, 100 and 1,000 views</td>
+<td>L1</td>
+<td>loopback fixture; one site</td>
+</tr>
+<tr>
+<td>A document navigation past the lease fetches the stub once</td>
+<td>1 request in Chromium and Firefox, 0 inside the lease, at leases of 2, 6 and 20 s</td>
+<td>L1</td>
+<td>Chromium and Firefox; WebKit on macOS adds its script check</td>
+</tr>
+<tr>
+<td>The packed store reads one block per cold lookup</td>
+<td>1 block read per cold lookup, 0 on a cache hit; 0.244 to 0.602 ms per lookup at 10,000 and 100,000 rows</td>
+<td>L1</td>
+<td>one run each, Apple M2 Pro; timings not asserted</td>
+</tr>
+<tr>
+<td>The Express and Hono adapters answer the same counts on each backend</td>
+<td>47 of 47 counted checks on each of three backends in three engines, on the minimal fixture application</td>
+<td>L1</td>
+<td>one fixture application</td>
+</tr>
+</tbody>
+</table>
+<p>The saving scales with the size of a site's document. Where the browser's own cache answered the document, a local view has no request to replace and saves nothing. <code>docs/impact.md</code> (Per-Site Figures) lists the 15 sites read so far, from 0 J to 669.4 J per local view on the allocation.</p>
+<h2 id="architecture" class="tsd-anchor-link">Architecture<a href="#architecture" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The server declares routes with a strategy and a freshness contract. A route is <code>assembly</code> (a shell with holes plus data), <code>template</code>, <code>projection</code> (records sent once, the page computes the result) or <code>data</code>. The server sends an envelope that names an artifact's identity, scope, dependencies and a version vector. The worker keeps records and projections once in a lazily loaded graph and syncs only the next page's invalid ids, by cursor or by <code>need</code>.</p>
+<p>The worker renders <code>public</code> routes locally under hard or soft freshness. Shadow mode serves the network answer and compares it with a local render, per route or globally, with a sampled canary. Analytics are queued in the worker and flushed on a network moment that already happens. A provisioning rule sends an artifact only when the value below is positive, where <code>reuse</code> is the chance an artifact serves a later view, <code>futureViews</code> the later views one artifact serves, <code>avoided</code> the cost each such view keeps off the wire, and <code>provision</code> and <code>maintain</code> the costs of fetching the artifact and keeping it current, each weighed in bytes:</p>
+<pre><code class="math">\mathrm{reuse} \times \mathrm{futureViews} \times \mathrm{avoided} - \mathrm{provision} - \mathrm{maintain}
+</code><button type="button">Copy</button></pre>
+
+<p>Signed-in data is partitioned per principal. The partition id is an HMAC under a server secret. Stored rows are sealed with AES-GCM under a non-extractable key, so deleting the key makes them unreadable. That is crypto-shredding at rest and gives no defence against script on the origin. Logout wipes before the request leaves. Authorisation stays on the server: the device holds only what the server already sent that principal.</p>
+<p>The wire protocol is frozen at <code>Spool-Protocol: 1</code>. <code>tests/node/protocol-freeze.spec.ts</code> pins the header names, paths, envelope encoding, response key sets, limits and public export names as literal values (<code>docs/protocol.md</code>, Stability). The shared <code>spool</code> IndexedDB database stays at version 2, because v0.2 and v0.3 workers open it at that version and fail with a <code>VersionError</code> on a higher one. New stores live in their own databases. The package version is the worker's runtime version, and a different one empties a worker's replica and asset caches.</p>
+<h3 id="v1-architecture" class="tsd-anchor-link">v1 Architecture<a href="#v1-architecture" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Version 1 adds the parts below. Each names the file that holds it. The wire protocol stays <code>Spool-Protocol: 1</code>: <code>BUNDLE_PREFIX</code> and <code>BUNDLE_DELTA_PREFIX</code> sit beside <code>PATHS</code>, which is unchanged.</p>
+<table>
+<thead>
+<tr>
+<th>part</th>
+<th>source</th>
+<th>what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page families</td>
+<td><code>src/protocol/route.ts</code>, <code>src/sw/family.ts</code></td>
+<td>A template, projection or data route with a <code>family</code> binds a URL to one row of a dataset. The worker builds the page from the held row on each view and stores no copy.</td>
+</tr>
+<tr>
+<td>Cross-origin reads</td>
+<td><code>src/protocol/route.ts</code>, <code>src/sw/router.ts</code>, <code>src/sw/runtime.ts</code></td>
+<td>A data route with an <code>origin</code> answers GETs to an API origin from held rows. A cross-origin miss goes out untouched.</td>
+</tr>
+<tr>
+<td>Site pack</td>
+<td><code>src/protocol/bundle.ts</code>, <code>src/server/bundle.ts</code></td>
+<td>Framed gzip blocks of 128 sorted rows, an index frame with a SHA-256 per block, and a set digest. The digest sums row hashes modulo 2^256, and each hash covers its table, key and row (<code>src/protocol/query.ts</code>). Path and query index tables sit in the same pack.</td>
+</tr>
+<tr>
+<td>Pack and delta routes</td>
+<td><code>src/server/spool.ts</code>, <code>src/server/bundle.ts</code></td>
+<td><code>GET /.spool/bundle/&lt;version&gt;</code> serves a pack as immutable. <code>GET /.spool/bundle/delta/&lt;from&gt;/&lt;to&gt;</code> serves one delta as JSON.</td>
+</tr>
+<tr>
+<td>Device store</td>
+<td><code>src/sw/pack/store.ts</code></td>
+<td>IndexedDB database <code>spool-bundle</code> with blocks, index, overlay and head. A cold lookup reads one block. An install verifies each block, and a delta is checked against the digest before any write.</td>
+</tr>
+<tr>
+<td>Stub</td>
+<td><code>src/server/stub.ts</code>, <code>src/server/spool.ts</code></td>
+<td>The worker script names its runtime hash, its pack version and up to four deltas, 16,384 B at most inline. The script's <code>max-age</code> is the lease, set by <code>freshness.maxAge</code>.</td>
+</tr>
+<tr>
+<td>Middleware</td>
+<td><code>src/express/index.ts</code>, <code>src/hono/index.ts</code></td>
+<td><code>spoolExpress</code> and <code>spoolHono</code> answer the worker script and <code>/.spool/*</code>, and tag eligible HTML responses.</td>
+</tr>
+<tr>
+<td>Conformance kit</td>
+<td><code>scripts/conformance.ts</code></td>
+<td><code>runConformance</code> checks a server's answers against the protocol. The CLI is <code>bun scripts/conformance.ts --url &lt;origin&gt; --dataset &lt;name&gt;</code>.</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td><code>src/sw/coverage.ts</code></td>
+<td><code>coverageReport</code> lists the GET requests that no family answers.</td>
+</tr>
+<tr>
+<td>In-page views</td>
+<td><code>src/client/navigate.ts</code></td>
+<td>Answers a link to a held route in the page, with no document navigation.</td>
+</tr>
+<tr>
+<td>Bundle limits</td>
+<td><code>src/protocol/bundle.ts</code></td>
+<td><code>MAX_BUNDLE_FRAME_BYTES</code> (8 MiB). A reader refuses a frame over the cap before it reads the payload.</td>
+</tr>
+</tbody>
+</table>
+<p>Two further facts govern the design. A URL with a query string is never answered from a path's artifact unless the route declares a <code>query</code> schema, and the proxy and the worker send such a URL to the network. The drupflare adapter is a <code>spoolProxy</code> integration for eligible public traffic: a request with a cookie or an <code>Authorization</code> header bypasses spool.</p>
+<h2 id="what-was-measured-and-held" class="tsd-anchor-link">What Was Measured and Held<a href="#what-was-measured-and-held" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="request-law" class="tsd-anchor-link">Request Law<a href="#request-law" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The requests a client makes per replica lifetime depend on how each view starts. Split the views into one first view, <code>V_p</code> in-page views, <code>V_w</code> document navigations with the worker running and <code>V_c</code> document navigations with the worker stopped. The requests come to <code>Q</code>, where <code>1</code> is the first document, <code>k</code> is what bootstrap adds beyond it, <code>c</code> and <code>d</code> are per-engine constants, <code>S</code> counts freshness contacts that no other request carried, <code>x</code> is requests per contact, and <code>W</code> and <code>F</code> are writes and misses:</p>
+<pre><code class="math">Q = 1 + k + c \times V_c + d \times V_w + 0 \times V_p + x \times S + W + F
+</code><button type="button">Copy</button></pre>
+
+<p>The baseline makes the requests below for <code>V</code> views, where <code>r</code> is the requests per view:</p>
+<pre><code class="math">r \times V
+</code><button type="button">Copy</button></pre>
+
+<p>The constants below come from the minimal construction (L1 counts, loopback, 1,000 rows). The earlier construction of the same fixture measured <code>k</code> at 3 and <code>x</code> at 2, and the build below cuts both.</p>
+<table>
+<thead>
+<tr>
+<th>constant</th>
+<th style="text-align:right">worker build</th>
+<th style="text-align:right">no-worker build</th>
+<th style="text-align:right">floor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k</code>, added by bootstrap</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>in-page view</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td><code>x</code>, requests per contact</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>contact inside the lease</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">no lease</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>write</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>update carried by a write, a miss or a document navigation</td>
+<td style="text-align:right">0 extra</td>
+<td style="text-align:right">0 extra</td>
+<td style="text-align:right">0</td>
+</tr>
+</tbody>
+</table>
+<p>A client that holds no site data needs one request before it can render, so the requests obey the bound below. Nothing else is forced.</p>
+<pre><code class="math">Q \geq 1 + W + F
+</code><button type="button">Copy</button></pre>
+
+<p>The multiplier per client, where <code>r</code> is the requests per view and <code>V</code> the views, is (L2):</p>
+<pre><code class="math">\frac{r \times V}{1 + W + F}
+</code><button type="button">Copy</button></pre>
+
+<p>It has no finite value for reads. The limit on views is time. A local view takes a median 0.2 ms in Chromium, 1 ms in Firefox and 3 ms in WebKit to read, render and swap (L1, Apple M2 Pro). A 60 Hz display binds first, at 5.18 million views a day (L2).</p>
+<p>With no worker, bootstrap adds one request, so a client does not cost more than the baseline: one view costs 1 against 1, and two views cost 2 against 2. With a worker, a client that makes exactly two views costs 3 against 2 (L1 counts).</p>
+<p>Scenarios (L3 workloads, L1 costs, L2 ratios). Each cell is the multiplier, with the client's requests in brackets. The baseline and the floor are the requests in the first and second expression below, where <code>r</code>, <code>V</code>, <code>W</code> and <code>F</code> are as above:</p>
+<pre><code class="math">r \times V
+</code><button type="button">Copy</button></pre>
+
+<pre><code class="math">1 + W + F
+</code><button type="button">Copy</button></pre>
+
+<table>
+<thead>
+<tr>
+<th>scenario</th>
+<th style="text-align:right">baseline</th>
+<th style="text-align:right">floor</th>
+<th style="text-align:right">worker, Chromium</th>
+<th style="text-align:right">worker, Firefox</th>
+<th style="text-align:right">worker, WebKit macOS</th>
+<th style="text-align:right">no worker</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One view</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1x (1)</td>
+<td style="text-align:right">1x (1)</td>
+<td style="text-align:right">1x (1)</td>
+<td style="text-align:right">1x (1)</td>
+</tr>
+<tr>
+<td>Two views, one visit</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.67x (3)</td>
+<td style="text-align:right">0.67x (3)</td>
+<td style="text-align:right">0.67x (3)</td>
+<td style="text-align:right">1x (2)</td>
+</tr>
+<tr>
+<td>Five views, one visit</td>
+<td style="text-align:right">5</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1.67x (3)</td>
+<td style="text-align:right">1.67x (3)</td>
+<td style="text-align:right">1.67x (3)</td>
+<td style="text-align:right">2.5x (2)</td>
+</tr>
+<tr>
+<td>Daily reader: 20 views in 2 visits, 30 days</td>
+<td style="text-align:right">600</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">8.82x (68)</td>
+<td style="text-align:right">66.67x (9)</td>
+<td style="text-align:right">3.82x (157)</td>
+<td style="text-align:right">6.59x (91)</td>
+</tr>
+<tr>
+<td>Engaged reader: 100 views in 3 visits, 30 days</td>
+<td style="text-align:right">3,000</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">30.61x (98)</td>
+<td style="text-align:right">333x (9)</td>
+<td style="text-align:right">12.15x (247)</td>
+<td style="text-align:right">19.87x (151)</td>
+</tr>
+<tr>
+<td>Workspace: 100 views, 10% writes, 5% misses, 30 days</td>
+<td style="text-align:right">3,300</td>
+<td style="text-align:right">451</td>
+<td style="text-align:right">6.02x (548)</td>
+<td style="text-align:right">7.19x (459)</td>
+<td style="text-align:right">4.73x (697)</td>
+<td style="text-align:right">5.49x (601)</td>
+</tr>
+</tbody>
+</table>
+<p>The rows that separate the engines are the multi-day ones. Firefox pays for contacts only, while WebKit on macOS pays one script check per document navigation. The workspace row is the ceiling for a site with writes and misses: 7.32x at the floor (L2). Turning these rows into a deployed multiplier needs a site's traffic, which no reading here has.</p>
+<h3 id="in-page-navigation" class="tsd-anchor-link">In-Page Navigation<a href="#in-page-navigation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A view that starts from a link to a held route, inside the page, makes no request in any engine. The page needs a swap region for this; a page with none navigates by document. On the minimal construction, 100 in-page reads made 0 requests with the worker running, after a restart, offline, and past the lease, in Chromium, Firefox and WebKit (L1 counts). The library's <code>src/client/navigate.ts</code> answers these views. <code>tests/browser/navigate.pw.ts</code> asserts zero origin requests for in-page views of unfetched ids at 10, 100 and 1,000 views. It also covers held family pages that equal the server's HTML, back and forward moves, offline views, and a declared GET form on a held list route. The counts in this subsection come from the minimal construction, not from that test run.</p>
+<h3 id="packed-store" class="tsd-anchor-link">Packed Store<a href="#packed-store" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The library keeps a site's rows as compressed blocks, not as one record per row. A lookup reads the head, the index record, the overlay and one block in one transaction. The browser test <code>tests/browser/pack-store.pw.ts</code> installs a pack, reads it, applies a delta and reads again after a reload, at 10,000 and 100,000 rows. The test asserts the record counts, at most one block read per lookup, one inflate per block read, and the same answers after a reload. The timings below are one run each on Apple M2 Pro (L1, not asserted):</p>
+<table>
+<thead>
+<tr>
+<th>engine</th>
+<th style="text-align:right">rows</th>
+<th style="text-align:right">install</th>
+<th style="text-align:right">lookup, 1,000 random keys</th>
+<th style="text-align:right">storage usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chromium</td>
+<td style="text-align:right">10,000</td>
+<td style="text-align:right">84 ms</td>
+<td style="text-align:right">0.244 ms per lookup</td>
+<td style="text-align:right">155,648 B</td>
+</tr>
+<tr>
+<td>Chromium</td>
+<td style="text-align:right">100,000</td>
+<td style="text-align:right">920 ms</td>
+<td style="text-align:right">0.376 ms per lookup</td>
+<td style="text-align:right">884,736 B</td>
+</tr>
+<tr>
+<td>Firefox</td>
+<td style="text-align:right">10,000</td>
+<td style="text-align:right">231 ms</td>
+<td style="text-align:right">0.387 ms per lookup</td>
+<td style="text-align:right">914,384 B</td>
+</tr>
+<tr>
+<td>Firefox</td>
+<td style="text-align:right">100,000</td>
+<td style="text-align:right">2,339 ms</td>
+<td style="text-align:right">0.558 ms per lookup</td>
+<td style="text-align:right">8,816,544 B</td>
+</tr>
+<tr>
+<td>WebKit</td>
+<td style="text-align:right">10,000</td>
+<td style="text-align:right">320 ms</td>
+<td style="text-align:right">0.436 ms per lookup</td>
+<td style="text-align:right">88,292 B</td>
+</tr>
+<tr>
+<td>WebKit</td>
+<td style="text-align:right">100,000</td>
+<td style="text-align:right">3,214 ms</td>
+<td style="text-align:right">0.602 ms per lookup</td>
+<td style="text-align:right">879,101 B</td>
+</tr>
+</tbody>
+</table>
+<p>Against the per-row layout of the earlier construction, the same 10,000 rows took a median 61.7 ms per item view in Chromium, against 1.7 ms in the packed layout. The per-row layout stored 794 bytes a row, and the packed layout 121 (L1, fixture, one run each).</p>
+<p>Gzip blocks give random access and small storage, but they cost wire bytes against one solid stream. For the same 10,000 synthetic rows, the packed layout is 1,146,591 B and brotli over the rows is 293,408 B (L1). The library uses 128-row gzip blocks, and no measurement has chosen the block size or codec.</p>
+<h3 id="the-webkit-script-check" class="tsd-anchor-link">The WebKit Script Check<a href="#the-webkit-script-check" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>WebKit checks the worker script after a document navigation. The check arms a one-second timer and ignores navigations while it runs, so a rig must dwell at least 1.5 s between navigations to count them correctly. With that dwell:</p>
+<ul>
+<li>macOS, persistent profile: one script request per document navigation (6 of 6) and one per new tab (3 of 3).</li>
+<li>Linux, no disk cache: one per navigation (10 of 10).</li>
+<li>Safari 26.5.2 on macOS: three navigations and one reload gave four script requests, about one second after each.</li>
+</ul>
+<p>The check is structural on macOS, and site code cannot remove it. WebKit's soft update asks the network disk cache for the script and goes to the network only without an entry. The page's requests use a cache partition that the soft update's request does not carry, and the soft-update loader never stores what it fetches (WebKit source at commit <code>eb96cf5</code>, read on 2026-11-18). So <code>updateViaCache</code> and any <code>max-age</code> have no effect on it. The count is one per navigation at stub lifetimes of 2, 6 and 20 seconds and a day. An explicit <code>registration.update()</code> does hit the cache on macOS. This looks like a WebKit defect. No bug report has been filed.</p>
+<p>Asset refetches are a separate cost, and a fix exists in the minimal construction. When the worker does not answer a subresource, WebKit restarts the load without a cache lookup, so each asset goes back to the network. Answering with <code>fetch(event.request)</code> goes through the worker's loader, which uses the disk cache. A probe decides which answer to give: a <code>fetch</code> with <code>cache: 'only-if-cached'</code> for a known asset, read through its Resource Timing entry. On a macOS persistent profile, the first controlled document made 3 asset requests plus 1 script request without the probe, and 0 plus 1 with it. Three new tabs made 9 plus 3 without it and 0 plus 3 with it (L1). The minimal construction made 0 asset requests across 10 documents and 3 tabs with a persistent profile, in Playwright and in Safari. The library's worker does not carry this probe (see Unmet Items).</p>
+<h3 id="cold-worker" class="tsd-anchor-link">Cold Worker<a href="#cold-worker" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>When the worker is not running, Chromium and WebKit send the navigation to the network while the worker starts, then discard that response when the worker answers. Firefox sends none of these. On loopback the leaked request arrived every time: one document after a browser restart in Chromium and WebKit, and one after Chromium's worker was stopped through DevTools. Over real TLS the worker won the race in six of six cold restarts per engine against the deployed Worker, and the cold column was 0 in all three engines (L1). A document navigation after 40 s of idle leaked nothing in any engine. In Safari it leaked nothing after 2 minutes or 27 minutes. The rate on a warm HTTP/2 connection is unmeasured.</p>
+<h3 id="lease-and-freshness" class="tsd-anchor-link">Lease and Freshness<a href="#lease-and-freshness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The stub's <code>max-age</code> is a lease. Inside it a contact costs nothing and teaches the client nothing new. Measured on the minimal construction with leases of 2, 6 and 20 s (L1 counts):</p>
+<table>
+<thead>
+<tr>
+<th>situation</th>
+<th style="text-align:right">Chromium</th>
+<th style="text-align:right">Firefox</th>
+<th style="text-align:right">WebKit macOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>in-page reads, any age of stub</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>document navigation inside the stub's lifetime</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1 (script check)</td>
+</tr>
+<tr>
+<td>first document navigation after the lifetime</td>
+<td style="text-align:right">1 (the stub)</td>
+<td style="text-align:right">1 (the stub)</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td><code>registration.update()</code> inside the lifetime</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td><code>registration.update()</code> after the lifetime</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>no worker registered</td>
+<td style="text-align:right">nothing forced</td>
+<td style="text-align:right">nothing forced</td>
+<td style="text-align:right">nothing forced</td>
+</tr>
+</tbody>
+</table>
+<p>The wall clock of the browser and the server moved forward under libfaketime on Linux, while the tab stayed open. <code>Date.now()</code> moved by 25 hours in both. At 25 hours, in-page reads with an update waiting made 0 requests in Chromium and WebKit, and a fetch of a cached asset made 0 in both. At 50 hours, a document navigation with two updates waiting made one request (the stub) in both, and that request delivered both updates. Firefox did not start under the preloaded library.</p>
+<p>A tab that reads in-page is never checked by the browser, even across a day. The browser forces a contact only on a document navigation after the lease. The service worker spec caps the lease at 24 hours for document navigations (L0). A site that publishes weekly can state a longer lease, and the client owns any contact it needs in between.</p>
+<p>Three things keep the contacts that remain few. A write, a miss or a document navigation carries the held version and returns the rows that changed, so it needs no separate contact. The lease length is the site's choice. The library's install path adopts an inline delta or fetches one delta, and its node tests cover both: a stub that names the held version installs nothing, an inline delta applies with no request, and a device that is far behind fetches one delta (<code>tests/node/sw-runtime.spec.ts</code>, <code>tests/node/bundle.spec.ts</code>). The lease has no browser test in the tree.</p>
+<h3 id="link-radius-and-ring-size" class="tsd-anchor-link">Link Radius and Ring Size<a href="#link-radius-and-ring-size" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Link radius does not work as a dial on real documentation graphs. From the entry page of <a href="http://docs.drupflare.com">docs.drupflare.com</a>, radius 1 reaches 37 pages (250 KB of text as one stream) and radius 2 reaches all 300. On MDN's Service Worker API pages, radius 1 reaches 148 pages and radius 2 reaches all 300. A median page of <a href="http://docs.drupflare.com">docs.drupflare.com</a> reaches 2 pages at radius 1 and 238 at radius 2 (L1 link graphs). Menus link everything, so a ring should be a byte budget filled in link order (L2 from the counts).</p>
+<p>A page record costs 1.1 to 1.8 KB on those documentation corpora, measured as brotli over a whole crawl (L1 per-page figures). The budget sets how many pages one response can carry (L2):</p>
+<table>
+<thead>
+<tr>
+<th>budget</th>
+<th>what sets it</th>
+<th style="text-align:right">pages at 1.1 to 1.8 KB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100 KB</td>
+<td>a ring inlined in the first document (L3 budget)</td>
+<td style="text-align:right">55 to 90</td>
+</tr>
+<tr>
+<td>1 MB</td>
+<td>one second at 10 Mbit/s (L3 scenario)</td>
+<td style="text-align:right">580 to 950</td>
+</tr>
+<tr>
+<td>4 MB</td>
+<td>a 4 MB response (L3 budget)</td>
+<td style="text-align:right">2,300 to 3,800</td>
+</tr>
+<tr>
+<td>25 MiB</td>
+<td>one Workers static asset file (L0)</td>
+<td style="text-align:right">14,500 to 23,800</td>
+</tr>
+<tr>
+<td>1 GB</td>
+<td>Playwright WebKit's reported quota (L1)</td>
+<td style="text-align:right">580,000 to 950,000</td>
+</tr>
+<tr>
+<td>10 GiB</td>
+<td>Firefox's best-effort group limit (L0, MDN)</td>
+<td style="text-align:right">5.9 to 9.7 million</td>
+</tr>
+</tbody>
+</table>
+<p>HTTP sets no size limit on a response. The limits are the serving tier, the device quota and the wait a visitor accepts. In the minimal construction's fixture, a radius-1 ring holds 24 rows, 37 KB raw, and the first document grew by 1,917 B of brotli on a 960 B page (L1).</p>
+<p>One changed row moves every page that renders it, and the delta ships once (L1, 1,000 rows, 1,004 URLs). Query URLs are not in this count.</p>
+<table>
+<thead>
+<tr>
+<th>change</th>
+<th style="text-align:right">rendered pages that change</th>
+<th style="text-align:right">their HTML</th>
+<th style="text-align:right">the delta, one request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>one article</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">10,954 B</td>
+<td style="text-align:right">1,838 B (618 B brotli)</td>
+</tr>
+<tr>
+<td>an author row joined into its articles</td>
+<td style="text-align:right">106</td>
+<td style="text-align:right">406,677 B</td>
+<td style="text-align:right">1,788 B (604 B brotli)</td>
+</tr>
+<tr>
+<td>a row in the sidebar of every page</td>
+<td style="text-align:right">1,004</td>
+<td style="text-align:right">3,682,551 B</td>
+<td style="text-align:right">1,806 B (611 B brotli)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="real-drupflare-retrofit" class="tsd-anchor-link">Real Drupflare Retrofit<a href="#real-drupflare-retrofit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The minimal construction ran against drupflare's own site, first on loopback and then on a deployed Free-plan Worker (L1).</p>
+<p>On loopback, the baseline replay of the retrofit made 4 requests in Chromium and 4 in Firefox, and 23 in WebKit, over 121 views. It made 4, 4 and 6 Worker calls in the same engines, which matches the earlier counts.</p>
+<p>On the Free-plan Worker, the same fixture ran with the worker script, the client, the pack and the stylesheet as static files, and only documents served by the Worker. Each session cost one Worker invocation in each engine. A 108-view session covered the first document, bootstrap, 100 held reads, 5 documents and one restart. A 33-view session added six cold restarts, and each session recorded one invocation. Static asset requests did not count as invocations. One control window matched 200 of 200 Worker-bound requests, and the other matched 52 of 54, where one request returned a non-200 to curl and one is unexplained. The Worker was deleted after the reading.</p>
+<p>Over real HTTPS and HTTP/2, one sample each: the first document with its ring was 3,838 B on the wire (40,916 B raw), the stub 7,642 B (23,019 B raw), the client 9,004 B (27,925 B raw), and the pack 114,505 B.</p>
+<p>Cloudflare's pricing page says cached responses can bill as requests when Workers Caching is enabled, static assets included (L0). This reading counts recorded invocations on a Free account with that feature off. It is not an invoice.</p>
+<h3 id="authenticated-projection" class="tsd-anchor-link">Authenticated Projection<a href="#authenticated-projection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The server owns the session and sends an explicit projection. Passwords, email addresses and a server-only secret never enter the response or the replica. Each login creates a principal and an epoch. Switching accounts replaces the active partition, and logout clears the shared state and invalidates the server session. The device holds the rows as AES-GCM ciphertext under a non-extractable key, held in IndexedDB.</p>
+<p>On the minimal construction, 54 of 54 checks pass across HTTP and workerd in Chromium, Firefox and WebKit (L1, 9 checks per combination). Each combination performs 100 authenticated reads with zero network requests. A successful PATCH makes exactly one server request, commits the server's trimmed title locally and reads it back with no GET. A write to another principal's row returns 403 and changes no local state.</p>
+<p>The library has the partition code and its checks in <code>tests/node/partitions.spec.ts</code>, and <code>tests/browser/authenticated.pw.ts</code> passes in Chromium (9 checks). The fixture does not prove automatic inference of every application's permissions, instantaneous remote revocation, out-of-order merges across devices, or offline write acceptance. Remote permission changes need a stated lease. The drupflare adapter still bypasses spool for requests that carry a cookie or an <code>Authorization</code> header, so this path does not run in production.</p>
+<h3 id="express-and-hono" class="tsd-anchor-link">Express and Hono<a href="#express-and-hono" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>spoolExpress</code> (<code>src/express/index.ts</code>) and <code>spoolHono</code> (<code>src/hono/index.ts</code>) answer <code>/spool-sw.js</code> and <code>/.spool/*</code> through the Spool object. They tag an eligible HTML reply (GET, status 200, <code>text/html</code>, no content encoding) and pass every other request through. The node tests run six checks on Express, on Hono with <code>@hono/node-server</code>, and on Hono through <code>app.fetch</code>: 18 of 18 pass in <code>tests/node/middleware.spec.ts</code> (L1). Each check compares the body and headers with the same application run without the middleware, so a POST, a HEAD, a JSON reply and a 404 reach the application unchanged.</p>
+<p>In the minimal fixture, one RESTful application runs on Express 5 and on Hono 4 (the reading used Express 5.3.0 and Hono 4.13.19). A 57-line adapter sits over one core and one read module that the application shares between server and browser. The fixture passed 47 of 47 counted checks on each of three backends in three engines (L1):</p>
+<table>
+<thead>
+<tr>
+<th>check</th>
+<th style="text-align:right">expected</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12 pass-through requests, with and without the adapter</td>
+<td style="text-align:right">equal</td>
+<td>12 of 12 on each backend</td>
+</tr>
+<tr>
+<td>first document, baseline plus the client script</td>
+<td style="text-align:right">3</td>
+<td>3 in each engine</td>
+</tr>
+<tr>
+<td>second view, stub and pack</td>
+<td style="text-align:right">2</td>
+<td>2 in each engine</td>
+</tr>
+<tr>
+<td>100 in-page views of unvisited articles</td>
+<td style="text-align:right">0</td>
+<td>0 in each engine</td>
+</tr>
+<tr>
+<td>100 item reads and 20 list queries</td>
+<td style="text-align:right">0</td>
+<td>0, bytes equal to the server's</td>
+</tr>
+<tr>
+<td>PATCH, then item and list reads</td>
+<td style="text-align:right">1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>five document navigations, 1.5 s dwell</td>
+<td style="text-align:right">0 in Chromium and Firefox</td>
+<td>0, 0 and 6 in WebKit (five script checks and one client-script refetch)</td>
+</tr>
+</tbody>
+</table>
+<p>The application declared its tables, called <code>commit</code> after each write, and wrote its own read module. The adapters are not zero-configuration. The library does not serialise functions for the browser. Templates ship as compiled JSON, and <code>build:sw</code> bundles the worker.</p>
+<h3 id="zero-network-navigation" class="tsd-anchor-link">Zero-Network Navigation<a href="#zero-network-navigation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The question is how many server hits one service-worker navigation makes, by registration setting and engine. The instrument is the origin's request log, because the browser is not trusted to report <code>fromServiceWorker</code>. The method is 13 navigations per engine (clicks, typed navigations, a new tab) over 12 synthetic 30 KB pages on localhost, on the Mac (<code>measurements/zero-network/2026-10-18.json</code>, L1).</p>
+<table>
+<thead>
+<tr>
+<th>registration</th>
+<th>engine</th>
+<th style="text-align:right">navigations</th>
+<th style="text-align:right">reached the origin</th>
+<th>paths that did</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default registration</td>
+<td>chromium</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">1</td>
+<td><code>/sw.js</code> x 1</td>
+</tr>
+<tr>
+<td>default registration</td>
+<td>firefox</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">4</td>
+<td><code>/sw.js</code> x 4</td>
+</tr>
+<tr>
+<td>default registration</td>
+<td>webkit</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">3</td>
+<td><code>/sw.js</code> x 3</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>chromium</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">0</td>
+<td>none</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>firefox</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">0</td>
+<td>none</td>
+</tr>
+<tr>
+<td>updateViaCache all, script max-age 86400</td>
+<td>webkit</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">5</td>
+<td><code>/sw.js</code> x 5</td>
+</tr>
+</tbody>
+</table>
+<p>The registration is in <code>src/client/register.ts</code>, and the worker script is served with <code>max-age=86400</code>. Neither setting changes without re-running <code>tests/browser/zero-network.pw.ts</code>. The option is documented on MDN.</p>
+<p>WebKit makes no page or data requests and still re-checks the worker script. The test asserts an empty hit list only outside WebKit (<code>tests/browser/zero-network.pw.ts</code>, line 70). The claim covers Chromium and Firefox, on a localhost origin and 12 synthetic pages. No reading on a real site over a real network exists. In a probe, a cross-origin <code>@font-face</code> font cost WebKit one request per local view.</p>
+<p>A view that makes any cross-origin request is not zero-network, and the service worker answers same-origin requests only. On the 16 sites of the on-wire reading, 63% of proxy requests on a cold home page and on a warm internal page, and 73% on a repeated home page, went to other hosts (<code>docs/impact.md</code>, Third-Party Requests).</p>
+<p>One request breaks the saving. In round 0 of the network arm of <code>measurements/rapl/2026-10-19-views.json</code>, 599 of 899 origin hits were <code>/cdn-cgi/rum</code>, Cloudflare's analytics beacon. A local view that lets such a post through is a network view again, with its bytes and its origin work. Thiagarajan et al. (WWW 2012, full text, a 3G phone) found that on 10 of 25 sites a page rendered from cache used 6.8% to 40.5% of the networked load's energy. On the other 15, dynamic script and style requests could not be cached, and the paper names Google Analytics as one cause on static pages. spool queues analytics in the worker for this reason. Firefox does not route <code>fetch</code> with <code>keepalive</code> through a service worker, so those posts bypass the queue.</p>
+<h3 id="per-view-energy-on-a-desktop" class="tsd-anchor-link">Per-View Energy on a Desktop<a href="#per-view-energy-on-a-desktop" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The reading is <code>measurements/rapl/2026-10-19-views.json</code>, and its retake is <code>2026-11-15-views.json</code> (L1, method in the Environment table). Medians per navigation above idle, with the range over 8 rounds:</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th>J per navigation</th>
+<th style="text-align:right">origin requests per navigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Optimized HTTP caching</td>
+<td>1.45 (1.36 to 1.51)</td>
+<td style="text-align:right">3.00</td>
+</tr>
+<tr>
+<td>Spool local view</td>
+<td>0.652 (0.593 to 0.693)</td>
+<td style="text-align:right">0.00</td>
+</tr>
+<tr>
+<td>Demo shipping headers</td>
+<td>5.02 (4.86 to 5.09)</td>
+<td style="text-align:right">30.75</td>
+</tr>
+</tbody>
+</table>
+<p>The saving against optimized caching is 0.80 J, the difference of the arm medians. The retake reads 0.817 J (+1.9%), a spool view at 0.678 J (+4.0%), and idle at 18.4 W against 18.8 W. Against the shipping headers the saving is 4.37 J, which belongs to the baseline fix. drupflare has since shipped that fix and measured 1.31 J for a repeat navigation of a deployed free-plan site over a real network. A matched spool arm on a deployed site waits for the drupflare adapter.</p>
+<p>The retakes of the other desktop experiments moved between -5.5% and +20.1% on single figures (<code>docs/impact.md</code>, Second Time Point). The largest, +20.1% on a CMS recompute at 15 mJ per request, shows what a single time point is worth on small quantities.</p>
+<p>Energy is a research figure under v1. The v1 counts in this report are exact and carry no energy, so none of them changes the joules here.</p>
+<p>The meter reads the browser, the co-located origin over loopback and the service worker. The round trip is emulated. A sparse real load also pays wake costs this loop never sees.</p>
+<h3 id="the-124-j-allocation" class="tsd-anchor-link">The 12.4 J Allocation<a href="#the-124-j-allocation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The headline applies SWD v4's network (0.059), data centre (0.055) and device (0.080) kWh per GB, 0.194 together (L0, read from the method's web page), to 17,054 bytes of document, and adds the origin request.</p>
+<table>
+<thead>
+<tr>
+<th>term</th>
+<th style="text-align:right">joules</th>
+<th>layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network</td>
+<td style="text-align:right">3.6</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Data centre</td>
+<td style="text-align:right">3.4</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Device</td>
+<td style="text-align:right">4.9</td>
+<td>L2</td>
+</tr>
+<tr>
+<td>Origin request</td>
+<td style="text-align:right">0.455</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>Radio wake</td>
+<td style="text-align:right">0.00</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>Total</td>
+<td style="text-align:right">12.4</td>
+<td>L2</td>
+</tr>
+</tbody>
+</table>
+<p>The 17,054 B is the median repeat-view document over 59 views from 4 <code>measurements/repeat-nav</code> readings, and <code>scripts/impact.ts</code> refuses to run if <code>DOCUMENT_BYTES</code> drifts from it. Only the document counts, because an optimized HTTP cache already keeps static files. The page's API calls and every third-party request still leave the browser during a local view. The radio-wake term is 0 until a phone reading attributes a wake. As a unit, 12.4 J is 3.43 kWh per million views. It is an allocation. No meter read it, and the metered 0.80 J is the figure to compare against optimized caching. Energy stays a research figure under v1, and the v1 request counts do not change this allocation.</p>
+<p>SWD's network term applies a per-byte intensity to measured bytes. Network energy is not proportional to data volume (Mytton, Lunden and Malmodin 2024, abstract only), and one institution's traffic cannot be tied to an operator's power state. The model likely overestimates actual emissions, by its own account.</p>
+<h3 id="spools-own-requests" class="tsd-anchor-link">spool's Own Requests<a href="#spools-own-requests" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>Z_daily</code> is the strict zero-network views of a day net of the sync and flush requests spool itself sends. In the server-runtime reading, one window of six per runtime made up to 6 <code>/.spool/*</code> requests about 15 minutes after the worker was primed, which matches the default soft bound of public routes expiring. The rig counted <code>/.spool/*</code> requests without recording their paths, so the cause is read from timing. The medians leave that window out, and <code>docs/impact.md</code> (Server Runtimes) says so.</p>
+<p>A network view costs the server 0.61 to 0.98 J across node, bun, hono and workerd, 6 windows each (L1). A local view sent nothing in all but one window per runtime, and its measured energy (0.32 J at most, as a median) sits inside the idle drift.</p>
+<p>A worker costs energy too. In the worker request reading (8 rounds, 60,000 <code>fetch</code> calls of a 4,096 B asset per window), the browser cache cost 14.0 mJ per request, a worker answering from CacheStorage 18.9 mJ and a conditional 304 19.3 mJ. A worker answer saves energy only for URLs the browser would revalidate on more than 93% of views. The ranges of the worker and the 304 overlap.</p>
+<h3 id="compute-and-origin-work" class="tsd-anchor-link">Compute and Origin Work<a href="#compute-and-origin-work" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A server cache already removes recompute, so spool's increment against one is the transaction. Measured on paisley-park (L1, 8 rounds unless noted):</p>
+<table>
+<thead>
+<tr>
+<th>workload</th>
+<th style="text-align:right">origin energy per request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cache hit</td>
+<td style="text-align:right">0.717 mJ</td>
+</tr>
+<tr>
+<td>CMS render</td>
+<td style="text-align:right">15.1 mJ</td>
+</tr>
+<tr>
+<td>analytics page</td>
+<td style="text-align:right">10.9 J</td>
+</tr>
+<tr>
+<td>local 8B model, CPU+GPU</td>
+<td style="text-align:right">286 J</td>
+</tr>
+</tbody>
+</table>
+<p>Against an optimized server cache a local view saves 0.82 J on the CMS page and 0.98 J on the analytics page per navigation, whatever the page costs to compute. Against recompute on every request the saving grows with the computation: 0.89 J and 12.4 J. The 8B model figure includes a sampled GPU board with a stated accuracy of +-5 W and no energy counter, so it is labelled L1-sampled. It counts only for model-derived results that repeat for identical authorised inputs.</p>
+<p>The <code>projection</code> strategy relocates work. On the desktop a local projection costs 0.19 J more than a static local view when records come from CacheStorage. It removes 3.57 J of server work per view above a server cache, and its 1.73 MB of records repay after about 340 views against the attributional byte term (L2).</p>
+<h3 id="first-payload" class="tsd-anchor-link">First Payload<a href="#first-payload" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A cold visit through <code>spoolProxy</code> used to fetch the page twice. The proxy now names a SHA-256 of the page in <code>Spool-Artifact</code>, and the worker keeps the page it already received when its own hash matches. The reading (<code>measurements/first-payload/2026-10-26.json</code>, Chromium, loopback, synthetic page, 5 rounds per arm that came out identical) records origin requests from the first controlled visit to the first strict local view.</p>
+<table>
+<thead>
+<tr>
+<th>arm</th>
+<th style="text-align:right">requests, cold to local</th>
+<th style="text-align:right"><code>/.spool/artifact</code> requests</th>
+<th>origin work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>assembly, off</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1</td>
+<td>2 origin page fetches</td>
+</tr>
+<tr>
+<td>assembly, lever 1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td>1 origin page fetch</td>
+</tr>
+<tr>
+<td>template, off</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">1</td>
+<td>1 load</td>
+</tr>
+<tr>
+<td>template, lever 2</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td>1 load</td>
+</tr>
+</tbody>
+</table>
+<p>The counts are exact. The byte columns are uncompressed counts of a synthetic page, so they show the shape of the saving and give no size for a real page. No reading says how many visits are cold. <code>inlineMaxBytes</code> saves the artifact request and nothing else, and is off by default.</p>
+<h3 id="datasets" class="tsd-anchor-link">Datasets<a href="#datasets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A dataset keeps rows on the device, and an update sends the rows that changed. The reading is <code>measurements/dataset-baseline/2026-11-15.json</code> (L1, synthetic rows, one machine, one run each, in-process <code>createSpool</code> and <code>node:zlib</code>). Bytes after one changed row:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">rows</th>
+<th style="text-align:right">v0.3 list refetch</th>
+<th style="text-align:right">v0.4 patch</th>
+<th style="text-align:right">native 200</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">50</td>
+<td style="text-align:right">2,236</td>
+<td style="text-align:right">227</td>
+<td style="text-align:right">2,379</td>
+</tr>
+<tr>
+<td style="text-align:right">500</td>
+<td style="text-align:right">19,981</td>
+<td style="text-align:right">228</td>
+<td style="text-align:right">20,239</td>
+</tr>
+<tr>
+<td style="text-align:right">5,000</td>
+<td style="text-align:right">191,744</td>
+<td style="text-align:right">232</td>
+<td style="text-align:right">193,240</td>
+</tr>
+</tbody>
+</table>
+<p>A 304 under native HTTP is 220 B at every size. The v0.4 seed costs more than the v0.3 seed by 89 B at 50 rows, 867 B at 500 and 13,881 B at 5,000, so a seed is repaid after 0.044 to 0.072 updates per device. A device that never returns pays for the seed and gets no update, and the admission rule <code>datasetBenefit</code> and the provisioning rule limit how often that happens. The per-site table in <code>docs/impact.md</code> (What a Site Pays) uses a 7-day hold and a return survival of 0.50, both L3 and unmeasured. Safari deletes script-writable storage after 7 days without interaction (WebKit blog, full text), and Chromium and Firefox show no time-based deletion. No source gives a single-site return interval or a survival rate.</p>
+<p><code>datasetBenefit</code> (<code>src/protocol/provision.ts</code>) counts views from a prior, and the site table counts views from traffic. The two agree on arithmetic, and this report makes no claim that they reach the same decision at any site. The server measures gzip for its seed size and the reading uses brotli, so the decision inputs differ from the reading's bytes.</p>
+<p>The v0.3 baseline work found two defects in v0.3 itself: a query route over record references passed the server proof and failed the client's, and default priors declined every <code>data</code> route. Both shaped the dataset design.</p>
+<h3 id="next-page-prediction" class="tsd-anchor-link">Next-Page Prediction<a href="#next-page-prediction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The catalogue ships the data of pages a visitor may open next when the expected share repays the entry. The replay uses MSNBC (UCI dataset 133, CC BY 4.0): 989,818 visitors over one day in 1999, a median of 2 pages each, 354,425 scored first views (<code>measurements/nav-replay/2026-10-26.json</code>, L1 counts, L2 joules). A population first-order model earns 3.62 J per provisioned KB at a 473 B entry where the all-views share earns 2.81 and popularity 1.50. Nothing pays at a whole document, and <code>population-first</code> provisions nothing at 2,048 B.</p>
+<p>The first run credited repeat visits and was wrong. The calibration table found the all-views share over-confident exactly where decisions are made: 0.259 given and 0.039 observed in the 0.20 to 0.40 bin. Models with each visitor's own history match the population model exactly, because a visitor here opens two pages. The data cannot show whether multi-day history helps.</p>
+<h3 id="asset-trimming" class="tsd-anchor-link">Asset Trimming<a href="#asset-trimming" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>trim</code> serves a site's stylesheets with rules that no page or script of the site can match removed. The proxy does this because a service worker cannot save bytes on a file it already fetched. It applies to a network view of an unseen page and saves nothing on a local or repeat view.</p>
+<p>The reading (<code>measurements/trim/2026-10-19.json</code>, with a second date in <code>2026-11-15.json</code>; Chromium coverage and DevTools, zstd; 85 pages on 10 Drupal sites) fetched 303 stylesheets and removed rules from 233. The checks:</p>
+<table>
+<thead>
+<tr>
+<th>check</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oracle A, false removals</td>
+<td>0 of 26,571 rule uses</td>
+</tr>
+<tr>
+<td>Oracle B, render</td>
+<td>pixel-identical on 62 pages; the untrimmed control matched on 65</td>
+</tr>
+<tr>
+<td>leave-one-out, guard</td>
+<td>fired on 33 of 75 internal pages</td>
+</tr>
+<tr>
+<td>leave-one-out, Oracle A</td>
+<td>0 of 3,643 rules lost, on the 13 pages the guard let through</td>
+</tr>
+</tbody>
+</table>
+<p>Oracle A reads Chromium rule usage on the original CSS and is this project's own check, so no external oracle confirms it. Oracle B differed on 4 pages where the control did not, and one screenshot per arm is a small sample.</p>
+<p>The typical first view of an internal page saves 3.2 KB (2.21 J, L2), and the mean is 15.2 KB (10.6 J). A few pages with large unused files carry the mean. JavaScript is left alone: used same-origin JavaScript rose from 36% at load to 40% after one scroll, and CSS stayed at 9%, so no load-time measure says which of the rest a visitor will run.</p>
+<p><code>trim</code> does not guard a same-origin stylesheet that carries <code>integrity</code>, and the browser rejects the rewritten file. The 52-page first-view corpus has 4 pages with a stylesheet <code>integrity</code> attribute, all cross-origin (<code>pro.fontawesome.com</code>), which trim never rewrites (<code>sameOriginKey</code>, <code>src/trim/manifest.ts</code>). It is listed in <code>docs/security.md</code> (Open Limitations) and not fixed in this release.</p>
+<p>Aggregate names churn. Over 27 days between the two trim readings, 2 of 10 sites kept the same set of aggregate names (L1). The changed names carry a median of 59.5% of a site's aggregate transfer bytes (L2). Across the 4 sites where an earlier file still answered, the zstd dictionary size over the standalone size has a median of 0.06. Two readings show churn between two deployments and give no rate.</p>
+<h3 id="dictionary-transport" class="tsd-anchor-link">Dictionary Transport<a href="#dictionary-transport" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p><code>dictionary</code> serves public CSS and JS as <code>dcz</code> or <code>dcb</code> against an earlier file of the same directory (RFC 9842). The dictionary-size reading (<code>measurements/dictionary-size/2026-10-22.json</code>, 356 new files of 10 Drupal sites, bytes only, L1) compares four ways of choosing the base, each against brotli 11 alone.</p>
+<ul>
+<li>A browser that picks the latest earlier file of the same directory saves 2.0% with <code>dcz</code> and 3.3% with <code>dcb</code> at the median site.</li>
+<li>A server base used once the visit has fetched it saves 3.9% with <code>dcz</code>, because the base must be fetched before it can serve.</li>
+<li>A server base held from an earlier visit saves 29.9% (chosen with the page measured) and 32.6% (without).</li>
+<li>The oracle, the best earlier file of the same kind, saves 41.4%, and no browser reaches it.</li>
+</ul>
+<p>How many visitors hold a base is an L3 scenario that no reading measures. <code>docs/impact.md</code> brackets the median-site saving at 6.5% when 10% of visitors hold it and 22.1% when 70% do. <code>chooseBases</code> has two scoring policies, <code>held</code> and <code>first-visit</code>, and neither is a proven minimum of total transfer.</p>
+<p>One pair in one browser: Chromium 151.0.7922.34 negotiated the transport, and one page load fetching a 1,719,688 B target cost 769.4 mJ above idle as brotli (432,066 B on the wire) and 686.1 mJ as <code>dcz</code> (105,331 B), 11% lower over 6 rounds of 60 loads (<code>measurements/rapl/2026-10-22-dictionary-load.json</code>). The retake reads 766 and 720 mJ. In this pair <code>dcz</code> decode costs no more than brotli decode. The pair says nothing about how many visitors hold a dictionary.</p>
+<h3 id="images-video-and-lazy-loading" class="tsd-anchor-link">Images, Video and Lazy Loading<a href="#images-video-and-lazy-loading" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The image-crawl reading (<code>measurements/image-crawl/2026-10-22.json</code>, 70 desktop pages on 16 public sites, empty cache, L1 bytes, L2 joules) gives WebP at native size a saving on 59% of pages, with a median page of 65.5 KB (45.7 J) and a mean of 1,211.8 KB (846 J). Resizing to the rendered width reaches 43% of pages. Autoplay video deferral reaches 10%, and a YouTube or Vimeo facade 9%. A few image-heavy or embed-heavy pages carry the mean, so the share of pages with any saving and the median site describe the typical case.</p>
+<p>Format-only WebP does not lower decode energy (<code>measurements/rapl/2026-10-22-image-decode.json</code>, 40 images, 6 rounds, one Chromium). Through <code>createImageBitmap</code>, a native-size WebP cost 1.39 times the original's energy and a WebP resized to the rendered width 0.79 times. Through an <code>&lt;img&gt;</code> at its CSS width the native WebP was 0.95 times the original, with an overlapping range. A conversion costs 0.57 J with the module loaded. The decode saving of an <code>&lt;img&gt;</code> repays that after 8 views at the rendered width and 25 at native size. One kilobyte moved is 0.70 J at the SWD rate (L2), which exceeds the decode saving of a view, so the proxy converts every image it can. That arithmetic leaves the network, which has no metered figure, out of the metered column.</p>
+<p>Lazy loading changes when an image loads, so its saving exists only for a visit that does not scroll. The rewrite put <code>loading=&quot;lazy&quot;</code> on the largest contentful element on 1 of 23 desktop pages at <code>skip</code> 4 and on 2 of 23 at <code>skip</code> 2, and no tested value reached zero on both profiles. <code>lazy</code> stays off by default.</p>
+<h3 id="activity-and-loops" class="tsd-anchor-link">Activity and Loops<a href="#activity-and-loops" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The activity hook is cooperative: <code>window.spool.activity.register</code> hands spool a pause and resume for a page's own loop. The reading (<code>measurements/rapl/2026-10-26-idle-activity.json</code>, 8 rounds, nothing dropped, one desktop) shows a <code>requestAnimationFrame</code> loop with its box off screen drawing 2.71 W above idle and 0.16 W with the hook, so the hook removed 2.55 W. The same page hidden with a once-a-second poll shows a hook saving of 0.28 W with a range of -0.07 to 0.46 W, so no hidden-page saving is claimed.</p>
+<p>The crawl (<code>measurements/avoidable-loops/2026-11-15.json</code>) loaded 60 public sites and counted 108 pages. A frame loop of 20 or more callbacks a second ran in the visible window on 17 of 108 pages (15.7%, Wilson interval 10.1% to 23.8%). A video played with no input on 24 (22.2%). At least one of six classes appeared on 56 (51.9%). The shares count pages loaded fresh, with no traffic weighting. The operator used the machine during the first half of the crawl, and the reading records no per-window time that could locate a disturbance. No page reached the hidden frame-loop threshold.</p>
+<h3 id="third-party-files" class="tsd-anchor-link">Third-Party Files<a href="#third-party-files" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The repeat-view <code>requestList</code> of 15 sites (<code>measurements/repeat-nav/2026-10-19-requests.json</code>) puts each third-party request in a class by its cache headers. The median site's third-party bytes are 92.2% uncacheable and 0.0% immutable. Answerable bytes, meaning immutable or long responses from hosts the origin table treats as cache-remedy, have a median of 0 B (L2, a ceiling that forecasts nothing). 99.5% of third-party bytes come from hosts <code>src/report/thirdparty.ts</code> does not know. The worker-side third-party cache exists and has nothing to answer on this sample.</p>
+<h3 id="query-routes" class="tsd-anchor-link">Query Routes<a href="#query-routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>A public <code>template</code>, <code>projection</code> or <code>data</code> route with a <code>query</code> schema holds a whole collection and a proof of it. The worker answers a query locally only when every parameter is in the schema and the proof verifies. The proof shows integrity against a declared collection. Completeness comes from the route's declaration that <code>list</code> holds the whole collection.</p>
+<p>SQLite serves as an independent oracle for correctness: 400 seeded random queries in <code>tests/node/query.spec.ts</code> and 300 random plans for the plan engine. Strings compare by UTF-16 code unit here and by bytes in SQLite, so a character above U+FFFF orders differently. A test pins that difference. A principal route cannot declare <code>query</code>.</p>
+<h3 id="capacity-and-institution-figures" class="tsd-anchor-link">Capacity and Institution Figures<a href="#capacity-and-institution-figures" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The capacity channel is a ceiling that counts only when equipment is removed. A retired server-year is 3.80 MWh (282 W at a PUE of 1.54, L2). The sensitivity table in <code>docs/impact.md</code> (Capacity) is a model with an L3 read share, and a real report replaces it with peak traces. No retirement is demonstrated, and &quot;no physical capacity saving demonstrated&quot; is a valid report beside a large drop in requests. A retained node can save more than a request's own work: one sparse isolated request brackets at 29 to 56 mJ against 15.1 mJ of work, bounded at 0.046 kWh per million views (L2 over an L3 request count).</p>
+<p>The institution report leads with money, storage and trust. Its hosting counterfactual is a peak-sized deployment at 390 kWh a site (L2), with a production deployment at 224.2 and a single small VPS at 9.3 beside it. None is measured against a real Acquia or Pantheon site. The list-price egress and request saving of a million local views runs from $0.30 to $2.45 across four hosts (L0 prices, L2). The storage block prints no figure because the worker does not report held bytes, and the trust block prints none because no live site exists.</p>
+<h2 id="what-was-tried-and-refuted" class="tsd-anchor-link">What Was Tried and Refuted<a href="#what-was-tried-and-refuted" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>A closure records the mechanism, the measurement that closed it and the objective that stays open. No closure here closed an objective.</p>
+<table>
+<thead>
+<tr>
+<th>mechanism</th>
+<th>measurement that closed it</th>
+<th>objective that stays open</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Facades for providers beyond YouTube and Vimeo</td>
+<td><code>measurements/embed-markup/2026-10-26.json</code>: 249 pages of 52 sites, server-rendered markup. One Kaltura iframe, and it is a hero loop. The largest third-party bytes in the repeat reading are an autoplaying <code>&lt;video&gt;</code></td>
+<td>embedded third-party media bytes; Save-Data poster replacement of ambient loops</td>
+</tr>
+<tr>
+<td>Automatic HTML decomposition</td>
+<td><code>measurements/payload/2026-10-19.json</code>: 172 internal pages of 10 Drupal sites, median unique part 7,603 B (brotli 5), 2.9% of pages at or under 2 KB</td>
+<td>unique-part entries for opaque pages; site-supplied fields, a Drupal module</td>
+</tr>
+<tr>
+<td>Device-local navigation learner</td>
+<td><code>measurements/nav-replay/2026-10-26.json</code>: per-visitor blends equal the population model, a device-only model provisions nothing at a 2-page session</td>
+<td>next-page accuracy at equal bytes; real multi-day traces or a design partner</td>
+</tr>
+<tr>
+<td>Energy-weighted image variant policy</td>
+<td><code>measurements/rapl/2026-10-22-image-decode.json</code> and <code>-image-encode.json</code>: the transfer term at the SWD rate outweighs the decode difference, so the weighted rule always picks the smallest file</td>
+<td>image bytes and joules where images are; a per-image choice from content class</td>
+</tr>
+<tr>
+<td>Persistent shell</td>
+<td>not started. It depended on automatic HTML decomposition, and its saving rested on a guessed 0.2 J per local view that no reading backs</td>
+<td>browser CPU and joules per navigation; <code>content-visibility</code>, bfcache eligibility</td>
+</tr>
+<tr>
+<td>Power-state elasticity as an MWh channel</td>
+<td><code>docs/impact.md</code> (Retained Nodes): about twice the work per sparse request, linear when batched, below the work cost above about 500 requests a second</td>
+<td>a fleet power-policy measurement on a server with visible states</td>
+</tr>
+<tr>
+<td>Network-gear power states</td>
+<td>no causal tie can be shown from one institution's traffic (Counting Rules, 5)</td>
+<td>none attributable</td>
+</tr>
+<tr>
+<td>Compute elimination as an unconditional channel</td>
+<td><code>docs/impact.md</code> (Against a Server Cache): 0.82 J against a server cache for a CMS page</td>
+<td>the per-workload compute ledger</td>
+</tr>
+<tr>
+<td>Icon and meta-link interception</td>
+<td><code>measurements/link-assets/2026-10-20.json</code> and <code>measurements/rapl/2026-10-20-sw-request.json</code>: worker answer 18.9 mJ against 14.0 mJ for the browser cache; optimized headers give 0 requests in all three engines</td>
+<td>WebKit media refetch on every play</td>
+</tr>
+<tr>
+<td>Proxy-side JavaScript removal</td>
+<td>Chromium coverage: 36% used at load, 40% after one scroll, so a set removed for one visitor is wrong for another</td>
+<td>script cost; see the script survey below</td>
+</tr>
+<tr>
+<td>Browser-chosen dictionaries</td>
+<td><code>measurements/dictionary-size/2026-10-22.json</code>: 2.0% and 3.3% at the median site</td>
+<td>a server that nominates the dictionary, built as <code>chooseBases</code></td>
+</tr>
+<tr>
+<td>Hidden-page pause</td>
+<td><code>measurements/rapl/2026-10-26-idle-activity-hidden.json</code>: the saving range runs through zero</td>
+<td>hidden-tab work; Chrome's intensive throttling caps what a pause can save</td>
+</tr>
+<tr>
+<td>Third-party answers from the worker's store</td>
+<td><code>docs/impact.md</code> (Third-Party Cacheability): answerable bytes 0 B at the median over 15 sites, one date</td>
+<td>third-party repeat bytes on a wider sample</td>
+</tr>
+<tr>
+<td>Stable chunks and stable aggregates</td>
+<td><code>docs/impact.md</code> (Churn Between Two Readings): the built <code>dictionary</code> path covers churned aggregates at serve time. Stable chunks need build control outside spool</td>
+<td>bytes of churned aggregates</td>
+</tr>
+<tr>
+<td>End-to-end metered session across versions</td>
+<td>closed as not metered: document views are zero-network in v0.2 to v0.4 by the same path, dataset paths differ in bytes the dataset arms give exactly, and loopback cannot meter network energy</td>
+<td>an end-to-end session arm on a second machine</td>
+</tr>
+<tr>
+<td>WebKit's per-navigation script check, removed from site code on macOS</td>
+<td><code>tests/browser</code> counts and the WebKit source read on 2026-11-18: one script request per document navigation at a 1.5 s dwell (6 of 6 on macOS, 10 of 10 on Linux); the soft-update request carries no cache partition and is never stored</td>
+<td>the check is a WebKit behaviour; a bug report and a change in WebKit, not in site code</td>
+</tr>
+<tr>
+<td>A tab that reads in-page is checked by <code>max-age</code> alone</td>
+<td>0 requests in Chromium, Firefox and WebKit for in-page reads at any stub age, and 0 for 20 in-page reads 25 hours later with an update waiting (Linux, faked clock)</td>
+<td>a staleness bound for a tab that never navigates, which the client must enforce with its own contact</td>
+</tr>
+<tr>
+<td>One record per row, with a full read on every view</td>
+<td>62 to 112 ms a view at 10,000 rows and 675 ms at 100,000 rows, in the earlier construction (L1, one run)</td>
+<td>a per-view cost that stays flat with site size; the packed store reads one block, 0.244 to 0.602 ms a lookup (L1)</td>
+</tr>
+<tr>
+<td>A contact inside the lease, or a refetch of the stub before it expires</td>
+<td>0 requests inside the lease; one request on the first document navigation after it, in Chromium and Firefox, at leases of 2, 6 and 20 s (L1)</td>
+<td>a bound for a tab that never navigates, which the client owns</td>
+</tr>
+</tbody>
+</table>
+<p>Three more closed on reasoning with no committed reading: AVIF (worse than WebP in tinyimg's encoder), font subsetting (no tool, no figure) and one site-wide CSS bundle (it would change cascade order).</p>
+<h3 id="script-survey" class="tsd-anchor-link">Script Survey<a href="#script-survey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The survey read prior art for cutting script cost at a proxy without breaking JavaScript. Every tool that rewrites whole sites documents its own breakage classes: <code>document.write</code>, code that must run before <code>DOMContentLoaded</code>, order-dependent scripts and a content security policy. Muzeel and Lacuna report savings in their abstracts, with no breakage count and no full text read. The ranking:</p>
+<ul>
+<li>Build first: a dry-run verification harness that loads each page twice in a real browser, original and rewritten, and diffs the serialised DOM, the console and the request list. Build an advisory coverage report beside it.</li>
+<li>Hold: a serving rewriter. Lossless minification is the first candidate behind the harness. A trial with the Bun bundler's minify arms dropped or renamed top-level bindings of classic scripts on some bodies, even in the whitespace-only arm. A classic script's top-level names are globals, so a printer that keeps them is a precondition. The trial ran on the identity-coded corpus, and the mechanism does not depend on the encoding.</li>
+<li>Refuse: live dead-code removal, whole-site loader rewriting, property mangling and function-level stubs on the live path. A synchronous result cannot be fetched on the main thread.</li>
+</ul>
+<p>The objective of cutting script cost stays open through the harness, facades for allowlisted widgets and file-level splits behind a dynamic import.</p>
+<h3 id="chunk-survey" class="tsd-anchor-link">Chunk Survey<a href="#chunk-survey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The survey asked whether many small requests cost more than their bytes. No source supplies a per-request joule figure for DNS, handshake, headers, CDN or radio. The SWD v4 model has no request term. The one bundle-versus-split measurement read is a 2015 single-site test in which compressed JavaScript grew 2.5% when 28 packaged files became 296. It speaks to compression and says nothing about energy. Hashed file names are an unreliable split signal. Only a build manifest or preload tags are signals a proxy can trust.</p>
+<p>The chunk-split rig is built (<code>scripts/measure/rapl-chunk.ts</code>) and will not run in this release. It serves the same synthetic JavaScript as 1, 5, 25 and 50 scripts, each brotli-compressed on its own, at 0 and 40 ms emulated delay. Its offline smoke counted exactly one request more than the page needs in every arm, and the extra request is unidentified. A negative result would close de-chunking and keep the objective of fewer bytes and joules per view.</p>
+<h3 id="the-first-view-class-fit" class="tsd-anchor-link">The First-View Class Fit<a href="#the-first-view-class-fit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The cold first-view rig replays 52 recorded pages from 26 sites over local HTTPS, 5 cold navigations per window and 2 rounds (<code>measurements/rapl/2026-11-16-first-view.json</code>, L1 windows, L2 per page). The median page costs 47.5 J above idle and the mean 54.0 J. For the same pages the attributional figure is a median 2,845 J, and the metered figure is 1.97% of it at the median of the page ratios (L2). The two quantities use different boundaries, so the ratio describes these pages and corrects nothing.</p>
+<p>A regression of each page's metered joules on its image, script and other bytes has a residual standard error of 27.4 J and an R squared of 0.30 (L2). The coefficients, with 95% bootstrap intervals over pages (2,000 resamples, fixed seed):</p>
+<table>
+<thead>
+<tr>
+<th>term</th>
+<th>value</th>
+<th>share of metered joules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>intercept, J per page</td>
+<td>24.10 [15.63, 32.55]</td>
+<td>44.6%</td>
+</tr>
+<tr>
+<td>script bytes, J per MB</td>
+<td>10.43 [6.39, 15.67]</td>
+<td>34.9%</td>
+</tr>
+<tr>
+<td>image bytes, J per MB</td>
+<td>1.56 [-0.98, 4.47]</td>
+<td>4.7%</td>
+</tr>
+<tr>
+<td>other bytes, J per MB</td>
+<td>6.97 [1.24, 20.37]</td>
+<td>15.8%</td>
+</tr>
+</tbody>
+</table>
+<p>The script and image intervals do not overlap, so script bytes cost more per byte than image bytes at this resolution. That is one bootstrap on 52 pages and no formal test, and the ratio of the two point estimates has no interval. Bytes alone explain 0.23 of the variance, and a fixed per-page term accounts for 44.6% of the joules. The cost of a page is therefore not proportional to its bytes. More rounds would not narrow the intervals much, because they measure the spread between pages.</p>
+<p>The facade arm replaces each YouTube or Vimeo iframe with a link, on the 8 pages where that changes the page. It saved 15.8 J per page on average and 12.2 J at the median, with 1,111 KB fewer body bytes on average. Eight pages are too few to rate a facade on a page with an embed, and one of them (<code>rice.edu-2</code>) has no embed recorded and shows no change.</p>
+<h2 id="measurement-mistakes" class="tsd-anchor-link">Measurement Mistakes<a href="#measurement-mistakes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Each paragraph says what happened, what it cost and what now prevents it.</p>
+<p><strong>The first-view corpus was identity-coded.</strong> The recorder forwarded Playwright's <code>route.request().headers()</code>, which has no <code>Accept-Encoding</code>, so origins answered uncompressed. The corpus held about 150 MB of identity-coded text and only 19 of about 2,800 responses were encoded. Every first-view byte count, the attributional joules and the class fit were inflated, and the metered joules were taken against replays with more loopback bytes. The 2026-11-15 first-view reading was invalid and is replaced by the 2026-11-16 reading on the v3 corpus. The fix is <code>ACCEPT_ENCODING</code> and <code>forwardHeaders</code> in <code>scripts/measure/first-view.ts</code>, with a unit test in <code>tests/node/measure.spec.ts</code>. The corpus was re-recorded (52 pages, 26 sites). The cost was a day of rig time on paisley-park and a measurement that cannot be used. The check now is to read the encoded share of a corpus before running a meter on it.</p>
+<p><strong>The recorder dropped every YouTube embed.</strong> The second recorder defect hid behind the first. <code>rawFetch</code> in <code>scripts/measure/first-view.ts</code> used Node's default 16 KiB response-header limit, and <code>www.youtube.com</code> embed responses exceed it, so each request failed with <code>Parse Error: Header overflow</code> and was aborted unrecorded. None of the 26 YouTube iframes in the 52-page corpus has a recorded embed document or player payload, and Vimeo has 3 recorded for 2 iframes. In the replay the original arm requests the embed and gets an unrecorded 12-byte miss, so it never pays for the player, while the facade arm adds the recorded thumbnail of 7 to 62 KB. The arm could show only the thumbnail's cost. Where the embed was recorded (Vimeo on <code>utah.edu-3</code>) the facade arm served 55,230 B less, as it should. The fix is <code>MAX_RESPONSE_HEADER_BYTES</code> (256 KiB) passed as <code>maxHeaderSize</code>, with the regression test 'records a response whose header block passes the 16 KiB default' reproducing the exact error on a 40 KB header. The v3 corpus holds 35 YouTube embed responses. <code>rice.edu-2</code> and <code>swarthmore.edu-3</code> are YouTube pages with no embed recorded.</p>
+<p><strong>Tracker-heavy pages differ run to run.</strong> A single-navigation smoke seemed to show a facade effect on a tracker-heavy page. It was loader timing. In one arm on one corpus, <code>wsu.edu-3</code> facade runs served 5,968,957 and 6,380,396 B, 411,439 B apart, and one run lacked five <code>connect.facebook.net</code> scripts and a 148,693 B <code>googletagmanager</code> script. <code>rice.edu-1</code> original runs served 2,326,689 and 2,231,233 B. <code>miracosta.edu-3</code> original runs served 3,400,929 and 3,269,698 B and its facade runs 3,322,654 and 3,152,811 B. Single-navigation bytes on such pages carry roughly 95 to 411 KB of noise, larger than a facade effect of tens of KB. <code>utah.edu-3</code> replays byte-identical. Only multi-round, many-page statistics can resolve a facade effect, and this report quotes no per-page smoke figure.</p>
+<p><strong>A blanket certificate flag stopped Chromium's HTTP cache.</strong> The warm arm of the first-view rig launched Chromium with <code>--ignore-certificate-errors</code> against a self-signed replay certificate. On <code>yale.edu-1</code> a second load in a new tab got 3 of 46 long-lived resources from cache. Pinning the certificate's public key with <code>--ignore-certificate-errors-spki-list</code> restored 46 of 46. A same-tab reload with the blanket flag reused 45 of 46, so the exact Chromium rule is unknown, and the fix rests on the measured effect. The cold and warm arms now differ in TLS handling, and whether that changes a cold view's cost is unmeasured. A unit test pins both flag lists.</p>
+<p><strong>A retake broke the reading folder.</strong> <code>scripts/impact.ts</code> picks the newest reading per rig and experiment, so a retake landing beside its original would have silently replaced the headline, and two impact tests that read the real folder failed. The fix pins every headline figure to <code>ORIGINAL_RAPL</code>, adds <code>retakeOf</code> and prints the retake in its own section. The impact tests use a <code>withoutFirstViews</code> helper so they do not depend on whether a first-view reading exists.</p>
+<p><strong>An allocation was read as a meter.</strong> The 12.4 J figure is SWD v4 spread over bytes, and early notes treated it as a reading. <code>docs/impact.md</code> now prints the metered figure beside it and the label on every row.</p>
+<p><strong>The demo was treated as a baseline without spool.</strong> The demo is built from drupflare's latest tree, which already runs spool v0.3 features. Its 0.65 J local view was used as a ceiling for what a mechanism could save per view. A spool-served page sets no such ceiling.</p>
+<p><strong>A closure was written without reading its interval.</strong> A point estimate for script bytes looked higher in joules per byte than image bytes. The bootstrap intervals overlap, so the ordering is unestablished. A persistent-shell bound had the same fault: it used a guessed 0.2 J per local view that no reading backs. A closure now cites the interval beside the claim.</p>
+<p><strong>The first navigation replay credited repeat visits.</strong> The device-local learner's first run counted pages a visitor had already opened as predictions. A rig needs a baseline that already holds what the product already holds. Opened pages are now held without a prediction.</p>
+<p><strong>A per-fetch estimate was a navigation delta divided by requests.</strong> The early 0.1 to 0.3 J per request figure overstated a <code>fetch</code> by 5 to 15 times. The worker request rig measures the fetch directly.</p>
+<p><strong>The first idle-activity run was polluted.</strong> Only 2 of 4 rounds were kept, with idle windows from 18.4 W to 67.6 W. The 2026-10-26 rerun kept 8 of 8. One plain-arm window read 28.8 W in round 1 while the other 7 read about 20.7 to 21.0 W. The cause is unknown, and the median does not depend on it.</p>
+<p><strong>bun's npm shim first on PATH broke the pack test.</strong> <code>~/.bun/bin/npm</code> shadowed nvm's npm and printed no usable <code>npm pack --json</code>, so the packed-package spec in <code>exports.spec.ts</code> failed with bun first and passed 30 of 30 with nvm's npm first. It looked like a repo defect. PATH now puts bun's bin last.</p>
+<p><strong>Package self-imports passed locally through <code>dist</code> and failed in CI.</strong> The gate runs with <code>dist</code> moved aside before it is called green.</p>
+<p><strong>An IndexedDB version bump broke old workers.</strong> Raising the shared <code>spool</code> database to a higher version made v0.2 and v0.3 workers fail with <code>VersionError</code>, and the upgrade test's &quot;still serving&quot; cases failed 6 of 6. New stores go in their own databases, and <code>tests/browser/upgrade.pw.ts</code> runs both directions in three engines. A first local run of that test also skipped its 3 Chromium cases because <code>beforeAll</code> swallowed an import error. CI throws instead of skipping.</p>
+<p><strong><code>SECURITY.md</code> listed 0.1.x as supported at 0.4.0.</strong> It now lists 0.4.x only.</p>
+<p><strong>The first WebKit rig counted one script check per phase.</strong> Its 20 document navigations ran in 320 ms, and WebKit's one-second timer ignores a navigation that arrives while it runs. The rig therefore saw one check where there were many. At a 1.5 s dwell the count is one per navigation. The repository's browser test rules require a 1.5 s wait between document navigations for this reason.</p>
+<p><strong>The cold-worker leak was recorded as an entry cost.</strong> An earlier rig counted the extra document after a browser restart as a cost of entry and did not tie it to the worker's state. The leak comes from the navigation going to the network while the worker starts. It appears after a restart or a forced stop, and not after idle time.</p>
+<p><strong>The baseline replay logged exit codes wrongly.</strong> A <code>$(date)</code> substitution reset <code>$?</code>, so the PASS and FAIL lines are the record and the logged exit codes are not.</p>
+<p><strong><code>keep_names</code> broke functions shipped with <code>toString()</code>.</strong> Wrangler's bundler injected a <code>__name</code> helper that the page did not have. The first workerd run of the Express and Hono fixture failed every browser phase until <code>keep_names</code> was off. The library does not serialise functions for the browser. <code>build:sw</code> bundles the worker.</p>
+<p><strong>A corrupt-delta check compared against the wrong state.</strong> On the first Linux WebKit run, the check compared the rejected install with the server's latest title, which that engine had not received. The check now compares with what the device held before the install, and the rerun passed.</p>
+<p><strong>An early theory counted document navigations as free.</strong> A document navigation can cost a request even with the worker running (WebKit's script check), and a cold worker adds the document in Chromium and WebKit. Counting document navigations as free undercounted both.</p>
+<p><strong>A digest covered rows and not the path index.</strong> In the minimal construction, the first digest left the path index out, so a corrupted index entry was accepted. The library's digest covers every table, and each row hash includes its table and key (<code>src/protocol/query.ts</code>, <code>src/protocol/bundle.ts</code>).</p>
+<h2 id="research-strength" class="tsd-anchor-link">Research Strength<a href="#research-strength" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The comparison is with three sibling reports: bytebox, the drupflare worker's Zend park, and tinyimg.</p>
+<table>
+<thead>
+<tr>
+<th>row</th>
+<th>spool against the siblings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claims backed by a measurement with method</td>
+<td>equal. Every reading carries <code>method</code> and <code>exclusions</code></td>
+</tr>
+<tr>
+<td>Refuted approaches logged with their measurement</td>
+<td>equal to the park and tinyimg, stronger than bytebox. One closure (the persistent shell) rests on a guessed 0.2 J</td>
+</tr>
+<tr>
+<td>Instrument mistakes recorded</td>
+<td>equal in kind to tinyimg and the park, and recent: the rig's own checks found the corpus defects above</td>
+</tr>
+<tr>
+<td>Reproduction from a clean checkout</td>
+<td>weaker than bytebox and tinyimg. The joule readings need a Linux host with a readable counter, and the 2026-11-15 readings are tracked in <code>measurements/</code></td>
+</tr>
+<tr>
+<td>External validation</td>
+<td>weaker than all three. One desktop, loopback replay, synthetic pages in places, no traffic-weighted mix, no deployed site, no replication by anyone else</td>
+</tr>
+<tr>
+<td>Size of the evidence base</td>
+<td>moderate. 16 sites for repeat navigation, 10 Drupal sites for trim, a public dataset for navigation, one desktop and one phone</td>
+</tr>
+<tr>
+<td>What the report says it cannot show</td>
+<td>strong. <code>docs/impact.md</code> (What This Does Not Claim) and <code>docs/security.md</code> (Open Limitations)</td>
+</tr>
+</tbody>
+</table>
+<p>The v1 request counts were repeated on Linux (the Playwright 1.64.1 noble image on a Ryzen 9 9900X, Chromium 156.0.8078.80) and over real HTTPS against a deployed Free-plan Worker. The Linux counts match the Mac counts except for one unexplained case: after a restart with no worker, Linux Firefox refetched one immutable client script with the document, twice in two runs, and macOS Firefox did not. The cause is unknown. The cold-worker race was measured on loopback and on one real network. The Safari figures come from one Mac, driven through WebDriver.</p>
+<p>Three contributions have the best case for being research-grade. Each has one measurement that would strengthen it.</p>
+<ol>
+<li><strong>The gap between an attributional per-view model and a metered desktop reading.</strong> The method is written, the labels are kept and the two quantities have a stated relation. The measurement: the end-to-end session arms (origin, optimized HTTP caching, each spool version, one mechanism off at a time) on a second machine, with the first-view figure now re-recorded on the v3 corpus.</li>
+<li><strong>Proxy-side CSS trimming with a per-page guard.</strong> The guard is checkable and has a measured fire rate (33 of 75). The measurement: a blind test on sites not used to build the manifest, with a real browser DOM diff over clicks and scroll, reporting the guard's miss rate with an interval. That also tests the blind spots the security document names.</li>
+<li><strong>Zero-network navigation under the chosen registration.</strong> It holds for Chromium and Firefox. The measurement: the registration in WebKit over 50 or more real navigations on a real site over a real network, with the zero-hit assertion on for WebKit or a documented exception.</li>
+</ol>
+<h2 id="unmet-items" class="tsd-anchor-link">Unmet Items<a href="#unmet-items" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>The first-view reading covers a page without spool. The cost of spool's own worker install and provisioning on a first visit has no reading, so the net of a first visit is unmeasured.</li>
+<li>The cold first-view run was configured for 3 rounds and stopped after 2 once the direction was clear. The published reading has exactly 2.</li>
+<li>The warm-arm rig (<code>first-view-warm</code>) and the chunk-split rig are built and will not run in this release.</li>
+<li>The retake queue after the cold first-view run (projection, dictionary-load, image-decode, Drupal render) was cut, so the existing readings for those stand. The drupal-render rig has a smoke run only, so no figure compares an uncached Drupal render with a cached one.</li>
+<li>Principal datasets and declared writes ship behind flags that are off. Both are unreviewed, and a flag change needs a redeploy because no runtime kill switch exists. Turning a flag off leaves queued writes and held rows on the device until a logout, a <code>Spool-Clear</code> or a partition change.</li>
+<li>The six pass conditions for the drupflare adapter are not re-verified. They need the deployed worker, Cloudflare observability and a Drupal save path, which is production-touching.</li>
+<li>Design-partner items: an institution pilot with real query and traffic data, multi-day device traces, a retirement ledger from a real estate, independent correctness and electricity evidence, and an external security review.</li>
+<li>Ambient media has no metered reading of the joules an autoplaying video or looping embed costs. Bytes (<code>measurements/image-crawl/</code>) and prevalence (<code>measurements/avoidable-loops/</code>) are measured.</li>
+<li>The subresource modes <code>passthrough</code> and <code>static-routing</code> have no reading. The README says neither is measured to save energy.</li>
+<li>Two protocol facts are untested: an old worker against <code>/.spool/dataset</code> and <code>/.spool/write</code>, and a multi-instance site where a retry lands on another instance.</li>
+<li>A public data route without a family answers a request that carries <code>Authorization</code> from the public store, which the protocol says it must not do. Changing it changes every data route that receives a bearer header, so it needs a ruling first.</li>
+<li>A Bearer read of a family needs its dataset declared as a principal dataset, so each signed-in user holds a sealed copy of it. Whether a per-user copy of a public API dataset is acceptable is an open design question.</li>
+<li>A collection answer matches only an API whose collection JSON equals the output of <code>shapeRows</code>. No declared mapping exists for other shapes.</li>
+<li>Shadow mode for cross-origin families is untested.</li>
+<li>A multi-version install (two or more missed versions in one install) has no node test.</li>
+<li>The lease has node tests for its install paths and no browser test.</li>
+<li>The install does not check the version, so a pack older than the head installs.</li>
+<li>The quota check runs only when <code>installPack</code> receives the pack's size.</li>
+<li>Plan routes have no query index, so a plan-backed list reads every block. Path and query index tables cover public routes only.</li>
+<li>Block size and codec are not chosen by measurement. The earlier construction measured one solid brotli stream as smaller on the wire than gzip blocks (see Packed Store).</li>
+<li>Compaction rewrites every block, and <code>applyDelta</code> reads each changed key in its own transaction.</li>
+<li>The WebKit asset probe (a <code>fetch</code> with <code>cache: 'only-if-cached'</code>) is measured in the minimal construction. The library's worker does not carry it.</li>
+<li>Express's <code>res.writeHead</code> and <code>res.flushHeaders</code> are not intercepted. A reply whose <code>Content-Type</code> is set only through <code>writeHead</code> passes through untagged, with no envelope and no client tag. The reply stays valid, and the gap is silent.</li>
+<li>The Hono adapter clears <code>c.res</code> before it sets the decorated response, which relies on the setter in the installed Hono. A test catches a regression on the current version.</li>
+<li>The conformance kit skips its error-500 check. A request cannot provoke a 500 without knowing a route that throws, and a conformant server may answer 400 to malformed input.</li>
+<li>The conformance kit finds routes through <code>/spool-sw.js</code>. A server that does not serve the worker script gets the artifact, beacon-want and principal checks skipped.</li>
+<li>Safari on iOS, Safari private windows and the 7-day storage cap are unmeasured.</li>
+</ul>
+<h2 id="limits" class="tsd-anchor-link">Limits<a href="#limits" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The first-view reading replays recorded responses over loopback with a self-signed certificate, in a fresh Chromium context per navigation with no service worker and no HTTP cache. 49 of the 52 pages made requests the replay could not answer, and the reading keeps and lists them. The replay server runs on the metered host, so its CPU sits inside the package counter and is not subtracted. Each page's figure is the mean of two windows, and the spread between pages, which the coefficient intervals measure, is larger than the spread between rounds.</p>
+<p>One desktop carries every metered figure. The package domain excludes the display, the network interface, the radio, intermediate equipment and DRAM. The loopback origin has an emulated round trip and no real network. Several corpora are synthetic: 12 pages for zero-network, a single page for first payload, synthetic rows for datasets, and a synthetic CMS and enrollment database for the origin-workload readings.</p>
+<p>The 0.80 J saving is against optimized HTTP caching on a mirror of the demo. The traffic mix, the return rate and the device population of a real site are L3 inputs, and no deployed trace exists. A device that never returns pays for what it provisioned, and a dataset with fewer than 0.044 to 0.072 updates per device does not repay its seed.</p>
+<p>No phone reading is used. The device term is desktop only, and no claim covers a phone, a paced phone view or cellular use. The radio-wake term is 0 until a reading attributes a wake.</p>
+<p>Zero-network holds in Chromium and Firefox and does not hold in WebKit (see Zero-Network Navigation). A view with any third-party request is not zero-network.</p>
+<p>Query answers are integrity-checked against a declared collection. Completeness is the route's declaration.</p>
+<p>Sealed storage gives no protection against script on the origin. Tag names and the write rate are readable through <code>/.spool/sync</code>, and a sealed row can be rolled back. Revocation shows for up to <code>maxStale</code>.</p>
+<p><code>trim</code> risks correctness and exposes nothing confidential. Its guard cannot see a class a foreign script adds after load, markup injected from an endpoint the crawl did not request, a runtime-built class name, a non-UTF-8 charset or a stylesheet reached through <code>@import</code>. A same-origin stylesheet with <code>integrity</code> fails under <code>trim</code>.</p>
+<p>In shadow mode a non-200 network answer is neither read nor cancelled, so its copy buffers the body until the copy is collected. <code>ga4Sink</code> with <code>debug: true</code> records nothing.</p>
+<p>The attributional figures use SWD v4 intensities read from the method's web page, and no primary paper backs them. The Fawkes figures in <code>docs/impact.md</code> (92% of HTML tags identical across loads 12 hours apart, 75% across a week) were read in full text and are the authors' measurements. spool did not measure them.</p>
+<p>The v1 counts come from a fixture of 1,000 rows, except the packed store's 10,000 and 100,000 rows and the 1,004-URL fan-out. They run on loopback with an emulated origin, or over one real HTTPS link to a deployed Worker. A real site's document sizes, traffic and return rate are L3 inputs, and no reading has them.</p>
+<p>The digest is the sum of SHA-256 row hashes modulo 2^256 (<code>src/protocol/query.ts</code>). It detects corruption under a trusted origin. It is not an authenticator, because whoever can write a pack can write a matching digest.</p>
+<p>The reader caps a frame's compressed size (<code>MAX_BUNDLE_FRAME_BYTES</code>), but it does not cap a block's decompressed size. A hostile pack can therefore use more memory than its frame suggests.</p>
+<p>A static stub cannot carry a new version until the host publishes a new file. On such a host a publication is a deploy. A Worker that serves its own stub costs one invocation per contact instead.</p>
+<p>Playwright's trace recorder raised <code>ENOENT</code> at Firefox context close in one combined multi-engine run. The assertions passed in that run, and the Firefox project passed when run alone. The cause is unknown.</p>
+</div><nav class="docs-pager" aria-label="Previous and next pages"><a rel="prev" class="docs-pager-prev" href="../documents/docs_impact.html"><span class="docs-pager-label">Previous</span><span class="docs-pager-title">Impact</span></a></nav></main>
+<nav class="docs-toc" aria-labelledby="docs-toc-title"><p id="docs-toc-title">On this page</p><ul><li class="docs-toc-h2"><a href="#contents">Contents</a></li><li class="docs-toc-h2"><a href="#executive-summary">Executive Summary</a></li><li class="docs-toc-h2"><a href="#measurement-rules">Measurement Rules</a></li><li class="docs-toc-h3"><a href="#environment">Environment</a></li><li class="docs-toc-h3"><a href="#reproducing">Reproducing</a></li><li class="docs-toc-h2"><a href="#claims-and-evidence">Claims and Evidence</a></li><li class="docs-toc-h2"><a href="#architecture">Architecture</a></li><li class="docs-toc-h3"><a href="#v1-architecture">v1 Architecture</a></li><li class="docs-toc-h2"><a href="#what-was-measured-and-held">What Was Measured and Held</a></li><li class="docs-toc-h3"><a href="#request-law">Request Law</a></li><li class="docs-toc-h3"><a href="#in-page-navigation">In-Page Navigation</a></li><li class="docs-toc-h3"><a href="#packed-store">Packed Store</a></li><li class="docs-toc-h3"><a href="#the-webkit-script-check">The WebKit Script Check</a></li><li class="docs-toc-h3"><a href="#cold-worker">Cold Worker</a></li><li class="docs-toc-h3"><a href="#lease-and-freshness">Lease and Freshness</a></li><li class="docs-toc-h3"><a href="#link-radius-and-ring-size">Link Radius and Ring Size</a></li><li class="docs-toc-h3"><a href="#real-drupflare-retrofit">Real Drupflare Retrofit</a></li><li class="docs-toc-h3"><a href="#authenticated-projection">Authenticated Projection</a></li><li class="docs-toc-h3"><a href="#express-and-hono">Express and Hono</a></li><li class="docs-toc-h3"><a href="#zero-network-navigation">Zero-Network Navigation</a></li><li class="docs-toc-h3"><a href="#per-view-energy-on-a-desktop">Per-View Energy on a Desktop</a></li><li class="docs-toc-h3"><a href="#the-124-j-allocation">The 12.4 J Allocation</a></li><li class="docs-toc-h3"><a href="#spools-own-requests">spool's Own Requests</a></li><li class="docs-toc-h3"><a href="#compute-and-origin-work">Compute and Origin Work</a></li><li class="docs-toc-h3"><a href="#first-payload">First Payload</a></li><li class="docs-toc-h3"><a href="#datasets">Datasets</a></li><li class="docs-toc-h3"><a href="#next-page-prediction">Next-Page Prediction</a></li><li class="docs-toc-h3"><a href="#asset-trimming">Asset Trimming</a></li><li class="docs-toc-h3"><a href="#dictionary-transport">Dictionary Transport</a></li><li class="docs-toc-h3"><a href="#images-video-and-lazy-loading">Images, Video and Lazy Loading</a></li><li class="docs-toc-h3"><a href="#activity-and-loops">Activity and Loops</a></li><li class="docs-toc-h3"><a href="#third-party-files">Third-Party Files</a></li><li class="docs-toc-h3"><a href="#query-routes">Query Routes</a></li><li class="docs-toc-h3"><a href="#capacity-and-institution-figures">Capacity and Institution Figures</a></li><li class="docs-toc-h2"><a href="#what-was-tried-and-refuted">What Was Tried and Refuted</a></li><li class="docs-toc-h3"><a href="#script-survey">Script Survey</a></li><li class="docs-toc-h3"><a href="#chunk-survey">Chunk Survey</a></li><li class="docs-toc-h3"><a href="#the-first-view-class-fit">The First-View Class Fit</a></li><li class="docs-toc-h2"><a href="#measurement-mistakes">Measurement Mistakes</a></li><li class="docs-toc-h2"><a href="#research-strength">Research Strength</a></li><li class="docs-toc-h2"><a href="#unmet-items">Unmet Items</a></li><li class="docs-toc-h2"><a href="#limits">Limits</a></li></ul></nav></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

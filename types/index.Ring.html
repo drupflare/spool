@@ -1,0 +1,166 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Ring | @drupflare/spool - v1.0.0</title><link rel="icon" href="../assets/favicon.ico" sizes="any"/><link rel="icon" type="image/png" href="../assets/favicon.png"/><link rel="apple-touch-icon" href="../assets/favicon.png"/><meta name="description" content="Documentation for @drupflare/spool"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><link rel="stylesheet" href="../assets/custom.css"/><script defer src="../assets/main.js"></script><script defer src="../assets/custom.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body class="docs-api"><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><a class="docs-skip" href="#docs-main">Skip to content</a>
+<header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@drupflare/spool <span class="docs-version">v1.0.0</span></a>
+<button id="tsd-search-trigger" class="tsd-widget docs-search" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg><span>Search the docs</span><kbd aria-hidden="true">/</kbd></button><a class="docs-github" href="https://github.com/drupflare/spool">GitHub</a><button type="button" class="docs-theme" id="docs-theme" hidden><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><span class="docs-sr">Theme</span></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<main class="col-content" id="docs-main" tabindex="-1">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/index.html">index</a></li>
+<li><a href="" aria-current="page">Ring</a></li></ul>
+<h1>Type Alias Ring</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>The records a first document carries so the second view needs no request: the entry page and
+its link neighbours up to a byte budget, the routes that render them, and where the full pack is.
+A ring is trusted as far as the document that carried it; the pack that follows is verified.</p>
+</div></section>
+<div class="tsd-signature"><span class="tsd-signature-keyword">type</span> <span class="tsd-kind-type-alias">Ring</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#boot">boot</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bootstrap">bootstrap</a><span class="tsd-signature-symbol">:</span> <a href="index.BootstrapGate.html" class="tsd-signature-type tsd-kind-type-alias">BootstrapGate</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#complete">complete</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#digest">digest</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#lease">lease</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#pack">pack</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">bytes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#protocol">protocol</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">1</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#routes">routes</a><span class="tsd-signature-symbol">?:</span> <a href="index.SerializedRoute.html" class="tsd-signature-type tsd-kind-type-alias">SerializedRoute</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#tables">tables</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.BundleRows.html" class="tsd-signature-type tsd-kind-type-alias">BundleRows</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#templates">templates</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#version">version</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#webkitworker">webkitWorker</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">true</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#worker">worker</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;auto&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;never&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#writes">writes</a><span class="tsd-signature-symbol">?:</span> <a href="index.ResourceWrite.html" class="tsd-signature-type tsd-kind-type-alias">ResourceWrite</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L30">src/protocol/ring.ts:30</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#boot" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>boot?</span></a>
+<a href="#bootstrap" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>bootstrap</span></a>
+<a href="#complete" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>complete</span></a>
+<a href="#digest" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>digest</span></a>
+<a href="#lease" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lease?</span></a>
+<a href="#pack" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>pack?</span></a>
+<a href="#protocol" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>protocol</span></a>
+<a href="#routes" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>routes?</span></a>
+<a href="#tables" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>tables</span></a>
+<a href="#templates" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>templates?</span></a>
+<a href="#version" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>version</span></a>
+<a href="#webkitworker" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>webkit<wbr/>Worker?</span></a>
+<a href="#worker" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>worker</span></a>
+<a href="#writes" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>writes?</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="boot"><code class="tsd-tag">Optional</code><span>boot</span><a href="#boot" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">boot</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>the boot script that carries the runtime, this pack, and on a gate page the routes and
+templates in one response; absent when the page loads the runtime by its own tag. A gate page
+adds <code>?r=&lt;id&gt;</code>, the id of those routes and templates, so a changed template is a new URL.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L58">src/protocol/ring.ts:58</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="bootstrap"><span>bootstrap</span><a href="#bootstrap" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">bootstrap</span><span class="tsd-signature-symbol">:</span> <a href="index.BootstrapGate.html" class="tsd-signature-type tsd-kind-type-alias">BootstrapGate</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L44">src/protocol/ring.ts:44</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="complete"><span>complete</span><a href="#complete" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">complete</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+<div class="tsd-comment tsd-typography"><p>true when the ring holds every row, so no pack is fetched</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L43">src/protocol/ring.ts:43</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="digest"><span>digest</span><a href="#digest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">digest</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>the set digest of the whole pack at that version</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L35">src/protocol/ring.ts:35</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="lease"><code class="tsd-tag">Optional</code><span>lease</span><a href="#lease" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">lease</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
+<div class="tsd-comment tsd-typography"><p>the worker script's lease in seconds; the worker's views inside one lease make the third; absent on an older ring</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L52">src/protocol/ring.ts:52</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="pack"><code class="tsd-tag">Optional</code><span>pack</span><a href="#pack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">pack</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">bytes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-comment tsd-typography"><p>where the pack is and how many bytes it is; absent when <code>complete</code></p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L50">src/protocol/ring.ts:50</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="protocol"><span>protocol</span><a href="#protocol" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">protocol</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">1</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L31">src/protocol/ring.ts:31</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="routes"><code class="tsd-tag">Optional</code><span>routes</span><a href="#routes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">routes</span><span class="tsd-signature-symbol">?:</span> <a href="index.SerializedRoute.html" class="tsd-signature-type tsd-kind-type-alias">SerializedRoute</a><span class="tsd-signature-symbol">[]</span></div>
+<div class="tsd-comment tsd-typography"><p>absent on a gate page, where the boot script the ring names carries the routes and templates</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L37">src/protocol/ring.ts:37</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="tables"><span>tables</span><a href="#tables" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">tables</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.BundleRows.html" class="tsd-signature-type tsd-kind-type-alias">BundleRows</a><span class="tsd-signature-symbol">&gt;</span></div>
+<div class="tsd-comment tsd-typography"><p>rows by table, ascending by key</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L41">src/protocol/ring.ts:41</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="templates"><code class="tsd-tag">Optional</code><span>templates</span><a href="#templates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">templates</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="index.CompiledTemplate.html" class="tsd-signature-type tsd-kind-type-alias">CompiledTemplate</a><span class="tsd-signature-symbol">&gt;</span></div>
+<div class="tsd-comment tsd-typography"><p>the compiled template of each route in <code>routes</code> that has one, keyed by route pattern; absent with <code>routes</code></p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L39">src/protocol/ring.ts:39</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="version"><span>version</span><a href="#version" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">version</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+<div class="tsd-comment tsd-typography"><p>the pack version the rows belong to</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L33">src/protocol/ring.ts:33</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="webkitworker"><code class="tsd-tag">Optional</code><span>webkit<wbr/>Worker</span><a href="#webkitworker" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">webkitWorker</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">true</span></div>
+<div class="tsd-comment tsd-typography"><p>true when the site registers the worker on WebKit too (<code>workerMode: 'always'</code>); absent otherwise</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L48">src/protocol/ring.ts:48</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="worker"><span>worker</span><a href="#worker" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">worker</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;auto&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;never&quot;</span></div>
+<div class="tsd-comment tsd-typography"><p>an <code>always</code> site writes <code>auto</code> here, so a client that predates <code>always</code> reads the ring as it does an <code>auto</code> one</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L46">src/protocol/ring.ts:46</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="writes"><code class="tsd-tag">Optional</code><span>writes</span><a href="#writes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">writes</span><span class="tsd-signature-symbol">?:</span> <a href="index.ResourceWrite.html" class="tsd-signature-type tsd-kind-type-alias">ResourceWrite</a><span class="tsd-signature-symbol">[]</span></div>
+<div class="tsd-comment tsd-typography"><p>the declared resource writes, so a no-worker page can send them through <code>spool.fetch</code>; absent when none</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/drupflare/spool/blob/fd894922d203d9e7e72ce51185b015a58f2e6609/src/protocol/ring.ts#L60">src/protocol/ring.ts:60</a></li></ul></aside></section></section></details></main>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
+<div><a href="#boot"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>boot</span></a><a href="#bootstrap"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>bootstrap</span></a><a href="#complete"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>complete</span></a><a href="#digest"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>digest</span></a><a href="#lease"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lease</span></a><a href="#pack"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>pack</span></a><a href="#protocol"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>protocol</span></a><a href="#routes"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>routes</span></a><a href="#tables"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>tables</span></a><a href="#templates"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>templates</span></a><a href="#version"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>version</span></a><a href="#webkitworker"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>webkit<wbr/>Worker</span></a><a href="#worker"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>worker</span></a><a href="#writes"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>writes</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">@drupflare/spool - v1.0.0</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>
