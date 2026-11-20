@@ -7,8 +7,18 @@ import type {
 	WriteResolved,
 	WriteStatus
 } from '../protocol/write.js';
-import type { Hello, Status, ViewId, WriteReply } from '../sw/runtime.js';
+import type {
+	Hello,
+	LiveAck,
+	LiveMessage,
+	LiveState,
+	Status,
+	ViewId,
+	WriteReply
+} from '../sw/runtime.js';
+import { checkLease, holdLease, markContact } from './contact.js';
 import { closeOnPageHide, type Closable } from './lifecycle.js';
+import { askPersistence } from './persist.js';
 
 /** what `register` takes */
 export type RegisterOptions = {
@@ -38,6 +48,16 @@ export type SpoolClient = {
 	reportLoads(id: string, count: number, origins?: Record<string, number>): void;
 	/** whether the browser granted persistent storage, or null until the worker held a dataset and the page asked */
 	persisted(): boolean | null;
+	/**
+	 * the stream setting of the site, the partition the worker holds and the cursor a stream starts from
+	 * @internal
+	 */
+	liveState(): Promise<LiveState>;
+	/**
+	 * tells the worker what the page read from its stream; undefined when the worker did not answer
+	 * @internal
+	 */
+	liveEvent(message: LiveMessage): Promise<LiveAck | undefined>;
 	/** closes `db` when the page is hidden, so the page stays eligible for the back/forward cache */
 	track(db: Closable): () => void;
 	/**
@@ -99,13 +119,7 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 	const persist = async () => {
 		if (asked) return;
 		asked = true;
-		const storage = options.storage ?? navigator.storage;
-		try {
-			granted =
-				(await storage?.persisted?.()) === true || (await storage?.persist?.()) === true;
-		} catch {
-			granted = false;
-		}
+		granted = await askPersistence(options.storage ?? navigator.storage);
 		(options.target ?? window).dispatchEvent(
 			new CustomEvent('spool:persisted', { detail: { granted } })
 		);
@@ -113,19 +127,24 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 	};
 	// the worker tells every page when it wipes the principal store, so a page can blank what it shows
 	container.addEventListener?.('message', (event) => {
-		const data = event.data as { type?: unknown; reason?: unknown } | null;
+		const data = event.data as { type?: unknown; reason?: unknown; at?: unknown } | null;
 		if (data?.type === 'spool:persist') void persist();
+		if (data?.type === 'spool:contact' && typeof data.at === 'number') markContact(data.at);
 		if (data?.type === 'spool:written') {
 			const { queued, flushed, conflicted } = data as unknown as WriteFlush;
 			(options.target ?? window).dispatchEvent(
 				new CustomEvent('spool:written', { detail: { queued, flushed, conflicted } })
 			);
 		}
+		if (data?.type === 'spool:want-live') {
+			(options.target ?? window).dispatchEvent(new CustomEvent('spool:want-live'));
+		}
 		if (data?.type !== 'spool:cleared') return;
 		(options.target ?? window).dispatchEvent(
 			new CustomEvent('spool:cleared', { detail: { reason: data.reason } })
 		);
 	});
+	const registeredAt = Date.now();
 	await container.register(options.workerUrl ?? PATHS.worker, {
 		scope: options.scope,
 		updateViaCache: 'all'
@@ -139,6 +158,13 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 		{ type: 'spool:hello', protocol: PROTOCOL_VERSION },
 		timeout
 	);
+	if (hello.lease !== undefined) {
+		holdLease(registration, hello.lease);
+		// register() just ran the update check; a second one reaches the network in WebKit
+		markContact(registeredAt);
+		if (hello.contact !== undefined) markContact(hello.contact);
+		checkLease();
+	}
 	// a write call never throws: a worker that is gone or silent is a refusal like any other
 	const askWrite = async <R>(
 		message: { type: WriteReply['type'] } & Record<string, unknown>,
@@ -172,6 +198,14 @@ export async function register(options: RegisterOptions = {}): Promise<SpoolClie
 				origins
 			}),
 		persisted: () => granted,
+		liveState: () =>
+			ask<LiveState>(registration.active ?? active, { type: 'spool:live-state' }, timeout),
+		liveEvent: (message) =>
+			ask<LiveAck>(
+				registration.active ?? active,
+				{ type: 'spool:live', ...message },
+				timeout
+			).catch(() => undefined),
 		track: (db) => closeOnPageHide(db),
 		write: (name, key, value, version) =>
 			askWrite({ type: 'spool:write', name, key, value, version }),
