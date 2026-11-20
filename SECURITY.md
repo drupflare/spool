@@ -2,11 +2,12 @@
 
 ## Supported Versions
 
-Spool is before 1.0. Security fixes go into the latest minor release only.
+Security fixes go into the latest minor release only.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.4.x   | yes       |
+| 1.0.x   | yes       |
+| 0.4.x   | no        |
 | 0.3.x   | no        |
 | 0.2.x   | no        |
 | 0.1.x   | no        |
@@ -56,6 +57,8 @@ The full threat model, with the code path and test behind each claim, is
 - **Stored principal data is sealed at rest** with AES-GCM under a non-extractable key. Deleting
   the key makes the data unreadable (crypto-shredding). This is not a defence against script
   running on the site's origin.
+- **A site pack holds public data only.** Principal datasets are left out of it. It is served without
+  credentials and stored in the clear on the device, and a logout does not remove it.
 - **Logout wipes before the request leaves**, offline too, for every tab of the origin.
 - **Revocation is bounded by freshness.** A principal route is hard-bounded at five minutes by
   default, and the first required sync after a permission change drops the page.
@@ -70,6 +73,12 @@ The full threat model, with the code path and test behind each claim, is
 Spool lists what it does not protect against, rather than leave it to be found. The current list
 is the [Open Limitations](docs/security.md#open-limitations) table. Read it before you put
 signed-in data behind spool.
+
+Four limits concern the site pack and the network-read families. Anyone can fetch any version the
+server's store holds at `/.spool/bundle/<version>`, and a version is a small integer, so do not
+declare a dataset public that the site would keep private. A device keeps its pack through a logout.
+A signed-in read of a family takes its row from a copy of the family's dataset that the device holds
+per partition, so that dataset must be declared as a principal dataset.
 
 ## Maintenance
 
