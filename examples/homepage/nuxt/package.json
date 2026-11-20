@@ -1,0 +1,13 @@
+{
+	"name": "spool-example-homepage-nuxt",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "nuxt build",
+		"dev": "nuxt dev"
+	},
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"nuxt": "4.6.4"
+	}
+}
