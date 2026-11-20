@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-hapi",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"@hapi/hapi": "^21.4.10"
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-fastify",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"fastify": "^5.12.7"
+	}
+}

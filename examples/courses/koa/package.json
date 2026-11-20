@@ -1,0 +1,9 @@
+{
+	"name": "spool-example-koa",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../..",
+		"koa": "^3.2.1"
+	}
+}
