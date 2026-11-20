@@ -1,6 +1,25 @@
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { dirname, join } from 'node:path';
 import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import type { StaticSink } from '../server/static.js';
+
+/** a static sink that writes each path under `root`, creating folders as it goes */
+export function fileStaticSink(root: string): StaticSink {
+	return {
+		async put(path, bytes) {
+			const file = join(root, path);
+			await mkdir(dirname(file), { recursive: true });
+			await writeFile(file, bytes);
+		},
+		async has(path) {
+			return access(join(root, path)).then(
+				() => true,
+				() => false
+			);
+		}
+	};
+}
 
 /** a Fetch-style handler; return `undefined` to hand the request to the next Node middleware */
 export type FetchHandler = (
@@ -36,7 +55,7 @@ export function toRequest(
 		method: req.method,
 		headers,
 		signal: controller.signal,
-		...(body ? { body: body as ReadableStream, duplex: 'half' } : {})
+		...(body ? { body: body as unknown as ReadableStream, duplex: 'half' } : {})
 	} as RequestInit);
 }
 
@@ -54,10 +73,52 @@ export async function writeResponse(
 	const cookies = response.headers.getSetCookie();
 	if (cookies.length > 0) res.setHeader('set-cookie', cookies);
 	if (head || !response.body) {
+		void response.body?.cancel().catch(() => undefined);
 		res.end();
 		return;
 	}
-	await pipeline(Readable.fromWeb(response.body as never), res);
+	// pipeline attaches many close listeners to the reply; pipe with ended attaches few
+	const body = Readable.fromWeb(response.body as never);
+	// the reply only sees 'close' when the socket is destroyed, so the body's own error is kept for the caller
+	let failure: unknown;
+	body.on('error', (error) => {
+		failure = error;
+		res.destroy(error);
+	});
+	res.once('close', () => body.destroy());
+	body.pipe(res);
+	await ended(res).catch((error: unknown) => {
+		throw failure ?? error;
+	});
+}
+
+/**
+ * Settles when the reply finishes, fails or closes, and removes its own listeners. `stream.finished`
+ * keeps listeners on the response after it settles.
+ */
+function ended(res: ServerResponse): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const detach = () => {
+			res.off('finish', onFinish);
+			res.off('error', onError);
+			res.off('close', onClose);
+		};
+		const onFinish = () => {
+			detach();
+			resolve();
+		};
+		const onError = (error: Error) => {
+			detach();
+			reject(error);
+		};
+		const onClose = () => {
+			detach();
+			reject(new Error('the connection closed before the reply ended'));
+		};
+		res.on('finish', onFinish);
+		res.on('error', onError);
+		res.on('close', onClose);
+	});
 }
 
 /**
