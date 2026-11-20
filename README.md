@@ -508,6 +508,8 @@ published intensity over bytes is an allocation of that figure, and the page pri
 reading beside it. The savings from trimming, images and dictionaries apply to network views and
 never add to the local-view figure.
 
+The request counts in [Economics](docs/economics.md#headline-numbers) come from library readings on Chromium and Firefox. WebKit is absent from every library reading. The library's headline covers Chromium and Firefox only. WebKit, which is every browser on iOS, defaults to no worker because of an upstream script check on every navigation; its figures are model rows or single script-check readings, never library readings. "Chromium and Firefox" is well under all of mobile.
+
 [An Institution's Figures](docs/impact.md#an-institutions-figures) leads with economics, storage
 and trust and treats energy as a research figure. [What This Does Not
 Claim](docs/impact.md#what-this-does-not-claim) lists what the page leaves unsaid.
