@@ -176,7 +176,7 @@ async function assemblyFixture(lever: Lever): Promise<Fixture> {
 	await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
 	const proxy = spoolProxy({
 		origin: `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`,
-		spool: { store: memoryStore() },
+		spool: { store: memoryStore(), sink: memorySink() },
 		routes: [{ pattern: '/n/:id', freshness: { maxStale: 3600, mode: 'soft' } }]
 	});
 	const fixture = await serve(async (request) => {
