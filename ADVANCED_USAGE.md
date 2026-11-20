@@ -1,0 +1,1391 @@
+# Advanced Usage
+
+This page covers the declarations and settings that go beyond the Quick Start, in the order an
+operator meets them: routes, freshness, datasets, authenticated data, declared writes, the page
+runtime's remaining settings, analytics, third-party files, shadow mode, proxy mode, asset trimming,
+image conversion, and the capacity and energy reports. Each section gives what the feature is, when
+to use it, the smallest declaration, and its limit. The wire formats are in
+[docs/protocol.md](docs/protocol.md), and the threat model is in [docs/security.md](docs/security.md).
+
+The settings a first deployment decides, with defaults and recommended values, are in
+[Configuration](docs/configuration.md). This page covers the rest.
+
+Figures carry a layer: L0 published, L1 measured here, L2 derived, L3 scenario.
+
+## Strategies
+
+A route is answered locally in one of five ways. A `template` route stores JSON and renders it
+through a compiled template. An `assembly` route stores a shell with named holes, fragment markup
+for the holes and values for named slots. A `static` route stores a file as the server sent it. A
+`data` route stores JSON and answers a GET for it. A `projection` route stores JSON and renders a
+page from it with a function your site bundles into its own worker.
+
+```ts
+import { placeholder, slot } from '@drupflare/spool/protocol';
+import { defineRoute } from '@drupflare/spool/server';
+
+export const about = defineRoute('/about', {
+  strategy: 'assembly',
+  depends: () => ['menu'],
+  load: () => ({
+    shell: `<!doctype html><html><head><title>About</title></head><body>${placeholder('menu')}<main>Updated ${slot('updated')}</main></body></html>`,
+    fragments: { menu: '<nav><a href="/">Home</a></nav>' },
+    slots: { updated: '2026-10-19' }
+  })
+});
+```
+
+The worker leaves a hole it cannot fill in place and refuses to render a page with a gap, so the
+request goes to the network instead.
+
+A page the worker renders keeps the site's security headers. The worker remembers
+`Content-Security-Policy` (and its report-only form), `X-Frame-Options`, `X-Content-Type-Options`,
+`Referrer-Policy`, `Permissions-Policy` and the three `Cross-Origin-*` policies from the network
+answer to each path, and sends them with every local render of it. A path with no answer of its own
+uses the latest set from any navigation. A page with neither goes to the network until the worker
+has seen one, so a local view never goes out without the site's policy.
+
+### Records and Projections
+
+Pages that read the same data share one stored copy. `ctx.record(id, data)` stores an
+authoritative value once under its id, and `ctx.projection(id, data)` stores a value derived from
+records. Both return a reference to put in the page's data. A record's id is its invalidation tag.
+Invalidating `course:101` refreshes the records and projections that read it, and no others.
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+const courses: Record<string, string> = { '101': 'Intro', '102': 'Advanced' };
+
+export const course = defineRoute('/courses/:id', {
+  strategy: 'template',
+  template: {
+    source: '<h1>{{title}}</h1><nav>{{#each menu}}<a>{{this}}</a>{{/each}}</nav>'
+  },
+  load: (ctx) => {
+    const id = ctx.params['id'] ?? '';
+    return {
+      title: ctx.record(`course:${id}`, courses[id]),
+      menu: ctx.projection(
+        'menu',
+        Object.keys(courses).map((key) => ctx.record(`course:${key}`, courses[key]))
+      )
+    };
+  }
+});
+```
+
+The server sends only the records and projections the device does not already hold at a current
+version. A sync for the next page transfers the entries that page reads and that changed.
+
+### Templates
+
+Templates use Mustache-shaped syntax with no expressions, so the worker needs no `eval`.
+
+| Syntax                               | Meaning                                                  |
+| ------------------------------------ | -------------------------------------------------------- |
+| `{{field}}`                          | the field, HTML-escaped; `a.b` reaches into objects      |
+| `{{{field}}}`                        | the field as markup; allowed only for names in `trusted` |
+| `{{#each list}}...{{/each}}`         | repeats for each item; `{{this}}` and `{{@index}}` work  |
+| `{{#if field}}...{{else}}...{{/if}}` | renders a branch on whether the field is truthy          |
+| `{{! note }}`                        | a comment that renders nothing                           |
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+export const news = defineRoute('/news/:slug', {
+  strategy: 'template',
+  template: {
+    source:
+      '<article><h1>{{title}}</h1>{{#if byline}}<p>{{byline}}</p>{{else}}<p>Staff</p>{{/if}}<div>{{{body}}}</div><ul>{{#each tags}}<li>{{@index}} {{this}}</li>{{/each}}</ul></article>',
+    trusted: ['body']
+  },
+  depends: (ctx) => [`news:${ctx.params['slug']}`],
+  load: () => ({
+    title: 'Hello',
+    byline: null,
+    body: '<p>Trusted markup</p>',
+    tags: ['a', 'b']
+  })
+});
+```
+
+A template that names a field it does not trust for markup fails when the route is declared.
+
+A public `template` route can carry its own data in the page. `inlineMaxBytes` on `createSpool`
+sets the largest artifact, in bytes, that `handle` and `decorate` write into the HTML as an
+escaped `<script type="application/spool+json">` element. The worker reads it from the response
+and skips the `/.spool/artifact` request. It is 0, which is off, because every network view of the
+page carries the element, used or not. The page the visitor sees and the shadow comparison ignore
+it.
+
+### Static Files
+
+A `static` route has no `load` and no template. The application serves the file as it always did,
+and `handle` or `decorate` marks the response for the worker, which keeps the bytes. A tag in
+`depends` ties the file to a deploy, and `spool.invalidate` after one makes devices fetch the
+file again. A static route is always public and is always answered from the device, so it takes no
+`scope`, `persist` or `mode`. A query string makes a different file: `/app.js?v=2` is not
+answered with the copy of `/app.js`, and a query the worker has not stored goes to the network.
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+export const about = defineRoute('/about', {
+  strategy: 'static',
+  depends: () => ['site'],
+  freshness: { maxStale: 3600, mode: 'soft' }
+});
+```
+
+### Projection and Data Routes
+
+A `data` route answers a GET for JSON, such as an API read, from the stored value, so the page's
+`fetch` makes no request. The worker answers with `JSON.stringify` of what `load` returned, which
+means the application's own handler has to return the same JSON. A navigation to the URL still goes
+to the network.
+
+A `projection` route needs a renderer. Spool ships no bundler: write a worker with `serve` from
+`@drupflare/spool/sw`, bundle it with your own toolchain, and pass the bundle to `createSpool` as
+`worker`. The server puts the config in front of your bundle as `self.__SPOOL_CONFIG__`, and
+`spool.config` is the same object as JSON if you would rather inline it at build time. A route with
+no renderer is refused by the worker and the network answers.
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+export const course = defineRoute('/api/courses/:id', {
+  strategy: 'data',
+  depends: (ctx) => [`course:${ctx.params['id']}`],
+  load: (ctx) => ({ id: ctx.params['id'], title: 'Intro' }),
+  provision: { reuse: 0.8, futureViews: 6 }
+});
+
+export const roster = defineRoute('/rosters/:id', {
+  strategy: 'projection',
+  depends: (ctx) => [`roster:${ctx.params['id']}`],
+  load: (ctx) => ({ id: ctx.params['id'], names: ['Ada', 'Bo'] })
+});
+```
+
+```ts
+import { escapeHtml } from '@drupflare/spool/protocol';
+import { serve } from '@drupflare/spool/sw';
+
+declare const CONFIG: string;
+
+serve(JSON.parse(CONFIG), {
+  '/rosters/:id': (artifact) => {
+    const { names } = (artifact.body as { data: { names: string[] } }).data;
+    return `<!doctype html><html><head><title>Roster</title></head><body><ul>${names.map((name) => `<li>${escapeHtml(name)}</li>`).join('')}</ul></body></html>`;
+  }
+});
+```
+
+The server also decides whether to send an artifact at all. It weighs the bytes it would send,
+records included, against what a local view saves: reuse times future views times the bytes a view
+avoids, less the cost of the request. When that is not positive it answers `204` with
+`Spool-Provision: declined`, and the worker leaves that path to the network until it restarts.
+The priors are scenario assumptions: set them from your own telemetry in `provision`, or per route
+as above. A `data` route weighs against its own size, so its reuse times future views must exceed
+one. The defaults of 0.5 and 2 give exactly one, which breaks even, and the route is left out.
+
+### Query Routes
+
+A URL with a query string goes to the network. A public `template`, `projection` or `data` route
+can declare the query strings it answers, and the device then answers a new filter, sort or page of
+a collection it already holds with no request.
+
+```ts
+import { datasetProof, defineRoute } from '@drupflare/spool/server';
+
+const people = [
+  { name: 'Ada', department: 'math', age: 36 },
+  { name: 'Bo', department: 'cs', age: 25 }
+];
+
+export const directory = defineRoute('/people', {
+  strategy: 'template',
+  template: {
+    source:
+      '<h1>{{#if query}}Page {{query.page}} of {{query.pages}}{{else}}Everyone{{/if}}</h1><ul>{{#each people}}<li>{{name}}</li>{{/each}}</ul>'
+  },
+  depends: () => ['people'],
+  load: async () => ({ people, proof: await datasetProof(people) }),
+  query: {
+    list: 'people',
+    filter: { department: 'string', age: 'number' },
+    sort: ['name', 'age'],
+    pageSize: 20
+  },
+  provision: { reuse: 0.8, futureViews: 6 }
+});
+```
+
+`list` names the key of the loaded data that holds the whole collection, an array of flat objects.
+Each key of `filter` is a query parameter that keeps the items whose field of the same name equals
+it, read as a `string` or a `number`. A repeated parameter matches any of its values, and different
+parameters combine with and. `sort` lists the fields the `sort` parameter may name, and `-name`
+sorts descending. Ties keep the stored order. Strings compare by UTF-16 code unit, with no locale
+and no case folding, so the application's own sort has to agree. A database that compares bytes,
+such as SQLite by default, agrees except for characters above U+FFFF, and a case-insensitive or
+locale collation does not. `pageSize` sets the items per page and `page` counts from 1; without it
+the route is one page of everything. A route with `static` or `assembly` strategy cannot declare
+`query`. A route with `principal` scope can declare it only with `query.dataset`, which
+[Datasets](#datasets) describes.
+
+`load` returns the array at `list` and a `proof` made by `datasetProof`. The server refuses to
+build the artifact when the proof is missing or does not match the array. The worker computes the
+proof again from the stored copy before it answers a query. The proof shows that the device holds
+the array the server sent. That the array is the whole collection is the route's declaration:
+`list` has to hold every item the application's own answer could draw from, or a filter returns
+fewer rows than the server would.
+
+The template, or the renderer of a `projection` route, receives the stored data with the array
+replaced by the page's items and one added key, `query`, holding `{ total, page, pages }`. `total`
+counts the items after filtering. A `data` route answers with that same object as JSON. The URL
+without a query string renders the stored data as it is and has no `query` key, which is what
+`{{#if query}}` tests above.
+
+The worker answers locally only when the artifact for the path is held and fresh under the route's
+freshness contract, the proof matches and the query is one the route declares. Everything else goes
+to the network as before: a parameter the route does not name, a number filter that is not a
+finite number, a `sort` given twice or not listed, a `page` that is not a positive integer or
+lies past the last page, and an item that is not an object. A copy that fails its proof is dropped
+and fetched whole again. The worker never stores anything under a URL with a query string, and in
+shadow mode it compares its render with the network answer for the same URL.
+
+A query route's artifact is the whole collection, so it is large. The provisioning rule weighs it
+like any other artifact, and `provision` on the route sets the priors. A collection repays its
+transfer after `entryBreakEven(bytes, documentBytes)` local answers per device: a 40 KB collection
+that replaces 17 KB documents needs 2.3 (L2). Pages of one visit come from one held copy until a
+sync replaces it, so paging never mixes two versions on a device.
+
+## Freshness Contracts
+
+Each route declares how long a stored page may go without validation. `maxStale` is in seconds.
+
+- **hard:** once `maxStale` passes, the worker validates the page with the server before it
+  shows it. Offline, the route's `offline` rule decides.
+- **soft:** the worker shows the stored page at once and syncs afterward. A soft bound is a
+  stale-while-revalidate window and promises nothing about how fresh the shown page is. The
+  sync waits for a network request that happens anyway, and goes out from a local view once it
+  has waited a lease, so a device that reads only local pages still syncs once a lease.
+
+Public routes default to 15 minutes soft, and routes with `scope: 'principal'` to five minutes
+hard; [Authenticated Data](#authenticated-data) covers how their pages are stored. `offline`
+defaults to `serve` for public routes and `refuse` for principal routes. A soft route may set `sync: 'deferred'` to queue its refresh
+for the next network request that happens anyway.
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+export const stock = defineRoute('/stock/:sku', {
+  strategy: 'template',
+  template: { source: '<p>{{sku}}: {{count}}</p>' },
+  depends: (ctx) => [`stock:${ctx.params['sku']}`],
+  load: (ctx) => ({ sku: ctx.params['sku'], count: 3 }),
+  freshness: { maxStale: 60, mode: 'hard' },
+  offline: 'refuse'
+});
+
+export const notice = defineRoute('/notices/:id', {
+  strategy: 'template',
+  template: { source: '<p>{{text}}</p>' },
+  depends: (ctx) => [`notice:${ctx.params['id']}`],
+  load: () => ({ text: 'Closed on Friday' }),
+  freshness: { maxStale: 3600, mode: 'soft' },
+  sync: 'deferred'
+});
+```
+
+The worker syncs the smallest set of changed dependencies the next page needs. One worker
+leads the sync for every tab of an origin. A response to a request that happens anyway can carry
+invalidations, so a sync does not always need a request of its own.
+
+The worker script's `max-age` is the lease, one day by default and set with `freshness.maxAge` on
+`createSpool`. A page that stays open asks the browser for the script again once the lease has
+passed, at its next load or in-page view. An in-page view inside the lease makes no request.
+An adapter that serves the script itself passes the request to `spool.stub(request)`, so the
+browser can revalidate with `If-None-Match` and get a `304`. `stub()` with no request sends no
+validator. The [economics page](docs/economics.md) has the reading.
+The lease rules on the wire are in [docs/protocol.md](docs/protocol.md#lease).
+
+## Datasets
+
+A route that lists thousands of rows, such as a staff directory, makes a device fetch the whole
+collection again after each change. A dataset lets the device hold the rows and receive only the
+rows that changed. The device seeds a dataset once, then asks for a patch from the cursor it holds.
+A patch carries the rows to put, the keys to delete and a proof the device checks before it stores
+anything.
+
+`defineDataset(name, declaration)` from `@drupflare/spool/server` declares a dataset, and
+`createSpool({ datasets })` serves it at `GET /.spool/dataset`. The declaration gives the
+functions `key`, `seed`, `read`, `changes`, `horizon` and `head`, a `schema` string, and the
+`maxRows` and `maxBytes` of a seed. A dataset has its own integer cursor, which your backend holds.
+It does not use the site's version vector. `changes(since)` returns the net change after a cursor
+and decides which rows are in scope. `read(ids)` is a keyed read that never runs a route's `load`.
+A device whose cursor is below `horizon`, or whose `schema` differs, seeds again.
+
+The proof is the number of rows and the sum of every row's hash. A sum does not depend on order, so
+a patch moves it by the rows it touches. The device applies a seed or a patch to a staging copy,
+compares the result with the proof, and writes the rows and their metadata in one transaction. A
+failed proof clears that dataset and seeds it once more. The proof catches corruption and a
+half-applied patch. It does not defend against a server that sends rows and a digest that agree.
+
+A route reads a dataset in two ways. `query.dataset` names it in place of `list`: the worker takes
+the held rows in key order and applies the route's filter, sort and page, and goes to the network
+while the dataset is not held. `ctx.row(dataset, key)` puts a reference to one row in the route's
+data. The reference resolves when the page renders, so a changed row needs no new artifact.
+
+A route with `query.dataset` may also declare `query.plan`, a read-only plan written as JSON with
+joins, conditions, groups and aggregates over held datasets. It replaces `filter`, `sort` and
+`pageSize`. The worker compares values the way SQLite compares a column with no declared type, and
+sends the query to the network when a plan could give another answer than SQLite would. The server
+never evaluates a plan.
+
+A dataset declared with `provision: 'auto'` reaches a device only while it beats two controls: the
+held page under v0.3, and one plain resource that a browser cache revalidates with an `ETag`.
+Otherwise the seed request gets `409` with `Spool-Provision: declined`, and the worker holds
+nothing and does not ask again in that session. The default, `'always'`, answers every seed. The worker also
+refuses a seed whose rows would not fit the headroom that `navigator.storage.estimate()` reports,
+and the page runtime asks the browser for persistent storage once the first dataset is held.
+
+On synthetic rows (L1, no real site measured), one changed row of 500 costs 228 bytes as a patch and
+19,981 bytes as a v0.3 list refetch, and the first load costs 867 bytes more than under v0.3
+([docs/impact.md](docs/impact.md#dataset-patches)). [docs/protocol.md](docs/protocol.md#datasets)
+has the declaration rules, the wire format, query plans and the device store.
+
+### Dataset Routes
+
+A route with `family: { dataset, key }` renders one row of a held dataset. The `key` names the route
+param whose value is the row's key, and the template receives `{ params, row }`. A device that holds
+the dataset renders the page from its own copy of the row. The server still needs `load` to return
+the row, since it builds the page's artifact from it. The dataset must be declared with
+`defineDataset` and passed to `createSpool({ datasets })`.
+
+```ts
+import { defineRoute } from '@drupflare/spool/server';
+
+const rows = new Map([['c1', { id: 'c1', title: 'Intro to Drupal' }]]);
+
+export const course = defineRoute('/courses/:id', {
+  strategy: 'template',
+  template: {
+    source:
+      '<!doctype html><html><head><title>{{row.title}}</title></head><body><h1>{{row.title}}</h1></body></html>'
+  },
+  family: { dataset: 'courses', key: 'id' },
+  load: (ctx) => rows.get(ctx.params['id'] as string)
+});
+```
+
+### Principal Datasets
+
+Principal datasets are off by default and unreviewed: no external review of this feature has
+happened. They hold rows that differ for each signed-in principal. Two switches turn them on, and
+both are needed. `defineDataset(name, declaration, { principalDatasets: true })` accepts
+`scope: 'principal'`, and `createSpool({ principalDatasets: true, identity })` serves the dataset.
+A principal dataset declares `maxStaleMs`, which has no default, and cannot use
+`provision: 'auto'`.
+
+The server takes the identity from the request and passes it to every dataset function as
+`ctx.principal`. Which rows a principal may see is your code, and spool does not check what the
+functions return. The device keeps the rows sealed in the principal's partition, as
+[Authenticated Data](#authenticated-data) describes, and wipes them with it. Held rows answer a
+query for `maxStaleMs` after the last verified sync, so a principal removed on the server can read
+held rows for up to that long. Past that bound the worker syncs the rows before it shows the page,
+and shows it only when the page is still current; it goes to the network when the sync fails or the
+session ended. A principal route can declare `query` only with `query.dataset` and
+no plan, and a route and its dataset need the same scope.
+[docs/security.md](docs/security.md#principal-datasets) lists the threat modes and the test that
+holds each one.
+
+## Authenticated Data
+
+Set `scope: 'principal'` on a route that depends on who is signed in, and give `createSpool` an
+`identity` option. The server sends `Spool-Partition`, an HMAC of the principal under your secret,
+so the browser can tell users apart without learning who they are. The worker keeps each partition
+in its own IndexedDB database with the artifacts, records, projections and sync state sealed with
+AES-GCM. Each value is bound to its partition, kind and id, so a row copied into another slot does
+not decrypt.
+
+A cross-origin API route can be principal. It answers only a request with an `Authorization` header,
+only from the signed-in partition, and stops at logout. A public cross-origin route never answers a
+request with that header.
+
+`retention` picks the key. `persistent`, the default, is a non-extractable key in IndexedDB that
+survives a restart and is deleted on logout or a change of partition. `session` is a key held in
+the worker's memory, which the browser discards when it stops the worker, so a shared device that
+must not keep a reader's page across a browser restart declares it. Deleting a key makes what
+it sealed unreadable, which is crypto-shredding of data at rest. It does not protect against script
+running on your origin, which can ask the worker for whatever the page can. The ids and versions
+that serve as storage keys stay readable, so use opaque ids for anything sensitive.
+
+A principal route defaults to a five-minute hard bound and `offline: 'refuse'`. Revocation rides
+the same bound: tag a page with the permission it needs, call `spool.invalidate` when the
+permission goes, and the first required sync past the bound finds the page invalid.
+
+A different `Spool-Partition` wipes the partition before it. A login or account-switch handler has
+to send the new value itself with `spool.partition(principal)`, because the request it answers
+still carries the old identity. A sync answer carries `Spool-Partition` for the request's identity
+too, so a sign-in the worker never saw ends at the first required sync, no later than the route's
+`maxStale` plus the next view. Paths in `logout` are wiped when the request reaches the worker,
+before it is sent, so logout empties every tab even with the network down. The worker first sends
+the same-origin posts it holds in `beacons`, while they still carry the session that is ending,
+and drops any that do not get through. The page runtime
+dispatches a `spool:cleared` event on `window` in every tab when that happens, so a page can blank
+what it shows. A response can also send
+`Spool-Clear`: `*` wipes everything, a partition id wipes one. `decorate(request, response, { clear:
+['*'], hardReset: true })` adds `Clear-Site-Data: "storage"` as well, the browser's own reset
+of everything the origin holds, service worker included. Its Safari support is unverified, so rely
+on the worker's wipe.
+
+```ts
+import { createSpool, defineRoute } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export const grades = defineRoute('/grades', {
+  strategy: 'template',
+  scope: 'principal',
+  retention: 'persistent',
+  template: { source: '<h1>Grades for {{owner}}</h1>' },
+  depends: (ctx) => [`perm:${ctx.identity?.principal}`, `grades:${ctx.identity?.principal}`],
+  load: (ctx) => ({ owner: ctx.identity?.principal })
+});
+
+export const spool = createSpool({
+  routes: [grades],
+  store: memoryStore(),
+  identity: {
+    secret: 'a long random value kept on the server',
+    resolve: (request) => {
+      const user = /user=(\w+)/.exec(request.headers.get('cookie') ?? '')?.[1];
+      return user ? { principal: user } : null;
+    }
+  },
+  logout: ['/logout']
+});
+
+export async function login(user: string): Promise<Response> {
+  return new Response('Signed in', {
+    headers: {
+      'set-cookie': `user=${user}; Path=/`,
+      'spool-partition': await spool.partition(user)
+    }
+  });
+}
+```
+
+A sync that asks for everything changed lists the tags of every change, so tags for principal data
+should be opaque too. The worker syncs a principal page with `need`, which names only the tags
+that page reads.
+
+## Declared Writes
+
+Declared writes are off by default and unreviewed: no external review of this feature has
+happened. A declared write queues one kind of edit on the device and sends it at a network moment.
+The last value for a key wins. `createSpool({ identity, writes: { enabled: true, classes } })`
+turns them on. With the flag off the worker queues nothing, the page calls answer `writes-off`, and
+`PUT /.spool/write` answers `403`.
+
+`defineWrite` from `@drupflare/spool/server` declares a class. Its `scope` has to be `principal`,
+and its `path` a declared principal route. `key` says which key this principal may write, and
+`read` gives that key's current version. `apply` writes the value only when the key is still at the
+version the device edited from, in one atomic step, and returns the new version or the conflict.
+`maxBytes` and `maxPending` bound one value and the queue. The only `kind` is `last-value`, so a
+declaration cannot queue a comment, a cart, a payment, a counter, an inventory change or an audit
+record.
+
+The page calls `window.spool.write(name, key, value, version)`, `window.spool.flush()`,
+`window.spool.writes()` and `window.spool.resolve(name, key, 'local' | 'server')`. Each answers
+`{ ok: true }` with its result or `{ ok: false, code, message }`, and none throws. Edits of one key
+replace each other, so several edits cost one request. A flush sends `PUT /.spool/write` with the
+version in `If-Match` and a `Spool-Write-Id` that stays the same across retries. The page runtime
+flushes when the page is hidden. A stale version gets `412`, and the record waits as `conflicted`
+until `resolve` settles it.
+
+The queue is sealed in the principal's partition and deleted with it. A value that no flush has
+sent is lost at logout, so call `window.spool.flush()` before the logout navigation. The server
+remembers recent write ids in memory, 10,000 by default, so a site with several instances stores
+`ctx.writeId` with the value in `apply`. [docs/protocol.md](docs/protocol.md#declared-writes) has
+the request and its answers, and [docs/security.md](docs/security.md#declared-writes) the limits.
+
+## Page Runtime Settings
+
+The settings in this section belong to the page runtime, not the server. Their full text is in the
+README's [Page Runtime](README.md#page-runtime) section, and this page lists what each one controls.
+
+- **Bootstrap gate and `workerMode`.** `createSpool({ workerMode: 'never' })` serves a site with no
+  service worker. The default, `'auto'`, registers the worker in every engine except WebKit, where a
+  page that carries a ring keeps its reads in the page and registers none, because WebKit checks the
+  worker script on each document navigation (bug 332455). `'always'` keeps the worker on WebKit. The
+  engine is read from the user agent. [WebKit Default](docs/protocol.md#webkit-default) gives the
+  measurement, what WebKit loses and what it keeps. The README's Page Runtime section describes the
+  gate and the page's behaviour around it.
+- **In-page navigation and swap elements.** A page answers a link in place when its content sits in a
+  swap region, the first element marked `data-spool-swap`, or else the first `<main>`. The README's
+  [In-Page Navigation](README.md#in-page-navigation) section lists the links it answers and the
+  limits on the history it writes. [docs/protocol.md](docs/protocol.md#in-page-navigation) has the
+  wire rules.
+- **`window.spool` surface.** The page exposes `ready`, `activity` (with `activity.register`), `fetch`,
+  `write`, `flush`, `writes` and `resolve`. [Activity Hooks](README.md#activity-hooks) covers the
+  first group, and [Declared Writes](#declared-writes) covers the write calls.
+
+## Static Hosting
+
+`spool.publishStatic(sink)` writes spool's own files for a static host to serve with no Worker
+invocation: the page runtime, the worker script at `/spool-sw.js`, the packs held for the store cursor and
+the deltas between them, a boot script per pack and a `_headers` file. It does not prerender the site's
+pages, and the HTML still comes from the site's server. After a first visit the device renders held pages
+locally and makes no request, and the static tier moves spool's own endpoints off the Worker meter. The
+Vite, Vue, React Router and Nuxt plugins call it at the end of a build by default, into the build's public
+directory, and `static: false` turns it off ([Vite](docs/adapters/vite.md#static-tier) lists the
+options). Next, Angular, bare Node, Express, Hono and a hand-written Worker have no build step that
+owns a public directory, so they call `publishStatic` from a script, as
+[examples/static](examples/static/README.md) does. With no site policy known, the stub names none, and a
+device makes one network view that teaches it the headers
+([Content Security Policy](docs/security.md#content-security-policy)). See
+[Static Tier](docs/protocol.md#static-tier) for the files.
+
+## Catalogue
+
+A catalogue sends the data of pages a visitor may open next, so that opening one makes no
+request. An entry costs its bytes whether or not the page is opened, and an opened one saves a
+document request, so an entry pays only when enough visitors open it. The break-even share is the ratio below, where `E` is the entry's compressed bytes, `D` the bytes
+of the document it replaces, `k` the joules to move a byte and `o` the origin request a view
+avoids:
+
+```math
+\frac{k \times E}{k \times D + o}
+```
+
+An entry the size of the document needs 96% of visitors to open it, which no page gets. An entry
+that is only
+the data for a template the device already holds is a few hundred bytes to a few kilobytes and
+pays at a few percent. On the `payload` reading, the rendered fields of a node were a median 473
+bytes compressed on 19 pages from two sites (L1, `measurements/payload`), against a document of
+about 17,000 bytes. References such as media and terms are left out of that figure, so a real entry
+is larger. An entry is data for a `template`, `projection` or `data` route and never HTML.
+
+The site supplies the candidates. A route's `catalogue` returns the pages a visitor on it may open
+next, each with the share expected to. Take the share from your own `nextShare` over the sink
+(each `spool.view` names the route the visitor came from), from link position, or from a fixed
+prior. Pass `{ first: true }` to `nextShare` to count only first views, which is what an entry
+saves: the share over all views ran 1.5 to 6.6 times high in the bins that decide an entry in a replay
+of public visitors ([docs/impact.md](docs/impact.md#next-page-prediction)). `documentBytes` on the entry's route says what a hit saves, and the provisioning prior is
+used when it is absent.
+
+A share taken from counts can carry `n`, the observations behind it. `catalogueConfidence` on
+`createSpool` is a number of standard deviations, and with it above 0 an entry whose guess has an
+`n` is judged on the lower confidence bound of its `p`, so a share seen on 5 visits stops counting
+as one seen on 5,000. It defaults to 0, which judges every guess on its `p`. `NavModel` in
+`@drupflare/spool/protocol` keeps first-order counts with decay and a prior and returns a `p` with
+the weight to pass as `n`. In a replay of 989,818 public visitors, a model like that earned more
+per provisioned kilobyte than the most popular page
+([docs/impact.md](docs/impact.md#next-page-prediction)).
+
+```ts
+import { createSpool, defineRoute } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export const home = defineRoute('/', {
+  strategy: 'template',
+  template: { source: '<h1>Courses</h1>' },
+  load: () => ({}),
+  catalogue: () => [
+    { path: '/courses/101', p: 0.3 },
+    { path: '/courses/102', p: 0.1 }
+  ]
+});
+
+export const course = defineRoute('/courses/:id', {
+  strategy: 'template',
+  template: { source: '<h1>{{title}}</h1>' },
+  depends: (ctx) => [`course:${ctx.params['id']}`],
+  load: (ctx) => ({ title: `Course ${ctx.params['id']}` }),
+  documentBytes: 17_000
+});
+
+export const spool = createSpool({
+  routes: [home, course],
+  store: memoryStore(),
+  catalogueBytes: 16_384
+});
+```
+
+The server sends an entry only when its share reaches its own break-even, best expected net first,
+until `catalogueBytes` is spent. The cap counts compressed bytes and defaults to 32 KiB. It builds
+at most 32 pages for one request, measures each entry with Brotli where the runtime has it and
+gzip where it does not, and skips a `static` or `assembly` route. A request with `Save-Data: on`
+gets no entries.
+
+The ask rides the beacon batch the worker already sends. A due ask also makes the next network
+moment send that batch, when a view is held to carry it, so a visit of two or three pages gets its
+entries without waiting for 20 views or an hour. That costs one `POST /.spool/beacon` for each
+catalogue page, device and day, sent at a request that happens anyway. A local view never sends
+it, and a moment with nothing held sends nothing. The worker stores the entries like provisioned
+pages, and the first view of an unopened one is reported with the reason `catalogue`. `catalogueFigures` reads the views and the worker's ledger for the entries sent
+and used, the hit share, and the bytes sent against the bytes saved. Until shadow views measure
+the shares, the saving is a scenario.
+
+A hit saves the document request and nothing else. On the Drupal pages measured (75 first views of
+internal pages on 10 sites, L1, `measurements/trim`), a view of a page still fetched that page's
+new images and stylesheet and script aggregates: only 3% of those first views moved nothing but
+the document. A catalogue view takes the document off the wire, and the rest of the page is
+the site's own HTTP cache and [asset trimming](#trimmed-stylesheets).
+
+A `principal` route can be an entry. The worker then names every catalogue entry no page has
+opened at each sync of a principal page, so a revoked one is dropped at the first required sync.
+The request that asks for a catalogue names the path of the page the visitor is on, including one
+the worker showed locally, so a route that should not tell the server leaves `catalogue` off.
+[docs/security.md](docs/security.md#catalogue-entries) covers both.
+
+## Analytics Batching
+
+A page that keeps analytics scripts posting to an endpoint makes a request on every view, which
+defeats a local view. List the same-origin POST paths in `beacons`. The worker answers each post
+with a `204` and queues it in IndexedDB. At the next network request that happens anyway it sends
+the post to the URL the page meant, with its method, content type, query and body, so the vendor
+receives what the page sent. Spool's own events go to `/.spool/beacon` in one batch, where a
+`sink` receives them. The batch is sent only while `views` is on, which defaults to on only when a `sink` is set. A held post goes out on its own at most once every 24 hours, when the oldest
+is a day old. A body over 64 KiB, counted in bytes, or a binary body goes to the network at once.
+Firefox does not route `fetch` calls made with `keepalive: true` through the worker, so a script
+that posts that way is not queued there.
+
+```ts
+import { createSpool, jsonLinesSink } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+import { routes } from './routes';
+
+export const spool = createSpool({
+  routes,
+  store: memoryStore(),
+  beacons: ['/cdn-cgi/rum'],
+  sink: jsonLinesSink((line) => console.log(line))
+});
+```
+
+`jsonLinesSink` writes one JSON line per event. `analyticsEngineSink` writes to a Workers
+Analytics Engine dataset, splitting a long body across data points so nothing is cut off, and
+`memorySink` keeps events for tests. The worker also queues one
+`spool.view` event per page view with the tier, the reason, the staleness and the route the
+visitor came from (a pattern or `external`, never a URL). `viewsOf` reads
+those events back. `views` defaults to on only when a `sink` is set; set `views: false` to turn it off. `workSeries` records how long each route's
+handler took, for peak-work reports.
+
+### Collectors
+
+A `collectors` entry holds requests to another origin, such as an analytics host. The page gets an
+empty answer at once and the request leaves at a network moment, inside `maxAgeMs`. An event past
+the cap is dropped, never sent late, and each drop is counted and written to the sink as
+`/.spool/dropped`. With `delivery: 'replay'` the worker sends the held request to the vendor with no
+cookies, so identity has to be in the payload, and `stamp` writes the event's time into a query
+parameter for a vendor that takes one. With `delivery: 'sink'` the server half forwards it.
+
+GA4's browser collector takes no backdating. The Measurement Protocol accepts events with their
+own timestamps up to 72 hours old and wants them within 48 hours to attribute them, and it needs an
+API secret the page must not hold. `GA4_COLLECTOR` holds the `g/collect` hit for 48 hours and
+`ga4Sink` sends it as a Measurement Protocol request carrying the original `timestamp_micros`.
+`ga4Sink` checks its requests against the rules spool knows (`mpViolations`); set `debug: true` to
+send them to `/debug/mp/collect` with your own measurement id and secret. Spool holds events
+whether or not the visitor consented, so gate the analytics tag itself, and ask your counsel
+whether holding an event in IndexedDB needs consent where you operate. Programmatic ads are never
+held, replayed or answered locally.
+
+```ts
+import { GA4_COLLECTOR } from '@drupflare/spool/protocol';
+import { combineSinks, createSpool, ga4Sink, jsonLinesSink } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+import { routes } from './routes';
+
+export const spool = createSpool({
+  routes,
+  store: memoryStore(),
+  collectors: [
+    GA4_COLLECTOR,
+    {
+      vendor: 'matomo',
+      match: 'https://stats.example.edu/matomo.php',
+      maxAgeMs: 23 * 3_600_000,
+      delivery: 'replay',
+      stamp: { param: 'cdt', kind: 'datetime-utc' }
+    }
+  ],
+  sink: combineSinks(
+    jsonLinesSink((line) => console.log(line)),
+    ga4Sink({ measurementId: 'G-XXXXXXXXXX', apiSecret: 'kept on the server' })
+  )
+});
+```
+
+## Third-Party Files
+
+A view that loads a file from another origin is not zero-network. The page reports, when it is
+hidden, how many cross-origin resources it loaded and from which origins (origins only, never
+paths). `thirdPartyReport` reads those reports from `viewsOf` and ranks the origins by the views
+each one alone blocks, with a class and a remedy from a short table you can replace. The counts
+are an upper bound on network requests, since a cross-origin timing entry says nothing about cache
+hits without `Timing-Allow-Origin`.
+
+The opt-in `thirdParty` cache removes the request for files that name their own bytes. List the
+origins in `allow`. The worker learns a file from the first view and keeps it only when the URL
+carries a hash, a version or a `/v12/` segment, or the origin marks it immutable. A file versioned
+only by a query parameter is checked again at a network moment once it is a day old. It keeps
+nothing else, and nothing it cannot read: an opaque response counts about 7 MB against quota in
+Chromium, so `allowOpaque` is off by default. WebKit does not send font requests from a stylesheet
+through the worker, so fonts stay on the network there.
+
+```ts
+import { thirdPartyReport } from '@drupflare/spool/report';
+import { createSpool, memorySink, viewsOf } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+import { routes } from './routes';
+
+const sink = memorySink();
+
+export const spool = createSpool({
+  routes,
+  store: memoryStore(),
+  sink,
+  thirdParty: {
+    allow: ['https://fonts.gstatic.com', 'https://cdn.example.edu'],
+    maxEntries: 32
+  }
+});
+
+export const report = () => thirdPartyReport(viewsOf(sink.events));
+```
+
+## Subresource Handling
+
+By default the worker answers an immutable same-origin asset from CacheStorage. `assets` changes
+that. `passthrough` leaves assets to the browser's cache and never touches them. `static-routing`
+asks the browser through `InstallEvent.addRoutes` to send only navigations, beacons and routed
+paths to the worker and the rest of the origin to the network, and acts as `passthrough` where the
+API does not exist: Chromium has it, Playwright's WebKit has it on macOS and not on Linux, and
+Firefox does not. Static Routing keeps the requests it does not route out of the worker's fetch
+handler, and neither option changes server-side Worker invocations. Neither is measured to save
+energy, and [docs/impact.md](docs/impact.md) holds no reading for them. Under Static Routing a same-origin write no longer reaches the worker,
+so it is not a network moment and its response cannot carry invalidations; navigations still are.
+
+```ts
+import { createSpool } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+import { routes } from './routes';
+
+export const spool = createSpool({
+  routes,
+  store: memoryStore(),
+  assets: 'static-routing'
+});
+```
+
+## Shadow Mode
+
+In shadow mode the worker decides whether it could serve a page locally, renders it, still fetches
+the page from the server, compares the two with `normalise` and reports the result. It never
+serves the local page. Use it to measure eligibility and mismatches on real traffic before turning
+serving on. A `static` route has no shadow comparison.
+
+```ts
+import { createSpool } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+import { routes } from './routes';
+
+export const shadowed = createSpool({ routes, store: memoryStore(), mode: 'shadow' });
+export const canary = createSpool({ routes, store: memoryStore(), shadowSample: 0.05 });
+```
+
+`mode: 'shadow'` applies to every route that does not name its own `mode`. `shadowSample` keeps a
+share of views in shadow while the rest are served, which gives a standing canary. A mismatch
+names its route, so a route whose template and application disagree shows up before a visitor
+sees it. The worker records the shadow comparison for navigations only. Subresources and other
+requests keep the browser's own path.
+
+## Framework Routes and Declines
+
+A framework already knows which pages it has. `routesFromPages` (`@drupflare/spool/server`) takes
+the registrations a framework helper returns (`#spool/pages` in Nuxt, `spool-pages.json` in Next,
+`reactRouterPages`, `angularPages`, `vuePages`) and a map from spool pattern to the declaration only
+you can write: the template or renderer, the family's dataset, the scope, `freshness` and `depends`.
+It returns the routes and the registered patterns you left undeclared.
+
+```ts
+import { createSpool, routesFromPages, type PageLike } from '@drupflare/spool/server';
+import { memoryStore } from '@drupflare/spool/stores';
+
+declare const pages: PageLike[];
+
+const { routes, uncovered } = routesFromPages(pages, {
+  '/news/:slug': {
+    strategy: 'template',
+    template: { source: '<h1>{{row.title}}</h1>' },
+    scope: 'public',
+    family: { dataset: 'news', key: 'slug' }
+  }
+});
+for (const page of uncovered) console.info(`no route declared for ${page.pattern}`);
+export const spool = createSpool({ routes, store: memoryStore() });
+```
+
+The check runs both ways. A declaration for a pattern the framework did not register throws
+`bad-route` and lists the registered patterns, which catches a typo and a page that was renamed. A
+registered pattern with no declaration gets no route, so the network answers it, and it comes back
+in `uncovered`. A declaration that names a dataset must set `scope` or `auth`; the helper never
+takes the default `public` for a dataset it did not see. A framework path that does not convert
+(an optional or catch-all segment) has no pattern and cannot be declared. Routes keep the
+framework's order and the first match answers, so declare a static page and a parameter page that
+could match it with that in mind. Keep the routes that are not pages, such as a JSON API or a
+stylesheet, as `defineRoute` calls beside the helper's.
+
+`createSpool` refuses a `template` route whose source cannot be a page, with a `bad-template` error
+that names the pattern: a source with no text or only `...`, and a source with no field, loop or
+condition under a pattern that has parameters, which would show one constant page for every value.
+It cannot know more than that without the page. A page that really is the same for every value
+belongs on an `assembly` or `static` route.
+
+In development the Vite plugins (`spoolVite`, `spoolVue`, `spoolReactRouter`) and the Nuxt Nitro
+plugin log each fetch or XHR GET of the dev server's own origin that no data family covers, once,
+as `spool: uncovered GET /api/x`. A request to another origin never reaches the dev server, so it is
+not listed. Next's adapter runs at build time and Angular's dev server has no plugin hook, so their
+reports print no uncovered count.
+
+A response spool declines is written to the `sink` as one event at `/.spool/decline`. The body is
+`{ kind: 'decline', reason, route, source }`: `reason` is why (`cookie`, `private`, `set-cookie`,
+`vary` and the rest of `Decline`), `route` is the declared pattern, and `source` is `gate`,
+`navigation` or `artifact`. It never carries the request path. To see why a route is not held,
+count the events by `route` and `reason`:
+
+```ts
+import { jsonLinesSink } from '@drupflare/spool/server';
+
+export const sink = jsonLinesSink((line) => console.log(line));
+// a declined page logs {"path":"/.spool/decline","body":"{\"kind\":\"decline\",...}",...}
+```
+
+Group the lines whose `path` is `/.spool/decline` by `body.route` and `body.reason`, then read the
+route's `spool.view` events in the same window: a route that is `cold` on every view and has a
+decline reason is never held. A public route answered in-process is declined for any `Set-Cookie`,
+for `private` and `no-store`, and for a `Vary` other than `Accept-Encoding` and `Cookie`, so a page
+that varies by `Accept-Language` is declined too. A sink can receive forged events
+([docs/security.md](docs/security.md)), so treat the counts as estimates.
+
+## Proxy Mode
+
+`spoolProxy` fronts an origin that cannot load the library, such as PHP, Drupal with no module,
+or anything else that speaks HTTP. It returns a Fetch handler. The proxy answers `/.spool/*` and
+`/spool-sw.js`. Every other request goes to the origin with its method, headers and body, and a
+redirect is passed on, not followed. A page the proxy may keep is decorated like a `createSpool`
+response, so the worker stores it and answers later views with no request. A cold visit costs one
+origin fetch: the proxy names a hash of the page in `Spool-Artifact`, and the worker keeps the
+page it already received as the artifact when its own hash matches. On any mismatch it asks
+`/.spool/artifact` as before. In the first-payload reading (L1, a synthetic 11,145-byte page) a
+cold visit made 1 request and 1 origin fetch where it made 2 and 2 before.
+
+`spool` takes the options `createSpool` takes, minus `routes`. The proxy adds one public
+`assembly` route that matches every path (`/**`) and uses the origin's finished HTML as the
+artifact. `routes` lists overrides, such as a shorter freshness bound for one pattern. They
+match first and take the same fields as `defineRoute`, without `load`.
+
+On Node the handler goes through `toNodeListener`. `origin` is the address of the real server
+and has no path. `fetch` replaces the global `fetch` the proxy calls the origin with, such as a
+Workers service binding.
+
+```ts
+import { createServer } from 'node:http';
+import { toNodeListener } from '@drupflare/spool/node';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+const proxy = spoolProxy({
+  origin: process.env['ORIGIN'] as string,
+  spool: { store: memoryStore() },
+  purgeSecret: process.env['PURGE_SECRET']
+});
+
+export const server = createServer(toNodeListener(proxy));
+```
+
+On Workers the proxy is built once per isolate and keeps the version vector in a Durable Object,
+bound as in [Cloudflare Workers](docs/adapters/cloudflare-workers.md). Set the purge secret with
+`wrangler secret put PURGE_SECRET`.
+
+```ts
+import { spoolProxy, type SpoolProxy } from '@drupflare/spool/proxy';
+import { durableObjectStore } from '@drupflare/spool/stores/durable-object';
+
+export { SpoolVersions } from '@drupflare/spool/stores/durable-object';
+
+let proxy: SpoolProxy | undefined;
+
+export default {
+  fetch(request: Request, env: Cloudflare.Env) {
+    proxy ??= spoolProxy({
+      origin: 'https://origin.example.edu',
+      spool: { store: durableObjectStore(env.SPOOL_VERSIONS) },
+      purgeSecret: env.PURGE_SECRET
+    });
+    return proxy(request);
+  }
+};
+```
+
+### Tags
+
+The tags the origin sends become the page's dependencies. The proxy reads `Cache-Tag` (comma
+separated), `Surrogate-Key` and `X-Drupal-Cache-Tags` (space separated) and `xkey` (spaces or
+commas), then removes them from the response unless `exposeTags` is true. A page with no tags
+depends on one tag derived from its path.
+
+### Eligibility
+
+The proxy keeps a response only when all of these hold:
+
+- the request is a GET or HEAD, has no query string and no `Authorization` header, and carries
+  no cookie outside `publicCookies`, which is empty by default
+- the response is a 200 `text/html`, or the answer of a `data` route
+- the page is UTF-8, or declares no charset in its `Content-Type` or in a `<meta>` within its
+  first 1024 bytes
+- the response sets no cookie outside `publicCookies`, has no `private` or `no-store` in
+  `Cache-Control`, a `Vary` that names only `Accept-Encoding` and `Cookie`, no more than
+  `maxTags` tags and no more than `maxBytes` bytes
+
+Everything else is forwarded untouched. A page the proxy declines tells the worker to drop its
+copy of that path, and a response that sets a cookie outside `publicCookies` tells the worker to
+clear everything it holds, so a login leaves no anonymous copy to show. Put cookies that carry no
+identity on the list, such as a bot-check or load-balancer cookie set on every response; otherwise
+proxy mode never keeps a page on that site. Writes always go to the origin and are never
+answered locally.
+
+Principal routes are off unless `spool.identity` is set. With it, a route declared
+`scope: 'principal'` follows the partitions in [Authenticated Data](#authenticated-data). The
+cookie, `Authorization` and `private` rules do not apply to it. `Set-Cookie` and `no-store`
+still do.
+
+### Invalidation
+
+Two signals reach the proxy. When a page it forwards differs from the last body it saw, it bumps
+that page's tags. The proxy hashes the body after `normalise`, and `ignore` takes patterns to
+blank, such as a per-render form token. `POST /.spool/purge` bumps the tags it is given, so a CMS
+hook or Drupal's purge module can call it. It needs `Authorization: Bearer <purgeSecret>` and a
+JSON body, and it refuses every call when no secret is set.
+
+```sh
+curl -X POST https://example.edu/.spool/purge \
+  -H "Authorization: Bearer $PURGE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["node:1", "config:system.menu.main"]}'
+```
+
+### Limits
+
+The proxy sees finished HTML, not the database behind it. An artifact is a whole page, the
+replica holds no records, and two pages never share a fragment. A page stays on a device until its
+route's `maxStale` passes and the next sync reports a change, so freshness is bounded by
+`maxStale` plus the time a purge takes to arrive.
+
+A tag shared by many pages invalidates all of them when one changes. The remembered bodies live
+in the instance: a restart forgets them, and each instance of a scaled-out proxy keeps its own.
+A whole page is a large artifact, and the provisioning rule declines one that costs more than the
+priors say it saves, so set `provision` on the spool for large pages. A `Content-Security-Policy`
+that allows only nonce or hash scripts blocks the injected client tag. A URL with a query string
+always goes to the origin, because the proxy holds finished HTML and has no collection to filter;
+[Query Routes](#query-routes) apply to `createSpool` only. [Trimmed Stylesheets](#trimmed-stylesheets) covers the `trim` option
+and [Images and Video](#images-and-video) the `images` and `video` options.
+
+## Trimmed Stylesheets
+
+A new page of a Drupal site usually loads a stylesheet aggregate the visitor has not seen, and
+most of its rules match nothing on the page. `@drupflare/spool/trim` builds a manifest that removes
+the rules no page of the site can match, and `spoolProxy` serves the trimmed text in place of the
+origin's file. Each file is trimmed against every page and script of the site, never against one
+page, so it keeps its URL and its one cached copy. Rules are only removed, so the cascade of what
+stays is unchanged.
+
+```ts
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+import { buildTrimManifest } from '@drupflare/spool/trim';
+
+export const manifest = await buildTrimManifest({
+  pages: ['<body class="hero"><a class="button">Apply</a></body>'],
+  scripts: [{ url: '/js/site.js', text: 'menu.classList.add("open")' }],
+  styles: [{ url: '/css/site.css', text: '.hero{a:b}.button{c:d}.open{e:f}.print-only{g:h}' }]
+});
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  trim: manifest
+});
+```
+
+`pages` is HTML, `scripts` and `styles` are the same-origin files the pages load, and `url` is the
+address the page links. Crawl with a browser and pass the page's DOM after load and after a
+scroll as well as the origin's HTML: a class that a script builds from parts, such as
+`'fs-carousel' + '-enabled'`, is only in the rendered page. Pass the scripts of other origins that
+the pages load as `foreignScripts`, since a widget that builds markup adds classes too.
+
+Two checks protect a visitor. The proxy serves a trimmed file only when the origin's bytes still
+hash to the manifest's `source`, and otherwise sends the origin's file and counts a mismatch. It
+also reads every HTML page before it leaves: a page with a token the trim removed a rule for, or a
+same-origin script the manifest was not built with, links the full file through `spool-trim=0`.
+`proxy.trim` counts the files served, the mismatches and the guard firings, and the sink gets
+each mismatch and firing as an event. [docs/security.md](docs/security.md#trimmed-stylesheets) names
+what the guard cannot see: a class a vendor script adds after the crawl, markup injected after load
+from a page the crawl never requested, and a class name built at runtime that no crawl rendered.
+
+The proxy trims CSS and leaves JavaScript alone. Coverage at load cannot see what a click or a
+scroll will need: the used share of same-origin JavaScript rose from 36% at load to 40% after one
+scroll on the pages measured (L1), so no load-time figure says which of the rest is dead. The same
+saving from a build step that runs PurgeCSS with a safelist needs no proxy. The proxy gets it
+without a change to the origin. The saving applies to a network view of a page the visitor has not
+seen, never to a repeat or local view, and it is not part of the per-view headline;
+[docs/impact.md](docs/impact.md#asset-trimming) has the bytes, joules and prices.
+
+## Images and Video
+
+A browser that has fetched an image cannot make it smaller, so conversion happens where the file is
+served. `@drupflare/spool/media` gives `spoolProxy` three options, each off until set. `images`
+converts a JPEG or PNG response to WebP for a browser whose `Accept` lists it. `video` rewrites
+the `<video>` tags of an HTML response, such as adding `preload="none"`. `embeds` swaps a YouTube
+or Vimeo iframe for a link that loads the player on click.
+
+```ts
+import { type ImageEncoder } from '@drupflare/spool/media';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export function mediaProxy(encoder: ImageEncoder) {
+  return spoolProxy({
+    origin: 'https://origin.example.edu',
+    spool: { store: memoryStore() },
+    images: { encoder, width: { fallback: 1600 } },
+    video: { preload: 'none', autoplay: 'defer', when: 'slow' }
+  });
+}
+```
+
+An `ImageEncoder` takes the origin's bytes and `{ format: 'webp', quality, width }` and returns
+`{ bytes }`. It never upscales, so `width` is a ceiling, and it throws on input it cannot decode.
+spool has no runtime dependencies and ships an adapter for [tinyimg](https://tinyimg.gmitch215.dev),
+which decodes and encodes inside WebAssembly:
+
+```js
+import { readFile } from 'node:fs/promises';
+import { TinyImgModule, transform } from '@gmitch215/tinyimg';
+import { tinyimgEncoder } from '@drupflare/spool/media';
+
+const wasm = new URL(import.meta.resolve('@gmitch215/tinyimg/tinyimg.wasm'));
+const module = await TinyImgModule.loadBytes(await readFile(wasm));
+
+export const encoder = tinyimgEncoder({ module, transform });
+```
+
+Use tinyimg 1.1.1 or later. Version 1.1.0 and earlier drop the EXIF orientation tag without
+rotating the pixels, so a phone photo comes out sideways. `tinyimgEncoder` throws when the module
+reports an older version.
+
+Quality is 80, 65 for `Save-Data: on` and 70 for an `ECT` of `slow-2g`, `2g` or `3g`. The width
+comes from `Sec-CH-Width`, then `Sec-CH-Viewport-Width` times `Sec-CH-DPR`, then
+`width.fallback`. The proxy converts a `GET` that matches `paths` (JPEG and PNG names by default),
+has no `Range` or `Authorization`, and gets a `200` JPEG or PNG without a cookie between
+`minBytes` (4096) and `maxBytes` (15,000,000). Anything else, and any file the encoder cannot
+shrink, goes out as the origin sent it. The proxy fetches the origin for every request, so a
+visitor only gets bytes the origin sent that visitor.
+
+A converted response carries `Vary` for `Accept`, `Save-Data`, `Sec-CH-Width`, `Sec-CH-DPR`,
+`Sec-CH-Viewport-Width` and `ECT`, a weak `ETag` and `X-Spool-Image`. HTML responses gain
+`Accept-CH` for the three size hints and `ECT` unless `hints` is false, and the browser then
+sends them with later image requests to the same origin.
+
+`maxWidth` (2560) is the width for a request that carries no hint, and `false` removes it. `png`
+is `'lossy'` by default. `'lossless'` encodes every PNG without loss, and `'auto'` encodes a PNG
+under 200 KB both ways and serves the smaller file, which suits screenshots and flat graphics.
+Requests for the same file, quality and width share one encoder call while it runs. The proxy
+waits `timeoutMs` (10,000) for the encoder and then serves the origin's file, and the late result
+is cached for the next request. `timeoutMs: false` waits without limit.
+
+Drupal's video formatter has no `preload` setting, and `preload="none"` does not stop `autoplay`.
+`autoplay: 'defer'` removes the attribute, adds `controls` and marks the tag
+`data-spool-autoplay`. With `when: 'always'` the page the spool keeps carries the rewrite. With
+`'save-data'` or `'slow'` the rewritten page is private to that visitor: it gets `private` in
+`Cache-Control` and `Save-Data, ECT` in `Vary`, and the spool does not keep it. A device's stored
+copy of that page keeps the origin's tags.
+
+`proxy.images` counts `converted`, `bytesIn` and `bytesOut` (converted responses only),
+`cacheHits`, `coalesced`, `lazied`, `responsive`, and `skipped` by reason. `proxy.video` counts
+`pages` and `rewritten`. Read the saving as `bytesIn - bytesOut` over real traffic on the site. A
+request for any other path counts under `skipped.path`, so that key follows total traffic.
+[docs/security.md](docs/security.md#images-and-video) covers the decoder.
+
+### Page Rewrites
+
+Three options change the HTML the origin sends. Each edits start tags only and leaves every other
+byte as it was, and a rewritten page gets a weak `ETag`.
+
+```ts
+import { type ImageEncoder } from '@drupflare/spool/media';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+export function rewriteProxy(encoder: ImageEncoder) {
+  return spoolProxy({
+    origin: 'https://origin.example.edu',
+    spool: { store: memoryStore() },
+    images: {
+      encoder,
+      png: 'auto',
+      maxWidth: 1920,
+      timeoutMs: 5000,
+      lazy: { skip: 3 },
+      responsive: { widths: [480, 960, 1440], sizes: '(min-width: 60em) 50vw, 100vw' }
+    },
+    embeds: { providers: ['youtube'], thumbnail: false }
+  });
+}
+```
+
+`lazy` adds `loading="lazy"` and `decoding="async"` to each `<img>` after the first `skip` (2 by
+default), and `iframes: true` does the same for `<iframe>`. It leaves a tag that has `loading`,
+`fetchpriority` or a lazy-loading library's `data-src`, a tag inside a `<header>` or `<noscript>`,
+and an image that a `<link rel="preload" as="image">` names. A browser that defers the largest
+image of a page paints it later, so `skip` is the only guard and the option is off until set. In a
+crawl of 70 pages per profile on 16 sites, the default `skip` of 2 made the largest image lazy on 2
+of 23 desktop pages and 2 of 20 phone pages that had an image as their largest element, and no
+`skip` from 2 to 4 reached zero on both profiles.
+
+`responsive` adds a `srcset` of `?spool-w=<width>` variants to a same-origin `<img>` that has none,
+one per entry of `widths` (320, 480, 640, 960, 1280 and 1920 by default), and a `sizes` of `100vw`
+unless the tag has one. The proxy removes `spool-w` before it asks the origin, answers only widths
+from the list and never sends a file larger than the origin's. Firefox and Safari send no
+`Sec-CH-Width`, and this is how they get a resized file. Name the layout width in `sizes`, since
+`100vw` makes the browser pick the widest candidate it can use. A tag with `srcset` or `data-src`,
+and any tag inside `<picture>`, stays as it is.
+
+`embeds` replaces a server-rendered YouTube or Vimeo `<iframe>` with one whose `srcdoc` holds a
+link to the player. YouTube shows its thumbnail (`thumbnail: false` shows a plain frame) and the
+player loads on click. A page that sends `Content-Security-Policy` is left alone unless
+`ignoreCsp` is true, and so is an embed with `enablejsapi=1`. An embed that plays on its own by
+design stays too: a URL with `background=1`, or with `autoplay=1` beside `mute`, `muted` or `loop`,
+and an iframe whose `class` or `id` names a hero, ambient, background or banner. In a crawl of the
+server-rendered pages of 52 sites (L1, `measurements/embed-markup`), 2 of 4 Vimeo iframes were
+background loops. `proxy.embeds` counts `pages`, `rewritten` and `skipped` by reason. [docs/security.md](docs/security.md#embed-facades) covers the rules.
+
+### Dictionary Transport
+
+A visitor who holds an earlier stylesheet or script of a directory can fetch the next one as the
+difference from it. `dictionary` implements this for Chromium 130 and later
+([RFC 9842](https://www.rfc-editor.org/rfc/rfc9842)). The proxy marks public `.css` and `.js`
+responses with `Use-As-Dictionary` and answers a request that names one of them with
+`Content-Encoding: dcz`. spool has no compression library, so the caller supplies the `encoder`,
+and Node's `zlib` does zstd:
+
+```ts
+import { promisify } from 'node:util';
+import { zstdCompress } from 'node:zlib';
+import { spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+const compress = promisify(zstdCompress);
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  dictionary: {
+    encoder: async (dictionary, input) => new Uint8Array(await compress(input, { dictionary }))
+  }
+});
+```
+
+The `encoder` gets the dictionary, the new file and the coding (`'dcz'`, or `'dcb'` when `formats`
+lists it) and returns the compressed stream. spool adds the coding's header. An encoder that
+throws, or whose output is no smaller, leaves the plain file. Only responses the proxy would keep
+as public ones, with no cookie, ever become dictionaries. `proxy.dictionary` counts `registered`,
+`encoded`, `bytesIn`, `bytesOut` and `skipped`.
+[docs/security.md](docs/security.md#dictionary-transport) covers the exposure.
+
+`base` names the files that register as dictionaries, as a function of the pathname, a regular
+expression or a list of them. Without it the browser holds the latest file of each directory it
+fetched, and the sizing in [docs/impact.md](docs/impact.md#savings-today-and-at-maximum) shows that
+choice recovers little. With it the browser holds only the files you name, one per directory, and
+every other file of the directory is encoded against the base the request names.
+
+`chooseBases` picks the bases from a crawl. It takes the site's stylesheets and scripts with their
+compressed sizes and a `delta` function that returns the size of one file compressed against
+another. For each directory and file kind it returns the file whose deltas against the others, each
+capped at the other file's plain size, add up smallest. That `held` policy scores a base for a
+visitor who already holds it. Pass `{ policy: 'first-visit' }` to add the base's own plain size
+to the sum, for visitors who load the whole group before they hold anything. Neither policy
+weighs how often a file is requested or how long browsers keep the base, so neither is a proven
+minimum of total transfer. A directory with one file has no base, and a tie goes to the URL that
+sorts first. `baseMatcher` turns the choices into a `base` function.
+
+```ts
+import { promisify } from 'node:util';
+import { brotliCompressSync, zstdCompress } from 'node:zlib';
+import { baseMatcher, chooseBases, spoolProxy } from '@drupflare/spool/proxy';
+import { memoryStore } from '@drupflare/spool/stores';
+
+const compress = promisify(zstdCompress);
+
+const crawl = [
+  { url: 'https://origin.example.edu/css/a.css', kind: 'style', text: '.a{color:red}.b{margin:0}' },
+  {
+    url: 'https://origin.example.edu/css/b.css',
+    kind: 'style',
+    text: '.a{color:red}.c{margin:1px}'
+  },
+  {
+    url: 'https://origin.example.edu/css/c.css',
+    kind: 'style',
+    text: '.a{color:red}.d{margin:2px}'
+  }
+] as const;
+
+const bytes = (index: number) => Buffer.from(crawl[index]?.text ?? '');
+
+const choices = await chooseBases(
+  crawl.map(({ url, kind, text }) => ({ url, kind, plain: brotliCompressSync(text).length })),
+  async (file, dictionary) =>
+    (await compress(bytes(file), { dictionary: bytes(dictionary) })).length
+);
+
+export const proxy = spoolProxy({
+  origin: 'https://origin.example.edu',
+  spool: { store: memoryStore() },
+  dictionary: {
+    encoder: async (dictionary, input) => new Uint8Array(await compress(input, { dictionary })),
+    base: baseMatcher(choices)
+  }
+});
+```
+
+On the 10 Drupal sites of the reading, a base chosen this way and held from an earlier visit saves
+29.9% of the brotli 11 bytes of new stylesheets and scripts at the median site with `dcz`, and a
+visit that has to fetch the base first saves 3.9%
+(L1, [docs/impact.md](docs/impact.md#savings-today-and-at-maximum)).
+`scripts/measure/dictionary-size.ts` records the same choice for a site's crawl.
+
+### Defaults
+
+Every option is absent by default. The table shows what a feature does once its parent option is
+set and how to change it.
+
+| Feature                                    | Option              | Default once the parent is set              | Leave or enter                                        |
+| ------------------------------------------ | ------------------- | ------------------------------------------- | ----------------------------------------------------- |
+| WebP conversion, `304` and `X-Spool-Image` | `images`            | on, needs an `encoder`                      | leave `images` out                                    |
+| `Accept-CH` hints and `Vary`               | `images.hints`      | on                                          | `hints: false`                                        |
+| Quality by `Save-Data` and `ECT`           | `images.quality`    | 80, 65 and 70                               | give all three one number                             |
+| Width ceiling for a request with no width  | `images.maxWidth`   | 2560                                        | `maxWidth: false`, or another number                  |
+| Shared encodes and the encoder time limit  | `images.timeoutMs`  | 10,000 ms, identical encodes share one call | `timeoutMs: false` removes the limit                  |
+| PNG mode                                   | `images.png`        | `'lossy'`                                   | `'auto'` or `'lossless'`                              |
+| `loading="lazy"` on images and iframes     | `images.lazy`       | off                                         | `lazy: {}` or `{ skip, iframes }`                     |
+| `srcset` variants                          | `images.responsive` | off                                         | `responsive: {}` or `{ widths, sizes }`               |
+| `preload="none"` on video                  | `video.preload`     | `'none'`                                    | `preload: false`                                      |
+| Video autoplay deferral                    | `video.autoplay`    | off                                         | `autoplay: 'defer'`                                   |
+| YouTube and Vimeo facades                  | `embeds`            | off                                         | `embeds: {}` or `{ providers, thumbnail, ignoreCsp }` |
+| Dictionary transport                       | `dictionary`        | off                                         | `dictionary: { encoder }`                             |
+| Which files become dictionaries            | `dictionary.base`   | every `.css` and `.js` response             | `base: /\/base\.js$/`, a list or a function           |
+
+## Capacity Reports
+
+`@drupflare/spool/report` turns peak work and an institution's own limits into three separate
+results: potential, financial and physical. None is added to another, and any can be empty.
+
+`capacityPlan` takes intervals of demand per resource with the part spool avoided, and what one
+node serves per second within the latency target. It returns the nodes needed before and after,
+as whole numbers, and how many could retire. `perNode.busyMs` is the milliseconds of handler work
+a node does per second, such as 1000 times its cores times a target utilisation. `spares`, `floor`,
+`regions` and `minPerRegion` raise the answer for redundancy, and a resource with no `avoided`, such
+as memory, does not shrink. `intervalsFromWork` builds the intervals from the `WorkSample`s the
+work series records.
+
+`institutionReport` adds the plan, an `observed` before and after of the same workload from
+production telemetry, an invoice total before and after, and a ledger of retired equipment. The
+plan says what could change, `observed` what changed, the invoices what was paid, and the ledger
+what was removed. The physical result reads only the ledger, and an entry needs the evidence for
+its removal. With no ledger the statement reads `No physical capacity saving demonstrated.` The
+report also returns `economics`, `storage`, `trust` and `research` blocks. Each is null without its
+input: an `institution` profile for `economics` and `research`, `storage` for the held bytes, and
+`views` for `trust`.
+[docs/impact.md](docs/impact.md#an-institutions-figures) prints them for three example
+institutions.
+
+```ts
+import { capacityPlan, institutionReport } from '@drupflare/spool/report';
+
+const plan = capacityPlan(
+  [
+    {
+      start: Date.UTC(2026, 8, 1, 14),
+      seconds: 300,
+      demand: { busyMs: 9000 },
+      avoided: { busyMs: 6300 }
+    },
+    {
+      start: Date.UTC(2026, 8, 1, 14, 5),
+      seconds: 300,
+      demand: { busyMs: 7000 },
+      avoided: { busyMs: 4900 }
+    }
+  ],
+  { perNode: { busyMs: 700 }, spares: 1, floor: 2 }
+);
+
+export const report = institutionReport({ plan, planLayer: 'L3' });
+```
+
+The example needs 14 nodes without spool and 5 with it, a potential of 9, at layer L3 because the
+numbers are made up. `channelRows` lists the metered, attributional, capacity and avoided-demand
+channels as separate rows, and nothing in the module sums them. [docs/impact.md](docs/impact.md#channels)
+says what each one counts.
+
+### Request Arithmetic
+
+On a plan that limits requests, the question is how many views the plan carries. Name three
+inputs, each a scenario (L3) until a site's traffic supplies it:
+
+- `h`, the share of views answered on the device
+- `r`, the requests a network view makes to the platform, and `rho`, the part of them a local view
+  removes (one for the document when the page's API calls still leave)
+- `s`, the requests spool sends itself per local view: syncs, beacon flushes, catalogue asks and
+  worker script checks
+
+The platform sees the requests per view below, where `h`, `r`, `rho` and `s` are the inputs above:
+
+```math
+r - h \times \rho + h \times s
+```
+
+So a limit `L` carries the number of views below:
+
+```math
+\frac{L}{r - h \times \rho + h \times s}
+```
+
+With `r` and `rho` both 1, this is `freeTierCeiling` in `@drupflare/spool/report`. Three things
+bound `h` below 1:
+
+- A device's first view of a site, a view after the browser evicted the replica, and a view past a
+  freshness bound all reach the network. A device that makes `v` views in a freshness window
+  answers at most one fewer than `v` of them locally, so for that device `h` has this bound:
+
+  ```math
+  h \leq 1 - \frac{1}{v}
+  ```
+
+- A client that does not register the worker, such as a crawler, answers none.
+- A request outside every route family always leaves.
+
+A limit on CPU per request, such as the 10 ms of the Workers Free plan, does not change with `h`.
+The docs' free-tier table uses one sync per 20 local views as an illustration. No multiplier
+follows from the formula until a site's `v`, its share of clients that cannot answer locally and
+`s` are measured.
+
+## Energy Reporting
+
+The energy figures and the reporting unit are in the README's
+[Energy Reporting](README.md#energy-reporting) section, and the per-view joules, their layers and
+their limits are in [docs/impact.md](docs/impact.md).
