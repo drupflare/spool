@@ -31,6 +31,8 @@
 		"readme/placeholders.d.ts",
 		"readme/cloudflare-env.d.ts",
 		"../../examples/**/next.config.ts",
+		"../../examples/dashboard/next/server.ts",
+		"../../examples/homepage/next/server.ts",
 		"../../examples/**/nuxt.config.ts",
 		"../../examples/static/vite-vue/vite.config.ts"
 	]

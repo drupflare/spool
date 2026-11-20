@@ -10,6 +10,7 @@ if (isCI) {
 export default defineConfig({
 	testDir: './tests/browser',
 	testMatch: '**/*.pw.ts',
+	testIgnore: process.env.SKIP_FRAMEWORKS ? '**/frameworks.pw.ts' : undefined,
 	fullyParallel: false,
 	workers: 1,
 	forbidOnly: isCI,

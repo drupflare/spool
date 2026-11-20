@@ -13,9 +13,54 @@ concurrency:
 
 jobs:
   browser:
-    name: Chromium, Firefox and WebKit
+    name: ${{ matrix.engine }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
+
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+
+    permissions:
+      contents: read
+
+    env:
+      CI: 'true'
+      SKIP_FRAMEWORKS: '1'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-tags: true
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+      - name: Install the Browser
+        run: bunx playwright install --with-deps ${{ matrix.engine }}
+      - name: Run the Browser Suites
+        run: bun run test:browser --project=${{ matrix.engine }}
+      - name: Check the Browser Report
+        if: ${{ !cancelled() }}
+        run: bun scripts/check-browser-report.ts >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive the Browser Report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-report-${{ matrix.engine }}
+          path: |
+            playwright-report/
+            playwright-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  frameworks:
+    name: frameworks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
 
     permissions:
       contents: read
@@ -33,34 +78,25 @@ jobs:
           bun-version: 'latest'
       - name: Install Dependencies
         run: bun install --frozen-lockfile
-      - name: Install the Browsers
-        run: bunx playwright install --with-deps chromium firefox webkit
-      - name: Run the Browser Suites
-        run: bun run test:browser
-      - name: Fail on a Silent Skip
-        if: ${{ !cancelled() }}
+      - name: Build the Package
+        run: bun run build
+      - name: Build the Framework Fixtures
         run: |
-          bun -e '
-          const file = Bun.file("playwright-report/results.json");
-          if (!(await file.exists())) {
-            console.error("::error::no browser report was written, so nothing proves the suite ran");
-            process.exit(1);
-          }
-          const { stats } = await file.json();
-          console.log(`expected=${stats.expected} unexpected=${stats.unexpected} skipped=${stats.skipped} flaky=${stats.flaky}`);
-          if (stats.expected + stats.unexpected + stats.flaky === 0) {
-            console.error("::error::no browser test ran at all");
-            process.exit(1);
-          }
-          if (stats.skipped > 0) {
-            console.error(`::error::${stats.skipped} browser test(s) were SKIPPED; every engine this job claims has to actually run`);
-            process.exit(1);
-          }' >> "$GITHUB_STEP_SUMMARY"
+          for fixture in angular next nuxt react-router vue; do
+            (cd tests/fixtures/frameworks/$fixture && bun install --ignore-scripts && bun run build)
+          done
+      - name: Install the Browser
+        run: bunx playwright install --with-deps chromium
+      - name: Run the Framework Suites
+        run: bunx playwright test tests/browser/frameworks.pw.ts --project=chromium
+      - name: Check the Browser Report
+        if: ${{ !cancelled() }}
+        run: bun scripts/check-browser-report.ts >> "$GITHUB_STEP_SUMMARY"
       - name: Archive the Browser Report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: browser-report
+          name: browser-report-frameworks
           path: |
             playwright-report/
             playwright-results/
