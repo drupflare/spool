@@ -37,6 +37,7 @@ import {
 	repeatNavFigures,
 	repeatSplitBySite,
 	requestUsd,
+	retrofitRatio,
 	rollUpInstitutions,
 	runtimeRun,
 	saving,
@@ -54,7 +55,14 @@ import {
 	type LoopSecond,
 	type Row
 } from '../../src/report/index';
-import { DOCUMENT_BYTES, G_PER_LB } from '../../src/report/inputs';
+import {
+	DOCUMENT_BYTES,
+	G_PER_LB,
+	RETROFIT_ORIGIN,
+	RETROFIT_VIEWS,
+	RETROFIT_WORKER,
+	SESSION
+} from '../../src/report/inputs';
 
 // a scale for the tables: 100 million views a year, a round number and no institution
 const VIEWS = 100e6;
@@ -1153,5 +1161,24 @@ describe('the dataset model', () => {
 			update
 		);
 		expect(figures.breakEven).toBeCloseTo(100 / 1100, 12);
+	});
+});
+
+describe('the retrofit ratios', () => {
+	it('gives h and the multiplier from the counted views and their requests', () => {
+		const views = RETROFIT_VIEWS.value;
+		expect(retrofitRatio(views, RETROFIT_ORIGIN.chromium.value).h * 100).toBeCloseTo(96.69, 2);
+		expect(retrofitRatio(views, RETROFIT_ORIGIN.firefox.value).h * 100).toBeCloseTo(96.69, 2);
+		expect(retrofitRatio(views, RETROFIT_ORIGIN.webkit.value).h * 100).toBeCloseTo(80.99, 2);
+		expect(retrofitRatio(views, RETROFIT_WORKER.webkit.value).h * 100).toBeCloseTo(95.04, 2);
+		const chromium = retrofitRatio(views, RETROFIT_WORKER.chromium.value);
+		expect(chromium.multiplier).toBeCloseTo(30.25, 2);
+		expect(retrofitRatio(views, RETROFIT_WORKER.webkit.value).multiplier).toBeCloseTo(20.17, 2);
+	});
+
+	it('counts the deployed session from its phases', () => {
+		const phases =
+			1 + 1 + SESSION.heldReads.value + SESSION.documents.value + SESSION.restarts.value;
+		expect(phases).toBe(SESSION.views.value);
 	});
 });

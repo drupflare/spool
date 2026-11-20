@@ -38,7 +38,7 @@ export async function exercise(get: Fetcher): Promise<void> {
 	expect(envelope.artifact?.deps).toEqual(['node:1']);
 
 	const tagged = await (await get('/node/2')).text();
-	expect(tagged).toContain('data-spool-client');
+	expect(tagged).toContain('data-spool-gate');
 
 	const worker = await get('/spool-sw.js');
 	expect(worker.headers.get('cache-control')).toBe('max-age=86400');

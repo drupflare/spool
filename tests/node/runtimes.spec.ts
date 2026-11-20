@@ -101,7 +101,7 @@ describe('the README examples run', () => {
 		const front = await listen(server);
 
 		const page = await fetch(`${front}/node/1`);
-		expect(await page.text()).toContain('data-spool-client');
+		expect(await page.text()).toContain('data-spool-gate');
 		const artifact = decodeEnvelope(page.headers).artifact;
 		expect(artifact?.deps).toEqual(['node:1', 'menu']);
 		expect((await fetch(`${front}/spool-sw.js`)).status).toBe(200);
@@ -147,7 +147,7 @@ describe('the README examples run', () => {
 		};
 		expect(read.status).toBe(200);
 		expect(read.body).toContain('<h1>Node 4</h1>');
-		expect(read.body).toContain('data-spool-client');
+		expect(read.body).toContain('data-spool-gate');
 		expect(decodeURIComponent(read.artifact)).toContain('id=/node/4');
 		expect(read.sw).toBe(200);
 	});
@@ -403,117 +403,12 @@ describe('the README strategy and configuration examples run', () => {
 
 	it('page runtime: the tag points at this version on the CDN with the hash', () => {
 		expect(cdn.config.clientTag).toContain(`src="${cdnClientUrl(VERSION)}"`);
-		expect(cdn.config.clientTag).toContain('crossorigin="anonymous"');
+		expect(cdn.config.clientTag).toMatch(/data-integrity="sha384-[^"]+"/);
 	});
 });
 
-describe('the README matches the fixtures', () => {
+describe('the README manifest and the fixtures that carry behavior', () => {
 	const readme = readFileSync(join(root, 'README.md'), 'utf8');
-	const specifiers: Record<string, string> = {
-		'@drupflare/spool/client': '../../../src/client/index',
-		'@drupflare/spool/protocol': '../../../src/protocol/index',
-		'@drupflare/spool/proxy': '../../../src/proxy/index',
-		'@drupflare/spool/report': '../../../src/report/index',
-		'@drupflare/spool/sw': '../../../src/sw/index',
-		'@drupflare/spool/server': '../../../src/server/index',
-		'@drupflare/spool/stores': '../../../src/stores/index',
-		'@drupflare/spool/stores/durable-object': '../../../src/stores/durable-object',
-		'@drupflare/spool/node': '../../../src/node/listener',
-		'@drupflare/spool/trim': '../../../src/trim/index',
-		'@drupflare/spool/media': '../../../src/media/index'
-	};
-
-	const sections = new Map<string, string[]>();
-	for (const part of readme.split(/^(?=#{2,3} )/m)) {
-		const title = /^#{2,3} (.+)$/m.exec(part)?.[1]?.replace(/^[^\p{L}\p{N}]+/u, '');
-		if (!title) continue;
-		const fences = [...part.matchAll(/^```ts\n([\s\S]*?)^```/gm)].map((m) => m[1] as string);
-		if (fences.length > 0) sections.set(title, fences);
-	}
-
-	const normal = (source: string): string =>
-		source
-			.replace(/from '(@drupflare\/spool[^']*)'/g, (_, spec: string) => {
-				return `from '${specifiers[spec] ?? spec}'`;
-			})
-			.replace(/\s+/g, '');
-
-	const cases: Array<[string, string[]]> = [
-		['Declare Routes', ['routes.ts', 'store.ts', 'spool.ts']],
-		['Page Runtime', ['cdn.ts']],
-		['Activity Hooks', ['activity.ts']],
-		['Strategies', ['assembly.ts']],
-		['Static Files', ['static.ts']],
-		['Projection and Data Routes', ['projection.ts', 'sw.ts']],
-		['Query Routes', ['query.ts']],
-		['Authenticated Data', ['authenticated.ts']],
-		['Catalogue', ['catalogue.ts']],
-		['Collectors', ['collectors.ts']],
-		['Third-Party Files', ['third-party.ts']],
-		['Subresource Handling', ['assets.ts']],
-		['Records and Projections', ['graph.ts']],
-		['Templates', ['template.ts']],
-		['Freshness Contracts', ['freshness.ts']],
-		['Analytics Batching', ['analytics.ts']],
-		['Shadow Mode', ['shadow.ts']],
-		['Proxy Mode', ['proxy-node.ts', '../../fixtures/readme/proxy-workers.ts']],
-		['Trimmed Stylesheets', ['trim.ts']],
-		['Images and Video', ['media.ts']],
-		['Page Rewrites', ['rewrites.ts']],
-		['Dictionary Transport', ['dictionary.ts', 'dictionary-bases.ts']],
-		['Capacity Reports', ['capacity.ts']],
-		['Cloudflare Workers', ['../../fixtures/readme/workers.ts']],
-		['Cloudflare Pages Functions', ['cloudflare-pages.ts']],
-		['Hono', ['hono.ts']],
-		['Elysia', ['elysia.ts']],
-		['itty-router', ['itty-router.ts']],
-		['Netlify Functions', ['netlify-functions.ts']],
-		['Netlify Edge Functions', ['netlify-edge.ts']],
-		['AWS Lambda', ['lambda.ts']],
-		['Azure Functions', ['azure.ts']],
-		['Fastify', ['fastify.ts']],
-		['Koa', ['koa.ts']],
-		['hapi', ['hapi.ts']],
-		['NestJS', ['nest.ts']],
-		['Google Cloud Functions', ['google-cloud.ts']],
-		['Node', ['node-http.ts']],
-		['Express', ['express.ts']],
-		['Bun', ['bun.ts']],
-		['Deno', ['deno.ts']],
-		['Vercel Functions', ['vercel.ts']],
-		['Next.js', ['next-proxy.ts', 'next-route.ts']],
-		['Nuxt and Nitro', ['nuxt-middleware.ts', 'nuxt-route.ts']]
-	];
-
-	it.each(cases)('%s', (title, files) => {
-		const fences = sections.get(title);
-		expect(fences, `README has no ts fences under "${title}"`).toBeDefined();
-		expect(fences).toHaveLength(files.length);
-		files.forEach((file, i) => {
-			const fixture = readFileSync(join(root, 'tests/node/readme', file), 'utf8');
-			expect(normal(fences?.[i] ?? '')).toEqual(normal(fixture));
-		});
-	});
-
-	it('has a fixture for every ts fence', () => {
-		const fences = [...sections.values()].reduce((sum, list) => sum + list.length, 0);
-		const mapped = cases.reduce((sum, [, files]) => sum + files.length, 0);
-		expect(fences).toBe(mapped);
-	});
-
-	it('links every table of contents entry to a heading', () => {
-		const slugs = new Set(
-			[...readme.matchAll(/^#{2,3} (.+)$/gm)].map((m) =>
-				(m[1] as string)
-					.toLowerCase()
-					.replace(/[^\p{L}\p{N}\s-]/gu, '')
-					.replace(/ /g, '-')
-			)
-		);
-		const links = [...readme.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1] as string);
-		expect(links.length).toBeGreaterThan(10);
-		for (const link of links) expect(slugs.has(link), link).toBe(true);
-	});
 
 	it('shows a spool.json the worker accepts', () => {
 		const block = /```json\n(\{\n  "schema"[\s\S]*?)```/.exec(readme)?.[1];

@@ -172,11 +172,11 @@ describe('assets: static routing', () => {
 		expect(await installRoutes({}, config(), ORIGIN)).toBe(false);
 	});
 
-	it('does not ask for routing in another mode', async () => {
+	it('asks for no asset routing in another mode, only the navigate route', async () => {
 		const r = rig({ routes, app });
 		const seen: unknown[] = [];
 		await r.runtime.install({ addRoutes: async (list) => void seen.push(list) });
-		expect(seen).toEqual([]);
+		expect(seen).toEqual([[{ condition: { requestMode: 'navigate' }, source: 'fetch-event' }]]);
 	});
 });
 

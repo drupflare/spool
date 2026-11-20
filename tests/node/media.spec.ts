@@ -25,6 +25,7 @@ import {
 	type VideoOptions
 } from '../../src/media/index';
 import { decodeEnvelope, parseArtifact, ProtocolError } from '../../src/protocol/index';
+import { CLIENT_TAG_ATTR, GATE_ATTR } from '../../src/protocol/tag';
 import { spoolProxy, type ProxyOptions } from '../../src/proxy/index';
 import { memoryStore } from '../../src/stores/index';
 import { buildTrimManifest } from '../../src/trim/index';
@@ -93,9 +94,14 @@ function rig(images: Partial<ImageOptions> = {}, over: Partial<ProxyOptions> = {
 
 const bytesOf = async (response: Response) => new Uint8Array(await response.arrayBuffer());
 
-/** the page text without the client script the spool adds to a kept page */
-const undecorated = async (response: Response) =>
-	(await response.text()).replace(/<script src="\/\.spool\/[^>]*><\/script>/, '');
+/** the page text without its one runtime entry, a script tag or the gate */
+const undecorated = async (response: Response) => {
+	const text = await response.text();
+	expect([CLIENT_TAG_ATTR, GATE_ATTR].filter((attr) => text.includes(attr))).toHaveLength(1);
+	return text
+		.replace(/<script src="\/\.spool\/[^>]*><\/script>/, '')
+		.replace(new RegExp(`<script ${GATE_ATTR}[^>]*>[\\s\\S]*?</script>`), '');
+};
 
 const ZERO = {
 	converted: 0,

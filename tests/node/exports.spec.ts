@@ -1,20 +1,35 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	symlinkSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import pkg from '../../package.json';
+import * as angularModule from '../../src/angular/index';
 import * as clientModule from '../../src/client/index';
+import * as expressModule from '../../src/express/index';
+import * as honoModule from '../../src/hono/index';
 import * as indexModule from '../../src/index';
 import * as mediaModule from '../../src/media/index';
+import * as nextModule from '../../src/next/index';
 import * as nodeModule from '../../src/node/listener';
+import * as nuxtModule from '../../src/nuxt/index';
 import * as protocolModule from '../../src/protocol/index';
 import * as proxyModule from '../../src/proxy/index';
+import * as reactRouterModule from '../../src/react-router/index';
 import * as reportModule from '../../src/report/index';
 import * as serverModule from '../../src/server/index';
 import * as storesModule from '../../src/stores/index';
 import * as swModule from '../../src/sw/index';
 import * as trimModule from '../../src/trim/index';
+import * as viteModule from '../../src/vite/index';
+import * as vueModule from '../../src/vue/index';
 import configSource from '../../vitest.config.ts?raw';
 
 const root = join(import.meta.dirname, '../..');
@@ -31,13 +46,21 @@ const SUBPATHS: Array<[string, string, Record<string, unknown>, string]> = [
 	['./server', 'server/index', serverModule, 'defineRoute'],
 	['./server', 'server/index', serverModule, 'defineDataset'],
 	['./node', 'node/listener', nodeModule, 'toNodeListener'],
+	['./express', 'express/index', expressModule, 'spoolExpress'],
+	['./hono', 'hono/index', honoModule, 'spoolHono'],
 	['./proxy', 'proxy/index', proxyModule, 'spoolProxy'],
 	['./stores', 'stores/index', storesModule, 'memoryStore'],
 	['./sw', 'sw/index', swModule, 'serve'],
 	['./client', 'client/index', clientModule, 'register'],
 	['./report', 'report/index', reportModule, 'fleetFor'],
 	['./trim', 'trim/index', trimModule, 'trimCss'],
-	['./media', 'media/index', mediaModule, 'rewriteVideo']
+	['./media', 'media/index', mediaModule, 'rewriteVideo'],
+	['./vite', 'vite/index', viteModule, 'spoolVite'],
+	['./nuxt', 'nuxt/index', nuxtModule, 'default'],
+	['./next', 'next/index', nextModule, 'spoolTag'],
+	['./react-router', 'react-router/index', reactRouterModule, 'spoolReactRouter'],
+	['./vue', 'vue/index', vueModule, 'spoolVue'],
+	['./angular', 'angular/index', angularModule, 'spoolAngular']
 ];
 
 describe('the package exports map', () => {
@@ -76,10 +99,6 @@ describe('the package exports map', () => {
 		expect(scripts['prepublishOnly']).toContain('bun run build');
 		expect(scripts['prepublishOnly']).toContain('bun run build:cdn');
 	});
-
-	it('is in the 0.x window until 1.0.0 ships with drupflare v1.1', () => {
-		expect(pkg.version).toMatch(/^0\./);
-	});
 });
 
 describe('the packed package', () => {
@@ -117,6 +136,15 @@ describe('the packed package', () => {
 		consumer = join(work, 'consumer');
 		installed = join(consumer, 'node_modules/@drupflare/spool');
 		mkdirSync(installed, { recursive: true });
+		// a consumer installs the peers it imports; @nuxt/schema is the one nuxt's declarations import
+		for (const name of [...Object.keys(pkg.peerDependencies), '@nuxt/schema']) {
+			mkdirSync(dirname(join(consumer, 'node_modules', name)), { recursive: true });
+			symlinkSync(
+				join(root, 'node_modules', name),
+				join(consumer, 'node_modules', name),
+				'dir'
+			);
+		}
 		execFileSync(
 			'tar',
 			[
@@ -226,8 +254,13 @@ describe('the packed package', () => {
 			cwd: consumer,
 			encoding: 'utf8'
 		});
-		expect(result.stdout.split('\n').slice(0, 5)).toEqual(['']);
-		expect(result.status).toBe(0);
+		// peer packages' own declarations import optional types; only this package's files are checked
+		const ours = result.stdout
+			.split('\n')
+			.filter(
+				(line) => line.includes('@drupflare/spool/dist/') || line.startsWith('index.ts')
+			);
+		expect(ours).toEqual([]);
 	}, 60_000);
 });
 

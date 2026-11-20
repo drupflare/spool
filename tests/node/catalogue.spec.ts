@@ -333,7 +333,7 @@ describe('which entries the server sends', () => {
 	it('defaults the cap to 32 KiB and refuses a cap that is not a non-negative number', () => {
 		expect(DEFAULT_CATALOGUE_BYTES).toBe(32_768);
 		const routes = [
-			defineRoute('/a', { strategy: 'template', template: { source: '' }, load: () => ({}) })
+			defineRoute('/a', { strategy: 'template', template: { source: 'x' }, load: () => ({}) })
 		];
 		for (const catalogueBytes of [-1, Number.NaN, Infinity]) {
 			expect(() => createSpool({ routes, store: memoryStore(), catalogueBytes })).toThrow(
@@ -377,7 +377,7 @@ describe('which entries the server sends', () => {
 
 	it('refuses a catalogueConfidence that is not a non-negative number', () => {
 		const routes = [
-			defineRoute('/a', { strategy: 'template', template: { source: '' }, load: () => ({}) })
+			defineRoute('/a', { strategy: 'template', template: { source: 'x' }, load: () => ({}) })
 		];
 		for (const catalogueConfidence of [-1, Number.NaN, Infinity]) {
 			expect(() =>
@@ -487,7 +487,7 @@ describe('which entries the server sends', () => {
 	});
 
 	it('refuses a route that declares a bad catalogue or document size', () => {
-		const base = { strategy: 'template' as const, template: { source: '' }, load: () => ({}) };
+		const base = { strategy: 'template' as const, template: { source: 'x' }, load: () => ({}) };
 		expect(() => defineRoute('/a', { ...base, catalogue: 'x' as never })).toThrow(/catalogue/);
 		expect(() => defineRoute('/a', { ...base, documentBytes: -1 })).toThrow(/documentBytes/);
 		expect(() => defineRoute('/a', { ...base, documentBytes: Number.NaN })).toThrow(
