@@ -26,7 +26,13 @@ jobs:
           bun-version: 'latest'
       - name: Install Dependencies
         run: bun install --frozen-lockfile
+      - name: Render Generated Pages
+        run: |
+          bun run impact
+          bun run economics
       - name: Build Documentation
         run: bun run docs:build
+      - name: Check Documentation
+        run: bun run docs:check
       - name: Deploy Documentation
         run: bash typedoc.sh "${GITHUB_SHA::7}"
