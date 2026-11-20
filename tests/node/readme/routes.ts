@@ -11,6 +11,11 @@ export const routes = [
 	})
 ];
 
+export const identity = {
+	secret: 'a long random value kept on the server',
+	resolve: () => null
+};
+
 const escape = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export const page = (request: Request) => {

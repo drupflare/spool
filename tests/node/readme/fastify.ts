@@ -9,7 +9,9 @@ app.addHook('onRequest', async (req, reply) => {
 	const response = await spool.respond(toRequest(req.raw, reply.raw));
 	if (response) return reply.send(response);
 });
-app.get('/spool-sw.js', (req, reply) => reply.send(spool.stub()));
+app.get('/spool-sw.js', async (req, reply) =>
+	reply.send(await spool.stub(toRequest(req.raw, reply.raw)))
+);
 app.get('/node/:id', async (req, reply) => {
 	const request = toRequest(req.raw, reply.raw);
 	return reply.send(await spool.decorate(request, page(request)));

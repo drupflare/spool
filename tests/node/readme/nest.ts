@@ -21,6 +21,8 @@ class AppModule {}
 export async function bootstrap() {
 	const app = await NestFactory.create(AppModule, { logger: false });
 	app.use(toNodeListener((request) => spool.respond(request)));
-	app.use('/spool-sw.js', (req: Request, res: Response) => writeResponse(res, spool.stub()));
+	app.use('/spool-sw.js', async (req: Request, res: Response) =>
+		writeResponse(res, await spool.stub(toRequest(req, res)))
+	);
 	return app;
 }

@@ -3,8 +3,35 @@
 	"compilerOptions": {
 		"lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
 		"types": ["node"],
-		"experimentalDecorators": true
+		"experimentalDecorators": true,
+		"paths": {
+			"@drupflare/spool/angular": ["../../src/angular/index.ts"],
+			"@drupflare/spool/express": ["../../src/express/index.ts"],
+			"@drupflare/spool/hono": ["../../src/hono/index.ts"],
+			"@drupflare/spool/next": ["../../src/next/index.ts"],
+			"@drupflare/spool/node": ["../../src/node/listener.ts"],
+			"@drupflare/spool/protocol": ["../../src/protocol/index.ts"],
+			"@drupflare/spool/proxy": ["../../src/proxy/index.ts"],
+			"@drupflare/spool/react-router": ["../../src/react-router/index.ts"],
+			"@drupflare/spool/server": ["../../src/server/index.ts"],
+			"@drupflare/spool/stores": ["../../src/stores/index.ts"],
+			"@drupflare/spool/vite": ["../../src/vite/index.ts"],
+			"@drupflare/spool/vue": ["../../src/vue/index.ts"]
+		}
 	},
-	"include": ["./**/*.ts", "../../src/node/**/*.ts", "../../scripts/source-hash.ts"],
-	"exclude": ["elysia.spec.ts", "readme/elysia.ts"]
+	"include": [
+		"./**/*.ts",
+		"../../examples/**/*.ts",
+		"../../src/node/**/*.ts",
+		"../../scripts/source-hash.ts"
+	],
+	"exclude": [
+		"elysia.spec.ts",
+		"readme/elysia.ts",
+		"readme/placeholders.d.ts",
+		"readme/cloudflare-env.d.ts",
+		"../../examples/**/next.config.ts",
+		"../../examples/**/nuxt.config.ts",
+		"../../examples/static/vite-vue/vite.config.ts"
+	]
 }

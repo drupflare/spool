@@ -7,7 +7,8 @@ export const app = new Koa();
 
 app.use(async (ctx, next) => {
 	const request = toRequest(ctx.req, ctx.res);
-	const response = ctx.path === '/spool-sw.js' ? spool.stub() : await spool.respond(request);
+	const response =
+		ctx.path === '/spool-sw.js' ? await spool.stub(request) : await spool.respond(request);
 	if (!response) return next();
 	ctx.respond = false;
 	await writeResponse(ctx.res, response);

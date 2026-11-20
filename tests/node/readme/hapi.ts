@@ -9,7 +9,9 @@ server.ext('onRequest', async (request, h) => {
 	const { req, res } = request.raw;
 	const spoolRequest = toRequest(req, res);
 	const response =
-		request.path === '/spool-sw.js' ? spool.stub() : await spool.respond(spoolRequest);
+		request.path === '/spool-sw.js'
+			? await spool.stub(spoolRequest)
+			: await spool.respond(spoolRequest);
 	if (!response) return h.continue;
 	await writeResponse(res, response);
 	return h.abandon;

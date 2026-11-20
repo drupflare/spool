@@ -1,0 +1,30 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"types": ["node", "@cloudflare/workers-types"],
+		"paths": {
+			"@drupflare/spool": ["../../src/index.ts"],
+			"@drupflare/spool/angular": ["../../src/angular/index.ts"],
+			"@drupflare/spool/client": ["../../src/client/index.ts"],
+			"@drupflare/spool/express": ["../../src/express/index.ts"],
+			"@drupflare/spool/hono": ["../../src/hono/index.ts"],
+			"@drupflare/spool/media": ["../../src/media/index.ts"],
+			"@drupflare/spool/next": ["../../src/next/index.ts"],
+			"@drupflare/spool/node": ["../../src/node/listener.ts"],
+			"@drupflare/spool/nuxt": ["../../src/nuxt/index.ts"],
+			"@drupflare/spool/protocol": ["../../src/protocol/index.ts"],
+			"@drupflare/spool/proxy": ["../../src/proxy/index.ts"],
+			"@drupflare/spool/react-router": ["../../src/react-router/index.ts"],
+			"@drupflare/spool/report": ["../../src/report/index.ts"],
+			"@drupflare/spool/server": ["../../src/server/index.ts"],
+			"@drupflare/spool/stores": ["../../src/stores/index.ts"],
+			"@drupflare/spool/stores/durable-object": ["../../src/stores/durable-object.ts"],
+			"@drupflare/spool/sw": ["../../src/sw/index.ts"],
+			"@drupflare/spool/trim": ["../../src/trim/index.ts"],
+			"@drupflare/spool/vite": ["../../src/vite/index.ts"],
+			"@drupflare/spool/vue": ["../../src/vue/index.ts"]
+		}
+	},
+	"include": [".fences/**/*.ts", "./readme/**/*.d.ts"],
+	"exclude": []
+}
