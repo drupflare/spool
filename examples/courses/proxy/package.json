@@ -1,0 +1,8 @@
+{
+	"name": "spool-example-proxy",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../.."
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"name": "spool-example-cloudflare-pages",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../.."
+	},
+	"devDependencies": {
+		"wrangler": "^4.20.0"
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"name": "spool-example-deno",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@drupflare/spool": "file:../../.."
+	}
+}
