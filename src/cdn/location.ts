@@ -16,3 +16,12 @@ export function releasePrefix(version: string): string {
 export function cdnClientUrl(version: string): string {
 	return `${CDN_ORIGIN}/${releasePrefix(version)}/client.js`;
 }
+
+/**
+ * The URL a release's worker core is served from, for the `importScripts` line of the stub when
+ * `cdn.worker` is set. `hash` is the core's `shellHash`, so the URL names the exact bytes and a
+ * changed core is a new URL.
+ */
+export function cdnWorkerUrl(version: string, hash: string): string {
+	return `${CDN_ORIGIN}/${releasePrefix(version)}/spool-sw.js?h=${hash}`;
+}

@@ -20,8 +20,11 @@ import {
 	wranglerArgs,
 	type Put
 } from '../../scripts/publish-cdn';
-import { cdnClientUrl, releasePrefix } from '../../src/cdn/location';
+import { cdnClientUrl, cdnWorkerUrl, releasePrefix } from '../../src/cdn/location';
+import { shellHash } from '../../src/protocol/index';
 import { CLIENT_CORE, SW_CORE } from '../../src/server/embedded';
+import { createSpool } from '../../src/server/index';
+import { memoryStore } from '../../src/stores/index';
 import { VERSION } from '../../src/version';
 
 const root = join(import.meta.dirname, '../..');
@@ -66,6 +69,9 @@ describe('CDN locations', () => {
 	it('puts a release at spool/<version> on cdn.drupflare.com', () => {
 		expect(releasePrefix('1.2.3')).toBe('spool/1.2.3');
 		expect(cdnClientUrl('1.2.3')).toBe('https://cdn.drupflare.com/spool/1.2.3/client.js');
+		expect(cdnWorkerUrl('1.2.3', 'abc_-')).toBe(
+			'https://cdn.drupflare.com/spool/1.2.3/spool-sw.js?h=abc_-'
+		);
 	});
 
 	it('builds keys for a release and a branch', () => {
@@ -156,13 +162,22 @@ describe('the manifest', () => {
 		expect(checkDist('dev', dist('1.2.4'), '1.2.3').version).toBe('1.2.4');
 	});
 
-	it('is what bun run build:cdn writes for the embedded page runtime and worker', () => {
+	it('is what bun run build:cdn writes for the embedded page runtime and worker', async () => {
 		const out = mkdtempSync(join(tmpdir(), 'spool-build-'));
 		execFileSync('bun', ['scripts/build-cdn.ts', `--out=${out}`], { cwd: root });
 		const file = readFileSync(join(out, 'client.js'));
 		const sw = readFileSync(join(out, 'spool-sw.js'));
 		expect(file.toString('utf8')).toBe(CLIENT_CORE);
 		expect(sw.toString('utf8')).toBe(SW_CORE);
+		const spool = createSpool({
+			routes: [],
+			store: memoryStore(),
+			cdn: { integrity: 'sha384-x', worker: true }
+		});
+		const stub = await spool.stub().text();
+		const url = new URL(/importScripts\("([^"]+)"\)/.exec(stub)?.[1] ?? '');
+		expect(url.pathname).toBe(`/spool/${VERSION}/spool-sw.js`);
+		expect(url.searchParams.get('h')).toBe(await shellHash(sw.toString('utf8')));
 		const manifest = JSON.parse(readFileSync(join(out, 'manifest.json'), 'utf8'));
 		expect(manifest).toEqual(manifestFor({ 'client.js': file, 'spool-sw.js': sw }, VERSION));
 		expect(manifest.files['client.js'].sha384).toBe(
@@ -255,7 +270,7 @@ describe('publishing', () => {
 
 describe('reading the public host', () => {
 	const reply = (status: number, body = '', headers: Record<string, string> = {}) =>
-		(async () => new Response(body, { status, headers })) as typeof fetch;
+		(async () => new Response(body, { status, headers })) as unknown as typeof fetch;
 
 	it('tells a present key from a missing one and fails closed on anything else', async () => {
 		expect(await remoteExists('spool/1.2.3/client.js', reply(200))).toBe(true);
@@ -263,7 +278,7 @@ describe('reading the public host', () => {
 		await expect(remoteExists('spool/1.2.3/client.js', reply(503))).rejects.toThrow(/HTTP 503/);
 		const failing = (async () => {
 			throw new Error('offline');
-		}) as typeof fetch;
+		}) as unknown as typeof fetch;
 		await expect(remoteExists('spool/1.2.3/client.js', failing)).rejects.toThrow(/offline/);
 	});
 

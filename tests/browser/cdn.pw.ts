@@ -5,7 +5,7 @@ import { fileFor } from '../../scripts/cdn-manifest';
 import { CLIENT_CORE } from '../../src/server/embedded';
 import { viewsOf } from '../../src/server/index';
 import { VERSION } from '../../src/version';
-import { startFixture, type Fixture } from './fixture';
+import { controlled, startFixture, type Fixture } from './fixture';
 
 type SpoolWindow = { spool?: { ready: Promise<unknown> } };
 
@@ -56,7 +56,7 @@ test('the page runtime loads from another origin with SRI, registers the worker 
 	browserName
 }) => {
 	await page.goto(`${withSri.origin}/n/1`);
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	await controlled(page);
 	expect(
 		await page.evaluate(() => (window as unknown as SpoolWindow).spool?.ready)
 	).not.toBeNull();
